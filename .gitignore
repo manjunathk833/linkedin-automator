@@ -1,0 +1,37 @@
+# Python Virtual Environment & Bytecode
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Browser Profile & Session Cookies (Sensitive Credentials)
+.browser_data/
+.browser_data_test/
+
+# System & OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment & Secrets
+.env
+.env.local
+*.key
+*.pem
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Verification Scratch / Logs
+*.log
+.system_generated/
+scratch/

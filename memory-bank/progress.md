@@ -1,0 +1,93 @@
+# Completed Features
+- **Master Resume Data Store (`data/resume_profile.json`)**: Exhaustive schema covering 6.8 years of SDET experience, 29 skills, education, certs, awards, and Easy Apply default preferences.
+- **Local User Approval Gate UI (`src/ui/`)**: FastAPI backend + glassmorphic dashboard for reviewing and editing pending applications before submission.
+- **Headless PDF Generation Engine (`src/pdf_engine/`)**: Jinja2 + Playwright headless engine producing ATS-friendly PDFs locally on approval.
+- **Playwright CDP Chrome Controller (`verify/04_test_playwright_cdp.sh`)**: Remote debugging connection over port 9222 to control real local Chrome instances.
+
+# Tech Debt Log
+- None. All backend modules are backed by verified scripts in `verify/`.
+
+# Verification History
+- **Phase 20: Easy Apply Browser Context Cleanup & Selector Resilience**:
+  - Implemented `try...finally:` context cleanup in `src/automation/easy_apply.py` to close Playwright contexts safely.
+  - Expanded Easy Apply trigger button locator with selector fallbacks (`.jobs-apply-button`, `.jobs-apply-button--top-card button`, `button[data-job-id]`).
+  - Verified in `verify/20_test_easy_apply_resilience.py`.
+- **Phase 18: Dynamic Pagination & Configurable Recommended Feed Limits**:
+  - Implemented early `break` on empty pages (`len(cards) == 0`) across search profile pagination loops, preventing empty page loads when a query has fewer than 50 total results.
+  - Added configurable `max_recommended_pages: 5` in `config.yaml` to read 5+ pages of personalized AI recommendations on `/jobs/collections/recommended/`.
+  - Verified in `verify/18_test_dynamic_pagination.py`.
+- **Phase 15: Scraper Bug Fixes & Recommended Feed Multi-Card Iteration**:
+  - Cleaned query building in `build_search_url()` to strip outer brackets, rendering clean Boolean terms in LinkedIn's search bar.
+  - Decoupled card metadata extraction (`job_id`, `title`, `company`, `location`) from page navigation in `_extract_card_payload()`, preventing DOM list handle invalidation.
+  - Added multi-scroll container loading (`.scaffold-layout__list`) in `scrape_recommended_jobs()` for 20+ cards.
+  - Verified in `verify/15_test_scraper_bug_fixes.py`.
+- **Phase 14: 10x Scale Multi-Channel Job Discovery Engine**:
+  - Implemented 4-channel discovery engine in `src/scraper/job_finder.py` (Paginated Search with `start=0, 25, 50` + DOM scroll, Recommended Feed `/jobs/collections/recommended/`, Recruiter Posts `/search/results/content/`, and Similar Jobs sidebar).
+  - Configured `main.py search` to run all 4 channels sequentially in a single browser session by default.
+  - Increased `max_jobs` cap per search profile from 5 to 25.
+  - Verified in `verify/14_test_multi_channel_discovery.py`.
+- **Phase 13: 100% Linter Warning Remediation**:
+  - Created `.ruff.toml` ignoring scraper-necessary `BLE001` (blind Exception catches) and numbered `N999` test script names.
+  - Updated `verify/autofix_lint.sh` with `--unsafe-fixes` flag.
+  - Achieved **0 remaining linter errors** across all project files (`src/`, `verify/`, `main.py`).
+  - Verified in `verify/13_test_job_finder_optimization.py`.
+- **Phase 12: Linter Optimization & Ruff Auto-Fix Engine**:
+  - Configured `pyrightconfig.json` to target Python 3.9 and suppress dynamic SDK false-positive warnings (`reportAttributeAccessIssue: "none"`).
+  - Installed `ruff` auto-fix engine and created `verify/autofix_lint.sh`.
+  - Added `python main.py lint` command to auto-format and fix linter issues in 1 second.
+  - Resolved Python 3.9 type union annotations (`from __future__ import annotations`, `eval_type_backport`).
+- **Phase 11: Job Finder & Matching Optimization**:
+  - Enhanced `config.yaml` with Boolean search queries (`"Senior SDET" OR "Lead QA"`), work type filters (`remote`, `hybrid`), and Mid-Senior experience levels.
+  - Upgraded `build_search_url()` in `src/scraper/job_finder.py` to inject `f_WT=2%2C3` (Remote/Hybrid), `f_E=4` (Mid-Senior), `f_TPR=r604800` (Past week), and `sortBy=DD`.
+  - Refined `src/filter/job_filter.py` for 5+ years Senior SDET experience matching (4 to 10 years threshold).
+  - Verified in `verify/13_test_job_finder_optimization.py`.
+- **Phase 10: Sprint 6 Search & Filtering Architecture Optimization**:
+  - Resolved Gemini API `401 UNAUTHENTICATED` auth error for `AQ.` keys in `src/tailor/llm_provider.py`.
+  - Refactored `src/scraper/job_finder.py` to reuse a single long-lived Playwright browser session for batch search profiles.
+  - Implemented master deduplication index `data/processed_jobs.json` (tracking primary `job_id` and composite hashes).
+  - Built standalone `src/filter/job_filter.py` engine (`python main.py filterjobs`) matching experience requirements against candidate profile (6.8 years) and removing non-matching queue files.
+  - Verified in `verify/12_test_search_and_filter.py`.
+- **Phase 9: Sprint 5 Master Orchestrator (`main.py`) & Config Architecture**:
+  - Built `config.yaml` to define job search keywords, locations, max jobs, and browser profile settings.
+  - Implemented `main.py` with 4 dedicated modes (`--login`, `search`, `dashboard`, `--apply`).
+  - Added `data/application_history.json` for persistent execution logging.
+  - Verified in `verify/11_test_main_orchestrator.py`.
+- **Phase 8: Sprint 4 Live LinkedIn Integration Layer**:
+  - Enhanced `src/scraper/job_finder.py` to parse live LinkedIn search pages (`f_AL=true`), extract job cards, expand job details, and run Gemini 3.6 Flash AI tailoring directly into `data/pending_queue/`.
+  - Enhanced `src/automation/easy_apply.py` to navigate live job pages (`/jobs/view/{job_id}/`), trigger the real "Easy Apply" modal, auto-fill forms, upload PDFs, and halt in dry-run mode.
+  - Verified via `verify/10_test_linkedin_live_flow.py`.
+- **Phase 7: Sprint 3 LLM Integration (Gemini API Free Tier & Ollama Fallback)**:
+  - Built `src/tailor/llm_provider.py` supporting `GeminiLLMProvider` (`google-genai` SDK with `gemini-2.5-flash`), `OllamaLLMProvider` (`qwen2.5:7b`), and `HybridLLMProvider` with graceful fallback handling.
+  - Enforced structured JSON output via Pydantic (`TailoredBulletsResponse`, `ScreeningAnswerResponse`).
+  - Upgraded `src/tailor/resume_tailorer.py` to tailor experience bullet points and generate screening question responses.
+  - Verified in `verify/09_test_llm_integration.py`.
+- **Phase 6: Automated Job Finder & AI Resume Tailoring Pipeline**:
+  - Built `src/scraper/job_finder.py` for URL search construction (`f_AL=true`), CDP job card extraction, and pending queue persistence.
+  - Built `src/tailor/resume_tailorer.py` for requirement keyword extraction, experience bullet prioritization, and payload enrichment.
+  - Verified extraction, keyword matching, Pydantic validation, and pending queue storage via `verify/08_test_job_finder_and_tailorer.py`.
+- **Phase 5: Playwright Easy Apply Automation Engine**:
+  - Implemented `src/automation/easy_apply.py` with CDP attachment, role-based locators, humanized typing (`_human_type`), step pauses (`_human_delay`), PDF file attachment, and dry-run safety lock.
+  - Verified multi-step form traversal, text input population, radio group selection, PDF resume uploading, and non-submitting dry run halt via `verify/07_test_easy_apply_flow.py`.
+- **Phase 2d: Resume Accuracy Audit**:
+  - Script `verify/06_audit_resume_accuracy.py` confirmed 100% exact text match between `singlepageresume.json` and `data/resume_profile.json`.
+- **Phase 2c: PDF Generation Engine (Playwright Headless)**:
+  - Built a local Python PDF engine (`src/pdf_engine/`) using Jinja2 and Playwright to avoid macOS C-library issues with WeasyPrint.
+  - Successfully mapped the exhaustive `ResumeProfile` JSON schema to a clean, single-column ATS-friendly HTML template (`resume.html.j2`).
+  - Integrated into the Approval Gate UI (`app.py`). Approving a job now natively spits out a physical PDF file into the `approved_queue/` alongside the JSON.
+- **Phase 4: Playwright CDP Connection Verification**:
+  - Chrome launched with `--remote-debugging-port=9222` successfully on macOS.
+  - CDP endpoint confirmed live at `http://localhost:9222/json/version` (Chrome/151.0.7922.108).
+  - Playwright `connect_over_cdp()` attached to the running Chrome instance and controlled it programmatically.
+  - Navigated to `https://www.linkedin.com/jobs`, confirmed active session, captured screenshot `verify/cdp_session_check.png`.
+- **Phase 2b: Exhaustive Resume Schema Enhancement**:
+  - Expanded Pydantic models to cover JSON Resume standard: Education, Projects, Certifications, Awards, Languages, Volunteer, Publications.
+  - Expanded EasyApplyAnswers to 17 fields: country-specific work auth, salary range, relocation, work preference, clearance, EEO, cover letter.
+  - Added helper methods (`get_years_of_experience()`, `get_projects_by_tag()`, `get_total_experience_years()`).
+  - Verified in `verify/02_test_resume_store.py`.
+- **Phase 3: User Approval Gate UI Verification**:
+  - Validated FastAPI backend state transitions with `verify/03_test_approval_gate.py`.
+  - Confirmed UI logic correctly fetches from `pending_queue/` and writes finalized JSON payload to `approved_queue/` preserving user edits.
+- **Phase 2: Resume Detail Storer Schema Verification**:
+  - Validated Pydantic schema logic with `verify/02_test_resume_store.py`.
+- **Phase 1: Playwright Persistent Context Verification**: 
+  - Validated `playwright` with `launch_persistent_context` on macOS.

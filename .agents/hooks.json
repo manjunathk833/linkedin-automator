@@ -1,0 +1,33 @@
+{
+  "hooks": [
+    {
+      "event": "PostToolUse",
+      "matcher": "write_to_file|replace_file_content",
+      "action": {
+        "type": "injectSteps",
+        "injectSteps": [
+          {
+            "ephemeralMessage": "AUTOMATED AUDIT: Code modified. Triggering trackplan and reviewer..."
+          },
+          {
+            "toolCall": {
+              "name": "invoke_subagent",
+              "args": {
+                "Subagents": [
+                  {
+                    "Role": "Trackplan Auditor",
+                    "Prompt": "Read memory-bank/activeContext.md and update task completion status."
+                  },
+                  {
+                    "Role": "Verification Reviewer",
+                    "Prompt": "Check if main app code was written without a matching .sh script in the verify/ folder."
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

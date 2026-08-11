@@ -1,0 +1,1 @@
+This folder contains Bash/Zsh (.sh) scripts. Rule: ALL API calls, authentication flows, and scraping attempts MUST be mocked and verified via .sh scripts here before any Python/Node.js implementation is written in the main codebase.

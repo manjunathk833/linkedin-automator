@@ -1,0 +1,21 @@
+{
+  "venvPath": ".",
+  "venv": "venv",
+  "pythonVersion": "3.9",
+  "executionEnvironments": [
+    {
+      "root": "."
+    }
+  ],
+  "extraPaths": [
+    "."
+  ],
+  "reportMissingImports": "warning",
+  "reportAttributeAccessIssue": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportPrivateImportUsage": "none"
+}

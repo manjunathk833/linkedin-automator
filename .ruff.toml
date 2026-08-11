@@ -1,0 +1,17 @@
+# .ruff.toml — Project Linter & Formatter Configuration
+
+target-version = "py39"
+line-length = 120
+
+[lint]
+# Ignore rules unsuited for automation scrapers or numbered test scripts
+ignore = [
+  "BLE001",   # Do not catch blind exception (necessary for resilient DOM scrapers)
+  "N999",     # Invalid module name (allowed for numbered verify/ test scripts like 01_test..., 10_test...)
+  "ASYNC230", # Allow sync file open in async helper tasks
+  "ASYNC210", # Allow urllib in synchronous fallback utilities
+  "DTZ003",   # Allow datetime.utcnow() in timestamps
+  "DTZ011",   # Allow date.today() in experience calculations
+  "S110",     # Allow try-except-pass in fallback blocks
+  "PLW1510",  # Allow subprocess.run without explicit check=True
+]

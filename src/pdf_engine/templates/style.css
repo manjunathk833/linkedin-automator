@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+@page {
+    size: A4;
+    margin: 15mm 20mm;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: #111111;
+    font-size: 9.5pt;
+    line-height: 1.4;
+    margin: 0;
+    padding: 0;
+}
+
+/* Header */
+.header {
+    text-align: center;
+    margin-bottom: 12pt;
+}
+
+.name {
+    font-size: 20pt;
+    font-weight: 700;
+    margin: 0 0 2pt 0;
+}
+
+.headline {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #444;
+    margin: 0 0 6pt 0;
+}
+
+.contact-info {
+    font-size: 8.5pt;
+    color: #333;
+}
+.contact-info a {
+    color: #111;
+    text-decoration: none;
+}
+
+/* Sections */
+.section-title {
+    font-size: 12pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-bottom: 1px solid #000;
+    margin-top: 12pt;
+    margin-bottom: 6pt;
+    padding-bottom: 2pt;
+    color: #000;
+}
+
+/* Common Blocks */
+.block {
+    margin-bottom: 8pt;
+}
+
+.block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 2pt;
+}
+
+.role-title {
+    font-weight: 700;
+    font-size: 10pt;
+}
+
+.company-name {
+    font-weight: 600;
+    font-size: 10pt;
+    color: #333;
+}
+
+.date-range {
+    font-size: 9pt;
+    color: #555;
+    white-space: nowrap;
+}
+
+/* Summary */
+.summary-text {
+    margin: 0 0 6pt 0;
+    text-align: justify;
+}
+
+/* Lists */
+ul {
+    margin: 0 0 4pt 0;
+    padding-left: 14pt;
+}
+li {
+    margin-bottom: 2pt;
+    text-align: justify;
+}
+
+/* Skills */
+.skills-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4pt;
+}
+.skill-item {
+    font-weight: 600;
+}
+.skill-separator {
+    color: #888;
+}

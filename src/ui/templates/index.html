@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Applier | Approval Gate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="glass-header">
+            <h1><span class="gradient-text">AI Applier</span> Approval Gate</h1>
+            <div class="queue-status">Pending: <span id="queue-count">0</span></div>
+        </header>
+
+        <main id="main-content" class="glass-panel">
+            <div id="loading" class="spinner-container">
+                <div class="spinner"></div>
+                <p>Loading pending applications...</p>
+            </div>
+            
+            <div id="job-view" class="hidden">
+                <div class="job-split">
+                    <!-- Left Column: Job Details -->
+                    <div class="job-details-col">
+                        <div class="section-badge">Job Description</div>
+                        <h2 id="job-title" class="title">Title</h2>
+                        <h3 id="job-company" class="company">Company</h3>
+                        <p id="job-location" class="location">Location</p>
+                        <div class="requirements-box">
+                            <h4>Requirements</h4>
+                            <p id="job-reqs">Requirements text...</p>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Tailored Resume & Editable Answers -->
+                    <div class="resume-col">
+                        <div class="section-badge highlight">Tailored Application</div>
+                        
+                        <div class="card-section">
+                            <h4>Personal Details</h4>
+                            <p id="cand-name"></p>
+                            <p id="cand-email" class="muted"></p>
+                        </div>
+
+                        <div class="card-section">
+                            <h4>Tailored Achievements</h4>
+                            <div id="experience-list"></div>
+                        </div>
+
+                        <div id="easy-apply-section" class="card-section">
+                            <h4>Easy Apply Questions</h4>
+                            <form id="easy-apply-form">
+                                <!-- Inputs dynamically generated -->
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button id="btn-reject" class="btn btn-secondary">Reject & Skip</button>
+                    <button id="btn-approve" class="btn btn-primary">Approve & Queue for Playwright</button>
+                </div>
+            </div>
+
+            <div id="empty-state" class="hidden empty-state">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <h3>You're all caught up!</h3>
+                <p>No pending jobs in the queue.</p>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/static/app.js"></script>
+</body>
+</html>
