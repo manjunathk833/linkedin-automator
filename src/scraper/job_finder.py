@@ -5,6 +5,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import urllib.parse
 from typing import Any
 
@@ -141,6 +142,34 @@ class LinkedInJobFinder:
 
         return base_url + urllib.parse.urlencode(params)
 
+    def clean_job_description(self, raw_text: str) -> str:
+        """Removes layout noise, metadata artifacts, and share buttons from scraped job descriptions."""
+        if not raw_text:
+            return ""
+        noise_patterns = [
+            r"^\s*Share\s*$",
+            r"^\s*Show\s+more\s+options\s*$",
+            r"^\s*Reposted\s+.*$",
+            r"^\s*Over\s+\d+\s+people\s+clicked\s+apply.*$",
+            r"^\s*Responses\s+managed\s+off\s+LinkedIn\s*$",
+            r"^\s*Promoted\s+by\s+hirer\s*$",
+            r"^\s*Report\s+this\s+job\s*$",
+            r"^\s*Easy\s+Apply\s*$",
+            r"^\s*Save\s*$",
+            r"^\s*Apply\s*$",
+            r"^\s*Show\s+more\s*$",
+        ]
+        lines = raw_text.split("\n")
+        cleaned_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            is_noise = any(re.match(p, stripped, re.IGNORECASE) for p in noise_patterns)
+            if not is_noise:
+                cleaned_lines.append(stripped)
+        return "\n\n".join(cleaned_lines)
+
     async def scroll_results_pane(self, page: Any, scrolls: int = 5):
         """Scrolls the LinkedIn search / collection results pane down to trigger lazy loading of cards."""
         try:
@@ -266,8 +295,8 @@ class LinkedInJobFinder:
         self, page: Any, card: Any, idx: int, default_prefix: str = "job"
     ) -> dict[str, Any] | None:
         """
-        Extracts title, company, location, description from a job card and runs AI tailoring.
-        Metadata is extracted FIRST before any DOM click to prevent list handle invalidation.
+        Extracts title, company, location, and full job description from a job card and runs AI tailoring.
+        Includes title click triggering, 'See more' expansion, UI noise filtering, and direct page fallback.
         """
         try:
             # 1. Extract job_id from attributes or links
@@ -328,18 +357,39 @@ class LinkedInJobFinder:
             raw_loc = await location_elem.text_content() if await location_elem.count() > 0 else None
             loc = (raw_loc or "Remote").strip()
 
-            desc_text = f"Position for {title} requiring automation experience in Python, Java, API testing, REST Assured, Playwright, and CI/CD."
+            # 5. Full Job Description Scraping with Title Click, "See more" expansion, and noise cleaning
+            desc_text = f"Position for {title} @ {company} requiring automation experience in Python, Java, API testing, REST Assured, Playwright, and CI/CD."
             try:
                 if await card.is_visible():
-                    await card.click(timeout=2000)
-                    await asyncio.sleep(0.8)
+                    # Click title link explicitly for reliable detail pane rendering
+                    title_click_elem = card.locator(
+                        '.job-card-list__title, .job-card-container__link, a[data-control-name="job_card_title"]'
+                    ).first
+                    if await title_click_elem.count() > 0:
+                        await title_click_elem.click(timeout=2000)
+                    else:
+                        await card.click(timeout=2000)
+                    await asyncio.sleep(1.2)
+
+                    # Expand "See more" if present
+                    see_more_btn = page.locator(
+                        "button.jobs-description__footer-button, button[aria-label*='Expand'], button.jobs-description-content__footer-button"
+                    ).first
+                    if await see_more_btn.count() > 0 and await see_more_btn.is_visible():
+                        try:
+                            await see_more_btn.click(timeout=1000)
+                            await asyncio.sleep(0.5)
+                        except Exception:
+                            pass
+
                     details_elem = page.locator(
-                        "#job-details, .jobs-description__content, .jobs-search__job-details"
+                        "#job-details, .jobs-description__content, .jobs-search__job-details, article.jobs-description__container"
                     ).first
                     if await details_elem.count() > 0:
                         raw_desc = await details_elem.text_content()
-                        if raw_desc and len(raw_desc.strip()) > 20:
-                            desc_text = raw_desc.strip()
+                        cleaned = self.clean_job_description(raw_desc or "")
+                        if cleaned and len(cleaned) > 50:
+                            desc_text = cleaned
             except Exception:
                 pass
 
@@ -350,7 +400,7 @@ class LinkedInJobFinder:
                     "title": title,
                     "company": company,
                     "location": loc,
-                    "requirements": desc_text[:1000],
+                    "requirements": desc_text[:3000],
                 },
             }
 

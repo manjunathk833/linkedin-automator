@@ -43,19 +43,30 @@ function renderJob(index) {
     document.getElementById('cand-name').innerText = job.tailored_resume.personal_details.full_name;
     document.getElementById('cand-email').innerText = job.tailored_resume.personal_details.email;
     
-    // Achievements
+    // Achievements with Diff Highlighting
     const expList = document.getElementById('experience-list');
     expList.innerHTML = '';
     job.tailored_resume.experience_history.forEach(exp => {
         const div = document.createElement('div');
         div.className = 'achievement-item';
-        div.innerHTML = `<strong>${exp.role} @ ${exp.company}</strong><br>`;
-        exp.achievements.forEach(ach => {
-            div.innerHTML += `• ${ach}<br>`;
+        div.innerHTML = `<strong style="color: #60a5fa; font-size: 1rem;">${exp.role} @ ${exp.company}</strong><br>`;
+        
+        const bullets = exp.achievements_diff || exp.achievements.map(a => ({ text: a, is_tailored: false }));
+        bullets.forEach(item => {
+            const achText = typeof item === 'string' ? item : item.text;
+            const isTailored = typeof item === 'object' && item.is_tailored;
+            if (isTailored) {
+                div.innerHTML += `<div class="tailored-bullet"><span class="badge-tailored">✨ Tailored</span> ${achText}</div>`;
+            } else {
+                div.innerHTML += `<div class="base-bullet">• ${achText}</div>`;
+            }
         });
+        
+        div.innerHTML += `<div style="margin-top: 6px;">`;
         exp.tech_tags.forEach(tag => {
             div.innerHTML += `<span class="tech-tag">${tag}</span>`;
         });
+        div.innerHTML += `</div>`;
         expList.appendChild(div);
     });
     
@@ -97,7 +108,6 @@ function renderJob(index) {
 
 function getEditedPayload() {
     const job = currentJobs[currentJobIndex];
-    // Gather edits from form
     if (job.application_type === 'EASY_APPLY') {
         const inputs = document.querySelectorAll('#easy-apply-form input');
         inputs.forEach(input => {
@@ -117,7 +127,6 @@ function getEditedPayload() {
                     job.tailored_resume.easy_apply_answers[key] = val;
                 }
             } else if (!isNaN(val) && val !== '') {
-                // If it's a numeric string (like salary min/max)
                 job.tailored_resume.easy_apply_answers[key] = Number(val);
             } else {
                 job.tailored_resume.easy_apply_answers[key] = val;
@@ -129,7 +138,7 @@ function getEditedPayload() {
 
 async function approveJob() {
     const job = getEditedPayload();
-    const originalBtnText = document.getElementById('btn-approve').innerText;
+
     document.getElementById('btn-approve').innerText = 'Approving...';
     
     try {
@@ -148,9 +157,8 @@ async function approveJob() {
         }
     } catch (error) {
         alert(`Network error during approval: ${error.message}`);
-        console.error('Approval failed', error);
     } finally {
-        document.getElementById('btn-approve').innerText = originalBtnText;
+        document.getElementById('btn-approve').innerText = 'Approve & Queue';
     }
 }
 
@@ -160,15 +168,13 @@ async function rejectJob() {
         await fetch(`/api/reject/${job.job_id}`, { method: 'POST' });
         nextJob();
     } catch (error) {
-        console.error('Rejection failed', error);
+        console.error('Rejection failed:', error);
     }
 }
 
 function nextJob() {
-    currentJobs.splice(currentJobIndex, 1);
-    document.getElementById('queue-count').innerText = currentJobs.length;
-    
-    if (currentJobs.length > 0) {
+    currentJobIndex++;
+    if (currentJobIndex < currentJobs.length) {
         renderJob(currentJobIndex);
     } else {
         document.getElementById('job-view').classList.add('hidden');

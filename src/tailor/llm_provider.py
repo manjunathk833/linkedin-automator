@@ -13,7 +13,7 @@ from src.resume_store.models import ResumeProfile
 
 class TailoredBulletsResponse(BaseModel):
     tailored_bullets: list[str] = Field(
-        description="List of 2-4 customized experience bullet points matching the job description."
+        description="List of 3-4 STAR-formatted customized experience bullet points matching the job description."
     )
 
 
@@ -21,14 +21,87 @@ class ScreeningAnswerResponse(BaseModel):
     answer: str = Field(description="Concise, factual answer to the screening question based on candidate profile.")
 
 
+class ParsedAchievement(BaseModel):
+    domain: str = Field(
+        description="Domain or technical category (e.g., Performance Testing, API Automation, Cloud Certification)"
+    )
+    company: str = Field(description="Associated company or 'Personal / Certification'")
+    star_achievement: str = Field(description="STAR formatted accomplishment bullet point")
+    tools: list[str] = Field(description="Extracted list of technical tools and frameworks")
+    metric: str = Field(description="Extracted quantitative metric or outcome")
+
+
+class ParsedKnowledgeResponse(BaseModel):
+    achievements: list[ParsedAchievement] = Field(description="List of parsed STAR achievements from raw notes")
+
+
 class LLMProvider(ABC):
     @abstractmethod
-    def generate_tailored_bullets(self, job_description: str, profile: ResumeProfile) -> list[str]:
+    def generate_tailored_bullets(
+        self, job_description: str, profile: ResumeProfile, master_vault: list[dict] | None = None
+    ) -> list[str]:
         pass
 
     @abstractmethod
     def answer_screening_question(self, question: str, profile: ResumeProfile) -> str:
         pass
+
+    @abstractmethod
+    def translate_notes(self, raw_notes: str) -> list[dict]:
+        pass
+
+
+FEW_SHOT_STAR_PROMPT = """
+You are a Senior SDET Talent Architect and Technical Resume Editor.
+Your task is to tailor a candidate's authentic technical achievements to match a target Job Description (JD).
+
+### CONSTRAINTS:
+1. STAR FRAMEWORK: Every bullet must follow [Action Verb] + [Tools/Implementation] + [Quantified Outcome/ROI].
+2. ZERO HALLUCINATION: Do NOT invent metrics, dates, companies, or tools not present in the Candidate's Master Vault.
+3. KEYWORD FUSION: Weave target JD tech stack keywords (e.g. REST Assured, Playwright, Python, Java, BDD) naturally into candidate achievements.
+
+### FEW-SHOT EXAMPLES:
+
+Example 1:
+- Raw Achievement: "Built test cases for airline domain using REST Assured."
+- Target JD Keywords: "REST Assured, BDD, Cucumber, 90%+ effort reduction"
+- Output STAR Bullet: "PNR Linking & SSR [REST Assured · ReadyAPI · BDD]: Architected automated testing frameworks for airline domain; built 1000+ API test cases cutting execution effort by 93%."
+
+Example 2:
+- Raw Achievement: "Automated web UI regression using Playwright and Python."
+- Target JD Keywords: "Playwright, Python, CI/CD, Parallel Execution"
+- Output STAR Bullet: "Spearheaded web UI automation using Playwright and Python; designed parallel cross-browser pipelines reducing regression runtime from 4 hours to 45 minutes (81% faster)."
+
+### CANDIDATE PROFILE:
+Candidate: {candidate_name}
+Summary: {candidate_summary}
+
+### CANDIDATE MASTER KNOWLEDGE VAULT:
+{candidate_vault_text}
+
+### TARGET JOB DESCRIPTION:
+{job_description}
+
+Generate 3-4 high-impact STAR bullet points matching the target job description.
+"""
+
+
+TRANSLATION_PROMPT = """
+You are an expert SDET Resume Knowledge Architect.
+Your task is to convert raw candidate notes into structured STAR achievement objects.
+
+### RAW CANDIDATE NOTES:
+{raw_notes}
+
+Convert each note into a structured JSON achievement containing:
+- domain: Classified technical domain (e.g., Performance Testing, API Automation, Event-Driven Architecture, Cloud Certification)
+- company: Associated company name (e.g. Value Labs, Dunzo, Tata Elxsi) or "Personal / Certification"
+- star_achievement: STAR-formatted bullet point [Action Verb] + [Tools] + [Outcome]
+- tools: Array of tech tools (e.g. ["Locust", "Python", "API"])
+- metric: Extracted metric or ROI outcome (e.g. "35% latency reduction")
+
+Return JSON matching schema.
+"""
 
 
 class GeminiLLMProvider(LLMProvider):
@@ -49,25 +122,20 @@ class GeminiLLMProvider(LLMProvider):
     def is_available(self) -> bool:
         return self.client is not None
 
-    def generate_tailored_bullets(self, job_description: str, profile: ResumeProfile) -> list[str]:
+    def generate_tailored_bullets(
+        self, job_description: str, profile: ResumeProfile, master_vault: list[dict] | None = None
+    ) -> list[str]:
         if not self.is_available():
             raise RuntimeError("Gemini API key not configured or client unavailable.")
 
-        prompt = f"""
-        You are an expert technical resume editor.
-        Candidate Name: {profile.personal_details.full_name}
-        Headline: {profile.personal_details.label}
-        Summary: {profile.personal_details.summary}
+        vault_source = master_vault if master_vault else [exp.achievements for exp in profile.experience_history]
 
-        Job Description:
-        {job_description}
-
-        Candidate Experience Highlights:
-        {[exp.achievements for exp in profile.experience_history]}
-
-        Select and rewrite 3-4 bullet points from the candidate's actual experience that best align with the job requirements.
-        Do NOT invent fake companies or false claims. Return concise, impactful achievement bullets.
-        """
+        prompt = FEW_SHOT_STAR_PROMPT.format(
+            candidate_name=profile.personal_details.full_name,
+            candidate_summary=profile.personal_details.summary,
+            candidate_vault_text=str(vault_source),
+            job_description=job_description,
+        )
 
         response = self.client.models.generate_content(
             model=self.model_name,
@@ -109,21 +177,40 @@ class GeminiLLMProvider(LLMProvider):
         parsed = ScreeningAnswerResponse.model_validate_json(response.text)
         return parsed.answer
 
+    def translate_notes(self, raw_notes: str) -> list[dict]:
+        if not self.is_available():
+            raise RuntimeError("Gemini API key not configured or client unavailable.")
+
+        prompt = TRANSLATION_PROMPT.format(raw_notes=raw_notes)
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+                "response_schema": ParsedKnowledgeResponse,
+            },
+        )
+        parsed = ParsedKnowledgeResponse.model_validate_json(response.text)
+        return [item.model_dump() for item in parsed.achievements]
+
 
 class OllamaLLMProvider(LLMProvider):
     def __init__(self, model_name: str = "qwen2.5:7b"):
         self.model_name = model_name
 
-    def generate_tailored_bullets(self, job_description: str, profile: ResumeProfile) -> list[str]:
+    def generate_tailored_bullets(
+        self, job_description: str, profile: ResumeProfile, master_vault: list[dict] | None = None
+    ) -> list[str]:
         import ollama
 
-        prompt = f"""
-        Candidate: {profile.personal_details.full_name}
-        Job Description: {job_description}
-        Actual Achievements: {[exp.achievements for exp in profile.experience_history]}
+        vault_source = master_vault if master_vault else [exp.achievements for exp in profile.experience_history]
 
-        Select 3 bullet points matching the job description. Return JSON matching schema: {{"tailored_bullets": ["bullet1", "bullet2", "bullet3"]}}
-        """
+        prompt = FEW_SHOT_STAR_PROMPT.format(
+            candidate_name=profile.personal_details.full_name,
+            candidate_summary=profile.personal_details.summary,
+            candidate_vault_text=str(vault_source),
+            job_description=job_description,
+        )
 
         response = ollama.chat(
             model=self.model_name,
@@ -150,30 +237,65 @@ class OllamaLLMProvider(LLMProvider):
         parsed = ScreeningAnswerResponse.model_validate_json(response["message"]["content"])
         return parsed.answer
 
+    def translate_notes(self, raw_notes: str) -> list[dict]:
+        import ollama
+
+        prompt = TRANSLATION_PROMPT.format(raw_notes=raw_notes)
+        response = ollama.chat(
+            model=self.model_name,
+            messages=[{"role": "user", "content": prompt}],
+            format=ParsedKnowledgeResponse.model_json_schema(),
+        )
+        parsed = ParsedKnowledgeResponse.model_validate_json(response["message"]["content"])
+        return [item.model_dump() for item in parsed.achievements]
+
 
 class HybridLLMProvider(LLMProvider):
-    def __init__(self, api_key: str | None = None, local_model: str = "qwen2.5:7b"):
-        self.gemini = GeminiLLMProvider(api_key=api_key)
-        self.ollama = OllamaLLMProvider(model_name=local_model)
+    """
+    Primary: Gemini Free Tier (gemini-3.6-flash).
+    Fallback: Local Ollama (qwen2.5:7b) if Gemini encounters rate limits or offline network.
+    """
 
-    def generate_tailored_bullets(self, job_description: str, profile: ResumeProfile) -> list[str]:
+    def __init__(self):
+        self.gemini = GeminiLLMProvider()
+        self.ollama = OllamaLLMProvider()
+
+    def generate_tailored_bullets(
+        self, job_description: str, profile: ResumeProfile, master_vault: list[dict] | None = None
+    ) -> list[str]:
         if self.gemini.is_available():
             try:
                 print("✨ Using Primary Gemini API Provider...")
-                return self.gemini.generate_tailored_bullets(job_description, profile)
+                return self.gemini.generate_tailored_bullets(job_description, profile, master_vault=master_vault)
             except Exception as e:
                 print(f"⚠️ Gemini API failed: {e}. Falling back to Ollama...")
 
-        print("🦙 Using Local Ollama Fallback Provider...")
-        return self.ollama.generate_tailored_bullets(job_description, profile)
+        try:
+            print("🦙 Using Local Ollama Fallback Provider...")
+            return self.ollama.generate_tailored_bullets(job_description, profile, master_vault=master_vault)
+        except Exception as e_ollama:
+            print(f"⚠️ Local Ollama also failed: {e_ollama}")
+            raise
 
     def answer_screening_question(self, question: str, profile: ResumeProfile) -> str:
         if self.gemini.is_available():
             try:
-                print("✨ Using Primary Gemini API Provider...")
                 return self.gemini.answer_screening_question(question, profile)
-            except Exception as e:
-                print(f"⚠️ Gemini API failed: {e}. Falling back to Ollama...")
-
-        print("🦙 Using Local Ollama Fallback Provider...")
+            except Exception:
+                pass
         return self.ollama.answer_screening_question(question, profile)
+
+    def translate_notes(self, raw_notes: str) -> list[dict]:
+        if self.gemini.is_available():
+            try:
+                print("✨ Translating candidate notes via Gemini API...")
+                return self.gemini.translate_notes(raw_notes)
+            except Exception as e:
+                print(f"⚠️ Gemini Translation failed: {e}. Falling back to Ollama...")
+
+        try:
+            print("🦙 Translating candidate notes via Local Ollama...")
+            return self.ollama.translate_notes(raw_notes)
+        except Exception as e_ollama:
+            print(f"⚠️ Ollama Translation failed: {e_ollama}")
+            raise

@@ -1,0 +1,226 @@
+{
+  "version": "1.0.0",
+  "candidate_name": "Manjunath H K",
+  "target_roles": [
+    "Senior SDET",
+    "Lead SDET",
+    "Test Automation Architect",
+    "Senior QA Automation Engineer"
+  ],
+  "master_achievements_vault": [
+    {
+      "domain": "API & Microservice Automation",
+      "company": "Value Labs",
+      "star_achievement": "PNR Linking & SSR [REST Assured \u00b7 ReadyAPI \u00b7 BDD \u00b7 AiDE] : Architected automation frameworks for airline domain; built 1000+ test cases cutting effort from 750 to 50 man-hours (93% reduction).",
+      "tools": [
+        "REST Assured",
+        "ReadyAPI",
+        "BDD",
+        "Cucumber",
+        "Java"
+      ],
+      "metric": "93% reduction in execution effort (750 to 50 man-hours)"
+    },
+    {
+      "domain": "AI-Assisted Test Engineering",
+      "company": "Value Labs",
+      "star_achievement": "Order Bags [REST Assured \u00b7 AiDE \u00b7 E2E] : Leveraged Agentic AI (AiDE) to accelerate framework implementation by 50% and reduce test drafting time by 75% across service-level and E2E validations.",
+      "tools": [
+        "Agentic AI",
+        "AiDE",
+        "REST Assured",
+        "E2E Testing"
+      ],
+      "metric": "75% reduction in test drafting time"
+    },
+    {
+      "domain": "Observability & Log Automation",
+      "company": "Value Labs",
+      "star_achievement": "Automated Kibana log analysis, issue reporting, and data quality validation pipelines; eliminated manual intervention and saved 12 hrs/week of QA overhead.",
+      "tools": [
+        "Kibana",
+        "Azure DevOps",
+        "Python",
+        "KQL"
+      ],
+      "metric": "Saved 12 hrs/week QA overhead"
+    },
+    {
+      "domain": "Shift-Left & Quality Governance",
+      "company": "Value Labs",
+      "star_achievement": "Drove shift-left testing practices using Azure DevOps and BDD Cucumber, reducing bug leakage to production across 3 airline microservice domains.",
+      "tools": [
+        "Azure DevOps",
+        "BDD",
+        "Cucumber",
+        "CI/CD"
+      ],
+      "metric": "Zero production bug leakage across 3 domains"
+    },
+    {
+      "domain": "Ekam Microservices Framework",
+      "company": "Dunzo",
+      "star_achievement": "Automated end-to-end API flows and DB validations using the Ekam Java Framework for 4 key features, achieving 60% test coverage in a microservices-based Merchant Service suite.",
+      "tools": [
+        "Java",
+        "Ekam Framework",
+        "PostgreSQL",
+        "REST API"
+      ],
+      "metric": "60% test coverage in Merchant Service suite"
+    },
+    {
+      "domain": "Cloud Stability & Root Cause Analysis",
+      "company": "Dunzo",
+      "star_achievement": "Led observability-driven root cause analysis of daily stability failures using Allure reports, Google Metrics Explorer, and Kibana across GCP-hosted services.",
+      "tools": [
+        "Allure",
+        "Google Metrics Explorer",
+        "Kibana",
+        "GCP",
+        "Jenkins"
+      ],
+      "metric": "Daily stability issue resolution across GCP services"
+    },
+    {
+      "domain": "UI Automation & Web Testing",
+      "company": "Tata Elxsi",
+      "star_achievement": "Spearheaded web UI automation using Playwright and Python; designed parallel cross-browser execution pipelines reducing regression test suites from 4 hours to 45 minutes.",
+      "tools": [
+        "Playwright",
+        "Python",
+        "Selenium",
+        "TestNG",
+        "Jenkins"
+      ],
+      "metric": "81% reduction in UI regression runtime (4 hrs to 45 mins)"
+    },
+    {
+      "domain": "Performance Testing",
+      "company": "Value Labs",
+      "star_achievement": "Built a Locust performance test suite in Python simulating 5,000 concurrent API users, cutting response latency by 35%.",
+      "tools": [
+        "Locust",
+        "Python",
+        "API"
+      ],
+      "metric": "35% latency reduction"
+    },
+    {
+      "domain": "Cloud Certification",
+      "company": "Personal / Certification",
+      "star_achievement": "Earned AWS Certified Solutions Architect Associate certification in 2026 to validate cloud architecture expertise.",
+      "tools": [
+        "AWS"
+      ],
+      "metric": "AWS Certified Solutions Architect Associate"
+    },
+    {
+      "domain": "Event-Driven Architecture",
+      "company": "Dunzo",
+      "star_achievement": "Automated Kafka event-driven message verification using Java and REST Assured, completely eliminating manual message inspection.",
+      "tools": [
+        "Kafka",
+        "Java",
+        "REST Assured"
+      ],
+      "metric": "100% elimination of manual message inspection"
+    },
+    {
+      "domain": "AI Automation & Process Engineering",
+      "company": "Personal / Certification",
+      "star_achievement": "Architected an AI-driven EQE best practices tracker using Python, Teams Webhooks, GitHub AI API, and local Ollama to monitor sprint-by-sprint Azure DevOps progress, reducing project monitoring tasks by over 80%.",
+      "tools": [
+        "Python",
+        "Microsoft Teams",
+        "Azure DevOps",
+        "GitHub AI API",
+        "Ollama"
+      ],
+      "metric": "80% reduction in monitoring tasks"
+    },
+    {
+      "domain": "API Automation & Defect Management",
+      "company": "Personal / Certification",
+      "star_achievement": "Engineered an AI-driven automated bug logging module within a Java REST Assured test framework that evaluated failure confidence levels (>95%) to auto-create Azure DevOps bugs, cutting initial triage time by 70%.",
+      "tools": [
+        "Java",
+        "REST Assured",
+        "Azure DevOps",
+        "AI API"
+      ],
+      "metric": "70% reduction in analysis and bug creation time"
+    }
+  ],
+  "extended_skills_inventory": {
+    "languages": [
+      "Java",
+      "Python",
+      "SQL",
+      "Groovy",
+      "HTML/CSS"
+    ],
+    "test_frameworks": [
+      "REST Assured",
+      "Playwright",
+      "Selenium WebDriver",
+      "Cucumber BDD",
+      "TestNG",
+      "Ekam Framework",
+      "Appium",
+      "ReadyAPI"
+    ],
+    "ci_cd_observability": [
+      "Jenkins",
+      "Azure DevOps",
+      "Docker",
+      "Kibana",
+      "Allure Reports",
+      "Google Metrics Explorer",
+      "Git/GitHub"
+    ],
+    "cloud_databases": [
+      "GCP",
+      "PostgreSQL",
+      "MongoDB"
+    ],
+    "domain_knowledge": [
+      "Airline Microservices",
+      "Quick Commerce Merchant Services",
+      "OTT Media Platforms",
+      "Agentic AI (AiDE)"
+    ]
+  },
+  "technical_projects": [
+    {
+      "project_name": "Airline Microservices Automation Suite",
+      "tech_stack": [
+        "REST Assured",
+        "Java",
+        "Cucumber",
+        "Azure DevOps"
+      ],
+      "impact": "1000+ API test cases cutting regression cycle from 750 to 50 man-hours."
+    },
+    {
+      "project_name": "Merchant Service Observability Pipeline",
+      "tech_stack": [
+        "Ekam Framework",
+        "Allure",
+        "Kibana",
+        "PostgreSQL"
+      ],
+      "impact": "60% test coverage and automated root cause isolation on GCP."
+    },
+    {
+      "project_name": "Playwright Parallel Web Automation Architecture",
+      "tech_stack": [
+        "Playwright",
+        "Python",
+        "Docker",
+        "Jenkins"
+      ],
+      "impact": "Parallel cross-browser web testing reducing suite runtime by 81%."
+    }
+  ]
+}

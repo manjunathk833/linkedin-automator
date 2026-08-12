@@ -5,7 +5,7 @@
     "title": "Quality Assurance Engineer I (Manual)",
     "company": "Titan Email",
     "location": "Bengaluru, Karnataka, India (Hybrid)",
-    "requirements": "Titan Email\n                \n            \n\n            \n                \n    \n      \n          \n            \n    \n    \n\n\n            Share\n          \n\n\n        \n      \n\n      \n  \n      \n  \n  \n\n\n\n\n    \n  \n                \n    \n      \n                  \n                    \n    \n    \n\n\n                    \n                      Show more options\n                    \n                  \n\n                \n      \n    \n  \n            \n          \n\n          \n            \n              Quality Assurance Engineer I (Manual)\n\n          \n\n\n          \n              \n                Bengaluru, Karnataka, India \u00b7 1 week ago \u00b7 Over 100 applicantsPromoted by hirer \u00b7 Actively reviewing applicants\n              \n          \n\n\n            \n      \n            \n              Hybrid\n            \n            \n              \n      \n     Full-time\n            \n      \n      \n    \n  \n  \n\n          \n              \n                    \n    \n        \n    \n              \n    \n    \n\n\n\n\n    Easy Apply\n\n    \n  \n         "
+    "requirements": "Titan Email\n\nQuality Assurance Engineer I (Manual)\n\nBengaluru, Karnataka, India \u00b7 1 week ago \u00b7 Over 100 applicantsPromoted by hirer \u00b7 Actively reviewing applicants\n\nHybrid\n\nFull-time\n\nSave Quality Assurance Engineer I (Manual) at Titan Email\n\nQuality Assurance Engineer I (Manual)\n\nTitan Email \u00b7 Bengaluru, Karnataka, India (Hybrid)\n\nSave Quality Assurance Engineer I (Manual) at Titan Email\n\nMeet the hiring team\n\nDarshi Ajmera\n\n3rd\n\nAssociate- Talent Acquisiton\n\nJob poster\n\nMessage\n\nAbout the job\n\nAbout TitanAt Titan, we\u2019re redefining email for entrepreneurs, innovators, and creators\u2014transforming it into a powerful tool for business growth. Built by a team that deeply cares about helping businesses succeed, Titan is more than just an email platform.Founded by Bhavin Turakhia, who also founded Directi, Radix, and Zeta, with a combined enterprise value exceeding $2 billion\u2014Titan is backed by a strong legacy of innovation. Today, Titan powers millions of conversations, with 2.4 million emails sent and received every week. In 2021, Automattic (the parent company of WordPress) invested $30M in Titan, valuing the company at $300M. This partnership fuels our mission to revolutionize email and build the future of digital communication.At Titan, you\u2019ll be part of a fast-growing business, solving meaningful problems and shaping a product that empowers millions. Join us to make a real impact.About the role:We are looking for a QA Engineer with 2\u20134 years of experience to test mobile applications (Android & iOS) and ensure they meet defined quality standards before release.Roles and Responsibilities:      Write detailed test cases and perform execution of test casesTest Android & iOS apps to ensure they meet defined quality standardsIdentify defects & bugs and work with developers to resolve them.Participate in the complete software development life cycle for new products.Perform regression testing for productsReview Test artifacts\n\nSkills and Qualifications:      A graduate degree in computer science, engineering, or a related field.2 to 4 years of proven experience as a manual tester Mobile applicationsAttention to detail, ability to follow test plans and scripts.Exposure to CI/CD tools such as Git, JenkinsHands-on defect management tools like JiraGood at prioritizing the test casesHands-on tools like Postman Android Studio, and CharlesGood knowledge of test design techniquesAware of various testing types such as Risk, ad hoc and exploratory\n\nPerks and Benefits:We at Titan love our jobs. And it\u2019s no surprise \u2013 we get to work on exciting and new projects, in a vibrant atmosphere that is designed to be comfortable and conducive for our personal and professional growth.And Titan goes the extra mile to make you feel at home. We offer benefits ranging from affordable catered meals and even snacks on the house. Our workspaces are welcoming and fun, complete with bean bag chairs and ping pong tables. You are free to wear what makes you comfortable and choose the hou"
   },
   "tailored_resume": {
     "personal_details": {
@@ -63,9 +63,9 @@
         "end_date": "2023-06-30",
         "summary": "",
         "achievements": [
+          "Owned full SDLC feature testing : planning through deployment ensuring minimal production bug leakage via Jenkins CI/CD pipelines.",
           "Automated end-to-end API flows and DB validations using the Ekam Java Framework for 4 key features, achieving 60% test coverage in a microservices-based Merchant Service suite.",
-          "Led observability-driven root cause analysis of daily stability failures using Allure reports, Google Metrics Explorer, and Kibana across GCP-hosted services.",
-          "Owned full SDLC feature testing : planning through deployment ensuring minimal production bug leakage via Jenkins CI/CD pipelines."
+          "Led observability-driven root cause analysis of daily stability failures using Allure reports, Google Metrics Explorer, and Kibana across GCP-hosted services."
         ],
         "tech_tags": [
           "Java",
@@ -85,9 +85,9 @@
         "end_date": "2022-08-31",
         "summary": "",
         "achievements": [
+          "Performed domain API, stability, and KPI testing for Web and iOS platforms using Charles Proxy, Postman, and Burp Suite.",
           "Designed a BDD automation framework using Python, Appium, and TestRail API; automated ~50% of sanity suite, saving ~5 man-days/month.",
-          "Contributed to a \u20b9100Cr OTT app under Agile SDLC; directly improved iOS App Store rating from 1.9 \u2192 3.5 through systematic API and stability testing.",
-          "Performed domain API, stability, and KPI testing for Web and iOS platforms using Charles Proxy, Postman, and Burp Suite."
+          "Contributed to a \u20b9100Cr OTT app under Agile SDLC; directly improved iOS App Store rating from 1.9 \u2192 3.5 through systematic API and stability testing."
         ],
         "tech_tags": [
           "Python",
