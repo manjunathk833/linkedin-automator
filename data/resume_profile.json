@@ -142,7 +142,7 @@
       "REST Assured", "ReadyAPI", "TestNG", "Cucumber BDD", "SOAP", "Groovy", "Postman", "Allure", "WireMock"
     ],
     "Languages & UI Automation": [
-      "Java", "Python", "Selenium", "Appium", "Playwright"
+      "Java", "Python", "Selenium", "Appium"
     ],
     "CI/CD & Infra": [
       "Jenkins", "GitHub Actions", "Azure DevOps", "Docker", "GCP", "TeamCity", "Harness"

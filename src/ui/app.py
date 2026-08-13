@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 
@@ -12,12 +14,42 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "data"))
 PENDING_DIR = os.path.join(DATA_DIR, "pending_queue")
 APPROVED_DIR = os.path.join(DATA_DIR, "approved_queue")
+MASTER_PROFILE_PATH = os.path.join(DATA_DIR, "resume_profile.json")
 
 os.makedirs(PENDING_DIR, exist_ok=True)
 os.makedirs(APPROVED_DIR, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+
+def compute_resume_diff(payload: dict, master_profile: dict) -> dict:
+    """Injects is_tailored diff flags into payload experience history achievements."""
+    master_exp_map = {}
+    for m_exp in master_profile.get("experience_history", []):
+        company_norm = m_exp.get("company", "").strip().lower()
+        role_norm = m_exp.get("role", "").strip().lower()
+        master_exp_map[(company_norm, role_norm)] = m_exp.get("achievements", [])
+
+    tailored_resume = payload.get("tailored_resume", {})
+    for exp in tailored_resume.get("experience_history", []):
+        c_norm = exp.get("company", "").strip().lower()
+        r_norm = exp.get("role", "").strip().lower()
+
+        base_bullets = []
+        for (m_c, _m_r), bullets in master_exp_map.items():
+            if m_c in c_norm or c_norm in m_c or r_norm in _m_r or _m_r in r_norm:
+                base_bullets = bullets
+                break
+
+        achievements = exp.get("achievements", [])
+        diff_bullets = []
+        for idx, ach in enumerate(achievements):
+            is_tailored = ach not in base_bullets
+            diff_bullets.append({"text": ach, "is_tailored": is_tailored})
+        exp["achievements_diff"] = diff_bullets
+
+    return payload
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -27,6 +59,14 @@ async def read_root(request: Request):
 
 @app.get("/api/pending-jobs")
 async def get_pending_jobs():
+    master_profile = {}
+    if os.path.exists(MASTER_PROFILE_PATH):
+        try:
+            with open(MASTER_PROFILE_PATH, "r") as f:
+                master_profile = json.load(f)
+        except Exception as e:
+            print(f"⚠️ Error reading master profile: {e}")
+
     jobs = []
     if os.path.exists(PENDING_DIR):
         for filename in os.listdir(PENDING_DIR):
@@ -34,7 +74,9 @@ async def get_pending_jobs():
                 file_path = os.path.join(PENDING_DIR, filename)
                 try:
                     with open(file_path, "r") as f:
-                        jobs.append(json.load(f))
+                        raw_payload = json.load(f)
+                        diff_payload = compute_resume_diff(raw_payload, master_profile)
+                        jobs.append(diff_payload)
                 except Exception as e:
                     print(f"Error reading {filename}: {e}")
     return {"jobs": jobs}
@@ -47,11 +89,9 @@ async def approve_job(job_id: str, payload: dict):
 
     approved_path = os.path.join(APPROVED_DIR, f"{job_id}.json")
     try:
-        # Generate the PDF
         if "tailored_resume" in payload:
             print(f"Generating PDF for job {job_id}...")
 
-            # Sanitize numeric fields in easy_apply_answers (empty string -> None)
             ea = payload["tailored_resume"].get("easy_apply_answers", {})
             if isinstance(ea, dict):
                 for int_field in ["salary_expectations_min", "salary_expectations_max"]:
@@ -63,10 +103,8 @@ async def approve_job(job_id: str, payload: dict):
             pdf_filename = f"{job_id}_resume.pdf"
             pdf_path = os.path.join(APPROVED_DIR, pdf_filename)
 
-            # Use async method directly since FastAPI is running an event loop
             await generator.generate_pdf_async(profile, pdf_path)
 
-            # Link the PDF path in the payload for Playwright to use later
             payload["generated_pdf_path"] = pdf_path
             print(f"PDF generated at {pdf_path}")
 

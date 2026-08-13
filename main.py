@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import asyncio
 import datetime
@@ -14,6 +16,7 @@ from src.automation.easy_apply import EasyApplyExecutor
 from src.browser.cdp_connector import launch_persistent_browser
 from src.filter.job_filter import LinkedInJobFilter
 from src.scraper.job_finder import LinkedInJobFinder
+from src.tailor.knowledge_translator import KnowledgeBankTranslator
 
 
 def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
@@ -84,6 +87,19 @@ def handle_dashboard():
     print("  Access UI at: http://127.0.0.1:8000")
     print("=" * 50 + "\n")
     uvicorn.run("src.ui.app:app", host="127.0.0.1", port=8000, reload=True)
+
+
+def handle_sync_knowledge(config: dict[str, Any]):
+    """Translates candidate_notes.md into master_knowledge_bank.json entries."""
+    print("\n" + "=" * 50)
+    print("  TRANSLATING CANDIDATE NOTES TO MASTER KNOWLEDGE BANK")
+    print("=" * 50)
+    use_ai = config.get("llm", {}).get("use_ai", True)
+    translator = KnowledgeBankTranslator(use_ai=use_ai)
+    res = translator.sync_notes_to_knowledge_bank()
+    print("\n" + "=" * 50)
+    print(f"✅ KNOWLEDGE SYNC COMPLETE: Added {res.get('added', 0)} new STAR achievement(s).")
+    print("=" * 50 + "\n")
 
 
 async def handle_apply(config: dict[str, Any], dry_run: bool = True):
@@ -164,8 +180,8 @@ def main():
     parser.add_argument(
         "mode",
         nargs="?",
-        choices=["search", "filterjobs", "dashboard", "lint"],
-        help="Pipeline execution mode (search, filterjobs, dashboard, or lint)",
+        choices=["search", "filterjobs", "dashboard", "lint", "sync-knowledge"],
+        help="Pipeline execution mode (search, filterjobs, dashboard, lint, or sync-knowledge)",
     )
     parser.add_argument("--login", action="store_true", help="Launch Chrome for one-time manual LinkedIn login")
     parser.add_argument("--apply", action="store_true", help="Execute Easy Apply automation on approved jobs")
@@ -188,6 +204,8 @@ def main():
         handle_filterjobs()
     elif args.mode == "dashboard":
         handle_dashboard()
+    elif args.mode == "sync-knowledge":
+        handle_sync_knowledge(config)
     elif args.mode == "lint":
         handle_lint()
     elif args.apply:

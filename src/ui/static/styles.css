@@ -101,59 +101,97 @@ h1 {
 
 .company {
     color: var(--accent);
-    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
 }
 
 .location {
     color: var(--text-muted);
     font-size: 0.9rem;
+    margin-bottom: 1.5rem;
 }
 
-.requirements-box {
-    background: rgba(0,0,0,0.2);
-    padding: 1.5rem;
+.description-box {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--border-light);
     border-radius: 12px;
-    margin-top: 1.5rem;
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 0.9rem;
     line-height: 1.6;
-    color: #cbd5e1;
+    white-space: pre-wrap;
 }
 
-.card-section {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+.candidate-header {
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
-.card-section h4 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #e2e8f0;
+.candidate-header h3 {
+    margin: 0 0 0.25rem 0;
+
 }
 
-.muted {
-    color: var(--text-muted);
+.experience-section {
+    margin-bottom: 1.5rem;
 }
 
 .achievement-item {
-    background: rgba(0,0,0,0.3);
+    margin-bottom: 1.25rem;
+    background: rgba(15, 23, 42, 0.3);
     padding: 1rem;
     border-radius: 8px;
-    margin-bottom: 0.5rem;
-    font-size: 0.95rem;
-    border-left: 3px solid var(--accent);
+    border: 1px solid var(--border-light);
 }
 
 .tech-tag {
     display: inline-block;
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+    font-size: 0.75rem;
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
-    font-size: 0.75rem;
-    margin-right: 0.5rem;
-    margin-top: 0.5rem;
+    margin-right: 0.4rem;
+    margin-top: 0.4rem;
+}
+
+.badge-tailored {
+    background: #10b981;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+    display: inline-block;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.tailored-bullet {
+    background: rgba(16, 185, 129, 0.12);
+    border-left: 3px solid #10b981;
+    padding: 6px 10px;
+    margin: 6px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #ecfdf5;
+}
+
+.base-bullet {
+    padding: 4px 0;
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    line-height: 1.4;
+}
+
+.easy-apply-editor {
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid var(--border-light);
 }
 
 .form-group {
@@ -162,21 +200,20 @@ h1 {
 
 .form-group label {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     margin-bottom: 0.25rem;
 }
 
 .form-control {
     width: 100%;
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: var(--text-main);
-    padding: 0.75rem;
-    border-radius: 8px;
-    font-family: var(--font-body);
     box-sizing: border-box;
-    transition: border-color 0.2s;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border-light);
+    color: var(--text-main);
+    padding: 0.5rem;
+    border-radius: 6px;
+    font-family: var(--font-body);
 }
 
 .form-control:focus {
@@ -189,18 +226,18 @@ h1 {
     justify-content: flex-end;
     gap: 1rem;
     margin-top: 2rem;
-    padding-top: 2rem;
     border-top: 1px solid var(--border-light);
+    padding-top: 1.5rem;
 }
 
 .btn {
     padding: 0.75rem 1.5rem;
-    border-radius: 8px;
+    border-radius: 12px;
     font-weight: 600;
-    font-family: var(--font-body);
+    font-family: var(--font-heading);
     cursor: pointer;
     border: none;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
 .btn-primary {
@@ -210,40 +247,19 @@ h1 {
 
 .btn-primary:hover {
     background: var(--accent-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+    transform: translateY(-1px);
 }
 
-.btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
+.btn-danger {
+    background: var(--reject);
     color: white;
 }
 
-.btn-secondary:hover {
-    background: var(--reject);
-    transform: translateY(-2px);
+.btn-danger:hover {
+    background: var(--reject-hover);
+    transform: translateY(-1px);
 }
 
 .hidden {
     display: none !important;
-}
-
-.spinner-container, .empty-state {
-    text-align: center;
-    padding: 4rem 0;
-    color: var(--text-muted);
-}
-
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(255,255,255,0.1);
-    border-radius: 50%;
-    border-top-color: var(--accent);
-    animation: spin 1s ease-in-out infinite;
-    margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
 }

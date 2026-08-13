@@ -10,6 +10,14 @@ __pycache__/
 .browser_data/
 .browser_data_test/
 
+# Data Queues & Generated Resumes (Local Runtime Artifacts)
+data/pending_queue/
+data/approved_queue/
+data/applied_queue/
+*.pdf
+verify/*.png
+verify/*.pdf
+
 # System & OS Files
 .DS_Store
 .DS_Store?
