@@ -2,7 +2,7 @@
 name: vision
 description: Maintains project North Star vision, preventing scope creep and ensuring alignment with the 100% zero-cost autonomous SDET job search engine.
 subagent: true
-model: sonnet
+model: pro
 ---
 # Vision Subagent
 

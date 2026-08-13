@@ -311,6 +311,162 @@
       "company": "Brady Technologies",
       "first_seen": "2026-08-11T18:12:23.470339Z",
       "status": "RETAINED"
+    },
+    "4432700366": {
+      "title": "Data QA Automation Engineer",
+      "company": "Streamhub",
+      "first_seen": "2026-08-13T05:19:27.034134Z",
+      "status": "PENDING"
+    },
+    "4377606406": {
+      "title": "Senior Software Engineer - Test Automation (Clinical Platform)",
+      "company": "Veeva Systems",
+      "first_seen": "2026-08-13T05:19:37.002485Z",
+      "status": "PENDING"
+    },
+    "4451178790": {
+      "title": "Test Automation- playwright, typescript, API Testing",
+      "company": "Tata Consultancy Services",
+      "first_seen": "2026-08-13T05:19:48.178341Z",
+      "status": "PENDING"
+    },
+    "4452411604": {
+      "title": "Senior Software Engineer II - Confluent",
+      "company": "IBM",
+      "first_seen": "2026-08-13T05:19:57.652904Z",
+      "status": "PENDING"
+    },
+    "4281294833": {
+      "title": "Agile Test Automation Engineer, Quality Assurance",
+      "company": "LSEG",
+      "first_seen": "2026-08-13T05:20:13.558763Z",
+      "status": "PENDING"
+    },
+    "4377784174": {
+      "title": "Senior QA Automation Engineer (Playwright)",
+      "company": "Graylark",
+      "first_seen": "2026-08-13T05:20:25.379415Z",
+      "status": "PENDING"
+    },
+    "4424742811": {
+      "title": "Sr. Associate QA Engineer",
+      "company": "McKesson Compile",
+      "first_seen": "2026-08-13T05:20:41.901320Z",
+      "status": "PENDING"
+    },
+    "4398600556": {
+      "title": "Automation QA Engineer \u2013 Java & Playwright",
+      "company": "Digile",
+      "first_seen": "2026-08-13T05:21:03.814852Z",
+      "status": "PENDING"
+    },
+    "4441498849": {
+      "title": "Automation Engineer",
+      "company": "Ascendeum",
+      "first_seen": "2026-08-13T05:21:15.378894Z",
+      "status": "PENDING"
+    },
+    "4452731081": {
+      "title": "Software QA Engineer, Test Automation",
+      "company": "Siemens Digital Industries Software",
+      "first_seen": "2026-08-13T05:21:24.986691Z",
+      "status": "PENDING"
+    },
+    "4321823595": {
+      "title": "Senior Software Development Engineer in Test",
+      "company": "BlinkRx",
+      "first_seen": "2026-08-13T05:21:40.473761Z",
+      "status": "PENDING"
+    },
+    "4452421001": {
+      "title": "Senior Quality Assurance Engineer",
+      "company": "AppsForBharat",
+      "first_seen": "2026-08-13T05:22:00.751696Z",
+      "status": "PENDING"
+    },
+    "4195253872": {
+      "title": "Quality Assurance Lead",
+      "company": "Glean",
+      "first_seen": "2026-08-13T05:22:16.082743Z",
+      "status": "PENDING"
+    },
+    "4436348013": {
+      "title": "Software Engineering Architect/PMTS-SDET",
+      "company": "Salesforce",
+      "first_seen": "2026-08-13T05:22:26.435766Z",
+      "status": "PENDING"
+    },
+    "4447159346": {
+      "title": "Technical Specialist-Testing Services",
+      "company": "Birlasoft",
+      "first_seen": "2026-08-13T05:22:42.628999Z",
+      "status": "PENDING"
+    },
+    "4432711783": {
+      "title": "Technical Lead - QE",
+      "company": "Dover India",
+      "first_seen": "2026-08-13T05:22:51.843967Z",
+      "status": "PENDING"
+    },
+    "4444760646": {
+      "title": "Sr. Software QA Automation Engineer",
+      "company": "Revvity",
+      "first_seen": "2026-08-13T05:23:02.105535Z",
+      "status": "PENDING"
+    },
+    "4440568021": {
+      "title": "Sr Test Engg",
+      "company": "NTT DATA North America",
+      "first_seen": "2026-08-13T05:23:34.746240Z",
+      "status": "PENDING"
+    },
+    "4415357165": {
+      "title": "Software & System Test Engineer",
+      "company": "Signify",
+      "first_seen": "2026-08-13T05:23:53.894859Z",
+      "status": "PENDING"
+    },
+    "4450109773": {
+      "title": "Staff QA Engineer, NGFW (NetSec)",
+      "company": "Palo Alto Networks",
+      "first_seen": "2026-08-13T05:24:03.215286Z",
+      "status": "PENDING"
+    },
+    "4422830761": {
+      "title": "Lead AI QA Engineer",
+      "company": "Kobie",
+      "first_seen": "2026-08-13T05:24:04.675583Z",
+      "status": "PENDING"
+    },
+    "4434812425": {
+      "title": "QA Automation Engineer (Remote, Full-Time) [HR189]",
+      "company": "Smart Working",
+      "first_seen": "2026-08-13T05:24:21.745459Z",
+      "status": "PENDING"
+    },
+    "4439911223": {
+      "title": "Automation Test Engineer",
+      "company": "Infosys",
+      "first_seen": "2026-08-13T05:24:23.488497Z",
+      "status": "PENDING"
+    },
+    "4447697509": {
+      "title": "Advisory Quality Engineer \u2013 AI Ecosystem",
+      "company": "Lenovo",
+      "first_seen": "2026-08-13T05:24:32.581160Z",
+      "status": "PENDING"
+    },
+    "4443312281": {
+      "title": "Senior Quality Assurance Engineer (P4)",
+      "company": "IGEL Technology",
+      "first_seen": "2026-08-13T05:24:34.050269Z",
+      "status": "PENDING"
+    },
+    "4449445896": {
+      "title": "Staff Engineer Quality [T500-28218]",
+      "company": "Albertsons Companies India",
+      "first_seen": "2026-08-13T05:24:35.490777Z",
+      "status": "PENDING"
     }
   },
   "composite_hashes": {
@@ -521,6 +677,110 @@
     "6229e981b4c0d1d1f98a70d6897307bf": {
       "job_id": "4431581605",
       "first_seen": "2026-08-11T18:12:23.470339Z"
+    },
+    "65dd4175335b40106ac54a3e6c451b64": {
+      "job_id": "4432700366",
+      "first_seen": "2026-08-13T05:19:27.034134Z"
+    },
+    "d8df9dd0ce80317e71f778fa272ea521": {
+      "job_id": "4377606406",
+      "first_seen": "2026-08-13T05:19:37.002485Z"
+    },
+    "fd943432b1908efa654c0e916f944498": {
+      "job_id": "4451178790",
+      "first_seen": "2026-08-13T05:19:48.178341Z"
+    },
+    "f0226cb3f75eea55e3a56ab74168e2c4": {
+      "job_id": "4452411604",
+      "first_seen": "2026-08-13T05:19:57.652904Z"
+    },
+    "b5c4beaa52d6ef975b4a02cbd4f4e7cd": {
+      "job_id": "4281294833",
+      "first_seen": "2026-08-13T05:20:13.558763Z"
+    },
+    "200b986cffca2b3103c730bbad0e8908": {
+      "job_id": "4377784174",
+      "first_seen": "2026-08-13T05:20:25.379415Z"
+    },
+    "d0121bff052baaa48f1902b7a83f8e82": {
+      "job_id": "4424742811",
+      "first_seen": "2026-08-13T05:20:41.901320Z"
+    },
+    "9b2130c6b62b153055b76b1f02531e04": {
+      "job_id": "4398600556",
+      "first_seen": "2026-08-13T05:21:03.814852Z"
+    },
+    "9a1bd2fa9c7ef23bed0b4f9b67c36207": {
+      "job_id": "4441498849",
+      "first_seen": "2026-08-13T05:21:15.378894Z"
+    },
+    "76c8d6351e7e663d3c1778eba92d5400": {
+      "job_id": "4452731081",
+      "first_seen": "2026-08-13T05:21:24.986691Z"
+    },
+    "d8c85392106c5d71f347931b1b543099": {
+      "job_id": "4321823595",
+      "first_seen": "2026-08-13T05:21:40.473761Z"
+    },
+    "7137511cdbe9c6146df2f988e893a56b": {
+      "job_id": "4452421001",
+      "first_seen": "2026-08-13T05:22:00.751696Z"
+    },
+    "1e1668bbf4abfb97f553bda5d55017ba": {
+      "job_id": "4195253872",
+      "first_seen": "2026-08-13T05:22:16.082743Z"
+    },
+    "0fb8fc3e4735c148b66947edb2e86342": {
+      "job_id": "4436348013",
+      "first_seen": "2026-08-13T05:22:26.435766Z"
+    },
+    "e75d999e7a381b0926fc2c6031a193be": {
+      "job_id": "4447159346",
+      "first_seen": "2026-08-13T05:22:42.628999Z"
+    },
+    "71fbebf35c10a1379c08db9285a7e750": {
+      "job_id": "4432711783",
+      "first_seen": "2026-08-13T05:22:51.843967Z"
+    },
+    "eaa57db92da5774b58cb7e70f3551edf": {
+      "job_id": "4444760646",
+      "first_seen": "2026-08-13T05:23:02.105535Z"
+    },
+    "221c2f1fd8e5fd5e231387d2751a7e52": {
+      "job_id": "4440568021",
+      "first_seen": "2026-08-13T05:23:34.746240Z"
+    },
+    "73304afce198a45fbd5ee0e69df8d64d": {
+      "job_id": "4415357165",
+      "first_seen": "2026-08-13T05:23:53.894859Z"
+    },
+    "84e36c86d1bbc263be88c2c195a5706b": {
+      "job_id": "4450109773",
+      "first_seen": "2026-08-13T05:24:03.215286Z"
+    },
+    "59b7228f03b580954e938d7933b7c51c": {
+      "job_id": "4422830761",
+      "first_seen": "2026-08-13T05:24:04.675583Z"
+    },
+    "192fce4462d5dd21153c4823b50bc2a9": {
+      "job_id": "4434812425",
+      "first_seen": "2026-08-13T05:24:21.745459Z"
+    },
+    "1e5f2e73c1bc00fbb77cc97df105fa20": {
+      "job_id": "4439911223",
+      "first_seen": "2026-08-13T05:24:23.488497Z"
+    },
+    "ea126853013a593be209dc98c9b1e893": {
+      "job_id": "4447697509",
+      "first_seen": "2026-08-13T05:24:32.581160Z"
+    },
+    "041a9deb9027b3560aabb41aa191ef3e": {
+      "job_id": "4443312281",
+      "first_seen": "2026-08-13T05:24:34.050269Z"
+    },
+    "8173fe41262409947a33f80ca9d90a89": {
+      "job_id": "4449445896",
+      "first_seen": "2026-08-13T05:24:35.490777Z"
     }
   }
 }

@@ -11,7 +11,7 @@
     {
       "domain": "API & Microservice Automation",
       "company": "Value Labs",
-      "star_achievement": "PNR Linking & SSR [REST Assured \u00b7 ReadyAPI \u00b7 BDD \u00b7 AiDE] : Architected automation frameworks for airline domain; built 1000+ test cases cutting effort from 750 to 50 man-hours (93% reduction).",
+      "star_achievement": "PNR Linking & SSR [REST Assured · ReadyAPI · BDD · AiDE] : Architected automation frameworks for airline domain; built 1000+ test cases cutting effort from 750 to 50 man-hours (93% reduction).",
       "tools": [
         "REST Assured",
         "ReadyAPI",
@@ -24,7 +24,7 @@
     {
       "domain": "AI-Assisted Test Engineering",
       "company": "Value Labs",
-      "star_achievement": "Order Bags [REST Assured \u00b7 AiDE \u00b7 E2E] : Leveraged Agentic AI (AiDE) to accelerate framework implementation by 50% and reduce test drafting time by 75% across service-level and E2E validations.",
+      "star_achievement": "Order Bags [REST Assured · AiDE · E2E] : Leveraged Agentic AI (AiDE) to accelerate framework implementation by 50% and reduce test drafting time by 75% across service-level and E2E validations.",
       "tools": [
         "Agentic AI",
         "AiDE",
@@ -83,17 +83,17 @@
       "metric": "Daily stability issue resolution across GCP services"
     },
     {
-      "domain": "UI Automation & Web Testing",
+      "domain": "Mobile & UI Automation Framework",
       "company": "Tata Elxsi",
-      "star_achievement": "Spearheaded web UI automation using Playwright and Python; designed parallel cross-browser execution pipelines reducing regression test suites from 4 hours to 45 minutes.",
+      "star_achievement": "Designed a BDD automation framework using Python, Appium, and TestRail API; automated ~50% of sanity suite saving ~5 man-days/month across Web and Mobile platforms.",
       "tools": [
-        "Playwright",
         "Python",
+        "Appium",
+        "TestRail API",
         "Selenium",
-        "TestNG",
-        "Jenkins"
+        "BDD"
       ],
-      "metric": "81% reduction in UI regression runtime (4 hrs to 45 mins)"
+      "metric": "Saved ~5 man-days/month (50% sanity suite automated)"
     },
     {
       "domain": "Performance Testing",
@@ -128,7 +128,7 @@
     },
     {
       "domain": "AI Automation & Process Engineering",
-      "company": "Personal / Certification",
+      "company": "Value Labs",
       "star_achievement": "Architected an AI-driven EQE best practices tracker using Python, Teams Webhooks, GitHub AI API, and local Ollama to monitor sprint-by-sprint Azure DevOps progress, reducing project monitoring tasks by over 80%.",
       "tools": [
         "Python",
@@ -141,7 +141,7 @@
     },
     {
       "domain": "API Automation & Defect Management",
-      "company": "Personal / Certification",
+      "company": "Value Labs",
       "star_achievement": "Engineered an AI-driven automated bug logging module within a Java REST Assured test framework that evaluated failure confidence levels (>95%) to auto-create Azure DevOps bugs, cutting initial triage time by 70%.",
       "tools": [
         "Java",
@@ -162,13 +162,13 @@
     ],
     "test_frameworks": [
       "REST Assured",
-      "Playwright",
       "Selenium WebDriver",
       "Cucumber BDD",
       "TestNG",
       "Ekam Framework",
       "Appium",
-      "ReadyAPI"
+      "ReadyAPI",
+      "Locust"
     ],
     "ci_cd_observability": [
       "Jenkins",
@@ -213,14 +213,15 @@
       "impact": "60% test coverage and automated root cause isolation on GCP."
     },
     {
-      "project_name": "Playwright Parallel Web Automation Architecture",
+      "project_name": "AI-Driven EQE & ADO Bug Automation Suite",
       "tech_stack": [
-        "Playwright",
         "Python",
-        "Docker",
-        "Jenkins"
+        "Java",
+        "REST Assured",
+        "Azure DevOps",
+        "Ollama"
       ],
-      "impact": "Parallel cross-browser web testing reducing suite runtime by 81%."
+      "impact": "Automated sprint tracking reducing monitoring by 80% and bug triage by 70%."
     }
   ]
 }

@@ -2,7 +2,7 @@
 name: critic_architect
 description: Audits code changes, Playwright DOM selectors, regex boundaries, system architecture, and technical edge cases.
 subagent: true
-model: sonnet
+model: pro
 ---
 # Critic Architect Subagent
 

@@ -5,6 +5,7 @@ import os
 from typing import Any
 
 from src.resume_store.models import ResumeProfile
+from src.tailor.fabrication_detector import FabricationDetector
 from src.tailor.llm_provider import HybridLLMProvider
 
 
@@ -31,12 +32,12 @@ class ResumeTailorer:
 
         self.use_ai = use_ai
         self.llm_provider = HybridLLMProvider() if use_ai else None
+        self.fabrication_detector = FabricationDetector(self.master_profile, self.knowledge_bank)
 
     def extract_keywords(self, text: str) -> list[str]:
         """Extracts key tech stack keywords from job text."""
         known_keywords = [
             "REST Assured",
-            "Playwright",
             "Python",
             "Java",
             "FastAPI",
@@ -64,6 +65,7 @@ class ResumeTailorer:
         """
         Enriches a raw job payload with a tailored resume payload derived from
         master resume profile, master knowledge bank, and matched job requirements.
+        Passed through deterministic FabricationDetector verification gate.
         """
         job_reqs = job_payload.get("job_details", {}).get("requirements", "")
         keywords = self.extract_keywords(job_reqs)
@@ -82,16 +84,21 @@ class ResumeTailorer:
                     job_reqs, self.master_profile, master_vault=master_vault
                 )
                 if ai_bullets and len(ai_bullets) > 0 and len(tailored_data.get("experience_history", [])) > 0:
-                    print(f"🤖 AI tailored {len(ai_bullets)} top STAR achievements!")
-                    tailored_data["experience_history"][0]["achievements"] = ai_bullets
+                    # Run through Fabrication Detector Gate
+                    clean_bullets = self.fabrication_detector.validate_all_bullets(ai_bullets)
+                    if clean_bullets:
+                        print(f"🤖 AI tailored {len(clean_bullets)} verified STAR achievements!")
+                        tailored_data["experience_history"][0]["achievements"] = clean_bullets
             except Exception as e:
                 print(f"⚠️ AI Bullet tailoring skipped (using heuristic): {e}")
 
         # Reorder achievements putting matching keywords first as heuristic baseline
         for exp in tailored_data.get("experience_history", []):
             achievements = exp.get("achievements", [])
-            matching = [a for a in achievements if any(kw.lower() in a.lower() for kw in keywords)]
-            non_matching = [a for a in achievements if a not in matching]
+            # Also run experience achievements through Fabrication Detector Gate
+            valid_achievements = self.fabrication_detector.validate_all_bullets(achievements)
+            matching = [a for a in valid_achievements if any(kw.lower() in a.lower() for kw in keywords)]
+            non_matching = [a for a in valid_achievements if a not in matching]
             exp["achievements"] = matching + non_matching
 
         # 2. Attach JSON Resume Standard Schema Metadata

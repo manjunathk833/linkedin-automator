@@ -51,26 +51,26 @@ class LLMProvider(ABC):
         pass
 
 
-FEW_SHOT_STAR_PROMPT = """
+GROUNDED_STAR_PROMPT = """
 You are a Senior SDET Talent Architect and Technical Resume Editor.
-Your task is to tailor a candidate's authentic technical achievements to match a target Job Description (JD).
+Your task is to select and polish the candidate's authentic technical achievements to match a target Job Description (JD).
 
-### CONSTRAINTS:
-1. STAR FRAMEWORK: Every bullet must follow [Action Verb] + [Tools/Implementation] + [Quantified Outcome/ROI].
-2. ZERO HALLUCINATION: Do NOT invent metrics, dates, companies, or tools not present in the Candidate's Master Vault.
-3. KEYWORD FUSION: Weave target JD tech stack keywords (e.g. REST Assured, Playwright, Python, Java, BDD) naturally into candidate achievements.
+### ABSOLUTE GROUNDING MANDATES (ZERO FABRICATION & ZERO HALLUCINATION):
+1. NO TOOL HALLUCINATION: You may ONLY use tools, frameworks, and languages that appear in the Candidate's Master Vault or Resume Profile.
+2. UNSUPPORTED JD KEYWORDS: If the Target JD asks for a tool the candidate has NOT used (e.g., Playwright, Cypress, Go, C#), NEVER claim experience with that tool. Instead, highlight the candidate's closest authentic equivalent (e.g. REST Assured, Selenium, Appium, Python, Java).
+3. FACTUAL METRICS & COMPANIES: Never invent companies, dates, or quantitative outcomes not present in the Candidate's Vault.
 
-### FEW-SHOT EXAMPLES:
+### GOOD vs BAD EXAMPLES:
 
-Example 1:
-- Raw Achievement: "Built test cases for airline domain using REST Assured."
-- Target JD Keywords: "REST Assured, BDD, Cucumber, 90%+ effort reduction"
-- Output STAR Bullet: "PNR Linking & SSR [REST Assured · ReadyAPI · BDD]: Architected automated testing frameworks for airline domain; built 1000+ API test cases cutting execution effort by 93%."
+❌ BAD (FABRICATED):
+- Raw Candidate Skill: REST Assured, Java, Postman
+- Target JD Requirement: Playwright, Cypress, TypeScript
+- Fabricated Output: "Spearheaded web UI automation using Playwright and Cypress..." <-- REJECTED! Candidate never used Playwright!
 
-Example 2:
-- Raw Achievement: "Automated web UI regression using Playwright and Python."
-- Target JD Keywords: "Playwright, Python, CI/CD, Parallel Execution"
-- Output STAR Bullet: "Spearheaded web UI automation using Playwright and Python; designed parallel cross-browser pipelines reducing regression runtime from 4 hours to 45 minutes (81% faster)."
+✅ GOOD (GROUNDED & TRUTHFUL):
+- Raw Candidate Skill: REST Assured, Java, Postman
+- Target JD Requirement: Playwright, Cypress, TypeScript
+- Grounded Output: "PNR Linking & SSR [REST Assured · ReadyAPI · BDD · Java]: Architected scalable API test automation suites cutting execution effort by 93% across airline microservice domains." <-- VALID! Grounded in authentic experience!
 
 ### CANDIDATE PROFILE:
 Candidate: {candidate_name}
@@ -82,7 +82,8 @@ Summary: {candidate_summary}
 ### TARGET JOB DESCRIPTION:
 {job_description}
 
-Generate 3-4 high-impact STAR bullet points matching the target job description.
+Select 3-4 authentic STAR bullet points from the Candidate Vault that best match the Target JD requirements.
+Return JSON strictly adhering to the schema.
 """
 
 
@@ -130,7 +131,7 @@ class GeminiLLMProvider(LLMProvider):
 
         vault_source = master_vault if master_vault else [exp.achievements for exp in profile.experience_history]
 
-        prompt = FEW_SHOT_STAR_PROMPT.format(
+        prompt = GROUNDED_STAR_PROMPT.format(
             candidate_name=profile.personal_details.full_name,
             candidate_summary=profile.personal_details.summary,
             candidate_vault_text=str(vault_source),
@@ -141,6 +142,7 @@ class GeminiLLMProvider(LLMProvider):
             model=self.model_name,
             contents=prompt,
             config={
+                "temperature": 0.0,
                 "response_mime_type": "application/json",
                 "response_schema": TailoredBulletsResponse,
             },
@@ -170,6 +172,7 @@ class GeminiLLMProvider(LLMProvider):
             model=self.model_name,
             contents=prompt,
             config={
+                "temperature": 0.0,
                 "response_mime_type": "application/json",
                 "response_schema": ScreeningAnswerResponse,
             },
@@ -186,6 +189,7 @@ class GeminiLLMProvider(LLMProvider):
             model=self.model_name,
             contents=prompt,
             config={
+                "temperature": 0.0,
                 "response_mime_type": "application/json",
                 "response_schema": ParsedKnowledgeResponse,
             },
@@ -205,7 +209,7 @@ class OllamaLLMProvider(LLMProvider):
 
         vault_source = master_vault if master_vault else [exp.achievements for exp in profile.experience_history]
 
-        prompt = FEW_SHOT_STAR_PROMPT.format(
+        prompt = GROUNDED_STAR_PROMPT.format(
             candidate_name=profile.personal_details.full_name,
             candidate_summary=profile.personal_details.summary,
             candidate_vault_text=str(vault_source),
@@ -215,6 +219,7 @@ class OllamaLLMProvider(LLMProvider):
         response = ollama.chat(
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
+            options={"temperature": 0.0},
             format=TailoredBulletsResponse.model_json_schema(),
         )
         parsed = TailoredBulletsResponse.model_validate_json(response["message"]["content"])
@@ -232,6 +237,7 @@ class OllamaLLMProvider(LLMProvider):
         response = ollama.chat(
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
+            options={"temperature": 0.0},
             format=ScreeningAnswerResponse.model_json_schema(),
         )
         parsed = ScreeningAnswerResponse.model_validate_json(response["message"]["content"])
@@ -244,6 +250,7 @@ class OllamaLLMProvider(LLMProvider):
         response = ollama.chat(
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
+            options={"temperature": 0.0},
             format=ParsedKnowledgeResponse.model_json_schema(),
         )
         parsed = ParsedKnowledgeResponse.model_validate_json(response["message"]["content"])
