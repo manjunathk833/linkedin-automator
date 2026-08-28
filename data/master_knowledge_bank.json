@@ -11,7 +11,7 @@
     {
       "domain": "API & Microservice Automation",
       "company": "Value Labs",
-      "star_achievement": "PNR Linking & SSR [REST Assured · ReadyAPI · BDD · AiDE] : Architected automation frameworks for airline domain; built 1000+ test cases cutting effort from 750 to 50 man-hours (93% reduction).",
+      "star_achievement": "PNR Linking & SSR [REST Assured \u00b7 ReadyAPI \u00b7 BDD \u00b7 AiDE] : Architected automation frameworks for airline domain; built 1000+ test cases cutting effort from 750 to 50 man-hours (93% reduction).",
       "tools": [
         "REST Assured",
         "ReadyAPI",
@@ -24,7 +24,7 @@
     {
       "domain": "AI-Assisted Test Engineering",
       "company": "Value Labs",
-      "star_achievement": "Order Bags [REST Assured · AiDE · E2E] : Leveraged Agentic AI (AiDE) to accelerate framework implementation by 50% and reduce test drafting time by 75% across service-level and E2E validations.",
+      "star_achievement": "Order Bags [REST Assured \u00b7 AiDE \u00b7 E2E] : Leveraged Agentic AI (AiDE) to accelerate framework implementation by 50% and reduce test drafting time by 75% across service-level and E2E validations.",
       "tools": [
         "Agentic AI",
         "AiDE",
@@ -107,15 +107,6 @@
       "metric": "35% latency reduction"
     },
     {
-      "domain": "Cloud Certification",
-      "company": "Personal / Certification",
-      "star_achievement": "Earned AWS Certified Solutions Architect Associate certification in 2026 to validate cloud architecture expertise.",
-      "tools": [
-        "AWS"
-      ],
-      "metric": "AWS Certified Solutions Architect Associate"
-    },
-    {
       "domain": "Event-Driven Architecture",
       "company": "Dunzo",
       "star_achievement": "Automated Kafka event-driven message verification using Java and REST Assured, completely eliminating manual message inspection.",
@@ -148,6 +139,31 @@
         "REST Assured",
         "Azure DevOps",
         "AI API"
+      ],
+      "metric": "70% reduction in analysis and bug creation time"
+    },
+    {
+      "domain": "AI Automation & Test Governance",
+      "company": "Personal / Certification",
+      "star_achievement": "Architected an AI-driven EQE best practices tracker using Python, GitHub AI API, Ollama, and MS Teams webhooks to analyze sprint progress and project alignment, reducing manual monitoring tasks by over 80%.",
+      "tools": [
+        "Python",
+        "GitHub AI",
+        "Ollama",
+        "Azure DevOps",
+        "MS Teams Webhooks"
+      ],
+      "metric": "80% reduction in monitoring tasks"
+    },
+    {
+      "domain": "API Automation & Defect Management",
+      "company": "Personal / Certification",
+      "star_achievement": "Engineered an AI-driven automated defect creation module within a Java REST Assured framework that evaluates failure confidence levels (>95%) to auto-generate standardized Azure DevOps bugs, reducing initial analysis and defect logging effort by 70%.",
+      "tools": [
+        "Java",
+        "REST Assured",
+        "Azure DevOps",
+        "AI APIs"
       ],
       "metric": "70% reduction in analysis and bug creation time"
     }

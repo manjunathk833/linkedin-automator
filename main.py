@@ -8,15 +8,12 @@ import os
 import subprocess
 from typing import Any
 
-import uvicorn
 import yaml
 from playwright.async_api import async_playwright
 
 from src.automation.easy_apply import EasyApplyExecutor
 from src.browser.cdp_connector import launch_persistent_browser
-from src.filter.job_filter import LinkedInJobFilter
-from src.scraper.job_finder import LinkedInJobFinder
-from src.tailor.knowledge_translator import KnowledgeBankTranslator
+from src.pipeline.runner import JobSearchPipelineRunner
 
 
 def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
@@ -50,56 +47,6 @@ async def handle_login(config: dict[str, Any]):
         input(">>> Press ENTER when finished logging in: ")
         await context.close()
         print("✅ LinkedIn session saved to .browser_data/ successfully!\n")
-
-
-async def handle_search(config: dict[str, Any]):
-    """Reads search_profiles & discovery settings from config.yaml and runs 4-channel discovery + AI tailorer pipeline."""
-    profiles = config.get("search_profiles", [])
-    discovery_cfg = config.get("discovery", {})
-    if not profiles:
-        print("⚠️ No search_profiles found in config.yaml.")
-        return
-
-    print("\n" + "=" * 60)
-    print("  RUNNING 10X MULTI-CHANNEL JOB DISCOVERY & AI TAILORING PIPELINE")
-    print("=" * 60)
-
-    use_ai = config.get("llm", {}).get("use_ai", True)
-    finder = LinkedInJobFinder(use_ai=use_ai)
-    jobs = await finder.search_all_channels(profiles, discovery_config=discovery_cfg)
-
-    print("\n" + "=" * 60)
-    print(f"🎉 MULTI-CHANNEL SEARCH PIPELINE COMPLETE: {len(jobs)} job(s) tailored & queued in data/pending_queue/")
-    print("👉 Next Step: Run `python main.py filterjobs` or `python main.py dashboard` on localhost:8000")
-    print("=" * 60 + "\n")
-
-
-def handle_filterjobs():
-    """Runs standalone job filter engine on pending queue."""
-    job_filter = LinkedInJobFilter()
-    job_filter.filter_pending_queue()
-
-
-def handle_dashboard():
-    """Launches FastAPI Approval Gate Dashboard on http://127.0.0.1:8000."""
-    print("\n" + "=" * 50)
-    print("  LAUNCHING APPROVAL GATE DASHBOARD")
-    print("  Access UI at: http://127.0.0.1:8000")
-    print("=" * 50 + "\n")
-    uvicorn.run("src.ui.app:app", host="127.0.0.1", port=8000, reload=True)
-
-
-def handle_sync_knowledge(config: dict[str, Any]):
-    """Translates candidate_notes.md into master_knowledge_bank.json entries."""
-    print("\n" + "=" * 50)
-    print("  TRANSLATING CANDIDATE NOTES TO MASTER KNOWLEDGE BANK")
-    print("=" * 50)
-    use_ai = config.get("llm", {}).get("use_ai", True)
-    translator = KnowledgeBankTranslator(use_ai=use_ai)
-    res = translator.sync_notes_to_knowledge_bank()
-    print("\n" + "=" * 50)
-    print(f"✅ KNOWLEDGE SYNC COMPLETE: Added {res.get('added', 0)} new STAR achievement(s).")
-    print("=" * 50 + "\n")
 
 
 async def handle_apply(config: dict[str, Any], dry_run: bool = True):
@@ -176,40 +123,81 @@ def handle_lint():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="LinkedIn Job Search & Application Automation Orchestrator")
-    parser.add_argument(
-        "mode",
-        nargs="?",
-        choices=["search", "filterjobs", "dashboard", "lint", "sync-knowledge"],
-        help="Pipeline execution mode (search, filterjobs, dashboard, lint, or sync-knowledge)",
+    parser = argparse.ArgumentParser(
+        description="LinkedIn Job Search & Application Automation Orchestrator",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument("--login", action="store_true", help="Launch Chrome for one-time manual LinkedIn login")
-    parser.add_argument("--apply", action="store_true", help="Execute Easy Apply automation on approved jobs")
-    parser.add_argument(
+    parser.add_argument("--config", default="config.yaml", help="Path to configuration file (default: config.yaml)")
+
+    subparsers = parser.add_subparsers(dest="command", title="Subcommands", help="Available automation commands")
+
+    # 1. run / pipeline (One-shot automated runner)
+    parser_run = subparsers.add_parser(
+        "run",
+        aliases=["pipeline"],
+        help="One-shot automated execution (sync notes -> search -> filter -> launch dashboard)",
+    )
+    parser_run.add_argument(
+        "--skip-sync", action="store_true", help="Skip translating candidate notes to knowledge bank"
+    )
+    parser_run.add_argument(
+        "--no-dashboard", action="store_false", dest="launch_ui", help="Do not auto-launch web dashboard server"
+    )
+
+    # 2. search
+    subparsers.add_parser("search", help="Discover jobs across 4 channels & tailor resumes")
+
+    # 3. sync / sync-knowledge
+    subparsers.add_parser(
+        "sync",
+        aliases=["sync-knowledge"],
+        help="Translate candidate_notes.md into master_knowledge_bank.json entries",
+    )
+
+    # 4. filter / filterjobs
+    subparsers.add_parser(
+        "filter", aliases=["filterjobs"], help="Run experience-level threshold filter on pending queue"
+    )
+
+    # 5. dashboard
+    subparsers.add_parser("dashboard", help="Launch FastAPI Approval Gate Dashboard on http://127.0.0.1:8000")
+
+    # 6. apply
+    parser_apply = subparsers.add_parser("apply", help="Execute Easy Apply automation on approved queue jobs")
+    parser_apply.add_argument(
         "--dry-run", action="store_true", default=True, help="Run Easy Apply in Dry Run mode (default: True)"
     )
-    parser.add_argument(
+    parser_apply.add_argument(
         "--no-dry-run", action="store_false", dest="dry_run", help="Disable Dry Run mode and submit real applications"
     )
-    parser.add_argument("--config", default="config.yaml", help="Path to config.yaml file")
+
+    # 7. login
+    subparsers.add_parser("login", help="Launch Chrome headful browser for one-time manual LinkedIn login")
+
+    # 8. lint
+    subparsers.add_parser("lint", help="Run Ruff auto-fix linter and code formatter")
 
     args = parser.parse_args()
     config = load_config(args.config)
+    runner = JobSearchPipelineRunner(config)
 
-    if args.login:
-        asyncio.run(handle_login(config))
-    elif args.mode == "search":
-        asyncio.run(handle_search(config))
-    elif args.mode == "filterjobs":
-        handle_filterjobs()
-    elif args.mode == "dashboard":
-        handle_dashboard()
-    elif args.mode == "sync-knowledge":
-        handle_sync_knowledge(config)
-    elif args.mode == "lint":
-        handle_lint()
-    elif args.apply:
+    cmd = args.command
+    if cmd in ["run", "pipeline"]:
+        asyncio.run(runner.run_full_pipeline(skip_sync=args.skip_sync, launch_ui=args.launch_ui))
+    elif cmd == "search":
+        asyncio.run(runner.run_search_stage())
+    elif cmd in ["sync", "sync-knowledge"]:
+        runner.run_sync_stage()
+    elif cmd in ["filter", "filterjobs"]:
+        runner.run_filter_stage()
+    elif cmd == "dashboard":
+        runner.run_dashboard_stage()
+    elif cmd == "apply":
         asyncio.run(handle_apply(config, dry_run=args.dry_run))
+    elif cmd == "login":
+        asyncio.run(handle_login(config))
+    elif cmd == "lint":
+        handle_lint()
     else:
         parser.print_help()
 

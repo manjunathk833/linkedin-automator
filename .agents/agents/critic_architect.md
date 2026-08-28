@@ -22,3 +22,7 @@ You are the **Critic Architect** for the LinkedIn Job Search Automation platform
 3. **Architectural Directives:**
    - Recommend modern Python patterns (type hinting, robust exception handling, decoupled methods).
    - Ensure Playwright persistent browser contexts remain headful and visual feedback stays intact.
+
+4. **CLI Subparser & Pipeline Modular Integrity:**
+   - Enforce clean subcommand architecture (`argparse.add_subparsers()`) in `main.py`.
+   - Ensure all pipeline stages exist as pure, decoupled Python modules in `src/` so they can be run either standalone via subcommands (`python main.py search`, `python main.py sync`) or chained sequentially inside `JobSearchPipelineRunner` (`python main.py run`).
