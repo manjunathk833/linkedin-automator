@@ -21,5 +21,6 @@
   - Safety Rate Governor application cap scaled to 200/day and made dynamically configurable via `config.yaml` (Gate 42: `verify/42_test_safety_governor_cap_200.py`).
   - React-Select Combobox Autofill, Multi-Job Experience Loop ("Add another" for Value Labs, Dunzo, Tata Elxsi), Education, and React synthetic event dispatching verified in Gate 43 (28 fields pre-filled live: `verify/43_test_coinbase_greenhouse_live_fill.py`).
   - Professional Candidate Resume Naming (`Manjunath_HK_<Company>_<Token>_Resume.pdf`), backward compatibility for existing approved queues, and clean download headers verified in Gate 44 (`verify/44_test_resume_professional_naming.py`).
-  - `python main.py lint` clean with 0 errors across 106 files.
+  - Upfront Staging Job Intelligence (US-only location alert badges, context-aware experience extraction, direct job posting link, and compensation view) verified in Gate 45 (`verify/45_test_staging_job_metadata_enrichment.py`).
+  - `python main.py lint` clean with 0 errors across 107 files.
 

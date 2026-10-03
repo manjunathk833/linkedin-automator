@@ -149,6 +149,173 @@ def resolve_job_pdf_path(job_id: str, payload: dict | None = None) -> tuple[str,
     return legacy_path, legacy_filename
 
 
+def extract_job_experience(text: str) -> str:
+    """Extracts required experience in years (e.g. '5+ years' or '6–8 years')."""
+    if not text:
+        return "Not specified"
+    context_keywords = [
+        "exp",
+        "experience",
+        "testing",
+        "sdet",
+        "automation",
+        "background",
+        "working",
+        "quality",
+        "qa",
+        "relevant",
+        "required",
+        "preferred",
+        "qualification",
+    ]
+    years = []
+    for m in re.finditer(r"(\d+)(?:\s*(?:\+|-\s*(\d+)|to\s*(\d+)))?\s*years?", text, re.IGNORECASE):
+        start_idx = max(0, m.start() - 40)
+        end_idx = min(len(text), m.end() + 40)
+        snippet = text[start_idx:end_idx].lower()
+
+        if any(kw in snippet for kw in context_keywords):
+            val1 = int(m.group(1))
+            val2 = int(m.group(2) or m.group(3)) if (m.group(2) or m.group(3)) else None
+            if 0 < val1 < 30:
+                if val2 and 0 < val2 < 30:
+                    years.append(f"{min(val1, val2)}–{max(val1, val2)} years")
+                else:
+                    years.append(f"{val1}+ years")
+
+    if years:
+        return years[0]
+    return "Not specified"
+
+
+def classify_job_location(location: str, description: str = "") -> dict:
+    """Classifies job location to detect US-only or non-India geographic restrictions vs India eligibility."""
+    loc_clean = (location or "").strip()
+    loc_lower = loc_clean.lower()
+    desc_lower = description.lower() if description else ""
+
+    # 1. India / Bengaluru check
+    india_terms = [
+        "bengaluru",
+        "bangalore",
+        "india",
+        "karnataka",
+        "mumbai",
+        "delhi",
+        "gurgaon",
+        "hyderabad",
+        "pune",
+        "chennai",
+    ]
+    if any(term in loc_lower for term in india_terms):
+        return {
+            "location_text": loc_clean or "Bengaluru, India",
+            "is_us_only": False,
+            "is_india": True,
+            "badge_type": "success",
+            "badge_label": "🇮🇳 Bengaluru / India Eligible",
+        }
+
+    # 2. Explicit US-Only / North America / Non-India check
+    us_terms = [
+        "usa",
+        "united states",
+        "u.s.",
+        "remote - usa",
+        "remote - us",
+        "us remote",
+        "usa remote",
+        "san francisco",
+        "new york",
+        "seattle",
+        "austin",
+        "chicago",
+        "california",
+        "texas",
+        "washington",
+        "ny",
+        "ca",
+        "canada",
+        "toronto",
+        "vancouver",
+        "uk",
+        "united kingdom",
+        "london",
+        "europe",
+        "emea",
+    ]
+    is_us = any(re.search(rf"\b{re.escape(term)}\b", loc_lower) for term in us_terms)
+
+    # Check description for US-only restrictions if location is ambiguous
+    if not is_us and (
+        "only open to candidates in the us" in desc_lower
+        or "must be located in the united states" in desc_lower
+        or "authorized to work in the us without sponsorship" in desc_lower
+    ):
+        is_us = True
+
+    if is_us:
+        return {
+            "location_text": loc_clean or "US / Non-India Location",
+            "is_us_only": True,
+            "is_india": False,
+            "badge_type": "warning",
+            "badge_label": "⚠️ US / Non-India Location",
+        }
+
+    # 3. Global / Worldwide Remote
+    if "worldwide" in loc_lower or "anywhere" in loc_lower or "global" in loc_lower:
+        return {
+            "location_text": loc_clean or "Worldwide Remote",
+            "is_us_only": False,
+            "is_india": True,
+            "badge_type": "info",
+            "badge_label": "🌐 Worldwide Remote Eligible",
+        }
+
+    # Default Remote or unverified location
+    if "remote" in loc_lower:
+        return {
+            "location_text": loc_clean,
+            "is_us_only": False,
+            "is_india": False,
+            "badge_type": "neutral",
+            "badge_label": "📍 Remote (Check Eligibility)",
+        }
+
+    return {
+        "location_text": loc_clean or "Not specified",
+        "is_us_only": False,
+        "is_india": False,
+        "badge_type": "neutral",
+        "badge_label": f"📍 {loc_clean}" if loc_clean else "📍 Location Not Specified",
+    }
+
+
+def extract_salary_estimate(job_details: dict) -> str:
+    """Extracts salary range from job details or description text."""
+    if not isinstance(job_details, dict):
+        return "Competitive"
+    if job_details.get("salary_range"):
+        return str(job_details["salary_range"])
+
+    desc = job_details.get("description") or job_details.get("requirements") or ""
+    m = re.search(
+        r"(\$\s*[\d,]+(?:\s*[kK])?\s*(?:—|-|to)\s*\$\s*[\d,]+(?:\s*[kK])?(?:\s*(?:USD|CAD))?)",
+        desc,
+    )
+    if m:
+        return m.group(1).strip()
+    m_inr = re.search(
+        r"((?:₹|INR)\s*[\d,]+(?:\s*(?:L|LPA))?\s*(?:—|-|to)\s*(?:₹|INR)?\s*[\d,]+(?:\s*(?:L|LPA))?)",
+        desc,
+    )
+    if m_inr:
+        return m_inr.group(1).strip()
+
+    return "Competitive"
+
+
 def compute_resume_diff(payload: dict, master_profile: dict) -> dict:
     """Injects is_tailored diff flags into payload experience history achievements."""
     master_exp_map = {}
@@ -218,8 +385,6 @@ async def get_pending_jobs():
                         jd = raw_payload.get("job_details", {})
                         # Ensure requirements text exists for keyword matching
                         if not jd.get("requirements") and jd.get("description"):
-                            import re
-
                             clean = re.sub(r"<[^>]+>", " ", jd["description"])
                             clean = (
                                 clean.replace("&amp;", "&")
@@ -238,6 +403,19 @@ async def get_pending_jobs():
                             json.dump(raw_payload, fw, indent=2)
 
                     diff_payload = compute_resume_diff(raw_payload, master_profile)
+
+                    # Enrich metadata for upfront review
+                    jd = raw_payload.get("job_details", {})
+                    req_text = jd.get("requirements") or jd.get("description") or ""
+
+                    diff_payload["experience_required"] = extract_job_experience(req_text)
+                    diff_payload["location_info"] = classify_job_location(
+                        jd.get("location", ""), jd.get("description", "")
+                    )
+                    diff_payload["salary_estimate"] = extract_salary_estimate(jd)
+                    diff_payload["direct_link"] = raw_payload.get("url") or raw_payload.get("job_url") or ""
+                    diff_payload["source_platform"] = raw_payload.get("source", "ATS").upper()
+
                     jobs.append(diff_payload)
                 except Exception as e:
                     print(f"Error reading {filename}: {e}")

@@ -102,7 +102,68 @@ function renderJob(index) {
     const jd = job.job_details || {};
     document.getElementById('job-title').innerText = jd.title || 'Untitled';
     document.getElementById('job-company').innerText = jd.company || 'Unknown';
-    document.getElementById('job-location').innerText = jd.location || 'Not specified';
+
+    // Source platform badge
+    const src = (job.source_platform || job.source || 'ATS').toUpperCase();
+    const sourceEl = document.getElementById('job-source-badge');
+    if (sourceEl) {
+        sourceEl.innerText = `${src} APPLICATION`;
+    }
+
+    // Dynamic Location Pill with US / Non-India Warning
+    const locInfo = job.location_info || {
+        location_text: jd.location || 'Not specified',
+        is_us_only: false,
+        is_india: false,
+        badge_type: 'neutral',
+        badge_label: `📍 ${jd.location || 'Not specified'}`
+    };
+    const locPill = document.getElementById('job-location-pill');
+    if (locPill) {
+        locPill.className = `location-pill ${locInfo.badge_type || 'neutral'}`;
+        locPill.innerText = locInfo.badge_label || `📍 ${locInfo.location_text}`;
+    }
+
+    // Meta Matrix Values
+    const locVal = document.getElementById('job-location');
+    if (locVal) locVal.innerText = locInfo.location_text || jd.location || 'Not specified';
+
+    const expVal = document.getElementById('job-experience');
+    if (expVal) expVal.innerText = job.experience_required || 'Not specified';
+
+    const salVal = document.getElementById('job-salary');
+    if (salVal) salVal.innerText = job.salary_estimate || jd.salary_range || 'Competitive';
+
+    // Direct Job URL Link Button
+    const linkBtn = document.getElementById('job-link-btn');
+    const jobUrl = job.direct_link || job.url || job.job_url || '#';
+    if (linkBtn) {
+        if (jobUrl && jobUrl !== '#') {
+            linkBtn.href = jobUrl;
+            linkBtn.style.display = 'inline-flex';
+            linkBtn.innerText = 'View Live Job ↗';
+        } else {
+            linkBtn.style.display = 'none';
+        }
+    }
+
+    // Matched Keywords Tags
+    const tagsContainer = document.getElementById('job-matched-tags');
+    if (tagsContainer) {
+        tagsContainer.innerHTML = '';
+        const keywords = job.matched_keywords || [];
+        if (keywords.length > 0) {
+            keywords.forEach(kw => {
+                const span = document.createElement('span');
+                span.className = 'keyword-tag';
+                span.innerText = kw;
+                tagsContainer.appendChild(span);
+            });
+        } else {
+            tagsContainer.innerHTML = '<span class="muted" style="font-size: 0.8rem; font-style: italic;">General QA/SDET match</span>';
+        }
+    }
+
     document.getElementById('job-reqs').innerText = jd.requirements || jd.description || 'No requirements provided';
     
     // Right Col — Tailored Resume (with null-safe guards)
