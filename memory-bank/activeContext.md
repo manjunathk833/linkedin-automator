@@ -16,5 +16,7 @@
   - Static asset cache-busting & middleware revalidation verified (Gate 38: `verify/38_test_static_cache_headers.py`).
   - ATS Assisted Copilot resilience, canonical URL resolution, and form detection verified (Gate 39: `verify/39_test_ats_filler_resilience.py`).
   - ATS Multi-Tab & Popup Window auto-detection and focus switching verified (Gate 40: `verify/40_test_new_tab_ats_handling.py`).
-  - `python main.py lint` clean with 0 errors across 104 files.
+  - Standardized Vendor Autofill Schemas & Centralized Candidate Master Profile verified across Greenhouse, Lever, Ashby, Workday, and LinkedIn Easy Apply (Gate 41: `verify/41_test_standardized_vendor_autofill.py`).
+  - Pre-fill question inputs stripped from Dashboard UI; transformed into rapid 1-click Approval Gate.
+  - `python main.py lint` clean with 0 errors across 103 files.
 

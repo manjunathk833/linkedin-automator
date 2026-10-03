@@ -145,92 +145,10 @@ function renderJob(index) {
         });
     }
     
-    // Easy Apply Form
-    const form = document.getElementById('easy-apply-form');
-    form.innerHTML = '';
-    const answers = tr.easy_apply_answers || null;
-    
-    if (answers && Object.keys(answers).length > 0) {
-        document.getElementById('easy-apply-section').classList.remove('hidden');
-        for (const [key, value] of Object.entries(answers)) {
-            const group = document.createElement('div');
-            group.style.marginBottom = '0.75rem';
-            
-            const label = document.createElement('label');
-            label.style.display = 'block';
-            label.style.fontSize = '0.72rem';
-            label.style.color = '#94a3b8';
-            label.style.marginBottom = '0.2rem';
-            label.innerText = key.replace(/_/g, ' ').toUpperCase();
-            
-            const input = document.createElement('input');
-            input.style.width = '100%';
-            input.style.boxSizing = 'border-box';
-            input.style.background = 'rgba(15, 23, 42, 0.8)';
-            input.style.border = '1px solid rgba(255, 255, 255, 0.1)';
-            input.style.color = '#f8fafc';
-            input.style.padding = '0.45rem';
-            input.style.borderRadius = '6px';
-            input.style.fontFamily = 'inherit';
-            
-            if (typeof value === 'object' && value !== null) {
-                input.value = JSON.stringify(value);
-            } else if (value === null || value === undefined) {
-                input.value = '';
-            } else {
-                input.value = value;
-            }
-            
-            input.dataset.key = key;
-            input.dataset.type = typeof value;
-            
-            group.appendChild(label);
-            group.appendChild(input);
-            form.appendChild(group);
-        }
-    } else {
-        document.getElementById('easy-apply-section').classList.add('hidden');
-    }
-}
-
-function getEditedPayload() {
-    const job = currentJobs[currentJobIndex];
-    if (!job) return null;
-    const tr = job.tailored_resume || {};
-    if (tr.easy_apply_answers) {
-        const inputs = document.querySelectorAll('#easy-apply-form input');
-        inputs.forEach(input => {
-            let val = input.value.trim();
-            const key = input.dataset.key;
-            
-            if (key === 'salary_expectations_min' || key === 'salary_expectations_max') {
-                if (val === '') {
-                    tr.easy_apply_answers[key] = null;
-                } else if (!isNaN(val)) {
-                    tr.easy_apply_answers[key] = parseInt(val, 10);
-                } else {
-                    tr.easy_apply_answers[key] = null;
-                }
-            } else if (val.toLowerCase() === 'true') {
-                tr.easy_apply_answers[key] = true;
-            } else if (val.toLowerCase() === 'false') {
-                tr.easy_apply_answers[key] = false;
-            } else if (val.startsWith('{') || val.startsWith('[')) {
-                try {
-                    tr.easy_apply_answers[key] = JSON.parse(val);
-                } catch (e) {
-                    tr.easy_apply_answers[key] = val;
-                }
-            } else {
-                tr.easy_apply_answers[key] = val;
-            }
-        });
-    }
-    return job;
 }
 
 async function approveJob() {
-    const job = getEditedPayload();
+    const job = currentJobs[currentJobIndex];
     if (!job) return;
 
     const approveBtn = document.getElementById('btn-approve');

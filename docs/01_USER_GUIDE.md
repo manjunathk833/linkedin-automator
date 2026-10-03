@@ -64,17 +64,19 @@ Most job search tools only scrape LinkedIn. This system has two separate discove
 * **The Whitelist Lock:** Next, the text runs through a deterministic code gate (`data/profile/allowed_tools_whitelist.json`). If the AI ever hallucinates a tool you didn't approve (for example, Kubernetes, Cypress, or Go), the code immediately purges it or replaces it with your authentic tool (like Docker or Selenium).
 * The tailored profile is instantly compiled into a clean, single-page ATS-optimized PDF in `data/resumes/`.
 
-### Step 4: Your Local Approval Command Center (`http://localhost:8000`)
+### Step 4: Your Local 1-Click Approval Command Center (`http://localhost:8000`)
 * The dashboard features a **Dual-Mode Command Center**:
-  * **📋 Staging Review Tab:** Review fresh, incoming candidate matches. See employer job descriptions side-by-side with tailored resume bullet points (**✨ Tailored** diff badges) and pre-filled screening answers. You can edit answers, dismiss non-matching jobs, or click **"Move to Approved Queue"**.
+  * **📋 Staging Review Tab:** Review fresh, incoming candidate matches. See employer job descriptions side-by-side with tailored resume bullet points (**✨ Tailored** diff badges) and matched tech tags. No tedious per-job screening questionnaire inputs! Simply click **"Approve"** (moves to Ready to Apply queue with custom PDF compiled) or **"Reject & Skip"**.
   * **🚀 Ready to Apply Tab:** Displays all approved jobs compiled with single-column ATS PDF resumes. Includes a **Live Search Bar** to filter by company or title, an **Inline PDF Preview modal** (`/api/pdf/{job_id}`) to inspect the exact resume before applying, a **Safety Cap Banner** tracking your daily submissions, and individual **"🚀 Launch Copilot"** triggers.
 
-### Step 5: The Human-in-the-Loop Browser Fill & Multi-Tab Copilot
+### Step 5: The Human-in-the-Loop Browser Fill & Modular Vendor Copilot
 * When you click **"🚀 Launch Copilot"**, a real Google Chrome window opens.
+* **Standardized Vendor Schemas:** Instead of guessing form structures, the copilot uses verified vendor standards (Greenhouse, Lever, Ashby, Workday, LinkedIn Easy Apply) mapped to your **Central Candidate Master Profile** (`data/profile/candidate_master_data.json`).
 * **Canonical ATS Routing:** If the job link is an enterprise wrapper (e.g. Coinbase `gh_jid`), the copilot automatically resolves it to the canonical Greenhouse/Lever board where fields are immediately accessible.
 * **Multi-Tab & Popup Window Auto-Switching:** If clicking "Apply for this job" opens a new browser tab (`target="_blank"` or JavaScript `window.open()`), the copilot's context page listener intercepts the new tab, automatically switches active page control to it, brings the application tab to the front of your screen, and detects any nested ATS iframes.
-* **Kinematics & Typing:** It uses **humanized mouse kinematics**: mouse cursors move along natural Bézier curves and types with natural log-normal intervals (40–240 ms per keystroke).
-* **Pause-Before-Submit Gate:** It attaches the tailored PDF resume, fills contact info and links, and **intentionally yields control back to you on the final review screen**.
+* **Kinematics & Typing:** It uses **humanized mouse kinematics**: mouse cursors move along natural Bézier curves and types with natural log-normal intervals (15–90 ms per keystroke).
+* **Multi-Section Completion:** In Greenhouse and Workday, it populates contact info, adds work experience and education cards, and attaches the tailored PDF resume. In Lever and Ashby, it populates custom URLs, org details, and voluntary demographic surveys.
+* **Pause-Before-Submit Gate:** It fills all fields, attaches the tailored PDF resume, and **intentionally yields control back to you on the final review screen**.
 * You verify the answers, give the final nod, and manually click "Submit application".
 * The submission is logged in a local SQLite database (`data/app_database.db`), and your daily budget counter advances (maximum 15 applications per 24 hours to keep your account 100% safe).
 

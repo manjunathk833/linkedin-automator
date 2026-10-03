@@ -197,9 +197,11 @@ graph TD
 ---
 
 ### Module 9: Dashboard-Triggered Assisted Autofill Copilot
-* **Files:** [`src/autofill/form_mapper.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/form_mapper.py), [`src/autofill/linkedin_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/linkedin_filler.py), [`src/autofill/ats_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/ats_filler.py), [`src/ui/app.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/app.py)
-* **Architecture:** Human-in-the-Loop copilot triggered directly from the FastAPI approval dashboard (`🚀 Open & Autofill Copilot`):
-  * **Heuristic Field Mapper:** Maps contact info, experience years, visa authorization, and notice period from candidate profile.
+* **Files:** [`src/autofill/vendor_schemas.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/vendor_schemas.py), [`src/autofill/form_mapper.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/form_mapper.py), [`src/autofill/ats_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/ats_filler.py), [`src/autofill/linkedin_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/linkedin_filler.py), [`src/ui/app.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/app.py)
+* **Architecture:** Human-in-the-Loop copilot triggered directly from the FastAPI approval dashboard (`🚀 Launch Copilot`):
+  * **Standardized Vendor Schemas & Master Profile:** Binds to canonical candidate ground truth in `data/profile/candidate_master_data.json`.
+  * **Modular Vendor Autofill Handlers:** Custom verified handlers for Greenhouse, Lever, Ashby, Workday, and LinkedIn Easy Apply.
+  * **Multi-Tab & Popup Switching:** Intercepts `<a target="_blank">` and `window.open()` popups, focuses the active tab on macOS, and pierces nested iframes.
   * **Modal Traversal:** Enters form details using humanized Bézier movements and keystroke jitter, attaches the tailored PDF resume, and navigates multi-step forms.
   * **Pause-Before-Submit Hook:** Automatically halts at the final "Review your application" step, sounding an alert and leaving the browser open for manual human verification and 1-click submission.
 
@@ -220,6 +222,7 @@ data/
 ├── config/
 │   └── target_companies.json    # Target enterprise registry (37+ Greenhouse, Lever, Ashby boards)
 ├── profile/
+│   ├── candidate_master_data.json   # Canonical candidate master profile (contact, edu, exp, URLs, EEOC)
 │   └── allowed_tools_whitelist.json # Authenticated tools whitelist (48 allowed, 10 disallowed)
 ├── candidate_notes.md           # User-facing plain text notes for new accomplishments
 ├── resume_profile.json          # Authentic base profile (skills matrix, experience, education)

@@ -11,6 +11,11 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (104 files clean).
 
 # Verification History
+- **Phase 41: Standardized Vendor Autofill Schemas & Centralized Master Profile**:
+  - Implemented `CandidateMasterData` in `data/profile/candidate_master_data.json` and `src/autofill/vendor_schemas.py`.
+  - Added modular vendor handlers `_fill_greenhouse`, `_fill_lever`, `_fill_ashby`, `_fill_workday`, and `_fill_linkedin_easy_apply` in `src/autofill/ats_filler.py`.
+  - Stripped redundant per-job questionnaire boxes from Dashboard UI; transformed Staging Review into rapid 1-click Approval Gate.
+  - Verified in `verify/41_test_standardized_vendor_autofill.py`.
 - **Phase 40: Multi-Tab & Popup ATS Autofill Resilience**:
   - Implemented Playwright `context.on("page", ...)` event listener capturing `<a target="_blank">` and `window.open()` triggers.
   - Switches active page/target, brings application tab to front on macOS, and populates form fields.
