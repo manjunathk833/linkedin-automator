@@ -103,7 +103,21 @@ class TypstResumeCompiler:
         comp_slug = sanitize_filename(company)
         clean_id = sanitize_filename(job_id)
         role_slug = sanitize_filename(role_title)
-        filename = f"{comp_slug}_{clean_id}_{role_slug}.pdf"
+
+        cand_name = "Manjunath_HK"
+        if isinstance(profile, dict):
+            p_det = profile.get("personal_details", {})
+            full_name = p_det.get("full_name") or p_det.get("name")
+            if full_name:
+                parts = full_name.strip().split()
+                if len(parts) > 1:
+                    first = re.sub(r"[^a-zA-Z0-9]", "", parts[0])
+                    rest = "".join(re.sub(r"[^a-zA-Z0-9]", "", p) for p in parts[1:])
+                    cand_name = f"{first}_{rest}"
+                else:
+                    cand_name = re.sub(r"[^a-zA-Z0-9]", "", full_name)
+
+        filename = f"{cand_name}_{comp_slug}_{clean_id}_{role_slug}.pdf"
         output_pdf = os.path.join(self.output_dir, filename)
 
         if self.typst_bin:
