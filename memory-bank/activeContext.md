@@ -4,7 +4,7 @@
 
 **Current Operational Status:**
 - Sprints 1–5 complete and verified across all modules (kinematics, CDP stealth, ATS ingestion, grounded tailoring, Typst compiler, assisted copilot, SQLite repository, rate governor).
-- Data reset completed: Runtime queues (`pending_queue/`, `approved_queue/`, `resumes/`) and processed logs cleanly cleared.
+- Data reset completed: Runtime queues (`approved_queue/`, `resumes/`) and deduplication caches wiped; 30 fresh ATS jobs seeded into `pending_queue/` across target tech enterprises with upfront location warnings and rich metadata.
 - Resume profile & Master Knowledge Bank regenerated:
   - `singlepageresume.json` sanitized: Playwright replaced with Selenium.
   - `data/resume_profile.json` regenerated: 100% compliant with Pydantic `ResumeProfile`.
