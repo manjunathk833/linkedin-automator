@@ -68,39 +68,42 @@ def resolve_canonical_ats_url(url: str, company: str = "") -> str:
 class ATSAssistedFiller:
     """Assisted copilot executing anti-detection form filling on Greenhouse, Lever, Ashby, and Workday."""
 
-    def __init__(self, headless: bool = False):
+    def __init__(self, headless: bool = False, master_data: CandidateMasterData | None = None):
         self.headless = headless
         self.mapper = FormFieldMapper()
-        try:
-            self.master_data: CandidateMasterData = load_candidate_master_data()
-        except Exception:
-            # Fallback to defaults if candidate_master_data.json is not yet created
-            contact = self.mapper.get_contact_info()
-            from src.autofill.vendor_schemas import (
-                MasterCurrentEmployment,
-                MasterPersonalDetails,
-                MasterProfiles,
-            )
+        if master_data is not None:
+            self.master_data = master_data
+        else:
+            try:
+                self.master_data = load_candidate_master_data()
+            except Exception:
+                # Fallback to defaults if candidate_master_data.json is not yet created
+                contact = self.mapper.get_contact_info()
+                from src.autofill.vendor_schemas import (
+                    MasterCurrentEmployment,
+                    MasterPersonalDetails,
+                    MasterProfiles,
+                )
 
-            self.master_data = CandidateMasterData(
-                personal=MasterPersonalDetails(
-                    full_name=contact["full_name"],
-                    first_name=contact["first_name"],
-                    last_name=contact["last_name"],
-                    email=contact["email"],
-                    phone=contact["phone"],
-                ),
-                profiles=MasterProfiles(
-                    linkedin=contact["linkedin"],
-                    github=contact["github"],
-                    portfolio=contact["portfolio"],
-                ),
-                current_employment=MasterCurrentEmployment(
-                    company="Value Labs",
-                    title="Senior Engineer - QE",
-                    start_date="2023-06-01",
-                ),
-            )
+                self.master_data = CandidateMasterData(
+                    personal=MasterPersonalDetails(
+                        full_name=contact["full_name"],
+                        first_name=contact["first_name"],
+                        last_name=contact["last_name"],
+                        email=contact["email"],
+                        phone=contact["phone"],
+                    ),
+                    profiles=MasterProfiles(
+                        linkedin=contact["linkedin"],
+                        github=contact["github"],
+                        portfolio=contact["portfolio"],
+                    ),
+                    current_employment=MasterCurrentEmployment(
+                        company="Value Labs",
+                        title="Senior Engineer - QE",
+                        start_date="2023-06-01",
+                    ),
+                )
 
     async def fill_ats_page(
         self,
@@ -267,13 +270,81 @@ class ATSAssistedFiller:
             "url": getattr(page, "url", job_url),
         }
 
+    async def _select_react_combobox(
+        self, target: Any, locator: Any, search_text: str, press_enter: bool = True
+    ) -> bool:
+        """Resiliently interacts with React-Select / custom combobox / native select controls."""
+        try:
+            if await locator.count() == 0:
+                return False
+            el = locator.first
+            if not await el.is_visible(timeout=1000):
+                try:
+                    await el.scroll_into_view_if_needed(timeout=800)
+                except Exception:
+                    pass
+
+            # Check if this is a native HTML select
+            tag = await el.evaluate("e => e.tagName.toLowerCase()")
+            if tag == "select":
+                try:
+                    await el.select_option(label=search_text)
+                    return True
+                except Exception:
+                    options = await el.locator("option").all()
+                    for opt in options:
+                        t = await opt.inner_text()
+                        if search_text.lower() in t.lower():
+                            val = await opt.get_attribute("value")
+                            if val:
+                                await el.select_option(value=val)
+                                return True
+                    return False
+
+            # If it's a container element, look for the inner input
+            input_el = el
+            if tag != "input":
+                inner_input = el.locator("input.select__input, input[role='combobox'], input").first
+                if await inner_input.count() > 0:
+                    input_el = inner_input
+
+            # Focus and clear/type
+            await input_el.click(timeout=1200)
+            await asyncio.sleep(0.15)
+            await human_type(input_el, search_text)
+            await asyncio.sleep(0.4)
+
+            # Check if options menu opened (.select__option, div[role='option'], li[role='option'])
+            page = getattr(target, "page", target)
+            options = page.locator(".select__option, div[role='option'], li[role='option'], .select__menu-list div")
+            if await options.count() > 0:
+                matching_opt = options.filter(has_text=search_text).first
+                if await matching_opt.count() > 0 and await matching_opt.is_visible():
+                    await matching_opt.click(timeout=1200)
+                    await asyncio.sleep(0.2)
+                    return True
+                else:
+                    first_opt = options.first
+                    if await first_opt.is_visible():
+                        await first_opt.click(timeout=1200)
+                        await asyncio.sleep(0.2)
+                        return True
+
+            if press_enter:
+                await input_el.press("Enter")
+                await asyncio.sleep(0.3)
+                return True
+        except Exception:
+            pass
+        return False
+
     async def _fill_greenhouse(self, target: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
-        """Exhaustively fills a Greenhouse application form."""
+        """Exhaustively fills both classic and modern React-Select Greenhouse application forms."""
         filled = 0
         attached = False
         p = self.master_data.personal
 
-        # First & Last Name
+        # 1. First & Last Name
         try:
             fn = target.locator("input#first_name, input[name='first_name']").first
             if await fn.is_visible(timeout=1500) and not (await fn.input_value()):
@@ -290,7 +361,7 @@ class ATSAssistedFiller:
         except Exception:
             pass
 
-        # Email & Phone
+        # 2. Email & Phone
         try:
             em = target.locator("input#email, input[name='email']").first
             if await em.is_visible(timeout=1500) and not (await em.input_value()):
@@ -299,107 +370,204 @@ class ATSAssistedFiller:
         except Exception:
             pass
 
+        # Phone Country Combobox (#country)
+        try:
+            country_input = target.locator("input#country, [id*='country']").first
+            if await country_input.count() > 0 and await self._select_react_combobox(target, country_input, "India"):
+                filled += 1
+        except Exception:
+            pass
+
         try:
             ph = target.locator("input#phone, input[name='phone']").first
             if await ph.is_visible(timeout=1500) and not (await ph.input_value()):
-                await human_type(ph, p.phone)
+                clean_phone = p.phone.replace("+91", "").strip() or p.phone
+                await human_type(ph, clean_phone)
                 filled += 1
         except Exception:
             pass
 
-        # Location Combobox (#candidate-location)
+        # 3. Location Combobox (#candidate-location)
         try:
-            loc = target.locator("input#candidate-location, input[name*='location']").first
-            if await loc.is_visible(timeout=1500) and not (await loc.input_value()):
-                await human_type(loc, p.city)
-                await asyncio.sleep(1.0)
-                # Try selecting first suggestion if combobox list appears
-                first_opt = target.locator("ul[role='listbox'] li, .location-suggestion").first
-                if await first_opt.count() > 0 and await first_opt.is_visible():
-                    await first_opt.click()
+            loc = target.locator("input#candidate-location, [id*='candidate-location']").first
+            if await loc.count() > 0 and await self._select_react_combobox(target, loc, p.city):
                 filled += 1
         except Exception:
             pass
 
-        # Education history (#education--container)
-        try:
-            if self.master_data.education_history:
-                edu = self.master_data.education_history[0]
-                sch = target.locator("input[id*='school'], input[name*='school']").first
-                if await sch.is_visible(timeout=1000) and not (await sch.input_value()):
-                    await human_type(sch, edu.institution)
-                    filled += 1
-
-                deg = target.locator("select[id*='degree'], input[id*='degree']").first
-                if await deg.is_visible(timeout=1000):
-                    try:
-                        await deg.select_option(label=edu.degree)
-                    except Exception:
-                        await human_type(deg, edu.degree)
-                    filled += 1
-        except Exception:
-            pass
-
-        # Employment history (#employment--container)
+        # 4. Employment History (#employment--container or #company-name-0)
         try:
             if self.master_data.experience_history:
                 exp = self.master_data.experience_history[0]
-                comp = target.locator("input[id*='company-name-0'], input[name*='company']").first
+                comp = target.locator("input#company-name-0, input[name*='company']").first
                 if await comp.is_visible(timeout=1000) and not (await comp.input_value()):
                     await human_type(comp, exp.company)
                     filled += 1
 
-                tit = target.locator("input[id*='title-0'], input[name*='title']").first
+                tit = target.locator("input#title-0, input[name*='title']").first
                 if await tit.is_visible(timeout=1000) and not (await tit.input_value()):
                     await human_type(tit, exp.title)
+                    filled += 1
+
+                start_mo = target.locator("input#start-date-month-0, [id*='start-date-month-0']").first
+                if await start_mo.count() > 0 and await self._select_react_combobox(
+                    target, start_mo, exp.start_month or "June"
+                ):
+                    filled += 1
+
+                start_yr = target.locator("input#start-date-year-0, [id*='start-date-year-0']").first
+                if await start_yr.count() > 0 and not (await start_yr.input_value()):
+                    await human_type(start_yr, exp.start_year or "2023")
+                    filled += 1
+
+                if exp.is_current:
+                    curr_chk = target.locator("input#current-role-0_1, input[id*='current-role']").first
+                    if await curr_chk.count() > 0:
+                        try:
+                            if not await curr_chk.is_checked():
+                                await curr_chk.check()
+                                filled += 1
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+        # 5. Education History (#education--container or #school--0)
+        try:
+            if self.master_data.education_history:
+                edu = self.master_data.education_history[0]
+                sch = target.locator("input#school--0, input[id*='school']").first
+                if await sch.count() > 0:
+                    if await self._select_react_combobox(target, sch, edu.institution):
+                        filled += 1
+                    elif not (await sch.input_value()):
+                        await human_type(sch, edu.institution)
+                        filled += 1
+
+                deg = target.locator("input#degree--0, select[id*='degree'], input[id*='degree']").first
+                if await deg.count() > 0 and await self._select_react_combobox(target, deg, edu.degree):
+                    filled += 1
+
+                disc = target.locator("input#discipline--0, input[id*='discipline']").first
+                if await disc.count() > 0 and await self._select_react_combobox(target, disc, edu.discipline):
                     filled += 1
         except Exception:
             pass
 
-        # LinkedIn Profile
+        # 6. LinkedIn Profile URL
         try:
             li = target.locator(
-                "input[id*='linkedin'], input[name*='linkedin'], input[id*='question_'][placeholder*='linkedin' i]"
+                "input[aria-label*='Linkedin' i], input[id*='linkedin'], input[name*='linkedin'], input[placeholder*='linkedin' i]"
             ).first
-            if await li.is_visible(timeout=1000) and not (await li.input_value()):
+            if await li.count() > 0 and await li.is_visible(timeout=1000) and not (await li.input_value()):
                 await human_type(li, self.master_data.profiles.linkedin)
                 filled += 1
         except Exception:
             pass
 
-        # Compliance Dropdowns (18+, Authorized, Sponsorship)
+        # 7. Semantic Application Question Traversal
         try:
-            selects = target.locator("select[id*='question_']")
-            count = await selects.count()
-            for i in range(count):
-                sel = selects.nth(i)
-                label_text = await sel.evaluate("el => el.closest('div.field, fieldset')?.innerText || ''")
-                label_lower = label_text.lower()
-                if "18" in label_lower or "authorized" in label_lower:
-                    try:
-                        await sel.select_option(label="Yes")
+            question_boxes = target.locator("div.field, fieldset.field, .application-question")
+            q_count = await question_boxes.count()
+            for i in range(q_count):
+                q_box = question_boxes.nth(i)
+                try:
+                    label_text = (await q_box.inner_text()).lower()
+                except Exception as err:
+                    print(f"⚠️ Notice reading question label: {err}")
+                    continue
+
+                # Check if LinkedIn URL input
+                if "linkedin" in label_text:
+                    li_box = q_box.locator(
+                        "input.input__single-line:not(.select__input), input[type='text'], input[type='url']"
+                    ).first
+                    if await li_box.count() > 0 and not (await li_box.input_value()):
+                        await human_type(li_box, self.master_data.profiles.linkedin)
                         filled += 1
-                    except Exception:
-                        pass
-                elif "sponsorship" in label_lower or "previously employed" in label_lower:
-                    try:
-                        await sel.select_option(label="No")
+                        continue
+
+                # Look for dropdown / combobox / select
+                combobox = q_box.locator("input.select__input, input[role='combobox'], select").first
+                if await combobox.count() == 0:
+                    continue
+
+                if "18" in label_text or "age" in label_text:
+                    if await self._select_react_combobox(target, combobox, "Yes"):
                         filled += 1
-                    except Exception:
-                        pass
+                elif "previously" in label_text and "employed" in label_text:
+                    if await self._select_react_combobox(target, combobox, "No"):
+                        filled += 1
+                elif "how did you hear" in label_text or "source" in label_text:
+                    source_val = getattr(self.master_data.legal_and_compliance, "how_did_you_hear", "LinkedIn")
+                    if await self._select_react_combobox(target, combobox, source_val):
+                        filled += 1
+                elif "privacy" in label_text or "arbitration" in label_text or "confirm receipt" in label_text:
+                    if not await self._select_react_combobox(target, combobox, "I confirm"):
+                        if await self._select_react_combobox(target, combobox, "Yes"):
+                            filled += 1
+                    else:
+                        filled += 1
+                elif "ai tools to assist" in label_text or "may use ai tools" in label_text:
+                    if await self._select_react_combobox(target, combobox, "Yes"):
+                        filled += 1
+                elif "how you use ai tools today" in label_text or "use ai tools today" in label_text:
+                    if not await self._select_react_combobox(target, combobox, "design or automate workflows"):
+                        if await self._select_react_combobox(target, combobox, "regularly"):
+                            filled += 1
+                    else:
+                        filled += 1
+                elif "authorized" in label_text or "legally authorized" in label_text:
+                    if await self._select_react_combobox(target, combobox, "Yes"):
+                        filled += 1
+                elif "sponsorship" in label_text:
+                    if await self._select_react_combobox(target, combobox, "No"):
+                        filled += 1
+                elif "government official" in label_text:
+                    if "relative" in label_text or "close relative" in label_text:
+                        if not await self._select_react_combobox(
+                            target, combobox, "No, I am not a relative of a government official."
+                        ):
+                            if await self._select_react_combobox(target, combobox, "No"):
+                                filled += 1
+                        else:
+                            filled += 1
+                    else:
+                        if not await self._select_react_combobox(
+                            target, combobox, "No, I am not a current or former Government Official"
+                        ):
+                            if await self._select_react_combobox(target, combobox, "No"):
+                                filled += 1
+                        else:
+                            filled += 1
+                elif (
+                    "conflict" in label_text or "financial interest" in label_text or "referred" in label_text
+                ) and await self._select_react_combobox(target, combobox, "No"):
+                    filled += 1
         except Exception:
             pass
 
-        # Voluntary Self-ID (EEOC)
+        # 8. Voluntary Self-ID (EEOC)
         try:
-            gender_sel = target.locator("select#gender, select[name*='gender']").first
-            if await gender_sel.is_visible(timeout=800):
-                await gender_sel.select_option(label=self.master_data.voluntary_eeoc.gender)
+            gen = target.locator("input#gender, [id*='gender']").first
+            if await gen.count() > 0 and await self._select_react_combobox(target, gen, "Male"):
+                filled += 1
+
+            hisp = target.locator("input#hispanic_ethnicity, [id*='hispanic']").first
+            if await hisp.count() > 0 and await self._select_react_combobox(target, hisp, "No"):
+                filled += 1
+
+            vet = target.locator("input#veteran_status, [id*='veteran']").first
+            if await vet.count() > 0 and await self._select_react_combobox(target, vet, "I am not a protected veteran"):
+                filled += 1
+
+            dis = target.locator("input#disability_status, [id*='disability']").first
+            if await dis.count() > 0 and await self._select_react_combobox(target, dis, "No"):
                 filled += 1
         except Exception:
             pass
 
-        # Attach Resume
+        # 9. Attach Resume
         if resume_pdf_path and os.path.exists(resume_pdf_path):
             try:
                 res_file = target.locator("input[type='file'][id*='resume'], input[type='file']").first

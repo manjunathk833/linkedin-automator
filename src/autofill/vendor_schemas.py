@@ -89,15 +89,24 @@ class MasterLegalAndCompliance(BaseModel):
     notice_period_text: str = "30 Days"
     expected_ctc: str = "Negotiable / Standard"
     current_ctc: str = "Confidential / Competitive"
+    ai_tools_usage: str = "I design or automate workflows with AI tools (e.g. prompt engineering, building AI bots/agents, automating workflows)"
+    ai_acknowledgment: bool = True
+    how_did_you_hear: str = "LinkedIn"
+    government_official: bool = False
+    relative_government_official: bool = False
+    conflict_of_interest: bool = False
+    senior_referral: bool = False
+    data_privacy_receipt_confirmed: bool = True
 
 
 class MasterVoluntaryEEOC(BaseModel):
     """Demographics and voluntary disclosures."""
 
-    gender: str = "Man"
+    gender: str = "Male"
     race_ethnicity: str = "Asian"
-    veteran_status: str = "No"
-    disability_status: str = "No"
+    hispanic_latino: str = "No"
+    veteran_status: str = "I am not a protected veteran"
+    disability_status: str = "No, I do not have a disability"
 
 
 class CandidateMasterData(BaseModel):

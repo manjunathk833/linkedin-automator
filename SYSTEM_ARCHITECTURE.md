@@ -289,8 +289,9 @@ All features are covered by dedicated, standalone verification scripts in `verif
 | `verify/40_test_new_tab_ats_handling.py` | Multi-Tab & Popup Autofill | Tests target="_blank" and window.open() new-tab switching, focus, and form filling |
 | `verify/41_test_standardized_vendor_autofill.py` | Vendor Schemas & Filler Engine | Verifies standardized candidate profile mapping across Greenhouse, Lever, Ashby, Workday, LinkedIn |
 | `verify/42_test_safety_governor_cap_200.py` | Safety Governor Cap Scaled to 200 | Verifies dynamic config loading, default 200/day quota, and boundary cutoff behavior |
+| `verify/43_test_coinbase_greenhouse_live_fill.py` | Live Coinbase Greenhouse Fill | Verifies React-Select combobox handling, custom disclosures, AI usage mapping, and resume attachment |
 
-* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 104 project files).
+* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 105 project files).
 
 ---
 

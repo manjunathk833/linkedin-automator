@@ -8,9 +8,14 @@
 - **SQLite Audit Trail & Safety Rate Governor (`src/storage/database.py`, `src/autofill/governor.py`)**: Enforces configurable application quota (default $\le 200$/day, customizable in `config.yaml`) and logs full application payloads in `data/app_database.db`.
 
 # Tech Debt Log
-- None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (104 files clean).
+- None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 43: Live Coinbase Greenhouse Form Autofill & React-Select Engine**:
+  - Implemented `_select_react_combobox` supporting asynchronous React-Select controls and native selects.
+  - Added semantic intent question traversal across all Coinbase Greenhouse custom disclosures (18+, previous employment, source, privacy/arbitration receipt, AI notice, AI workflow usage, work authorization, visa sponsorship, government official disclosure, relative disclosure, conflicts of interest, referral).
+  - Integrated education history (School, Degree, Discipline), employment history (dates, current role checkbox), and voluntary EEO.
+  - Verified on the live URL `https://job-boards.greenhouse.io/embed/job_app?token=8095207&for=coinbase&gh_jid=8095207` in `verify/43_test_coinbase_greenhouse_live_fill.py` (17 fields filled + resume attached).
 - **Phase 42: Safety Rate Governor Cap Scaled to 200/day**:
   - Scaled `DEFAULT_DAILY_LIMIT` to 200 to empower high-volume human-in-the-loop applications without artificial bottlenecks.
   - Added dynamic `safety_governor.daily_limit` configuration in `config.yaml` with graceful fallback.
