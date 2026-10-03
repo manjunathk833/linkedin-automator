@@ -37,5 +37,6 @@
   - Tab autofocus & iframe switching hardened: Playwright now waits for new tabs to navigate away from `about:blank`, and iframe target switching is guarded against hijacking pages where form inputs are already present on the root document.
   - Verification Gate 48 (`verify/48_test_coinbase_autofill_heuristics.py`) passing 100% (28 fields filled live + resume attached).
   - Full regression test suite passing (Gates 39, 41, 44, 45, 46, 47, 48).
-  - `python main.py lint` clean with 0 errors across 110 files.
+  - `python main.py lint` clean with 0 errors across 112 files.
+  - Multi-channel LinkedIn discovery executed (`python main.py search`): 50 live Senior SDET & Automation Lead Easy Apply jobs scraped, deduplicated, tailored, and seeded into `data/pending_queue/` for human review in the Command Center UI (`http://localhost:8000`).
 
