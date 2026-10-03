@@ -354,10 +354,12 @@ class ATSAssistedFiller:
             await asyncio.sleep(0.5)
 
             # Check if options menu opened (.select__option, div[role='option'], li[role='option'])
-            page = getattr(target, "page", target)
-            options = page.locator(".select__option, div[role='option'], li[role='option'], .select__menu-list div")
+            container = target if hasattr(target, "locator") else getattr(target, "page", target)
+            options = container.locator(
+                ".select__option:not(.select__menu-notice), div[role='option']:not(.select__menu-notice), li[role='option']"
+            )
             try:
-                await options.first.wait_for(state="visible", timeout=2500)
+                await options.first.wait_for(state="visible", timeout=3500)
             except Exception:
                 pass
 
@@ -368,7 +370,14 @@ class ATSAssistedFiller:
                     for i in range(opt_count):
                         opt = options.nth(i)
                         txt = await opt.inner_text()
-                        if "+91" in txt or "India +91" in txt:
+                        if "+91" in txt:
+                            await opt.click(timeout=1200)
+                            await asyncio.sleep(0.2)
+                            return True
+                    for i in range(opt_count):
+                        opt = options.nth(i)
+                        txt = (await opt.inner_text()).strip()
+                        if txt == "India" or txt.startswith("India (") or "india (+91)" in txt.lower():
                             await opt.click(timeout=1200)
                             await asyncio.sleep(0.2)
                             return True
@@ -377,6 +386,8 @@ class ATSAssistedFiller:
                 for i in range(opt_count):
                     opt = options.nth(i)
                     txt = (await opt.inner_text()).strip()
+                    if not txt or "loading" in txt.lower():
+                        continue
                     if (
                         prefer_exact
                         and search_text.lower() == txt.lower()
@@ -387,12 +398,14 @@ class ATSAssistedFiller:
                         await asyncio.sleep(0.2)
                         return True
 
-                # Fallback to first visible option
+                # Fallback to first visible valid option (ignoring notices)
                 first_opt = options.first
                 if await first_opt.is_visible():
-                    await first_opt.click(timeout=1200)
-                    await asyncio.sleep(0.2)
-                    return True
+                    first_txt = (await first_opt.inner_text()).strip()
+                    if "loading" not in first_txt.lower():
+                        await first_opt.click(timeout=1200)
+                        await asyncio.sleep(0.2)
+                        return True
 
             # If no dropdown option matched, press Enter and dispatch events
             await input_el.press("Enter")
@@ -728,7 +741,7 @@ class ATSAssistedFiller:
             country_sel = ", ".join(
                 schema.get(
                     "country",
-                    ["input#country", "[id*='country']", "div:has(label:has-text('Country')) [role='combobox']"],
+                    ["input#country"],
                 )
             )
             country_input = target.locator(country_sel).first
@@ -754,8 +767,6 @@ class ATSAssistedFiller:
                     "location",
                     [
                         "input#candidate-location",
-                        "[id*='candidate-location']",
-                        "div:has(label:has-text('Location')) [role='combobox']",
                     ],
                 )
             )
@@ -769,7 +780,9 @@ class ATSAssistedFiller:
 
         # 7. Resume Upload
         resume_sel = ", ".join(
-            schema.get("resume", ["input[type='file'][name*='resume']", "input#resume", "input[type='file']"])
+            schema.get(
+                "resume", ["input#resume[type='file']", "input[type='file'][name*='resume']", "input[type='file']"]
+            )
         )
         if resume_pdf_path and os.path.exists(resume_pdf_path):
             try:
@@ -788,9 +801,7 @@ class ATSAssistedFiller:
                 "linkedin",
                 [
                     "input#question_35489440002",
-                    "div:has(label:has-text('LinkedIn')) input",
-                    "input[name*='35489440002']",
-                    "input[id*='linkedin']",
+                    "input[aria-label*='LinkedIn' i]",
                 ],
             )
         )
@@ -809,8 +820,7 @@ class ATSAssistedFiller:
                 "current_firm",
                 [
                     "input#question_35489441002",
-                    "div:has(label:has-text('Current firm')) input",
-                    "input[name*='35489441002']",
+                    "input[aria-label*='Current firm' i]",
                 ],
             )
         )
@@ -828,9 +838,8 @@ class ATSAssistedFiller:
                 "work_authorization",
                 [
                     "input#question_35489442002",
-                    "div:has(label:has-text('authorized to work')) [role='combobox']",
-                    "div:has(label:has-text('authorized to work'))",
-                    "input[name*='35489442002']",
+                    ".field-wrapper:has(label:has-text('authorized to work')) input",
+                    "input[aria-label*='authorized to work' i]",
                 ],
             )
         )
@@ -847,9 +856,8 @@ class ATSAssistedFiller:
                 "previously_worked",
                 [
                     "input#question_35489443002",
-                    "div:has(label:has-text('worked for Databricks')) [role='combobox']",
-                    "div:has(label:has-text('worked for Databricks'))",
-                    "input[name*='35489443002']",
+                    ".field-wrapper:has(label:has-text('worked for Databricks')) input",
+                    "input[aria-label*='worked for Databricks' i]",
                 ],
             )
         )

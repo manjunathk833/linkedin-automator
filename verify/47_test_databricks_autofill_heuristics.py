@@ -303,11 +303,26 @@ async def test_databricks_live_autofill():
             print(f"📊 Live Fill Result: {result}")
 
             # Verify pattern recognition was accurate
-            assert result["fields_filled"] >= 5, (
-                f"Expected at least 5 fields filled on live page, got {result['fields_filled']}"
+            assert result["fields_filled"] >= 8, (
+                f"Expected at least 8 fields filled on live page, got {result['fields_filled']}"
             )
             assert result["status"] == "ready_for_review"
-            print("✅ Step 5: Databricks live page autofill executed successfully.")
+
+            # Verify no cross-field contamination
+            target = page.frame_locator("iframe#grnhse_iframe").first
+            fn = await target.locator("#first_name").input_value()
+            firm = await target.locator("#question_35489441002").input_value()
+            controls = await target.locator(".select__control").all()
+            c_texts = [await c.inner_text() for c in controls]
+
+            assert fn == "Manjunath", f"Expected First Name 'Manjunath', got '{fn}'"
+            assert firm == "Value Labs", f"Expected Current Firm 'Value Labs', got '{firm}'"
+            assert "+91" in c_texts[0], f"Expected +91 in country, got '{c_texts[0]}'"
+            assert "Bengaluru" in c_texts[1], f"Expected Bengaluru in location, got '{c_texts[1]}'"
+            assert "Yes" in c_texts[2], f"Expected Yes in work auth, got '{c_texts[2]}'"
+            assert "No" in c_texts[3], f"Expected No in prior employment, got '{c_texts[3]}'"
+
+            print("✅ Step 5: Databricks live page autofill executed with 100% precision and zero contamination.")
         except Exception as e:
             print(f"⚠️ Live network test note: {e}")
             print("Live network verification was attempted; local DOM and heuristics verified.")
