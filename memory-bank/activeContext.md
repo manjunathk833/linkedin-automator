@@ -30,6 +30,8 @@
   - Form selectors mapped for Databricks: Preferred Name (`#preferred_name`), Current Firm (`#question_35489441002`), Phone Country Dial Code (`+91`), Location Combobox (`Bengaluru`), LinkedIn (`#question_35489440002`), Work Auth (`#question_35489442002`), Prior Employment (`#question_35489443002`), and Resume PDF upload.
   - Canonical URL resolver updated to preserve Databricks URLs on `databricks.com` to prevent Greenhouse 302-redirect loops.
   - Verification Gate 47 (`verify/47_test_databricks_autofill_heuristics.py`) passing 100% (12 fields filled live + resume attached).
+  - ATS Autofill Debugger subagent created in `.agents/agents/ats_autofill_debugger.md` incorporating proven live probing procedures, anti-collision selector rules, React-Select async handling, and synthetic event dispatching.
+  - Mandatory Tri-Agent Auto-Invocation Protocol established in `.agents/rules/02-agent-review-protocol.md` with auto-invoked `ats_autofill_debugger` quality lens to fast-track vendor debugging and prevent regressions.
   - Full regression test suite passing (Gates 41, 44, 45, 46, 47).
   - `python main.py lint` clean with 0 errors across 110 files.
 
