@@ -18,3 +18,5 @@ Before modifying code or running commands, audit technical soundness:
 - [ ] **Decoupled State Management:** Metadata extraction must occur before page navigation to prevent stale handles.
 - [ ] **Verification Gate:** Verification script in `verify/` must validate browser/parser logic.
 - [ ] **Clean Code & Linting:** Code must pass `python main.py lint` with 0 linter errors.
+- [ ] **Documentation Sync:** Architecture changes, endpoints, and verification tests must be synced to `docs/` and `SYSTEM_ARCHITECTURE.md`.
+

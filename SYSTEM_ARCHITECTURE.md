@@ -3,7 +3,14 @@
 > **Document Type:** AI-Readable & Human-Reviewable System Architecture Document  
 > **Repository:** `manjunathk833/linkedin-automator`  
 > **Status:** Production-Ready / Active Development (Branch: `develop`)  
-> **Target Audience:** Technical Auditors, Senior SDET Architects, AI Reviewers, Open-Source Contributors
+> **Target Audience:** Technical Auditors, Senior SDET Architects, AI Reviewers, Open-Source Contributors  
+> 
+> 📚 **Complete Documentation Suite in [`docs/`](docs/README.md):**
+> * [**01_USER_GUIDE.md**](docs/01_USER_GUIDE.md): Plain-English walkthrough, daily workflows, and customization cheat sheet.
+> * [**02_CONCEPTUAL_ARCHITECTURE.md**](docs/02_CONCEPTUAL_ARCHITECTURE.md): Zero-cost economics, dual-track ingestion, and anti-detection threat model.
+> * [**03_TECHNICAL_SPECIFICATION.md**](docs/03_TECHNICAL_SPECIFICATION.md): Exhaustive breakdown of Modules 1–10 and data schemas.
+> * [**04_USAGE_AND_OPERATIONS.md**](docs/04_USAGE_AND_OPERATIONS.md): CLI subcommands and troubleshooting playbooks.
+> * [**05_VERIFICATION_AND_TESTING.md**](docs/05_VERIFICATION_AND_TESTING.md): Catalog of all 32 verification test scripts.
 
 ---
 
@@ -30,23 +37,25 @@ graph TD
         D["Base Resume Profile<br/>(data/resume_profile.json)"]
     end
 
-    subgraph "2. Discovery & Scraping Layer"
-        E["CLI / Pipeline Runner<br/>(main.py / src/pipeline/runner.py)"] --> F["Browser Engine<br/>(src/browser/cdp_connector.py)"]
-        F --> G["Multi-Channel Scraper<br/>(src/scraper/job_finder.py)"]
-        G -->|Channel 1| H1["Keyword Search"]
-        G -->|Channel 2| H2["Recommended Feed"]
-        G -->|Channel 3| H3["Recruiter Posts"]
-        G -->|Channel 4| H4["Similar Jobs"]
+    subgraph "2. Dual-Track Discovery & Ingestion Layer"
+        E["CLI / Pipeline Runner<br/>(main.py / src/pipeline/runner.py)"] --> F["Browser Engine<br/>(src/browser/cdp_stealth.py)"]
+        F --> G["LinkedIn Stealth Scraper<br/>(src/scraper/job_finder.py)"]
+        E --> H["Direct ATS Ingestion Coordinator<br/>(src/ingestion/ats_discovery.py)"]
+        H -->|Keyless REST| H1["Greenhouse API"]
+        H -->|Keyless REST| H2["Lever API"]
+        H -->|Keyless REST| H3["Ashby API"]
     end
 
     subgraph "3. AI Resume Tailoring & Verification Gate"
-        G --> I["Job Description Cleaner<br/>(clean_job_description)"]
-        I --> J["Resume Tailorer<br/>(src/tailor/resume_tailorer.py)"]
+        G --> I["Job Description Normalizer"]
+        H --> I
+        I --> J["Resume Tailorer & Prompts<br/>(src/tailor/resume_tailorer.py / src/llm/prompts.py)"]
         C --> J
         D --> J
-        J --> K["Hybrid LLM Provider<br/>(src/tailor/llm_provider.py)"]
-        K --> L["Deterministic Fabrication Detector<br/>(src/tailor/fabrication_detector.py)"]
-        L -->|Strip Unallowed Tools| M["Pending Queue Payloads<br/>(data/pending_queue/*.json)"]
+        J --> K["Local/Cloud LLM Provider<br/>(src/llm/ollama_client.py / src/tailor/llm_provider.py)"]
+        K --> L["Deterministic Verification Gate<br/>(src/llm/validator.py / allowed_tools_whitelist.json)"]
+        L -->|Purge Unallowed Tools| M["Pending Queue Payloads<br/>(data/pending_queue/*.json)"]
+        L -->|Typst ATS Compiler| M2["Tailored PDF Resumes<br/>(data/resumes/*.pdf)"]
     end
 
     subgraph "4. Policy & Experience Filter"
@@ -55,19 +64,21 @@ graph TD
         N -->|Underqualified / Blacklisted Location| P["data/processed_jobs.json (FILTERED_OUT)"]
     end
 
-    subgraph "5. Human Approval Gate (HITL)"
+    subgraph "5. Human Approval Gate & Assisted Copilot"
         O --> Q["FastAPI Dashboard<br/>(src/ui/app.py:8000)"]
         Q --> R["Visual Diff & Badging Engine<br/>(✨ Tailored / 🎯 Matched)"]
-        R --> S{Candidate Review}
+        R --> S{Candidate Action}
         S -->|Reject| T["Dismissed / Ignored"]
-        S -->|Approve| U["Approved Queue<br/>(data/approved_queue/*.json)"]
+        S -->|Approve & Queue| U["Approved Queue<br/>(data/approved_queue/*.json)"]
+        S -->|🚀 Open & Autofill Copilot| V["Assisted Autofill Copilot<br/>(src/autofill/linkedin_filler.py / ats_filler.py)"]
     end
 
-    subgraph "6. Easy Apply Execution Engine"
-        U --> V["Easy Apply Executor<br/>(src/automation/easy_apply.py)"]
-        V -->|AI Screening Solver| K
-        V -->|Dry Run / Live Apply| W["LinkedIn Easy Apply Form Modal"]
-        W --> X["Audit History Log<br/>(data/application_history.json)"]
+    subgraph "6. Assisted Execution & Governance"
+        V --> W["Kinematics Engine<br/>(Bézier Mouse & Keystroke Jitter)"]
+        W --> X["Live Application Modal (Pre-fills & Halts)"]
+        X -->|Manual One-Click Submit| Y["Candidate Final Submission"]
+        Y --> Z["SQLite Audit Database<br/>(data/app_database.db)"]
+        Z --> GOV["Rate Governor<br/>(≤15 Apps/Day Budget Guard)"]
     end
 ```
 
@@ -90,13 +101,16 @@ graph TD
 
 ---
 
-### Module 2: Browser Context & Anti-Detection Layer
-* **Files:** [`src/browser/cdp_connector.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/cdp_connector.py)
-* **Architecture:** Playwright persistent browser context using real user Chrome profile (`.browser_data/`).
+### Module 2: Browser Context, Anti-Detection & Kinematics Engine
+* **Files:** [`src/browser/cdp_stealth.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/cdp_stealth.py), [`src/browser/kinematics.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/kinematics.py), [`src/browser/cdp_connector.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/cdp_connector.py)
+* **Architecture:** Persistent Chrome profile with runtime CDP isolation, anti-fingerprinting JS evasions, and humanized input kinematics.
 * **Stealth & Resilience Parameters:**
-  * Disables Automation flags (`--disable-blink-features=AutomationControlled`).
-  * Injects humanized viewport dimensions (`1366x768`), randomized delays (2000–5000ms), and natural scrolling.
-  * Safe CDP connection handling with graceful fallback to standard `launch_persistent_context`.
+  * **CDP Isolation:** Removes `navigator.webdriver` artifact, injects authentic `window.chrome` runtime/loadTimes mocks, and emulates macOS Chrome plugins and English language arrays.
+  * **Kinematics Engine:** Formulates non-linear mouse paths using cubic Bézier curves:
+    $$B(t) = (1-t)^3 P_0 + 3(1-t)^2 t P_1 + 3(1-t) t^2 P_2 + t^3 P_3, \quad t \in [0, 1]$$
+    with smoothstep easing and micro-tremor jitter.
+  * **Log-Normal Keystroke Intervals:** Keystroke timings modeled via log-normal distribution ($40–240$ ms per character) with randomized pauses after punctuation.
+  * **Dynamic Driver Selection:** Supports drop-in of `rebrowser-playwright` with graceful fallback to persistent system Chrome.
 
 ---
 
@@ -161,33 +175,86 @@ graph TD
 
 ---
 
+### Module 7: Multi-Source Keyless ATS Ingestion Engine
+* **Files:** [`src/ingestion/greenhouse.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/greenhouse.py), [`src/ingestion/lever.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/lever.py), [`src/ingestion/ashby.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/ashby.py), [`src/ingestion/ats_discovery.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/ats_discovery.py), [`scripts/seed_companies.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/seed_companies.py), [`scripts/run_ingestion.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/run_ingestion.py)
+* **Architecture:** Zero-cost, unauthenticated REST ingestion directly querying public ATS endpoints:
+  * Greenhouse: `https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true`
+  * Lever: `https://api.lever.co/v0/postings/{slug}?mode=json`
+  * Ashby: `https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true`
+* **Features:**
+  * **Enterprise Registry:** 37+ target tech companies in India / Remote maintained in `data/config/target_companies.json`.
+  * **Async Concurrency:** Dispatches parallel non-blocking HTTP requests with semaphore rate-limiting (`asyncio.Semaphore(10)`).
+  * **Unified Normalization:** Ingests raw job payloads into structured Pydantic `JobListing` models and formats them for queue inspection.
+
+---
+
+### Module 8: Deterministic Verification Gate & Typst Resume Compiler
+* **Files:** [`src/llm/validator.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/llm/validator.py), [`data/profile/allowed_tools_whitelist.json`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/data/profile/allowed_tools_whitelist.json), [`src/compiler/typst_generator.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/compiler/typst_generator.py), [`src/compiler/templates/resume_template.typ`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/compiler/templates/resume_template.typ)
+* **Architecture:** Code-level deterministic integrity gate and single-column ATS PDF compiler:
+  * **Whitelist Enforcement:** Validates every tailored bullet against `allowed_tools_whitelist.json`. 100% purges unauthorized tools (e.g. Cypress, Kubernetes, Golang, Playwright) or substitutes them with authentic equivalents (Selenium, Docker, Python).
+  * **Single-Column ATS PDFs:** Compiles clean, ATS-compliant PDFs into `data/resumes/{company}_{job_id}_{role_slug}.pdf` using Typst with resilient HTML/Playwright fallback.
+
+---
+
+### Module 9: Dashboard-Triggered Assisted Autofill Copilot
+* **Files:** [`src/autofill/form_mapper.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/form_mapper.py), [`src/autofill/linkedin_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/linkedin_filler.py), [`src/autofill/ats_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/ats_filler.py), [`src/ui/app.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/app.py)
+* **Architecture:** Human-in-the-Loop copilot triggered directly from the FastAPI approval dashboard (`🚀 Open & Autofill Copilot`):
+  * **Heuristic Field Mapper:** Maps contact info, experience years, visa authorization, and notice period from candidate profile.
+  * **Modal Traversal:** Enters form details using humanized Bézier movements and keystroke jitter, attaches the tailored PDF resume, and navigates multi-step forms.
+  * **Pause-Before-Submit Hook:** Automatically halts at the final "Review your application" step, sounding an alert and leaving the browser open for manual human verification and 1-click submission.
+
+---
+
+### Module 10: Governance, SQLite Audit Trails & Rate Governor
+* **Files:** [`src/storage/database.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/storage/database.py), [`src/autofill/governor.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/governor.py)
+* **Architecture:** Relational persistence and safety policy governor:
+  * **SQLite Audit Trail:** `data/app_database.db` persists `job_applications` (source, URL, resume path, tailored JSON, timestamps) and `daily_submission_limits`.
+  * **Rolling Daily Budget Governor:** Enforces a hard quota of $\le 15$ applications per 24 hours to prevent platform rate limits and preserve account trust.
+
+---
+
 ## 4. Data Architecture & Storage Schema
 
 ```
 data/
+├── config/
+│   └── target_companies.json    # Target enterprise registry (37+ Greenhouse, Lever, Ashby boards)
+├── profile/
+│   └── allowed_tools_whitelist.json # Authenticated tools whitelist (48 allowed, 10 disallowed)
 ├── candidate_notes.md           # User-facing plain text notes for new accomplishments
 ├── resume_profile.json          # Authentic base profile (skills matrix, experience, education)
 ├── master_knowledge_bank.json   # Domain-categorized STAR achievement vault (deduplicated)
 ├── processed_jobs.json          # Master ledger of all discovered jobs & composite hashes
 ├── application_history.json     # Audit trail of Easy Apply submissions
+├── app_database.db              # Relational SQLite audit log and daily rate limits
+├── resumes/                     # (Git-ignored) Compiled single-column ATS PDFs
 ├── pending_queue/               # (Git-ignored) Scraped & tailored job payloads awaiting review
 └── approved_queue/              # (Git-ignored) Candidate-approved payloads ready for apply
 ```
 
 ### Job State Machine Lifecycle
 ```
-[Scraped Listing]
-       │
-       ▼
-   [PENDING] ──(Experience Filter)──> [FILTERED_OUT] (Archived in processed_jobs.json)
-       │
-   (Passed Filter)
-       ▼
- [PENDING QUEUE] ──(Dashboard Review)──> [DISMISSED]
-       │
-  (User Approved)
-       ▼
-[APPROVED QUEUE] ──(Easy Apply Run)──> [APPLIED] (Logged in application_history.json)
+[Direct ATS APIs / LinkedIn Scraper]
+               │
+               ▼
+           [PENDING] ──(Experience Filter)──> [FILTERED_OUT] (Archived in processed_jobs.json)
+               │
+           (Passed Filter)
+               ▼
+        [PENDING QUEUE] ──(Dashboard Review)──> [DISMISSED]
+               │
+        (User Triggered)
+        ┌──────┴──────────────────────────┐
+        ▼                                 ▼
+ [APPROVED QUEUE]              [🚀 OPEN & AUTOFILL COPILOT]
+        │                                 │
+ (Batch Apply Run)             (Headful Stealth Session Pre-fills & Halts)
+        │                                 │
+        ▼                                 ▼
+   [APPLIED] <─────────────────── [Candidate Manual 1-Click Submit]
+        │
+        ▼
+[SQLite Audit Log + Budget Counter (data/app_database.db)]
 ```
 
 ---
@@ -203,8 +270,22 @@ All features are covered by dedicated, standalone verification scripts in `verif
 | `verify/24_test_knowledge_translation.py` | Knowledge Translator | Verifies markdown bullet extraction, chunking, MD5 dedup, and atomic writing |
 | `verify/25_test_fabrication_detector.py` | Fabrication Detector | Proves hallucinated tools (Playwright/Cypress) are detected and stripped |
 | `verify/26_test_pipeline_runner.py` | Pipeline Runner & CLI | Tests end-to-end stage execution, subparser commands, and error handling |
+| `verify/27_test_kinematics_and_stealth.py` | Kinematics & CDP Stealth | Validates cubic Bézier curves, log-normal typing jitter, and CDP evasion |
+| `verify/28_test_ollama_local.py` | Local Ollama Client | Tests async connection, token benchmarks, and graceful offline fallback |
+| `verify/29_test_ats_ingestion.py` | Multi-Source ATS Collectors | Tests unauthenticated Greenhouse, Lever, and Ashby ingestion in <3s |
+| `verify/30_test_tailoring_and_compilation.py` | Whitelist Gate & PDF Compiler | Tests 100% false-skill purging and single-column ATS PDF compilation |
+| `verify/31_test_assisted_autofill.py` | Assisted Autofill Copilot | Verifies form field heuristics, candidate contact resolver, and 404 guards |
+| `verify/32_test_governance_and_sqlite.py` | SQLite DB & Rate Governor | Verifies audit logging transactions and 15/day quota safety cutoff |
+| `verify/33_test_resume_and_knowledge_regeneration.py` | Resume & Knowledge Vault | Verifies 100% Pydantic compliance and 11 authentic STAR achievements |
+| `verify/34_test_dashboard_data_flow.py` | Dashboard Flow | Verifies API responses, job card schema, and payload sanitization |
+| `verify/35_test_approval_gate_coercion.py` | Approval Gate Coercion | Tests string notice periods and type coercion during job approval |
+| `verify/36_test_queue_status_flow.py` | Real-Time Queue Status | Tests `/api/queue-status` counts and state transitions between queues |
+| `verify/37_test_approved_queue_ui_flow.py` | Approved Queue & PDF Preview | Verifies `/api/approved-jobs`, inline `/api/pdf/{job_id}`, and PDF rendering |
+| `verify/38_test_static_cache_headers.py` | Cache-Busting & Headers | Tests no-cache headers and static asset version query parameters |
+| `verify/39_test_ats_filler_resilience.py` | ATS URL & Trigger Resilience | Tests canonical ATS URL resolution and 'Apply' button trigger detection |
+| `verify/40_test_new_tab_ats_handling.py` | Multi-Tab & Popup Autofill | Tests target="_blank" and window.open() new-tab switching, focus, and form filling |
 
-* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 58 project files).
+* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 104 project files).
 
 ---
 
@@ -248,6 +329,14 @@ All features are covered by dedicated, standalone verification scripts in `verif
 - [x] **Milestone 8:** Easy Apply Automation with Screening QA Solver and Dry-Run safety.
 - [x] **Milestone 9:** Unified Subcommand CLI (`argparse.add_subparsers`) & One-Shot Pipeline Runner (`python main.py run`).
 - [x] **Milestone 10:** Git branching strategy (`develop` $\rightarrow$ `main` PR workflow) and clean `.gitignore` queue management.
+- [x] **Milestone 11 (Sprint 1):** Local Runtime & Anti-Detection Kinematics (Cubic Bézier mouse paths, log-normal keystroke jitter, and CDP isolation).
+- [x] **Milestone 12 (Sprint 2):** Multi-Source Keyless ATS Ingestion Engine (Greenhouse, Lever, and Ashby unauthenticated JSON collectors across 37+ target enterprises).
+- [x] **Milestone 13 (Sprint 3):** Grounded Tailoring, Whitelist Verification Gate & Typst Single-Column ATS PDF Compiler.
+- [x] **Milestone 14 (Sprint 4):** Dashboard-Triggered Assisted Autofill Copilot (`🚀 Open & Autofill Copilot` with pause-before-submit modal hook).
+- [x] **Milestone 15 (Sprint 5):** Relational SQLite Audit Trail (`data/app_database.db`) & Rolling 24-Hour Safety Rate Governor ($\le 15$ apps/day).
+- [x] **Milestone 16:** Dual-Mode Application Command Center with Approved Queue, live search bar, and inline PDF preview (`/api/pdf/{job_id}`).
+- [x] **Milestone 17:** Canonical ATS URL resolution and resilient form trigger detection (`resolve_canonical_ats_url`).
+- [x] **Milestone 18:** Multi-tab & popup window auto-switching for ATS application links (`<a target="_blank">` and `window.open()`).
 
 ---
 

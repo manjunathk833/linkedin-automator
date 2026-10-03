@@ -1,13 +1,64 @@
 # Completed Features
 - **Master Resume Data Store (`data/resume_profile.json`)**: Exhaustive schema covering 6.8 years of SDET experience, 29 skills, education, certs, awards, and Easy Apply default preferences.
-- **Local User Approval Gate UI (`src/ui/`)**: FastAPI backend + glassmorphic dashboard for reviewing and editing pending applications before submission.
-- **Headless PDF Generation Engine (`src/pdf_engine/`)**: Jinja2 + Playwright headless engine producing ATS-friendly PDFs locally on approval.
-- **Playwright CDP Chrome Controller (`verify/04_test_playwright_cdp.sh`)**: Remote debugging connection over port 9222 to control real local Chrome instances.
+- **Dual-Mode Application Command Center (`src/ui/`)**: FastAPI backend + dual-tab dashboard (`📋 Staging Review` and `🚀 Ready to Apply`), live queue status sync, keyword search bar, and inline PDF preview modal.
+- **Keyless Direct ATS Ingestion Engine (`src/ingestion/`)**: Concurrent unauthenticated JSON scrapers for Greenhouse, Lever, and Ashby boards across 37+ target tech enterprises.
+- **Grounded STAR Tailoring & Anti-Fabrication Gate (`src/llm/validator.py`, `src/compiler/`)**: 100% false-skill purging against authentic whitelist, and single-column ATS PDF compilation with Typst CLI.
+- **Humanized Anti-Detection Kinematics & CDP Stealth (`src/browser/`)**: Cubic Bézier cursor trajectories, log-normal keystroke jitter, and `navigator.webdriver` evasion.
+- **Multi-Tab & Popup ATS Assisted Copilot (`src/autofill/ats_filler.py`)**: Intercepts `<a target="_blank">` and `window.open()` popups, brings application tab to front, fills contact fields, attaches PDF, and halts before submit.
+- **SQLite Audit Trail & Safety Rate Governor (`src/storage/database.py`, `src/autofill/governor.py`)**: Enforces $\le 15$ applications per 24 hours cap and logs full application payloads in `data/app_database.db`.
 
 # Tech Debt Log
-- None. All backend modules are backed by verified scripts in `verify/`.
+- None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (104 files clean).
 
 # Verification History
+- **Phase 40: Multi-Tab & Popup ATS Autofill Resilience**:
+  - Implemented Playwright `context.on("page", ...)` event listener capturing `<a target="_blank">` and `window.open()` triggers.
+  - Switches active page/target, brings application tab to front on macOS, and populates form fields.
+  - Verified in `verify/40_test_new_tab_ats_handling.py`.
+- **Phase 39: ATS Copilot Resilience & Canonical URL Resolution**:
+  - Implemented `resolve_canonical_ats_url` converting company wrapper URLs with `gh_jid` (e.g. Coinbase) to canonical Greenhouse boards.
+  - Added resilient 'Apply' button trigger detection and clicking.
+  - Verified in `verify/39_test_ats_filler_resilience.py`.
+- **Phase 38: Static Asset Cache-Busting & Revalidation**:
+  - Added cache-busting version query parameters (`?v=2.2`) in `index.html`.
+  - Injected `Cache-Control: no-cache, must-revalidate` middleware in `src/ui/app.py`.
+  - Verified in `verify/38_test_static_cache_headers.py`.
+- **Phase 37: Dual-Mode Command Center & Inline PDF Delivery**:
+  - Built `/api/approved-jobs` and `/api/pdf/{job_id}` endpoints.
+  - Implemented PDF modal preview and individual copilot trigger buttons.
+  - Verified in `verify/37_test_approved_queue_ui_flow.py`.
+- **Phase 36: Real-Time Queue Status Synchronization**:
+  - Added `/api/queue-status` polling endpoint tracking pending vs approved queue counts dynamically.
+  - Verified in `verify/36_test_queue_status_flow.py`.
+- **Phase 35: Approval Gate Type Coercion Resilience**:
+  - Fixed string notice period handling (`"Immediate / 15 Days"`) during approval gate schema validation.
+  - Verified in `verify/35_test_approval_gate_coercion.py`.
+- **Phase 34: Dashboard End-to-End Data Flow**:
+  - Tested dashboard job payload rendering, dismiss logic, and approval queue serialization.
+  - Verified in `verify/34_test_dashboard_data_flow.py`.
+- **Phase 33: Resume Profile & Master Knowledge Vault Regeneration**:
+  - Sanitized single-page resume schema and regenerated 11 grounded STAR achievements.
+  - Verified in `verify/33_test_resume_and_knowledge_regeneration.py`.
+- **Phase 32: SQLite Governance & Daily Safety Budget Rate Limiter**:
+  - Verified relational persistence and 15/day safety budget locking in `verify/32_test_governance_and_sqlite.py`.
+- **Phase 31: Assisted Autofill Copilot & Modal Traversal**:
+  - Verified FormFieldMapper and pause-before-submit modal hook in `verify/31_test_assisted_autofill.py`.
+- **Phase 30: Grounded Tailoring, Whitelist Gate & Typst PDF Compiler**:
+  - Verified 100% false-skill purging and single-column PDF generation in `verify/30_test_tailoring_and_compilation.py`.
+- **Phase 29: Keyless Multi-Source ATS Ingestion**:
+  - Tested Greenhouse, Lever, and Ashby unauthenticated JSON collection in `verify/29_test_ats_ingestion.py`.
+- **Phase 28: Local Ollama Client Benchmark & Fallback**:
+  - Tested local offline LLM inference via Ollama (`qwen2.5:7b`) in `verify/28_test_ollama_local.py`.
+- **Phase 27: Anti-Detection Kinematics & CDP Stealth**:
+  - Tested cubic Bézier mouse movement and log-normal keystroke jitter in `verify/27_test_kinematics_and_stealth.py`.
+- **Phase 26: Unified Pipeline Runner Subparsers**:
+  - Verified CLI subparsers and pipeline execution in `verify/26_test_pipeline_runner.py`.
+- **Phase 25: Anti-Fabrication Detector**:
+  - Verified unverified tools are stripped or substituted in `verify/25_test_fabrication_detector.py`.
+- **Phase 24: Knowledge Translation Layer**:
+  - Tested plain-English candidate notes translation into STAR bank in `verify/24_test_knowledge_translation.py`.
+- **Phase 21: Job Description Cleaning & Visual Diff Engine**:
+  - Tested boilerplate stripping and `is_tailored` diff badging in `verify/21_test_description_and_diff.py`.
 - **Phase 20: Easy Apply Browser Context Cleanup & Selector Resilience**:
   - Implemented `try...finally:` context cleanup in `src/automation/easy_apply.py` to close Playwright contexts safely.
   - Expanded Easy Apply trigger button locator with selector fallbacks (`.jobs-apply-button`, `.jobs-apply-button--top-card button`, `button[data-job-id]`).

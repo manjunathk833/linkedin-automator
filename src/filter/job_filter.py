@@ -12,7 +12,7 @@ class LinkedInJobFilter:
         self.db_file = db_file
         self.min_exp_years = 4
         self.max_exp_years = 10
-        self.candidate_exp_years = 6.8  # Senior SDET candidate profile (Manjunath H K)
+        self.candidate_exp_years = 6.8  # Senior SDET candidate profile baseline
 
     def parse_required_years(self, text: str) -> list[int]:
         """
