@@ -32,6 +32,10 @@
   - Verification Gate 47 (`verify/47_test_databricks_autofill_heuristics.py`) passing 100% (12 fields filled live + resume attached).
   - ATS Autofill Debugger subagent created in `.agents/agents/ats_autofill_debugger.md` incorporating proven live probing procedures, anti-collision selector rules, React-Select async handling, and synthetic event dispatching.
   - Mandatory Tri-Agent Auto-Invocation Protocol established in `.agents/rules/02-agent-review-protocol.md` with auto-invoked `ats_autofill_debugger` quality lens to fast-track vendor debugging and prevent regressions.
-  - Full regression test suite passing (Gates 41, 44, 45, 46, 47).
+  - Custom Branded Vendor Schema for Coinbase (`COINBASE_CUSTOM_GREENHOUSE`) added to `src/autofill/vendor_schemas.py` and routed to hardened Greenhouse autofill engine in `src/autofill/ats_filler.py`.
+  - Coinbase canonical URL resolver updated to resolve directly to Greenhouse embed endpoint (`https://job-boards.greenhouse.io/embed/job_app?token={job_id}&for=coinbase&gh_jid={job_id}`), preventing Greenhouse 302-redirect loops and bypassing Coinbase Cloudflare challenges.
+  - Tab autofocus & iframe switching hardened: Playwright now waits for new tabs to navigate away from `about:blank`, and iframe target switching is guarded against hijacking pages where form inputs are already present on the root document.
+  - Verification Gate 48 (`verify/48_test_coinbase_autofill_heuristics.py`) passing 100% (28 fields filled live + resume attached).
+  - Full regression test suite passing (Gates 39, 41, 44, 45, 46, 47, 48).
   - `python main.py lint` clean with 0 errors across 110 files.
 

@@ -11,6 +11,11 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 48: Coinbase Custom Greenhouse Autofill & Embed Resolution**:
+  - Implemented `COINBASE_CUSTOM_GREENHOUSE` vendor pattern in `src/autofill/vendor_schemas.py` and `classify_ats_pattern`.
+  - Updated `resolve_canonical_ats_url` to resolve Coinbase wrapper URLs directly to canonical Greenhouse embed portal (`https://job-boards.greenhouse.io/embed/job_app?token={job_id}&for=coinbase&gh_jid={job_id}`), preventing 302-redirect loops and bypassing Coinbase Cloudflare challenges.
+  - Hardened new tab handling in `fill_ats_page()` by awaiting non-`about:blank` navigation state, and guarded iframe switching to prevent hijacking pages with root-level inputs.
+  - Verified live in `verify/48_test_coinbase_autofill_heuristics.py` with 28 fields pre-filled and resume attached.
 - **Phase 43: Live Coinbase Greenhouse Form Autofill & React-Select Engine**:
   - Implemented `_select_react_combobox` supporting asynchronous React-Select controls, custom comboboxes, and native selects.
   - Implemented multi-experience dynamic loop clicking `"Add another"` for all candidate jobs (Value Labs, Dunzo, Tata Elxsi) with start/end dates and current role toggle.

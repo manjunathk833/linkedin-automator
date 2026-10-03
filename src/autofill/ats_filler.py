@@ -40,6 +40,16 @@ def resolve_canonical_ats_url(url: str, company: str = "") -> str:
     if "databricks" in url.lower():
         return url
 
+    # Coinbase custom career portal redirects standard Greenhouse boards back to coinbase.com
+    # Resolve directly to canonical Greenhouse embed portal to bypass redirects and Cloudflare
+    if "coinbase" in url.lower():
+        gh_match = re.search(r"gh_jid=(\d+)", url) or re.search(r"positions/(\d+)", url)
+        if gh_match:
+            job_id = gh_match.group(1)
+            canonical = f"https://job-boards.greenhouse.io/embed/job_app?token={job_id}&for=coinbase&gh_jid={job_id}"
+            print(f"🎯 Resolved Coinbase wrapper URL to canonical Greenhouse embed portal: {canonical}")
+            return canonical
+
     # Greenhouse wrapper resolution via gh_jid
     gh_match = re.search(r"gh_jid=(\d+)", url)
     if gh_match:
@@ -49,7 +59,6 @@ def resolve_canonical_ats_url(url: str, company: str = "") -> str:
 
         # Infer company slug from URL domain or parameter
         for known_slug in [
-            "coinbase",
             "cloudflare",
             "instacart",
             "thoughtworks",
@@ -128,17 +137,19 @@ class ATSAssistedFiller:
 
         # 1. Check if the page has an embedded Greenhouse or Lever iframe
         target: Any = page
-        iframe = page.locator(
-            "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
-        ).first
-        try:
-            if await iframe.count() > 0:
-                print("📦 Detected embedded ATS iframe. Switching target to iframe frame locator...")
-                target = page.frame_locator(
-                    "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
-                ).first
-        except Exception as e:
-            print(f"⚠️ Iframe detection notice: {e}")
+        root_input = page.locator("input#first_name, input[name='first_name'], input#name, form#application_form").first
+        if await root_input.count() == 0:
+            iframe = page.locator(
+                "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io/embed'], iframe[src*='lever.co']"
+            ).first
+            try:
+                if await iframe.count() > 0:
+                    print("📦 Detected embedded ATS iframe. Switching target to iframe frame locator...")
+                    target = page.frame_locator(
+                        "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io/embed'], iframe[src*='lever.co']"
+                    ).first
+            except Exception as e:
+                print(f"⚠️ Iframe detection notice: {e}")
 
         # 2. Check if form fields are visible; if not, look for an 'Apply' trigger button
         first_input = target.locator(
@@ -184,6 +195,11 @@ class ATSAssistedFiller:
                     # Determine if a new page/tab was opened
                     if opened_pages:
                         new_page = opened_pages[0]
+                        # Wait until the new page navigates away from about:blank
+                        for _ in range(50):
+                            if getattr(new_page, "url", "") and getattr(new_page, "url", "") != "about:blank":
+                                break
+                            await asyncio.sleep(0.1)
                         print(f"📑 Detected new application tab ({getattr(new_page, 'url', '')}). Switching focus...")
                         try:
                             await new_page.wait_for_load_state("domcontentloaded", timeout=15000)
@@ -198,6 +214,11 @@ class ATSAssistedFiller:
                         await asyncio.sleep(1.5)
                     elif context and len(context.pages) > 1 and context.pages[-1] != page:
                         new_page = context.pages[-1]
+                        # Wait until the new page navigates away from about:blank
+                        for _ in range(50):
+                            if getattr(new_page, "url", "") and getattr(new_page, "url", "") != "about:blank":
+                                break
+                            await asyncio.sleep(0.1)
                         print(f"📑 Detected new background tab ({getattr(new_page, 'url', '')}). Switching focus...")
                         try:
                             await new_page.wait_for_load_state("domcontentloaded", timeout=15000)
@@ -210,16 +231,20 @@ class ATSAssistedFiller:
                     else:
                         await asyncio.sleep(2.0)
 
-                    # Re-check for embedded iframe in newly focused tab
+                    # Re-check for embedded iframe in newly focused tab only if form inputs not already on root
                     try:
-                        tab_iframe = page.locator(
-                            "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
+                        tab_input = page.locator(
+                            "input#first_name, input[name='first_name'], input#name, form#application_form"
                         ).first
-                        if await tab_iframe.count() > 0:
-                            print("📦 Detected embedded ATS iframe in new tab. Switching target...")
-                            target = page.frame_locator(
-                                "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
+                        if await tab_input.count() == 0:
+                            tab_iframe = page.locator(
+                                "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io/embed'], iframe[src*='lever.co']"
                             ).first
+                            if await tab_iframe.count() > 0:
+                                print("📦 Detected embedded ATS iframe in new tab. Switching target...")
+                                target = page.frame_locator(
+                                    "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io/embed'], iframe[src*='lever.co']"
+                                ).first
                     except Exception as e:
                         print(f"⚠️ Application tab iframe notice: {e}")
 
@@ -256,6 +281,9 @@ class ATSAssistedFiller:
         elif pattern == ATSVendorPattern.OKTA_BRANDED_GREENHOUSE:
             print("🏢 Identified Okta Branded Greenhouse custom career portal.")
             fields_filled, resume_attached = await self._fill_okta(target, resume_pdf_path)
+        elif pattern == ATSVendorPattern.COINBASE_CUSTOM_GREENHOUSE:
+            print("🪙 Identified Coinbase Custom Greenhouse career portal.")
+            fields_filled, resume_attached = await self._fill_greenhouse(target, resume_pdf_path)
         elif pattern == ATSVendorPattern.GREENHOUSE_STANDARD:
             print("🏛️ Identified Greenhouse ATS standard form.")
             fields_filled, resume_attached = await self._fill_greenhouse(target, resume_pdf_path)

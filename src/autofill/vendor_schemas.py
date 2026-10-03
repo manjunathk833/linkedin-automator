@@ -159,6 +159,7 @@ class ATSVendorPattern:
     LINKEDIN_EASY_APPLY = "LINKEDIN_EASY_APPLY"
     OKTA_BRANDED_GREENHOUSE = "OKTA_BRANDED_GREENHOUSE"
     DATABRICKS_CUSTOM_GREENHOUSE = "DATABRICKS_CUSTOM_GREENHOUSE"
+    COINBASE_CUSTOM_GREENHOUSE = "COINBASE_CUSTOM_GREENHOUSE"
     GENERIC_ATS_FALLBACK = "GENERIC_ATS_FALLBACK"
 
 
@@ -285,6 +286,31 @@ VENDOR_SCHEMAS: dict[str, dict[str, Any]] = {
             ],
         },
     },
+    ATSVendorPattern.COINBASE_CUSTOM_GREENHOUSE: {
+        "vendor_name": "Coinbase Custom Greenhouse",
+        "url_identifiers": ["coinbase.com", "for=coinbase"],
+        "url_patterns": [r"coinbase\.com/.*careers", r"job-boards\.greenhouse\.io/embed/job_app.*for=coinbase"],
+        "dom_fingerprints": [
+            "#first_name",
+            "#last_name",
+            "#email",
+            "#phone",
+            "#country",
+            "#candidate-location",
+            "input[type='file']",
+        ],
+        "selectors": {
+            "first_name": ["input#first_name", "input[name='first_name']"],
+            "last_name": ["input#last_name", "input[name='last_name']"],
+            "email": ["input#email", "input[name='email']"],
+            "phone": ["input#phone", "input[name='phone']"],
+            "location": ["input#candidate-location", "div#candidate-location"],
+            "phone_country": ["input#country", "div#country"],
+            "resume": ["input#resume", "input[type='file'][name*='resume']", "input[type='file']"],
+            "linkedin": ["input[name*='linkedin' i]", "input[id*='linkedin' i]"],
+            "website": ["input[name*='website' i]", "input[id*='website' i]"],
+        },
+    },
     ATSVendorPattern.GREENHOUSE_STANDARD: {
         "vendor_name": "Greenhouse Standard",
         "url_identifiers": ["greenhouse.io"],
@@ -366,6 +392,8 @@ def classify_ats_pattern(url: str) -> str:
         return ATSVendorPattern.DATABRICKS_CUSTOM_GREENHOUSE
     if "okta.com" in clean_url and "careers" in clean_url:
         return ATSVendorPattern.OKTA_BRANDED_GREENHOUSE
+    if "coinbase.com" in clean_url or ("job-boards.greenhouse.io" in clean_url and "for=coinbase" in clean_url):
+        return ATSVendorPattern.COINBASE_CUSTOM_GREENHOUSE
 
     # 2. Standard ATS Job Boards
     if "greenhouse.io" in clean_url:

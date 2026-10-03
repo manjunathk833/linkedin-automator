@@ -91,11 +91,11 @@ def test_canonical_url_preservation():
     resolved_db = resolve_canonical_ats_url(databricks_url, company="Databricks")
     assert resolved_db == databricks_url, f"Databricks URL should not be rewritten! Got {resolved_db}"
 
-    # Standard wrapper URL (Coinbase) should rewrite to boards.greenhouse.io
+    # Standard wrapper URL (Coinbase) should rewrite to canonical Greenhouse embed portal
     coinbase_wrapper = "https://www.coinbase.com/careers/positions/8095207?gh_jid=8095207"
     resolved_cb = resolve_canonical_ats_url(coinbase_wrapper, company="Coinbase")
-    assert resolved_cb == "https://boards.greenhouse.io/coinbase/jobs/8095207", (
-        f"Coinbase wrapper should resolve to Greenhouse board, got {resolved_cb}"
+    assert resolved_cb == "https://job-boards.greenhouse.io/embed/job_app?token=8095207&for=coinbase&gh_jid=8095207", (
+        f"Coinbase wrapper should resolve to Greenhouse embed portal, got {resolved_cb}"
     )
 
     print("✅ Step 2: Canonical URL resolution verified.")
