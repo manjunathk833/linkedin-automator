@@ -39,4 +39,13 @@
   - Full regression test suite passing (Gates 39, 41, 44, 45, 46, 47, 48).
   - `python main.py lint` clean with 0 errors across 112 files.
   - Multi-channel LinkedIn discovery executed (`python main.py search`): 50 live Senior SDET & Automation Lead Easy Apply jobs scraped, deduplicated, tailored, and seeded into `data/pending_queue/` for human review in the Command Center UI (`http://localhost:8000`).
+  - LinkedIn External ATS Discovery & Dynamic Pivot Engine implemented:
+    - 30-day filter restriction eliminated in favor of a high-velocity 7-day window (`time_posted: "past_week"`, `f_TPR=r604800`), configurable down to 24 hours (`past_24h`).
+    - Explicit search radius parameter introduced (`distance: 25` miles / ~40 km for Bengaluru metro).
+    - Easy Apply restriction eliminated (`easy_apply_only: false`), unlocking the 80%+ enterprise opportunities linking out to external ATS platforms while retaining full Easy Apply discovery when requested.
+    - Card extraction engine updated to detect apply button text and aria labels, classifying jobs upfront as `EASY_APPLY` vs `LINKEDIN_EXTERNAL` and storing external redirect URLs.
+    - `autofill_linkedin_external` implemented in `src/autofill/ats_filler.py`: dynamically navigates to LinkedIn job views, detects external Apply buttons, captures launched external ATS popup windows/tabs via dual `page.on("popup")` and `context.on("page")` listeners, resolves canonical URLs, classifies matching vendor ATS schemas (`GREENHOUSE_STANDARD`, `LEVER_STANDARD`, `ASHBY_STANDARD`, etc.), and autofills the form before pausing for human review.
+    - FastAPI endpoint `/api/autofill/{job_id}` updated in `src/ui/app.py` to route `LINKEDIN_EXTERNAL` jobs to `ats_filler.autofill_linkedin_external()`.
+    - Verification Gate 49 (`verify/49_test_linkedin_external_ats_pivot.py`) passing 100% across URL construction, apply type heuristics, and Playwright tab pivot simulation.
+    - `python main.py lint` clean with 0 errors across 113 files.
 

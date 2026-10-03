@@ -572,9 +572,23 @@ async def autofill_job(job_id: str):
     pdf_path, _ = resolve_job_pdf_path(job_id, job_data)
 
     company_name = job_data.get("job_details", {}).get("company", "")
-    if "ATS" in str(app_type) or "greenhouse" in job_url or "lever" in job_url or "ashby" in job_url:
+    external_url = job_data.get("job_details", {}).get("external_url")
+
+    # Routing logic:
+    # 1. Direct external ATS link or ATS application type
+    if ("ATS" in str(app_type) and "LINKEDIN" not in str(app_type)) or any(
+        ats in job_url.lower() for ats in ["greenhouse", "lever", "ashby", "myworkdayjobs", "coinbase", "databricks"]
+    ):
         ats_filler = ATSAssistedFiller(headless=False)
         result = await ats_filler.autofill_ats_application(job_url, pdf_path, company=company_name)
+    # 2. LinkedIn External Apply (navigates to LinkedIn, clicks external apply, captures ATS popup)
+    elif app_type == "LINKEDIN_EXTERNAL" or (app_type != "EASY_APPLY" and "linkedin.com" in job_url.lower()):
+        ats_filler = ATSAssistedFiller(headless=False)
+        if external_url and external_url.startswith("http"):
+            result = await ats_filler.autofill_ats_application(external_url, pdf_path, company=company_name)
+        else:
+            result = await ats_filler.autofill_linkedin_external(job_url, pdf_path, company=company_name)
+    # 3. LinkedIn Easy Apply
     else:
         li_filler = LinkedInAssistedFiller(headless=False)
         result = await li_filler.autofill_easy_apply(job_url, pdf_path)

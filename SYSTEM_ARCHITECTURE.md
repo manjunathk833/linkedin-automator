@@ -126,6 +126,11 @@ graph TD
   * Auto-expands "See more" buttons (`button.jobs-description__footer-button`).
   * Regex-based cleaner (`clean_job_description`) strips boilerplate UI noise (e.g., share icons, promo banners, report buttons).
   * Deduplication engine using MD5 composite hashes (`company:title:location`).
+  * **External ATS & Discovery Velocity Parameters:**
+    * `easy_apply_only: false` eliminates the forced `f_AL=true` restriction, allowing the system to discover the 80%+ enterprise tech opportunities linking out to external ATS platforms.
+    * `distance: 25` enforces an explicit 25-mile (~40 km) radius for metro areas like Bengaluru.
+    * `time_posted: "past_week"` (`f_TPR=r604800`) enforces a high-velocity 7-day window (preventing ingestion of stale 30-day postings), configurable down to 24h (`past_24h` / `f_TPR=r86400`).
+    * **Upfront Application Type Tagging:** Inspects apply button text and aria labels to classify jobs upfront as `EASY_APPLY` vs `LINKEDIN_EXTERNAL` and stores external redirect URLs when available.
 
 ---
 
@@ -203,6 +208,7 @@ graph TD
   * **Standardized Vendor Schemas & Master Profile:** Binds to canonical candidate ground truth in `data/profile/candidate_master_data.json`, including candidate portfolio website (`https://manjunathhk.netlify.app/`), current employer ("Value Labs"), and verified contact information.
   * **Modular & Custom Branded Vendor Autofill Handlers:** Verified handlers for Greenhouse, Lever, Ashby, Workday, LinkedIn Easy Apply, and custom org-branded portals (e.g. Coinbase Custom Greenhouse via canonical embed resolution, Databricks Custom Greenhouse with iframe piercing, Okta Branded Greenhouse).
   * **Multi-Tab & Popup Switching:** Intercepts `<a target="_blank">` and `window.open()` popups, waits for non-`about:blank` navigation state, focuses the active tab on macOS, and pierces nested iframes without hijacking root forms.
+  * **LinkedIn External ATS Pivot Engine (`autofill_linkedin_external`):** Dynamically navigates to LinkedIn job listings, detects external Apply buttons, captures launched external ATS popup windows/tabs via dual `page.on("popup")` and `context.on("page")` listeners, resolves canonical URLs, classifies matching vendor ATS schemas (`GREENHOUSE_STANDARD`, `LEVER_STANDARD`, `ASHBY_STANDARD`, etc.), and autofills the form before pausing for human review.
   * **Modal Traversal:** Enters form details using humanized Bézier movements and keystroke jitter, attaches the tailored PDF resume, and navigates multi-step forms.
   * **Pause-Before-Submit Hook:** Automatically halts at the final "Review your application" step, sounding an alert and leaving the browser open for manual human verification and 1-click submission.
 
@@ -355,6 +361,8 @@ All features are covered by dedicated, standalone verification scripts in `verif
 - [x] **Milestone 23:** Upfront Staging Job Intelligence & Location Warnings (US-only alert badges, required experience extractor, direct posting link, and compensation view).
 - [x] **Milestone 24:** Vendor Pattern Discovery & Banking Engine (`classify_ats_pattern`) and Okta Branded Greenhouse Autofill with authentic candidate portfolio mapping.
 - [x] **Milestone 25:** ATS Autofill Debugger Subagent (`.agents/agents/ats_autofill_debugger.md`) and Tri-Agent Auto-Invocation Protocol (`.agents/rules/02-agent-review-protocol.md`) for fast-tracking new vendor probing, anti-collision element scoping, React-Select async handling, and zero-error live validation.
+- [x] **Milestone 26:** Custom Branded Coinbase Greenhouse Autofill Engine (`COINBASE_CUSTOM_GREENHOUSE`) resolving canonical embeds (`job-boards.greenhouse.io/embed/job_app`), bypassing Cloudflare, and populating 28 fields live with 100% precision.
+- [x] **Milestone 27:** LinkedIn External ATS Discovery & Dynamic Pivot Engine: eliminated 30-day filter for high-velocity 7-day window (`past_week`), exposed explicit distance controls (`distance: 25`), eliminated Easy Apply forced restriction (`easy_apply_only: false`), implemented upfront `LINKEDIN_EXTERNAL` tagging, and built seamless Playwright popup pivoting into ATS vendor schemas (`autofill_linkedin_external`).
 
 ---
 

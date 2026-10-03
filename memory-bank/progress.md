@@ -11,6 +11,14 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 49: LinkedIn External ATS Discovery & Dynamic Pivot Engine**:
+  - Eliminated 30-day filter restriction from LinkedIn search URLs in favor of a high-velocity 7-day window (`time_posted: "past_week"`, `f_TPR=r604800`), configurable down to 24h (`past_24h` / `r86400`).
+  - Added explicit distance radius parameter (`distance: 25` miles / ~40 km for Bengaluru metro).
+  - Eliminated forced Easy Apply restriction (`easy_apply_only: false`), unlocking the 80%+ enterprise opportunities linking out to external ATS platforms.
+  - Implemented upfront application type detection in `_extract_card_payload` checking button text/aria labels and tagging `application_type: "EASY_APPLY"` vs `"LINKEDIN_EXTERNAL"`.
+  - Implemented `autofill_linkedin_external` in `src/autofill/ats_filler.py` using dual `page.on("popup")` and `context.on("page")` listeners to capture external ATS tabs, resolve canonical URLs, classify matching ATS vendor schemas, and autofill forms before review.
+  - Updated `/api/autofill/{job_id}` in `src/ui/app.py` to route `LINKEDIN_EXTERNAL` jobs cleanly.
+  - Verified 100% in `verify/49_test_linkedin_external_ats_pivot.py`.
 - **Phase 48: Coinbase Custom Greenhouse Autofill & Embed Resolution**:
   - Implemented `COINBASE_CUSTOM_GREENHOUSE` vendor pattern in `src/autofill/vendor_schemas.py` and `classify_ats_pattern`.
   - Updated `resolve_canonical_ats_url` to resolve Coinbase wrapper URLs directly to canonical Greenhouse embed portal (`https://job-boards.greenhouse.io/embed/job_app?token={job_id}&for=coinbase&gh_jid={job_id}`), preventing 302-redirect loops and bypassing Coinbase Cloudflare challenges.
