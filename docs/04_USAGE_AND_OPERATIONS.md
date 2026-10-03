@@ -164,7 +164,7 @@ Controls the deterministic verification gate:
     ```bash
     pkill -f "Google Chrome"
     ```
-* **Issue: `Daily budget reached (15/15)`**
-  * *Explanation:* To protect your account health, the rate governor locks autofill triggers after 15 applications per 24 hours. The counter automatically resets at midnight. To adjust the limit, change `DEFAULT_DAILY_LIMIT` in `src/autofill/governor.py`.
+* **Issue: `Daily budget reached (200/200)`**
+  * *Explanation:* To prevent runaway automation or platform blocks, the rate governor locks triggers once reaching the daily quota (default: 200 applications per 24 hours). The counter automatically resets at midnight. To adjust the limit, change `safety_governor.daily_limit` in `config.yaml` or `DEFAULT_DAILY_LIMIT` in `src/autofill/governor.py`.
 * **Issue: `Gemini API 429 Too Many Requests`**
   * *Fix:* The system automatically falls back to local Ollama (`qwen2.5:7b`). If Ollama is not running, start it via `ollama serve &` or wait 60 seconds for Gemini rate limits to clear.

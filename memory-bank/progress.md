@@ -5,12 +5,34 @@
 - **Grounded STAR Tailoring & Anti-Fabrication Gate (`src/llm/validator.py`, `src/compiler/`)**: 100% false-skill purging against authentic whitelist, and single-column ATS PDF compilation with Typst CLI.
 - **Humanized Anti-Detection Kinematics & CDP Stealth (`src/browser/`)**: Cubic Bézier cursor trajectories, log-normal keystroke jitter, and `navigator.webdriver` evasion.
 - **Multi-Tab & Popup ATS Assisted Copilot (`src/autofill/ats_filler.py`)**: Intercepts `<a target="_blank">` and `window.open()` popups, brings application tab to front, fills contact fields, attaches PDF, and halts before submit.
-- **SQLite Audit Trail & Safety Rate Governor (`src/storage/database.py`, `src/autofill/governor.py`)**: Enforces $\le 15$ applications per 24 hours cap and logs full application payloads in `data/app_database.db`.
+- **SQLite Audit Trail & Safety Rate Governor (`src/storage/database.py`, `src/autofill/governor.py`)**: Enforces configurable application quota (default $\le 200$/day, customizable in `config.yaml`) and logs full application payloads in `data/app_database.db`.
 
 # Tech Debt Log
-- None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (104 files clean).
+- None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 48: Coinbase Custom Greenhouse Autofill & Embed Resolution**:
+  - Implemented `COINBASE_CUSTOM_GREENHOUSE` vendor pattern in `src/autofill/vendor_schemas.py` and `classify_ats_pattern`.
+  - Updated `resolve_canonical_ats_url` to resolve Coinbase wrapper URLs directly to canonical Greenhouse embed portal (`https://job-boards.greenhouse.io/embed/job_app?token={job_id}&for=coinbase&gh_jid={job_id}`), preventing 302-redirect loops and bypassing Coinbase Cloudflare challenges.
+  - Hardened new tab handling in `fill_ats_page()` by awaiting non-`about:blank` navigation state, and guarded iframe switching to prevent hijacking pages with root-level inputs.
+  - Verified live in `verify/48_test_coinbase_autofill_heuristics.py` with 28 fields pre-filled and resume attached.
+- **Phase 43: Live Coinbase Greenhouse Form Autofill & React-Select Engine**:
+  - Implemented `_select_react_combobox` supporting asynchronous React-Select controls, custom comboboxes, and native selects.
+  - Implemented multi-experience dynamic loop clicking `"Add another"` for all candidate jobs (Value Labs, Dunzo, Tata Elxsi) with start/end dates and current role toggle.
+  - Implemented education history filling (School, Degree, Discipline) with fallback matching.
+  - Added React synthetic event dispatching (`input`, `change`, `blur`) for text inputs and comboboxes to eliminate validation error states.
+  - Corrected Country dial code matching specifically targeting `India (+91)` to eliminate fuzzy match collision with British Indian Ocean Territory (`+246`).
+  - Verified on live URL `https://job-boards.greenhouse.io/embed/job_app?token=8095207&for=coinbase&gh_jid=8095207` in `verify/43_test_coinbase_greenhouse_live_fill.py` (28 fields pre-filled + resume attached).
+- **Phase 42: Safety Rate Governor Cap Scaled to 200/day**:
+  - Scaled `DEFAULT_DAILY_LIMIT` to 200 to empower high-volume human-in-the-loop applications without artificial bottlenecks.
+  - Added dynamic `safety_governor.daily_limit` configuration in `config.yaml` with graceful fallback.
+  - Updated UI dashboard budget badges in `src/ui/templates/index.html` and `src/ui/static/app.js`.
+  - Verified in `verify/42_test_safety_governor_cap_200.py`.
+- **Phase 41: Standardized Vendor Autofill Schemas & Centralized Master Profile**:
+  - Implemented `CandidateMasterData` in `data/profile/candidate_master_data.json` and `src/autofill/vendor_schemas.py`.
+  - Added modular vendor handlers `_fill_greenhouse`, `_fill_lever`, `_fill_ashby`, `_fill_workday`, and `_fill_linkedin_easy_apply` in `src/autofill/ats_filler.py`.
+  - Stripped redundant per-job questionnaire boxes from Dashboard UI; transformed Staging Review into rapid 1-click Approval Gate.
+  - Verified in `verify/41_test_standardized_vendor_autofill.py`.
 - **Phase 40: Multi-Tab & Popup ATS Autofill Resilience**:
   - Implemented Playwright `context.on("page", ...)` event listener capturing `<a target="_blank">` and `window.open()` triggers.
   - Switches active page/target, brings application tab to front on macOS, and populates form fields.

@@ -38,3 +38,6 @@ browser_profile_dir: ".browser_data"
 llm:
   use_ai: true
   primary_model: "gemini-3.6-flash"
+
+safety_governor:
+  daily_limit: 200  # High-volume human-in-the-loop cap (safely allows ~200 apps/day)

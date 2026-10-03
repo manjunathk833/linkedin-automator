@@ -145,19 +145,17 @@ async def human_type(
     """
     if clear_first:
         await locator.fill("")
-        await asyncio.sleep(random.uniform(0.1, 0.25))
+        await asyncio.sleep(random.uniform(0.05, 0.15))
 
     await locator.focus()
-    await asyncio.sleep(random.uniform(0.05, 0.15))
+    await asyncio.sleep(random.uniform(0.03, 0.08))
 
     for char in text:
-        delay = get_lognormal_keystroke_delay()
-        # Occasional micro-pause (thinking pause after punctuation or spaces)
-        if char in (" ", ",", ".", "-", "_") and random.random() < 0.25:
-            delay += random.uniform(0.12, 0.35)
+        delay = get_lognormal_keystroke_delay(mean_ms=45.0, min_ms=15.0, max_ms=90.0)
+        if char in (" ", ",", ".", "-", "_") and random.random() < 0.2:
+            await asyncio.sleep(random.uniform(0.05, 0.12))
 
         await locator.press_sequentially(char, delay=int(delay * 1000))
-        await asyncio.sleep(delay)
 
 
 async def human_click(

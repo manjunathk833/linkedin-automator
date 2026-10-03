@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
@@ -25,12 +26,294 @@ DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "data"))
 PENDING_DIR = os.path.join(DATA_DIR, "pending_queue")
 APPROVED_DIR = os.path.join(DATA_DIR, "approved_queue")
 MASTER_PROFILE_PATH = os.path.join(DATA_DIR, "resume_profile.json")
+CANDIDATE_DATA_PATH = os.path.join(DATA_DIR, "profile", "candidate_master_data.json")
 
 os.makedirs(PENDING_DIR, exist_ok=True)
 os.makedirs(APPROVED_DIR, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+
+def get_candidate_name_slug(payload: dict | None = None) -> str:
+    """Extracts a clean, professional candidate name slug (e.g., 'Manjunath_HK')."""
+    if payload:
+        name = payload.get("tailored_resume", {}).get("personal_details", {}).get("full_name")
+        if name and name.strip():
+            parts = name.strip().split()
+            if len(parts) > 1:
+                first = re.sub(r"[^a-zA-Z0-9]", "", parts[0])
+                rest = "".join(re.sub(r"[^a-zA-Z0-9]", "", p) for p in parts[1:])
+                return f"{first}_{rest}"
+            return re.sub(r"[^a-zA-Z0-9]", "", name)
+
+    if os.path.exists(CANDIDATE_DATA_PATH):
+        try:
+            with open(CANDIDATE_DATA_PATH, "r", encoding="utf-8") as f:
+                cdata = json.load(f)
+            personal = cdata.get("personal", {})
+            first = personal.get("first_name", "").strip()
+            last = personal.get("last_name", "").strip()
+            if first and last:
+                clean_first = re.sub(r"[^a-zA-Z0-9]", "", first)
+                clean_last = re.sub(r"[^a-zA-Z0-9]", "", last)
+                return f"{clean_first}_{clean_last}"
+            full = personal.get("full_name", "").strip()
+            if full:
+                parts = full.split()
+                if len(parts) > 1:
+                    first = re.sub(r"[^a-zA-Z0-9]", "", parts[0])
+                    rest = "".join(re.sub(r"[^a-zA-Z0-9]", "", p) for p in parts[1:])
+                    return f"{first}_{rest}"
+                return re.sub(r"[^a-zA-Z0-9]", "", full)
+        except Exception:
+            pass
+
+    return "Manjunath_HK"
+
+
+def extract_company_slug(job_id: str, payload: dict | None = None) -> str:
+    """Extracts a clean company name slug (e.g. 'Coinbase', 'Zapier', 'Spotify')."""
+    if payload:
+        comp = payload.get("job_details", {}).get("company", "").strip()
+        if comp and comp.lower() not in ("unknown", "unknown company"):
+            clean = re.sub(r"[^a-zA-Z0-9]+", "_", comp).strip("_")
+            return clean
+
+    tokens = job_id.split("_")
+    if len(tokens) >= 3 and tokens[0].lower() in ("greenhouse", "lever", "ashby", "workday"):
+        clean = re.sub(r"[^a-zA-Z0-9]+", "_", tokens[1]).strip("_")
+        return clean.capitalize()
+    return "Company"
+
+
+def extract_job_token(job_id: str) -> str:
+    """Extracts a clean, short job token (e.g. '8095207' or first 8 chars of uuid)."""
+    tokens = job_id.split("_")
+    raw_token = tokens[-1] if tokens else job_id
+    clean = re.sub(r"[^a-zA-Z0-9]", "", raw_token)
+    if len(clean) > 8:
+        return clean[:8]
+    return clean or "ref"
+
+
+def generate_professional_resume_filename(job_id: str, payload: dict | None = None) -> str:
+    """Generates standard recruiter-friendly resume filename e.g. Manjunath_HK_Coinbase_8095207_Resume.pdf."""
+    cand = get_candidate_name_slug(payload)
+    comp = extract_company_slug(job_id, payload)
+    tok = extract_job_token(job_id)
+    return f"{cand}_{comp}_{tok}_Resume.pdf"
+
+
+def resolve_job_pdf_path(job_id: str, payload: dict | None = None) -> tuple[str, str]:
+    """
+    Resolves the actual PDF path and display filename on disk for a job.
+    Supports both professional candidate-named resumes and legacy {job_id}_resume.pdf.
+    Returns (pdf_path, pdf_filename).
+    """
+    # 1. If payload contains an existing generated_pdf_path that exists on disk, use it
+    if payload and payload.get("generated_pdf_path"):
+        gen_path = payload["generated_pdf_path"]
+        if os.path.exists(gen_path):
+            return gen_path, os.path.basename(gen_path)
+
+    # 2. Check if approved JSON file has generated_pdf_path
+    approved_json = os.path.join(APPROVED_DIR, f"{job_id}.json")
+    if os.path.exists(approved_json):
+        try:
+            with open(approved_json, "r", encoding="utf-8") as f:
+                saved_payload = json.load(f)
+            saved_pdf = saved_payload.get("generated_pdf_path")
+            if saved_pdf and os.path.exists(saved_pdf):
+                return saved_pdf, os.path.basename(saved_pdf)
+        except Exception:
+            pass
+
+    # 3. Check for modern candidate-named resume file in APPROVED_DIR
+    target_filename = generate_professional_resume_filename(job_id, payload)
+    target_path = os.path.join(APPROVED_DIR, target_filename)
+    if os.path.exists(target_path):
+        return target_path, target_filename
+
+    # 4. Check for pattern match in APPROVED_DIR using the job token
+    token = extract_job_token(job_id)
+    if os.path.exists(APPROVED_DIR):
+        for fname in os.listdir(APPROVED_DIR):
+            if fname.endswith(".pdf") and token in fname:
+                found_path = os.path.join(APPROVED_DIR, fname)
+                return found_path, fname
+
+    # 5. Fallback to legacy path for backward compatibility
+    legacy_filename = f"{job_id}_resume.pdf"
+    legacy_path = os.path.join(APPROVED_DIR, legacy_filename)
+    return legacy_path, legacy_filename
+
+
+def extract_job_experience(text: str) -> str:
+    """Extracts required experience in years (e.g. '5+ years' or '6–8 years')."""
+    if not text:
+        return "Not specified"
+    context_keywords = [
+        "exp",
+        "experience",
+        "testing",
+        "sdet",
+        "automation",
+        "background",
+        "working",
+        "quality",
+        "qa",
+        "relevant",
+        "required",
+        "preferred",
+        "qualification",
+    ]
+    years = []
+    for m in re.finditer(r"(\d+)(?:\s*(?:\+|-\s*(\d+)|to\s*(\d+)))?\s*years?", text, re.IGNORECASE):
+        start_idx = max(0, m.start() - 40)
+        end_idx = min(len(text), m.end() + 40)
+        snippet = text[start_idx:end_idx].lower()
+
+        if any(kw in snippet for kw in context_keywords):
+            val1 = int(m.group(1))
+            val2 = int(m.group(2) or m.group(3)) if (m.group(2) or m.group(3)) else None
+            if 0 < val1 < 30:
+                if val2 and 0 < val2 < 30:
+                    years.append(f"{min(val1, val2)}–{max(val1, val2)} years")
+                else:
+                    years.append(f"{val1}+ years")
+
+    if years:
+        return years[0]
+    return "Not specified"
+
+
+def classify_job_location(location: str, description: str = "") -> dict:
+    """Classifies job location to detect US-only or non-India geographic restrictions vs India eligibility."""
+    loc_clean = (location or "").strip()
+    loc_lower = loc_clean.lower()
+    desc_lower = description.lower() if description else ""
+
+    # 1. India / Bengaluru check
+    india_terms = [
+        "bengaluru",
+        "bangalore",
+        "india",
+        "karnataka",
+        "mumbai",
+        "delhi",
+        "gurgaon",
+        "hyderabad",
+        "pune",
+        "chennai",
+    ]
+    if any(term in loc_lower for term in india_terms):
+        return {
+            "location_text": loc_clean or "Bengaluru, India",
+            "is_us_only": False,
+            "is_india": True,
+            "badge_type": "success",
+            "badge_label": "🇮🇳 Bengaluru / India Eligible",
+        }
+
+    # 2. Explicit US-Only / North America / Non-India check
+    us_terms = [
+        "usa",
+        "united states",
+        "u.s.",
+        "remote - usa",
+        "remote - us",
+        "us remote",
+        "usa remote",
+        "san francisco",
+        "new york",
+        "seattle",
+        "austin",
+        "chicago",
+        "california",
+        "texas",
+        "washington",
+        "ny",
+        "ca",
+        "canada",
+        "toronto",
+        "vancouver",
+        "uk",
+        "united kingdom",
+        "london",
+        "europe",
+        "emea",
+    ]
+    is_us = any(re.search(rf"\b{re.escape(term)}\b", loc_lower) for term in us_terms)
+
+    # Check description for US-only restrictions if location is ambiguous
+    if not is_us and (
+        "only open to candidates in the us" in desc_lower
+        or "must be located in the united states" in desc_lower
+        or "authorized to work in the us without sponsorship" in desc_lower
+    ):
+        is_us = True
+
+    if is_us:
+        return {
+            "location_text": loc_clean or "US / Non-India Location",
+            "is_us_only": True,
+            "is_india": False,
+            "badge_type": "warning",
+            "badge_label": "⚠️ US / Non-India Location",
+        }
+
+    # 3. Global / Worldwide Remote
+    if "worldwide" in loc_lower or "anywhere" in loc_lower or "global" in loc_lower:
+        return {
+            "location_text": loc_clean or "Worldwide Remote",
+            "is_us_only": False,
+            "is_india": True,
+            "badge_type": "info",
+            "badge_label": "🌐 Worldwide Remote Eligible",
+        }
+
+    # Default Remote or unverified location
+    if "remote" in loc_lower:
+        return {
+            "location_text": loc_clean,
+            "is_us_only": False,
+            "is_india": False,
+            "badge_type": "neutral",
+            "badge_label": "📍 Remote (Check Eligibility)",
+        }
+
+    return {
+        "location_text": loc_clean or "Not specified",
+        "is_us_only": False,
+        "is_india": False,
+        "badge_type": "neutral",
+        "badge_label": f"📍 {loc_clean}" if loc_clean else "📍 Location Not Specified",
+    }
+
+
+def extract_salary_estimate(job_details: dict) -> str:
+    """Extracts salary range from job details or description text."""
+    if not isinstance(job_details, dict):
+        return "Competitive"
+    if job_details.get("salary_range"):
+        return str(job_details["salary_range"])
+
+    desc = job_details.get("description") or job_details.get("requirements") or ""
+    m = re.search(
+        r"(\$\s*[\d,]+(?:\s*[kK])?\s*(?:—|-|to)\s*\$\s*[\d,]+(?:\s*[kK])?(?:\s*(?:USD|CAD))?)",
+        desc,
+    )
+    if m:
+        return m.group(1).strip()
+    m_inr = re.search(
+        r"((?:₹|INR)\s*[\d,]+(?:\s*(?:L|LPA))?\s*(?:—|-|to)\s*(?:₹|INR)?\s*[\d,]+(?:\s*(?:L|LPA))?)",
+        desc,
+    )
+    if m_inr:
+        return m_inr.group(1).strip()
+
+    return "Competitive"
 
 
 def compute_resume_diff(payload: dict, master_profile: dict) -> dict:
@@ -102,8 +385,6 @@ async def get_pending_jobs():
                         jd = raw_payload.get("job_details", {})
                         # Ensure requirements text exists for keyword matching
                         if not jd.get("requirements") and jd.get("description"):
-                            import re
-
                             clean = re.sub(r"<[^>]+>", " ", jd["description"])
                             clean = (
                                 clean.replace("&amp;", "&")
@@ -122,6 +403,19 @@ async def get_pending_jobs():
                             json.dump(raw_payload, fw, indent=2)
 
                     diff_payload = compute_resume_diff(raw_payload, master_profile)
+
+                    # Enrich metadata for upfront review
+                    jd = raw_payload.get("job_details", {})
+                    req_text = jd.get("requirements") or jd.get("description") or ""
+
+                    diff_payload["experience_required"] = extract_job_experience(req_text)
+                    diff_payload["location_info"] = classify_job_location(
+                        jd.get("location", ""), jd.get("description", "")
+                    )
+                    diff_payload["salary_estimate"] = extract_salary_estimate(jd)
+                    diff_payload["direct_link"] = raw_payload.get("url") or raw_payload.get("job_url") or ""
+                    diff_payload["source_platform"] = raw_payload.get("source", "ATS").upper()
+
                     jobs.append(diff_payload)
                 except Exception as e:
                     print(f"Error reading {filename}: {e}")
@@ -213,7 +507,7 @@ async def approve_job(job_id: str, payload: dict):
 
             profile = ResumeProfile(**payload["tailored_resume"])
             generator = PDFGenerator()
-            pdf_filename = f"{job_id}_resume.pdf"
+            pdf_filename = generate_professional_resume_filename(job_id, payload)
             pdf_path = os.path.join(APPROVED_DIR, pdf_filename)
 
             await generator.generate_pdf_async(profile, pdf_path)
@@ -257,7 +551,7 @@ async def autofill_job(job_id: str):
     from src.autofill.linkedin_filler import LinkedInAssistedFiller
     from src.storage.database import ApplicationDatabase
 
-    # Enforce daily budget governor (≤15 applications/day)
+    # Enforce daily budget governor (≤200 applications/day)
     governor = ApplicationGovernor()
     budget = governor.check_budget()
     if not budget["allowed"]:
@@ -275,7 +569,7 @@ async def autofill_job(job_id: str):
 
     job_url = job_data.get("url") or job_data.get("job_url") or f"https://www.linkedin.com/jobs/view/{job_id}/"
     app_type = job_data.get("application_type", "EASY_APPLY")
-    pdf_path = job_data.get("generated_pdf_path") or os.path.join(APPROVED_DIR, f"{job_id}_resume.pdf")
+    pdf_path, _ = resolve_job_pdf_path(job_id, job_data)
 
     company_name = job_data.get("job_details", {}).get("company", "")
     if "ATS" in str(app_type) or "greenhouse" in job_url or "lever" in job_url or "ashby" in job_url:
@@ -333,7 +627,7 @@ async def get_approved_jobs():
 
                 job_id = payload.get("job_id", filename.replace(".json", ""))
                 jd = payload.get("job_details", {})
-                pdf_path = payload.get("generated_pdf_path") or os.path.join(APPROVED_DIR, f"{job_id}_resume.pdf")
+                pdf_path, pdf_filename = resolve_job_pdf_path(job_id, payload)
 
                 approved_jobs.append(
                     {
@@ -346,7 +640,7 @@ async def get_approved_jobs():
                         "job_url": payload.get("url") or payload.get("job_url", ""),
                         "matched_keywords": payload.get("matched_keywords", []),
                         "has_pdf": os.path.exists(pdf_path),
-                        "pdf_filename": f"{job_id}_resume.pdf",
+                        "pdf_filename": pdf_filename,
                         "approved_at": os.path.getmtime(file_path),
                     }
                 )
@@ -362,20 +656,27 @@ async def get_approved_jobs():
 
 @app.get("/api/pdf/{job_id}")
 async def get_job_pdf(job_id: str):
-    pdf_path = os.path.join(APPROVED_DIR, f"{job_id}_resume.pdf")
+    pdf_path, pdf_filename = resolve_job_pdf_path(job_id)
     if not os.path.exists(pdf_path):
         raise HTTPException(status_code=404, detail="Resume PDF not found for this job")
+
+    tokens = pdf_filename.split("_")
+    if len(tokens) >= 5 and tokens[-1].lower() == "resume.pdf":
+        download_name = f"{tokens[0]}_{tokens[1]}_{tokens[2]}_Resume.pdf"
+    else:
+        download_name = pdf_filename
+
     return FileResponse(
         path=pdf_path,
         media_type="application/pdf",
-        filename=f"{job_id}_resume.pdf",
+        filename=download_name,
     )
 
 
 @app.delete("/api/approved/{job_id}")
 async def delete_approved_job(job_id: str):
     json_path = os.path.join(APPROVED_DIR, f"{job_id}.json")
-    pdf_path = os.path.join(APPROVED_DIR, f"{job_id}_resume.pdf")
+    pdf_path, _ = resolve_job_pdf_path(job_id)
 
     deleted = False
     if os.path.exists(json_path):
@@ -383,6 +684,10 @@ async def delete_approved_job(job_id: str):
         deleted = True
     if os.path.exists(pdf_path):
         os.remove(pdf_path)
+
+    legacy_pdf = os.path.join(APPROVED_DIR, f"{job_id}_resume.pdf")
+    if os.path.exists(legacy_pdf):
+        os.remove(legacy_pdf)
 
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found in approved queue")

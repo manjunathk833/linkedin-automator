@@ -26,8 +26,8 @@ def test_url_resolution():
     # Case A: Coinbase wrapper URL with gh_jid
     cb_url = "https://www.coinbase.com/careers/positions/8095207?gh_jid=8095207"
     resolved_cb = resolve_canonical_ats_url(cb_url, company="Coinbase")
-    assert "boards.greenhouse.io/coinbase/jobs/8095207" in resolved_cb, (
-        f"Expected direct greenhouse URL, got: {resolved_cb}"
+    assert "job-boards.greenhouse.io/embed/job_app?token=8095207&for=coinbase" in resolved_cb, (
+        f"Expected direct greenhouse embed URL, got: {resolved_cb}"
     )
     print(f"   ✅ Coinbase URL resolved to: {resolved_cb}")
 

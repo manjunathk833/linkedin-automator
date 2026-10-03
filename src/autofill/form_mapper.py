@@ -12,6 +12,7 @@ from typing import Any
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PROFILE_PATH = os.path.join(PROJECT_ROOT, "data", "resume_profile.json")
+MASTER_DATA_PATH = os.path.join(PROJECT_ROOT, "data", "profile", "candidate_master_data.json")
 
 
 class FormFieldMapper:
@@ -19,9 +20,17 @@ class FormFieldMapper:
     Resolves standard application inputs and screening questions using authentic candidate profile facts.
     """
 
-    def __init__(self, profile_path: str = PROFILE_PATH):
+    def __init__(self, profile_path: str = PROFILE_PATH, master_path: str = MASTER_DATA_PATH):
         self.profile_path = profile_path
+        self.master_path = master_path
+        self.master_data: dict[str, Any] = self._load_master_data()
         self.profile: dict[str, Any] = self._load_profile()
+
+    def _load_master_data(self) -> dict[str, Any]:
+        if os.path.exists(self.master_path):
+            with open(self.master_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {}
 
     def _load_profile(self) -> dict[str, Any]:
         if not os.path.exists(self.profile_path):
@@ -31,6 +40,24 @@ class FormFieldMapper:
 
     def get_contact_info(self) -> dict[str, str]:
         """Returns standard personal details."""
+        if self.master_data:
+            personal = self.master_data.get("personal", {})
+            profiles = self.master_data.get("profiles", {})
+            return {
+                "full_name": personal.get("full_name", ""),
+                "first_name": personal.get("first_name", ""),
+                "last_name": personal.get("last_name", ""),
+                "email": personal.get("email", ""),
+                "phone": personal.get("phone", ""),
+                "phone_country_code": personal.get("phone_country_code", "+91"),
+                "location": personal.get("location", "Bengaluru, Karnataka, India"),
+                "city": personal.get("city", "Bengaluru"),
+                "country": personal.get("country", "India"),
+                "linkedin": profiles.get("linkedin", ""),
+                "github": profiles.get("github", ""),
+                "portfolio": profiles.get("portfolio", ""),
+            }
+
         personal = self.profile.get("personal_details", {})
         full_name = personal.get("full_name", "")
         parts = full_name.split()
@@ -45,6 +72,7 @@ class FormFieldMapper:
             "last_name": last_name,
             "email": personal.get("email", ""),
             "phone": personal.get("phone", ""),
+            "phone_country_code": "+91",
             "location": personal.get("location", "Bengaluru, Karnataka, India"),
             "city": personal.get("city", "Bengaluru"),
             "country": personal.get("country", "India"),

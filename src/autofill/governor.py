@@ -1,15 +1,18 @@
 """
 Application Rate Limiter and Daily Quota Governor.
-Guards candidate LinkedIn and ATS accounts by strictly enforcing an application budget cap (≤15/day).
+Guards candidate LinkedIn and ATS accounts with an assisted copilot application budget cap (default ≤200/day).
 """
 
 from __future__ import annotations
 
+import os
 from typing import Any
+
+import yaml
 
 from src.storage.database import ApplicationDatabase
 
-DEFAULT_DAILY_LIMIT = 15
+DEFAULT_DAILY_LIMIT = 200
 
 
 class ApplicationGovernor:
@@ -17,9 +20,26 @@ class ApplicationGovernor:
     Enforces daily budget governance and safety limits for automated and assisted applications.
     """
 
-    def __init__(self, db: ApplicationDatabase | None = None, daily_limit: int = DEFAULT_DAILY_LIMIT):
+    def __init__(self, db: ApplicationDatabase | None = None, daily_limit: int | None = None):
         self.db = db or ApplicationDatabase()
-        self.daily_limit = daily_limit
+        if daily_limit is not None:
+            self.daily_limit = daily_limit
+        else:
+            self.daily_limit = self._load_limit_from_config()
+
+    def _load_limit_from_config(self) -> int:
+        """Reads daily_limit from config.yaml if defined, otherwise falls back to DEFAULT_DAILY_LIMIT."""
+        config_path = os.path.join(os.getcwd(), "config.yaml")
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f) or {}
+                val = cfg.get("safety_governor", {}).get("daily_limit")
+                if val is not None:
+                    return int(val)
+            except Exception:
+                pass
+        return DEFAULT_DAILY_LIMIT
 
     def check_budget(self) -> dict[str, Any]:
         """

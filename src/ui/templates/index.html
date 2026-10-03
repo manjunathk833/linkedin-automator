@@ -23,7 +23,7 @@
                 </nav>
             </div>
             <div id="budget-banner" class="budget-badge" title="Daily Safety Rate Governor (Prevents Bot Flagging)">
-                🛡️ Daily Safety Cap: <span id="budget-used">0</span> / <span id="budget-max">15</span>
+                🛡️ Daily Safety Cap: <span id="budget-used">0</span> / <span id="budget-max">200</span>
             </div>
         </header>
 
@@ -41,12 +41,43 @@
                     <div class="job-split">
                         <!-- Left Column: Job Details -->
                         <div class="job-details-col">
-                            <div class="section-badge">Job Description</div>
+                            <div class="job-header-row">
+                                <span id="job-source-badge" class="section-badge">Job Description</span>
+                                <span id="job-location-pill" class="location-pill">📍 Location</span>
+                            </div>
                             <h2 id="job-title" class="title">Title</h2>
                             <h3 id="job-company" class="company">Company</h3>
-                            <p id="job-location" class="location">Location</p>
+
+                            <!-- Rich Job Intelligence Meta Bar -->
+                            <div class="job-meta-grid" id="job-meta-grid">
+                                <div class="meta-item">
+                                    <span class="meta-label">📍 Location</span>
+                                    <span id="job-location" class="meta-value">Not specified</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">⏱️ Required Experience</span>
+                                    <span id="job-experience" class="meta-value">Not specified</span>
+                                </div>
+                                <div class="meta-item" id="job-salary-container">
+                                    <span class="meta-label">💰 Compensation</span>
+                                    <span id="job-salary" class="meta-value">Competitive</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">🔗 Original Posting</span>
+                                    <a id="job-link-btn" href="#" target="_blank" class="meta-link">
+                                        View Live Job ↗
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Matched Skills Tags -->
+                            <div class="matched-skills-box">
+                                <span class="skills-label">🎯 Matched Keywords</span>
+                                <div id="job-matched-tags" class="skills-tags"></div>
+                            </div>
+
                             <div class="requirements-box">
-                                <h4>Requirements</h4>
+                                <h4>Requirements & Description</h4>
                                 <p id="job-reqs">Requirements text...</p>
                             </div>
                         </div>
@@ -66,12 +97,6 @@
                                 <div id="experience-list"></div>
                             </div>
 
-                            <div id="easy-apply-section" class="card-section">
-                                <h4>Easy Apply Questions</h4>
-                                <form id="easy-apply-form">
-                                    <!-- Inputs dynamically generated -->
-                                </form>
-                            </div>
                         </div>
                     </div>
 
@@ -125,6 +150,6 @@
         </main>
     </div>
     
-    <script src="/static/app.js?v=2.2"></script>
+    <script src="/static/app.js?v=2.3"></script>
 </body>
 </html>
