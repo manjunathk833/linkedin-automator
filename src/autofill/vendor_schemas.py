@@ -158,6 +158,7 @@ class ATSVendorPattern:
     WORKDAY_STANDARD = "WORKDAY_STANDARD"
     LINKEDIN_EASY_APPLY = "LINKEDIN_EASY_APPLY"
     OKTA_BRANDED_GREENHOUSE = "OKTA_BRANDED_GREENHOUSE"
+    DATABRICKS_CUSTOM_GREENHOUSE = "DATABRICKS_CUSTOM_GREENHOUSE"
     GENERIC_ATS_FALLBACK = "GENERIC_ATS_FALLBACK"
 
 
@@ -253,6 +254,35 @@ VENDOR_SCHEMAS: dict[str, dict[str, Any]] = {
             ],
         },
     },
+    ATSVendorPattern.DATABRICKS_CUSTOM_GREENHOUSE: {
+        "vendor_name": "Databricks Custom Greenhouse",
+        "url_identifiers": ["databricks.com"],
+        "url_patterns": [r"databricks\.com/.*/careers/", r"databricks\.com/company/careers"],
+        "dom_fingerprints": ["iframe#grnhse_iframe", "iframe[src*='greenhouse.io']"],
+        "selectors": {
+            "first_name": ["input#first_name", "input[name='first_name']"],
+            "last_name": ["input#last_name", "input[name='last_name']"],
+            "preferred_name": ["input#preferred_name", "input[name='preferred_name']"],
+            "email": ["input#email", "input[name='email']"],
+            "country": ["input#country", "[id*='country']"],
+            "phone": ["input#phone", "input[name='phone']"],
+            "location": ["input#candidate-location", "[id*='candidate-location']"],
+            "resume": ["input[type='file'][name*='resume']", "input#resume", "input[type='file']"],
+            "linkedin": ["input#question_35489440002", "div:has(label:has-text('LinkedIn')) input"],
+            "current_firm": [
+                "input#question_35489441002",
+                "div:has(label:has-text('Current firm')) input",
+            ],
+            "work_authorization": [
+                "input#question_35489442002",
+                "div:has(label:has-text('authorized to work')) [role='combobox']",
+            ],
+            "previously_worked": [
+                "input#question_35489443002",
+                "div:has(label:has-text('worked for Databricks')) [role='combobox']",
+            ],
+        },
+    },
     ATSVendorPattern.GREENHOUSE_STANDARD: {
         "vendor_name": "Greenhouse Standard",
         "url_identifiers": ["greenhouse.io"],
@@ -330,6 +360,8 @@ def classify_ats_pattern(url: str) -> str:
     clean_url = (url or "").lower().strip()
 
     # 1. Custom / Branded Organization ATS Pages
+    if "databricks.com" in clean_url and ("careers" in clean_url or "gh_jid" in clean_url):
+        return ATSVendorPattern.DATABRICKS_CUSTOM_GREENHOUSE
     if "okta.com" in clean_url and "careers" in clean_url:
         return ATSVendorPattern.OKTA_BRANDED_GREENHOUSE
 

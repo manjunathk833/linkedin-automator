@@ -36,6 +36,10 @@ def resolve_canonical_ats_url(url: str, company: str = "") -> str:
     if not url:
         return url
 
+    # Databricks custom career portal redirects Greenhouse URLs back to databricks.com
+    if "databricks" in url.lower():
+        return url
+
     # Greenhouse wrapper resolution via gh_jid
     gh_match = re.search(r"gh_jid=(\d+)", url)
     if gh_match:
@@ -47,7 +51,6 @@ def resolve_canonical_ats_url(url: str, company: str = "") -> str:
         for known_slug in [
             "coinbase",
             "cloudflare",
-            "databricks",
             "instacart",
             "thoughtworks",
             "gitlab",
@@ -125,12 +128,14 @@ class ATSAssistedFiller:
 
         # 1. Check if the page has an embedded Greenhouse or Lever iframe
         target: Any = page
-        iframe = page.locator("iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']").first
+        iframe = page.locator(
+            "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
+        ).first
         try:
-            if await iframe.count() > 0 and await iframe.is_visible():
+            if await iframe.count() > 0:
                 print("📦 Detected embedded ATS iframe. Switching target to iframe frame locator...")
                 target = page.frame_locator(
-                    "iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
+                    "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
                 ).first
         except Exception as e:
             print(f"⚠️ Iframe detection notice: {e}")
@@ -208,12 +213,12 @@ class ATSAssistedFiller:
                     # Re-check for embedded iframe in newly focused tab
                     try:
                         tab_iframe = page.locator(
-                            "iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
+                            "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
                         ).first
-                        if await tab_iframe.count() > 0 and await tab_iframe.is_visible():
+                        if await tab_iframe.count() > 0:
                             print("📦 Detected embedded ATS iframe in new tab. Switching target...")
                             target = page.frame_locator(
-                                "iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
+                                "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io'], iframe[src*='lever.co']"
                             ).first
                     except Exception as e:
                         print(f"⚠️ Application tab iframe notice: {e}")
@@ -245,7 +250,10 @@ class ATSAssistedFiller:
         fields_filled = 0
         resume_attached = False
 
-        if pattern == ATSVendorPattern.OKTA_BRANDED_GREENHOUSE:
+        if pattern == ATSVendorPattern.DATABRICKS_CUSTOM_GREENHOUSE:
+            print("🧱 Identified Databricks Custom Greenhouse career portal.")
+            fields_filled, resume_attached = await self._fill_databricks(target, resume_pdf_path)
+        elif pattern == ATSVendorPattern.OKTA_BRANDED_GREENHOUSE:
             print("🏢 Identified Okta Branded Greenhouse custom career portal.")
             fields_filled, resume_attached = await self._fill_okta(target, resume_pdf_path)
         elif pattern == ATSVendorPattern.GREENHOUSE_STANDARD:
@@ -670,6 +678,184 @@ class ATSAssistedFiller:
                 await self._select_react_combobox(target, dis_el, "No")
                 or await self._select_react_combobox(target, dis_el, "do not have a disability")
             ):
+                filled += 1
+        except Exception:
+            pass
+
+        return filled, attached
+
+    async def _fill_databricks(self, target: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
+        """Fills Databricks custom embedded Greenhouse application form."""
+        filled = 0
+        attached = False
+        p = self.master_data.personal
+        profiles = self.master_data.profiles
+        current_firm = getattr(self.master_data.current_employment, "company", "Value Labs") or "Value Labs"
+        schema = get_vendor_schema(ATSVendorPattern.DATABRICKS_CUSTOM_GREENHOUSE).get("selectors", {})
+
+        # Switch to iframe if target is still the parent page
+        if hasattr(target, "goto"):
+            iframe = target.locator("iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io']").first
+            try:
+                if await iframe.count() > 0:
+                    target = target.frame_locator(
+                        "iframe#grnhse_iframe, iframe#grnh_iframe, iframe[src*='greenhouse.io']"
+                    ).first
+            except Exception:
+                pass
+
+        # 1. First & Last Name
+        first_sel = ", ".join(schema.get("first_name", ["input#first_name", "input[name='first_name']"]))
+        if await self._fill_text_input(target.locator(first_sel), p.first_name):
+            filled += 1
+
+        last_sel = ", ".join(schema.get("last_name", ["input#last_name", "input[name='last_name']"]))
+        if await self._fill_text_input(target.locator(last_sel), p.last_name):
+            filled += 1
+
+        # 2. Preferred First Name (Required on Databricks!)
+        pref_sel = ", ".join(schema.get("preferred_name", ["input#preferred_name", "input[name='preferred_name']"]))
+        if await self._fill_text_input(target.locator(pref_sel), p.first_name):
+            filled += 1
+
+        # 3. Email
+        email_sel = ", ".join(schema.get("email", ["input#email", "input[name='email']"]))
+        if await self._fill_text_input(target.locator(email_sel), p.email):
+            filled += 1
+
+        # 4. Country Combobox (#country -> India +91)
+        try:
+            country_sel = ", ".join(
+                schema.get(
+                    "country",
+                    ["input#country", "[id*='country']", "div:has(label:has-text('Country')) [role='combobox']"],
+                )
+            )
+            country_input = target.locator(country_sel).first
+            if await country_input.count() > 0 and await self._select_react_combobox(target, country_input, "+91"):
+                filled += 1
+        except Exception:
+            pass
+
+        # 5. Phone
+        phone_sel = ", ".join(schema.get("phone", ["input#phone", "input[name='phone']"]))
+        try:
+            clean_phone = p.phone.replace("+91", "").strip() or p.phone
+            phone_input = target.locator(phone_sel).first
+            if await phone_input.count() > 0 and await self._fill_text_input(phone_input, clean_phone):
+                filled += 1
+        except Exception:
+            pass
+
+        # 6. Candidate Location (Combobox: Bengaluru)
+        try:
+            loc_sel = ", ".join(
+                schema.get(
+                    "location",
+                    [
+                        "input#candidate-location",
+                        "[id*='candidate-location']",
+                        "div:has(label:has-text('Location')) [role='combobox']",
+                    ],
+                )
+            )
+            loc_input = target.locator(loc_sel).first
+            if await loc_input.count() > 0 and await self._select_react_combobox(
+                target, loc_input, p.city or "Bengaluru"
+            ):
+                filled += 1
+        except Exception:
+            pass
+
+        # 7. Resume Upload
+        resume_sel = ", ".join(
+            schema.get("resume", ["input[type='file'][name*='resume']", "input#resume", "input[type='file']"])
+        )
+        if resume_pdf_path and os.path.exists(resume_pdf_path):
+            try:
+                res_el = target.locator(resume_sel).first
+                if await res_el.count() > 0:
+                    await res_el.set_input_files(os.path.abspath(resume_pdf_path))
+                    attached = True
+                    filled += 1
+                    print(f"📎 Attached resume PDF to Databricks form: {os.path.basename(resume_pdf_path)}")
+            except Exception as e:
+                print(f"⚠️ Databricks resume attachment notice: {e}")
+
+        # 8. LinkedIn Profile
+        linkedin_sel = ", ".join(
+            schema.get(
+                "linkedin",
+                [
+                    "input#question_35489440002",
+                    "div:has(label:has-text('LinkedIn')) input",
+                    "input[name*='35489440002']",
+                    "input[id*='linkedin']",
+                ],
+            )
+        )
+        if profiles.linkedin:
+            try:
+                li_input = target.locator(linkedin_sel).first
+                if await li_input.count() > 0 and await self._fill_text_input(li_input, profiles.linkedin):
+                    filled += 1
+                    print(f"🔗 Populated candidate LinkedIn profile into Databricks form: {profiles.linkedin}")
+            except Exception:
+                pass
+
+        # 9. Current Firm (Required on Databricks!)
+        firm_sel = ", ".join(
+            schema.get(
+                "current_firm",
+                [
+                    "input#question_35489441002",
+                    "div:has(label:has-text('Current firm')) input",
+                    "input[name*='35489441002']",
+                ],
+            )
+        )
+        try:
+            firm_input = target.locator(firm_sel).first
+            if await firm_input.count() > 0 and await self._fill_text_input(firm_input, current_firm):
+                filled += 1
+                print(f"🏢 Populated candidate current firm ({current_firm}) into Databricks form")
+        except Exception:
+            pass
+
+        # 10. Legally Authorized to Work -> "Yes"
+        auth_sel = ", ".join(
+            schema.get(
+                "work_authorization",
+                [
+                    "input#question_35489442002",
+                    "div:has(label:has-text('authorized to work')) [role='combobox']",
+                    "div:has(label:has-text('authorized to work'))",
+                    "input[name*='35489442002']",
+                ],
+            )
+        )
+        try:
+            auth_el = target.locator(auth_sel).first
+            if await auth_el.count() > 0 and await self._select_react_combobox(target, auth_el, "Yes"):
+                filled += 1
+        except Exception:
+            pass
+
+        # 11. Previously Worked for Databricks -> "No"
+        prev_sel = ", ".join(
+            schema.get(
+                "previously_worked",
+                [
+                    "input#question_35489443002",
+                    "div:has(label:has-text('worked for Databricks')) [role='combobox']",
+                    "div:has(label:has-text('worked for Databricks'))",
+                    "input[name*='35489443002']",
+                ],
+            )
+        )
+        try:
+            prev_el = target.locator(prev_sel).first
+            if await prev_el.count() > 0 and await self._select_react_combobox(target, prev_el, "No"):
                 filled += 1
         except Exception:
             pass

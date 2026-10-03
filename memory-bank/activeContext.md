@@ -26,6 +26,10 @@
   - Custom Branded Vendor Schema for Okta (`OKTA_BRANDED_GREENHOUSE`) added to `src/autofill/vendor_schemas.py` and modular `_fill_okta` implemented in `src/autofill/ats_filler.py`.
   - Candidate Portfolio / Website (`https://manjunathhk.netlify.app/`) mapped to `#edit-question-69483962`, LinkedIn Profile mapped to `#edit-question-69483961`, screening dropdowns, consent checkboxes, and voluntary EEOC verified live on Okta job page (17 fields filled + resume attached).
   - Verification Gate 46 (`verify/46_test_okta_autofill_heuristics.py`) and live test (`verify/46b_test_okta_live_page_autofill.py`) passing 100%.
-  - Full regression test suite passing (Gates 41, 44, 45, 46).
-  - `python main.py lint` clean with 0 errors across 109 files.
+  - Custom Branded Vendor Schema for Databricks (`DATABRICKS_CUSTOM_GREENHOUSE`) added to `src/autofill/vendor_schemas.py` and modular `_fill_databricks` implemented in `src/autofill/ats_filler.py`.
+  - Form selectors mapped for Databricks: Preferred Name (`#preferred_name`), Current Firm (`#question_35489441002`), Phone Country Dial Code (`+91`), Location Combobox (`Bengaluru`), LinkedIn (`#question_35489440002`), Work Auth (`#question_35489442002`), Prior Employment (`#question_35489443002`), and Resume PDF upload.
+  - Canonical URL resolver updated to preserve Databricks URLs on `databricks.com` to prevent Greenhouse 302-redirect loops.
+  - Verification Gate 47 (`verify/47_test_databricks_autofill_heuristics.py`) passing 100% (12 fields filled live + resume attached).
+  - Full regression test suite passing (Gates 41, 44, 45, 46, 47).
+  - `python main.py lint` clean with 0 errors across 110 files.
 
