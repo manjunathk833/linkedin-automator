@@ -79,26 +79,26 @@ async def run_live_greenhouse_test():
         fn_val = await page.locator("input#first_name").input_value()
         ln_val = await page.locator("input#last_name").input_value()
         em_val = await page.locator("input#email").input_value()
-        comp_val = await page.locator("input#company-name-0").input_value()
-        title_val = await page.locator("input#title-0").input_value()
+        comp_val_0 = await page.locator("input#company-name-0").input_value()
+        title_val_0 = await page.locator("input#title-0").input_value()
+        comp_val_1 = await page.locator("input#company-name-1").input_value()
+        comp_val_2 = await page.locator("input#company-name-2").input_value()
 
         print(f"   • First Name: '{fn_val}'")
         print(f"   • Last Name:  '{ln_val}'")
         print(f"   • Email:      '{em_val}'")
-        print(f"   • Company:    '{comp_val}'")
-        print(f"   • Title:      '{title_val}'")
+        print(f"   • Job 0 (Current): '{comp_val_0}' ({title_val_0})")
+        print(f"   • Job 1: '{comp_val_1}'")
+        print(f"   • Job 2: '{comp_val_2}'")
 
         assert fn_val == master_data.personal.first_name, f"Expected {master_data.personal.first_name}, got {fn_val}"
         assert ln_val == master_data.personal.last_name, f"Expected {master_data.personal.last_name}, got {ln_val}"
         assert em_val == master_data.personal.email, f"Expected {master_data.personal.email}, got {em_val}"
-        assert comp_val == master_data.current_employment.company, (
-            f"Expected {master_data.current_employment.company}, got {comp_val}"
-        )
-        assert title_val == master_data.current_employment.title, (
-            f"Expected {master_data.current_employment.title}, got {title_val}"
-        )
+        assert comp_val_0 == "Value Labs", f"Expected Value Labs, got {comp_val_0}"
+        assert comp_val_1 == "Dunzo", f"Expected Dunzo, got {comp_val_1}"
+        assert comp_val_2 == "Tata Elxsi", f"Expected Tata Elxsi, got {comp_val_2}"
 
-        assert fields_filled >= 15, f"Expected at least 15 fields filled, but got {fields_filled}"
+        assert fields_filled >= 20, f"Expected at least 20 fields filled, but got {fields_filled}"
         assert attached is True, "Resume was not attached"
 
         await browser.close()

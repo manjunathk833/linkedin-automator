@@ -270,19 +270,37 @@ class ATSAssistedFiller:
             "url": getattr(page, "url", job_url),
         }
 
+    async def _fill_text_input(self, locator: Any, value: str) -> bool:
+        """Fills text input and triggers React synthetic input, change, and blur events."""
+        try:
+            if await locator.count() == 0:
+                return False
+            el = locator.first
+            try:
+                await el.scroll_into_view_if_needed(timeout=800)
+            except Exception:
+                pass
+            await el.click(timeout=1000)
+            await el.fill(value)
+            await el.dispatch_event("input")
+            await el.dispatch_event("change")
+            await el.dispatch_event("blur")
+            return True
+        except Exception:
+            return False
+
     async def _select_react_combobox(
-        self, target: Any, locator: Any, search_text: str, press_enter: bool = True
+        self, target: Any, locator: Any, search_text: str, prefer_exact: bool = False
     ) -> bool:
         """Resiliently interacts with React-Select / custom combobox / native select controls."""
         try:
             if await locator.count() == 0:
                 return False
             el = locator.first
-            if not await el.is_visible(timeout=1000):
-                try:
-                    await el.scroll_into_view_if_needed(timeout=800)
-                except Exception:
-                    pass
+            try:
+                await el.scroll_into_view_if_needed(timeout=800)
+            except Exception:
+                pass
 
             # Check if this is a native HTML select
             tag = await el.evaluate("e => e.tagName.toLowerCase()")
@@ -311,29 +329,58 @@ class ATSAssistedFiller:
             # Focus and clear/type
             await input_el.click(timeout=1200)
             await asyncio.sleep(0.15)
-            await human_type(input_el, search_text)
-            await asyncio.sleep(0.4)
+            type_text = "India" if ("+91" in search_text or search_text == "India") else search_text
+            await input_el.fill(type_text)
+            await input_el.dispatch_event("input")
+            await asyncio.sleep(0.5)
 
             # Check if options menu opened (.select__option, div[role='option'], li[role='option'])
             page = getattr(target, "page", target)
             options = page.locator(".select__option, div[role='option'], li[role='option'], .select__menu-list div")
-            if await options.count() > 0:
-                matching_opt = options.filter(has_text=search_text).first
-                if await matching_opt.count() > 0 and await matching_opt.is_visible():
-                    await matching_opt.click(timeout=1200)
-                    await asyncio.sleep(0.2)
-                    return True
-                else:
-                    first_opt = options.first
-                    if await first_opt.is_visible():
-                        await first_opt.click(timeout=1200)
+            try:
+                await options.first.wait_for(state="visible", timeout=2500)
+            except Exception:
+                pass
+
+            opt_count = await options.count()
+            if opt_count > 0:
+                # Special matching for Country dial code (+91)
+                if "+91" in search_text or search_text == "India":
+                    for i in range(opt_count):
+                        opt = options.nth(i)
+                        txt = await opt.inner_text()
+                        if "+91" in txt or "India +91" in txt:
+                            await opt.click(timeout=1200)
+                            await asyncio.sleep(0.2)
+                            return True
+
+                # Matching logic
+                for i in range(opt_count):
+                    opt = options.nth(i)
+                    txt = (await opt.inner_text()).strip()
+                    if (
+                        prefer_exact
+                        and search_text.lower() == txt.lower()
+                        or not prefer_exact
+                        and search_text.lower() in txt.lower()
+                    ):
+                        await opt.click(timeout=1200)
                         await asyncio.sleep(0.2)
                         return True
 
-            if press_enter:
-                await input_el.press("Enter")
-                await asyncio.sleep(0.3)
-                return True
+                # Fallback to first visible option
+                first_opt = options.first
+                if await first_opt.is_visible():
+                    await first_opt.click(timeout=1200)
+                    await asyncio.sleep(0.2)
+                    return True
+
+            # If no dropdown option matched, press Enter and dispatch events
+            await input_el.press("Enter")
+            await input_el.dispatch_event("change")
+            await input_el.dispatch_event("blur")
+            await asyncio.sleep(0.3)
+            return True
         except Exception:
             pass
         return False
@@ -345,44 +392,27 @@ class ATSAssistedFiller:
         p = self.master_data.personal
 
         # 1. First & Last Name
-        try:
-            fn = target.locator("input#first_name, input[name='first_name']").first
-            if await fn.is_visible(timeout=1500) and not (await fn.input_value()):
-                await human_type(fn, p.first_name)
-                filled += 1
-        except Exception:
-            pass
+        if await self._fill_text_input(target.locator("input#first_name, input[name='first_name']"), p.first_name):
+            filled += 1
 
-        try:
-            ln = target.locator("input#last_name, input[name='last_name']").first
-            if await ln.is_visible(timeout=1500) and not (await ln.input_value()):
-                await human_type(ln, p.last_name)
-                filled += 1
-        except Exception:
-            pass
+        if await self._fill_text_input(target.locator("input#last_name, input[name='last_name']"), p.last_name):
+            filled += 1
 
         # 2. Email & Phone
-        try:
-            em = target.locator("input#email, input[name='email']").first
-            if await em.is_visible(timeout=1500) and not (await em.input_value()):
-                await human_type(em, p.email)
-                filled += 1
-        except Exception:
-            pass
+        if await self._fill_text_input(target.locator("input#email, input[name='email']"), p.email):
+            filled += 1
 
-        # Phone Country Combobox (#country)
+        # Phone Country Combobox (#country -> India +91)
         try:
             country_input = target.locator("input#country, [id*='country']").first
-            if await country_input.count() > 0 and await self._select_react_combobox(target, country_input, "India"):
+            if await country_input.count() > 0 and await self._select_react_combobox(target, country_input, "+91"):
                 filled += 1
         except Exception:
             pass
 
         try:
-            ph = target.locator("input#phone, input[name='phone']").first
-            if await ph.is_visible(timeout=1500) and not (await ph.input_value()):
-                clean_phone = p.phone.replace("+91", "").strip() or p.phone
-                await human_type(ph, clean_phone)
+            clean_phone = p.phone.replace("+91", "").strip() or p.phone
+            if await self._fill_text_input(target.locator("input#phone, input[name='phone']"), clean_phone):
                 filled += 1
         except Exception:
             pass
@@ -390,38 +420,49 @@ class ATSAssistedFiller:
         # 3. Location Combobox (#candidate-location)
         try:
             loc = target.locator("input#candidate-location, [id*='candidate-location']").first
-            if await loc.count() > 0 and await self._select_react_combobox(target, loc, p.city):
+            if await loc.count() > 0 and await self._select_react_combobox(target, loc, "Bengaluru"):
                 filled += 1
         except Exception:
             pass
 
-        # 4. Employment History (#employment--container or #company-name-0)
+        # 4. Employment History (Value Labs, Dunzo, Tata Elxsi via "Add another")
         try:
-            if self.master_data.experience_history:
-                exp = self.master_data.experience_history[0]
-                comp = target.locator("input#company-name-0, input[name*='company']").first
-                if await comp.is_visible(timeout=1000) and not (await comp.input_value()):
-                    await human_type(comp, exp.company)
+            for i, exp in enumerate(self.master_data.experience_history):
+                if i > 0:
+                    emp_add = target.locator(
+                        "#employment--container button.add-another-button, "
+                        "#employment--container a.add-another-button, "
+                        "#employment--container button:has-text('Add another'), "
+                        "button.add-another-button"
+                    ).first
+                    if await emp_add.count() > 0:
+                        try:
+                            await emp_add.scroll_into_view_if_needed(timeout=800)
+                            await emp_add.click()
+                            await asyncio.sleep(0.5)
+                        except Exception:
+                            pass
+
+                comp_el = target.locator(f"input#company-name-{i}").first
+                if await comp_el.count() > 0 and await self._fill_text_input(comp_el, exp.company):
                     filled += 1
 
-                tit = target.locator("input#title-0, input[name*='title']").first
-                if await tit.is_visible(timeout=1000) and not (await tit.input_value()):
-                    await human_type(tit, exp.title)
+                title_el = target.locator(f"input#title-{i}").first
+                if await title_el.count() > 0 and await self._fill_text_input(title_el, exp.title):
                     filled += 1
 
-                start_mo = target.locator("input#start-date-month-0, [id*='start-date-month-0']").first
+                start_mo = target.locator(f"input#start-date-month-{i}, [id*='start-date-month-{i}']").first
                 if await start_mo.count() > 0 and await self._select_react_combobox(
                     target, start_mo, exp.start_month or "June"
                 ):
                     filled += 1
 
-                start_yr = target.locator("input#start-date-year-0, [id*='start-date-year-0']").first
-                if await start_yr.count() > 0 and not (await start_yr.input_value()):
-                    await human_type(start_yr, exp.start_year or "2023")
+                start_yr = target.locator(f"input#start-date-year-{i}, [id*='start-date-year-{i}']").first
+                if await start_yr.count() > 0 and await self._fill_text_input(start_yr, exp.start_year or "2023"):
                     filled += 1
 
                 if exp.is_current:
-                    curr_chk = target.locator("input#current-role-0_1, input[id*='current-role']").first
+                    curr_chk = target.locator(f"input#current-role-{i}_1, input#current-role-{i}").first
                     if await curr_chk.count() > 0:
                         try:
                             if not await curr_chk.is_checked():
@@ -429,38 +470,67 @@ class ATSAssistedFiller:
                                 filled += 1
                         except Exception:
                             pass
-        except Exception:
-            pass
+                else:
+                    end_mo = target.locator(f"input#end-date-month-{i}, [id*='end-date-month-{i}']").first
+                    if await end_mo.count() > 0 and await self._select_react_combobox(
+                        target, end_mo, exp.end_month or "January"
+                    ):
+                        filled += 1
 
-        # 5. Education History (#education--container or #school--0)
+                    end_yr = target.locator(f"input#end-date-year-{i}, [id*='end-date-year-{i}']").first
+                    if await end_yr.count() > 0 and await self._fill_text_input(end_yr, exp.end_year or "2023"):
+                        filled += 1
+        except Exception as e:
+            print(f"⚠️ Employment history autofill notice: {e}")
+
+        # 5. Education History
         try:
-            if self.master_data.education_history:
-                edu = self.master_data.education_history[0]
-                sch = target.locator("input#school--0, input[id*='school']").first
+            for k, edu in enumerate(self.master_data.education_history):
+                if k > 0:
+                    edu_add = target.locator(
+                        "#education--container button.add-another-button, "
+                        "#education--container a.add-another-button, "
+                        "#education--container button:has-text('Add another')"
+                    ).first
+                    if await edu_add.count() > 0:
+                        try:
+                            await edu_add.scroll_into_view_if_needed(timeout=800)
+                            await edu_add.click()
+                            await asyncio.sleep(0.5)
+                        except Exception:
+                            pass
+
+                sch = target.locator(f"input#school--{k}, [id*='school--{k}']").first
                 if await sch.count() > 0:
-                    if await self._select_react_combobox(target, sch, edu.institution):
-                        filled += 1
-                    elif not (await sch.input_value()):
-                        await human_type(sch, edu.institution)
-                        filled += 1
-
-                deg = target.locator("input#degree--0, select[id*='degree'], input[id*='degree']").first
-                if await deg.count() > 0 and await self._select_react_combobox(target, deg, edu.degree):
+                    selected = False
+                    for query in ["Visvesvaraya", "Engineering", "Other"]:
+                        if await self._select_react_combobox(target, sch, query):
+                            selected = True
+                            break
+                    if not selected:
+                        await self._fill_text_input(sch, edu.institution)
                     filled += 1
 
-                disc = target.locator("input#discipline--0, input[id*='discipline']").first
-                if await disc.count() > 0 and await self._select_react_combobox(target, disc, edu.discipline):
+                deg = target.locator(f"input#degree--{k}, [id*='degree--{k}']").first
+                if await deg.count() > 0:
+                    if not await self._select_react_combobox(target, deg, "Bachelor"):
+                        await self._select_react_combobox(target, deg, edu.degree)
                     filled += 1
-        except Exception:
-            pass
+
+                disc = target.locator(f"input#discipline--{k}, [id*='discipline--{k}']").first
+                if await disc.count() > 0:
+                    if not await self._select_react_combobox(target, disc, "Computer Science"):
+                        await self._select_react_combobox(target, disc, edu.discipline)
+                    filled += 1
+        except Exception as e:
+            print(f"⚠️ Education history autofill notice: {e}")
 
         # 6. LinkedIn Profile URL
         try:
             li = target.locator(
                 "input[aria-label*='Linkedin' i], input[id*='linkedin'], input[name*='linkedin'], input[placeholder*='linkedin' i]"
             ).first
-            if await li.count() > 0 and await li.is_visible(timeout=1000) and not (await li.input_value()):
-                await human_type(li, self.master_data.profiles.linkedin)
+            if await li.count() > 0 and await self._fill_text_input(li, self.master_data.profiles.linkedin):
                 filled += 1
         except Exception:
             pass
@@ -482,8 +552,9 @@ class ATSAssistedFiller:
                     li_box = q_box.locator(
                         "input.input__single-line:not(.select__input), input[type='text'], input[type='url']"
                     ).first
-                    if await li_box.count() > 0 and not (await li_box.input_value()):
-                        await human_type(li_box, self.master_data.profiles.linkedin)
+                    if await li_box.count() > 0 and await self._fill_text_input(
+                        li_box, self.master_data.profiles.linkedin
+                    ):
                         filled += 1
                         continue
 
@@ -574,8 +645,9 @@ class ATSAssistedFiller:
                 if await res_file.count() > 0:
                     print(f"📎 Attaching tailored resume: {resume_pdf_path}")
                     await res_file.set_input_files(resume_pdf_path)
+                    await res_file.dispatch_event("change")
                     attached = True
-                    await asyncio.sleep(1.0)
+                    await asyncio.sleep(2.0)
             except Exception as e:
                 print(f"⚠️ Resume attachment notice: {e}")
 
