@@ -13,7 +13,13 @@ import re
 from typing import Any
 
 from src.autofill.form_mapper import FormFieldMapper
-from src.autofill.vendor_schemas import CandidateMasterData, load_candidate_master_data
+from src.autofill.vendor_schemas import (
+    ATSVendorPattern,
+    CandidateMasterData,
+    classify_ats_pattern,
+    get_vendor_schema,
+    load_candidate_master_data,
+)
 from src.browser.cdp_stealth import launch_stealth_browser
 from src.browser.kinematics import human_type
 
@@ -232,24 +238,29 @@ class ATSAssistedFiller:
         except Exception as e:
             print(f"⚠️ Apply trigger check notice: {e}")
 
-        # 3. Detect vendor and execute standardized vendor autofill
-        active_url = getattr(page, "url", job_url).lower()
+        # 3. Detect vendor pattern and execute standardized vendor autofill
+        active_url = getattr(page, "url", job_url)
+        pattern = classify_ats_pattern(active_url)
+        print(f"🎯 Pattern Recognition Engine: Identified ATS Pattern [{pattern}] for URL: {active_url}")
         fields_filled = 0
         resume_attached = False
 
-        if "greenhouse.io" in active_url:
+        if pattern == ATSVendorPattern.OKTA_BRANDED_GREENHOUSE:
+            print("🏢 Identified Okta Branded Greenhouse custom career portal.")
+            fields_filled, resume_attached = await self._fill_okta(target, resume_pdf_path)
+        elif pattern == ATSVendorPattern.GREENHOUSE_STANDARD:
             print("🏛️ Identified Greenhouse ATS standard form.")
             fields_filled, resume_attached = await self._fill_greenhouse(target, resume_pdf_path)
-        elif "lever.co" in active_url:
+        elif pattern == ATSVendorPattern.LEVER_STANDARD:
             print("🏢 Identified Lever ATS standard form.")
             fields_filled, resume_attached = await self._fill_lever(target, resume_pdf_path)
-        elif "ashbyhq.com" in active_url:
+        elif pattern == ATSVendorPattern.ASHBY_STANDARD:
             print("🚀 Identified Ashby ATS standard form.")
             fields_filled, resume_attached = await self._fill_ashby(target, resume_pdf_path)
-        elif "workday" in active_url or "myworkdayjobs.com" in active_url:
+        elif pattern == ATSVendorPattern.WORKDAY_STANDARD:
             print("🏢 Identified Workday standard portal.")
             fields_filled, resume_attached = await self._fill_workday(target, resume_pdf_path)
-        elif "linkedin.com" in active_url:
+        elif pattern == ATSVendorPattern.LINKEDIN_EASY_APPLY:
             print("🔗 Identified LinkedIn Easy Apply modal.")
             fields_filled, resume_attached = await self._fill_linkedin_easy_apply(page, resume_pdf_path)
         else:
@@ -306,7 +317,7 @@ class ATSAssistedFiller:
             tag = await el.evaluate("e => e.tagName.toLowerCase()")
             if tag == "select":
                 try:
-                    await el.select_option(label=search_text)
+                    await el.select_option(label=search_text, timeout=1500)
                     return True
                 except Exception:
                     options = await el.locator("option").all()
@@ -315,7 +326,7 @@ class ATSAssistedFiller:
                         if search_text.lower() in t.lower():
                             val = await opt.get_attribute("value")
                             if val:
-                                await el.select_option(value=val)
+                                await el.select_option(value=val, timeout=1500)
                                 return True
                     return False
 
@@ -384,6 +395,286 @@ class ATSAssistedFiller:
         except Exception:
             pass
         return False
+
+    async def _fill_okta(self, target: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
+        """Fills Okta-branded Greenhouse custom application form."""
+        filled = 0
+        attached = False
+        p = self.master_data.personal
+        profiles = self.master_data.profiles
+        schema = get_vendor_schema(ATSVendorPattern.OKTA_BRANDED_GREENHOUSE).get("selectors", {})
+
+        # 1. First & Last Name
+        first_sel = ", ".join(schema.get("first_name", ["input#edit-first-name", "input[name='first_name']"]))
+        if await self._fill_text_input(target.locator(first_sel), p.first_name):
+            filled += 1
+
+        last_sel = ", ".join(schema.get("last_name", ["input#edit-last-name", "input[name='last_name']"]))
+        if await self._fill_text_input(target.locator(last_sel), p.last_name):
+            filled += 1
+
+        # 2. Email & Phone
+        email_sel = ", ".join(schema.get("email", ["input#edit-email", "input[name='email']"]))
+        if await self._fill_text_input(target.locator(email_sel), p.email):
+            filled += 1
+
+        phone_sel = ", ".join(schema.get("phone", ["input#edit-phone", "input[name='phone']"]))
+        if await self._fill_text_input(target.locator(phone_sel), p.phone):
+            filled += 1
+
+        # 3. Resume Upload
+        resume_sel = ", ".join(schema.get("resume", ["input#edit-resume", "input[type='file'][name*='resume']"]))
+        if resume_pdf_path and os.path.exists(resume_pdf_path):
+            try:
+                res_el = target.locator(resume_sel).first
+                if await res_el.count() > 0:
+                    await res_el.set_input_files(os.path.abspath(resume_pdf_path))
+                    attached = True
+                    filled += 1
+                    print(f"📎 Attached resume PDF to Okta form: {os.path.basename(resume_pdf_path)}")
+            except Exception as e:
+                print(f"⚠️ Okta resume attachment notice: {e}")
+
+        # 4. LinkedIn Profile & Portfolio Website
+        # LinkedIn
+        linkedin_sel = ", ".join(
+            schema.get(
+                "linkedin",
+                [
+                    "input#edit-question-69483961",
+                    "div:has(label:has-text('LinkedIn Profile')) input",
+                    "input[name*='69483961']",
+                    "input[id*='linkedin']",
+                ],
+            )
+        )
+        if profiles.linkedin:
+            try:
+                li_input = target.locator(linkedin_sel).first
+                if await li_input.count() > 0 and await self._fill_text_input(li_input, profiles.linkedin):
+                    filled += 1
+                    print(f"🔗 Populated candidate LinkedIn profile into Okta form: {profiles.linkedin}")
+            except Exception:
+                pass
+
+        # Website (Candidate Portfolio from data/profile/candidate_master_data.json)
+        website_val = profiles.portfolio or "https://manjunathhk.netlify.app/"
+        website_sel = ", ".join(
+            schema.get(
+                "website",
+                [
+                    "input#edit-question-69483962",
+                    "div:has(label:has-text('Website')) input",
+                    "input[name*='69483962']",
+                    "input[id*='website']",
+                ],
+            )
+        )
+        try:
+            web_input = target.locator(website_sel).first
+            if await web_input.count() > 0 and await self._fill_text_input(web_input, website_val):
+                filled += 1
+                print(f"🌐 Populated candidate website ({website_val}) into Okta form")
+        except Exception:
+            pass
+
+        # 5. Screening Questions (Native <select> elements)
+        # 5.1 Legally Authorized to Work -> "Yes"
+        auth_sel = ", ".join(
+            schema.get(
+                "work_authorization",
+                [
+                    "select#edit-question-69483963",
+                    "div:has(label:has-text('authorized to work')) select",
+                    "select[name*='69483963']",
+                ],
+            )
+        )
+        try:
+            auth_el = target.locator(auth_sel).first
+            if await auth_el.count() > 0 and await self._select_react_combobox(target, auth_el, "Yes"):
+                filled += 1
+        except Exception:
+            pass
+
+        # 5.2 Visa Sponsorship -> "No"
+        visa_sel = ", ".join(
+            schema.get(
+                "visa_sponsorship",
+                [
+                    "select#edit-question-69483964",
+                    "div:has(label:has-text('require Visa Sponsorship')) select",
+                    "select[name*='69483964']",
+                ],
+            )
+        )
+        try:
+            visa_el = target.locator(visa_sel).first
+            if await visa_el.count() > 0 and await self._select_react_combobox(target, visa_el, "No"):
+                filled += 1
+        except Exception:
+            pass
+
+        # 5.3 Family / Relative Conflict of Interest -> "No"
+        rel_sel = ", ".join(
+            schema.get(
+                "conflict_relatives",
+                [
+                    "select#edit-question-69483965",
+                    "div:has(label:has-text('family members')) select",
+                    "select[name*='69483965']",
+                ],
+            )
+        )
+        try:
+            rel_el = target.locator(rel_sel).first
+            if await rel_el.count() > 0 and await self._select_react_combobox(target, rel_el, "No"):
+                filled += 1
+        except Exception:
+            pass
+
+        # 5.4 Outside Business Activities -> "No"
+        out_sel = ", ".join(
+            schema.get(
+                "outside_activities",
+                [
+                    "select#edit-question-69483967",
+                    "div:has(label:has-text('outside business activity')) select",
+                    "select[name*='69483967']",
+                ],
+            )
+        )
+        try:
+            out_el = target.locator(out_sel).first
+            if await out_el.count() > 0 and await self._select_react_combobox(target, out_el, "No"):
+                filled += 1
+        except Exception:
+            pass
+
+        # 5.5 Previous Employment at Okta -> "No"
+        prev_sel = ", ".join(
+            schema.get(
+                "previous_employment",
+                [
+                    "select#edit-question-69483969",
+                    "div:has(label:has-text('employed by Okta')) select",
+                    "select[name*='69483969']",
+                ],
+            )
+        )
+        try:
+            prev_el = target.locator(prev_sel).first
+            if await prev_el.count() > 0 and await self._select_react_combobox(target, prev_el, "No"):
+                filled += 1
+        except Exception:
+            pass
+
+        # 6. Consent Checkboxes
+        consent_privacy_sel = ", ".join(
+            schema.get(
+                "consent_privacy",
+                [
+                    "input[id*='69483970']",
+                    "input#edit-question-69483970-753704919",
+                    "div:has(label:has-text('I acknowledge')) input[type='checkbox']",
+                    "input[type='checkbox'][name*='69483970']",
+                ],
+            )
+        )
+        try:
+            chk1 = target.locator(consent_privacy_sel).first
+            if await chk1.count() > 0:
+                if not await chk1.is_checked():
+                    try:
+                        await chk1.check(timeout=1000)
+                    except Exception:
+                        await chk1.click(force=True)
+                filled += 1
+        except Exception:
+            pass
+
+        consent_eval_sel = ", ".join(
+            schema.get(
+                "consent_evaluation",
+                [
+                    "input[id*='69483971']",
+                    "input#edit-question-69483971-753704920",
+                    "div:has(label:has-text('consent')) input[type='checkbox']",
+                    "input[type='checkbox'][name*='69483971']",
+                ],
+            )
+        )
+        try:
+            chk2 = target.locator(consent_eval_sel).first
+            if await chk2.count() > 0:
+                if not await chk2.is_checked():
+                    try:
+                        await chk2.check(timeout=1000)
+                    except Exception:
+                        await chk2.click(force=True)
+                filled += 1
+        except Exception:
+            pass
+
+        # 7. Voluntary EEOC Disclosures (<select>)
+        # Gender -> "Male"
+        gender_sel = ", ".join(
+            schema.get("eeoc_gender", ["select#edit-compliance-section-gender-0", "select[name*='gender']"])
+        )
+        try:
+            gender_el = target.locator(gender_sel).first
+            if await gender_el.count() > 0 and await self._select_react_combobox(
+                target, gender_el, self.master_data.voluntary_eeoc.gender
+            ):
+                filled += 1
+        except Exception:
+            pass
+
+        # Race -> "Asian"
+        race_sel = ", ".join(schema.get("eeoc_race", ["select#edit-compliance-section-race-0", "select[name*='race']"]))
+        try:
+            race_el = target.locator(race_sel).first
+            if await race_el.count() > 0 and await self._select_react_combobox(
+                target, race_el, self.master_data.voluntary_eeoc.race_ethnicity
+            ):
+                filled += 1
+        except Exception:
+            pass
+
+        # Veteran Status -> "I am not a protected veteran"
+        vet_sel = ", ".join(
+            schema.get(
+                "eeoc_veteran",
+                ["select#edit-compliance-section-veteran-status-0", "select[name*='veteran']"],
+            )
+        )
+        try:
+            vet_el = target.locator(vet_sel).first
+            if await vet_el.count() > 0 and await self._select_react_combobox(
+                target, vet_el, self.master_data.voluntary_eeoc.veteran_status
+            ):
+                filled += 1
+        except Exception:
+            pass
+
+        # Disability Status (if present)
+        dis_sel = ", ".join(
+            schema.get(
+                "eeoc_disability",
+                ["select#edit-compliance-section-disability-status-0", "select[name*='disability']"],
+            )
+        )
+        try:
+            dis_el = target.locator(dis_sel).first
+            if await dis_el.count() > 0 and (
+                await self._select_react_combobox(target, dis_el, "No")
+                or await self._select_react_combobox(target, dis_el, "do not have a disability")
+            ):
+                filled += 1
+        except Exception:
+            pass
+
+        return filled, attached
 
     async def _fill_greenhouse(self, target: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
         """Exhaustively fills both classic and modern React-Select Greenhouse application forms."""

@@ -199,8 +199,9 @@ graph TD
 ### Module 9: Dashboard-Triggered Assisted Autofill Copilot
 * **Files:** [`src/autofill/vendor_schemas.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/vendor_schemas.py), [`src/autofill/form_mapper.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/form_mapper.py), [`src/autofill/ats_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/ats_filler.py), [`src/autofill/linkedin_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/linkedin_filler.py), [`src/ui/app.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/app.py)
 * **Architecture:** Human-in-the-Loop copilot triggered directly from the FastAPI approval dashboard (`🚀 Launch Copilot`):
-  * **Standardized Vendor Schemas & Master Profile:** Binds to canonical candidate ground truth in `data/profile/candidate_master_data.json`.
-  * **Modular Vendor Autofill Handlers:** Custom verified handlers for Greenhouse, Lever, Ashby, Workday, and LinkedIn Easy Apply.
+  * **Pattern Recognition Engine (`classify_ats_pattern`):** Automatically detects and classifies navigation URLs and DOM fingerprints into explicit vendor patterns (`OKTA_BRANDED_GREENHOUSE`, `GREENHOUSE_STANDARD`, `LEVER_STANDARD`, `ASHBY_STANDARD`, `WORKDAY_STANDARD`, `LINKEDIN_EASY_APPLY`, `GENERIC_ATS_FALLBACK`).
+  * **Standardized Vendor Schemas & Master Profile:** Binds to canonical candidate ground truth in `data/profile/candidate_master_data.json`, including candidate portfolio website (`https://manjunathhk.netlify.app/`) and verified contact information.
+  * **Modular & Custom Branded Vendor Autofill Handlers:** Verified handlers for Greenhouse, Lever, Ashby, Workday, LinkedIn Easy Apply, and custom org-branded portals (e.g. Okta Branded Greenhouse).
   * **Multi-Tab & Popup Switching:** Intercepts `<a target="_blank">` and `window.open()` popups, focuses the active tab on macOS, and pierces nested iframes.
   * **Modal Traversal:** Enters form details using humanized Bézier movements and keystroke jitter, attaches the tailored PDF resume, and navigates multi-step forms.
   * **Pause-Before-Submit Hook:** Automatically halts at the final "Review your application" step, sounding an alert and leaving the browser open for manual human verification and 1-click submission.
@@ -292,8 +293,10 @@ All features are covered by dedicated, standalone verification scripts in `verif
 | `verify/43_test_coinbase_greenhouse_live_fill.py` | Live Coinbase Greenhouse Fill | Verifies React-Select combobox handling, custom disclosures, AI usage mapping, and resume attachment |
 | `verify/44_test_resume_professional_naming.py` | Professional Candidate Resume Naming | Verifies candidate-centric resume filenames (`Manjunath_HK_<Company>_<Token>_Resume.pdf`), backward compatibility, and clean download headers |
 | `verify/45_test_staging_job_metadata_enrichment.py` | Staging Job Intelligence Enrichment | Verifies location classification (US-only warnings vs India eligibility), experience extraction, direct job links, and salary disclosures |
+| `verify/46_test_okta_autofill_heuristics.py` | Okta Vendor Schema & Pattern Engine | Verifies pattern classification, candidate portfolio mapping, and Okta form autofill |
+| `verify/46b_test_okta_live_page_autofill.py` | Okta Live Page Autofill | Verifies live anti-detection autofill on actual Okta career posting (17 fields + resume) |
 
-* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 107 project files).
+* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 109 project files).
 
 ---
 
@@ -350,6 +353,7 @@ All features are covered by dedicated, standalone verification scripts in `verif
 - [x] **Milestone 21:** Modern React-Select Combobox Autofill and Multi-Job Experience Loop ("Add another" for multiple positions).
 - [x] **Milestone 22:** Professional Candidate-Centric Resume PDF Naming (`Manjunath_HK_<Company>_<Token>_Resume.pdf`) and clean browser download headers.
 - [x] **Milestone 23:** Upfront Staging Job Intelligence & Location Warnings (US-only alert badges, required experience extractor, direct posting link, and compensation view).
+- [x] **Milestone 24:** Vendor Pattern Discovery & Banking Engine (`classify_ats_pattern`) and Okta Branded Greenhouse Autofill with authentic candidate portfolio mapping.
 
 ---
 

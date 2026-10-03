@@ -22,5 +22,10 @@
   - React-Select Combobox Autofill, Multi-Job Experience Loop ("Add another" for Value Labs, Dunzo, Tata Elxsi), Education, and React synthetic event dispatching verified in Gate 43 (28 fields pre-filled live: `verify/43_test_coinbase_greenhouse_live_fill.py`).
   - Professional Candidate Resume Naming (`Manjunath_HK_<Company>_<Token>_Resume.pdf`), backward compatibility for existing approved queues, and clean download headers verified in Gate 44 (`verify/44_test_resume_professional_naming.py`).
   - Upfront Staging Job Intelligence (US-only location alert badges, context-aware experience extraction, direct job posting link, and compensation view) verified in Gate 45 (`verify/45_test_staging_job_metadata_enrichment.py`).
-  - `python main.py lint` clean with 0 errors across 107 files.
+  - Vendor Pattern Discovery & Banking Engine (`ATSVendorPattern`, `classify_ats_pattern`, `VENDOR_SCHEMAS`, `get_vendor_schema`) formalized and banked into `.agents/rules/` (Rule 7) and critic architect checklist.
+  - Custom Branded Vendor Schema for Okta (`OKTA_BRANDED_GREENHOUSE`) added to `src/autofill/vendor_schemas.py` and modular `_fill_okta` implemented in `src/autofill/ats_filler.py`.
+  - Candidate Portfolio / Website (`https://manjunathhk.netlify.app/`) mapped to `#edit-question-69483962`, LinkedIn Profile mapped to `#edit-question-69483961`, screening dropdowns, consent checkboxes, and voluntary EEOC verified live on Okta job page (17 fields filled + resume attached).
+  - Verification Gate 46 (`verify/46_test_okta_autofill_heuristics.py`) and live test (`verify/46b_test_okta_live_page_autofill.py`) passing 100%.
+  - Full regression test suite passing (Gates 41, 44, 45, 46).
+  - `python main.py lint` clean with 0 errors across 109 files.
 

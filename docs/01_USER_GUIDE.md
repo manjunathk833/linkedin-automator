@@ -71,14 +71,15 @@ Most job search tools only scrape LinkedIn. This system has two separate discove
 
 ### Step 5: The Human-in-the-Loop Browser Fill & Modular Vendor Copilot
 * When you click **"🚀 Launch Copilot"**, a real Google Chrome window opens.
-* **Standardized Vendor Schemas:** Instead of guessing form structures, the copilot uses verified vendor standards (Greenhouse, Lever, Ashby, Workday, LinkedIn Easy Apply) mapped to your **Central Candidate Master Profile** (`data/profile/candidate_master_data.json`).
+* **Pattern Recognition Engine:** Upon navigation, the copilot immediately identifies which ATS vendor pattern the application form uses (`GREENHOUSE_STANDARD`, `OKTA_BRANDED_GREENHOUSE`, `LEVER_STANDARD`, `ASHBY_STANDARD`, `WORKDAY_STANDARD`, `LINKEDIN_EASY_APPLY`).
+* **Standardized Vendor Schemas & Custom Org Schemas:** Instead of guessing form structures, the copilot uses verified vendor standards and custom branded schemas (e.g. Okta custom career forms) mapped to your **Central Candidate Master Profile** (`data/profile/candidate_master_data.json`). Your portfolio website (`https://manjunathhk.netlify.app/`), LinkedIn profile, phone, email, and answers to screening questions are automatically mapped.
 * **Canonical ATS Routing:** If the job link is an enterprise wrapper (e.g. Coinbase `gh_jid`), the copilot automatically resolves it to the canonical Greenhouse/Lever board where fields are immediately accessible.
 * **Multi-Tab & Popup Window Auto-Switching:** If clicking "Apply for this job" opens a new browser tab (`target="_blank"` or JavaScript `window.open()`), the copilot's context page listener intercepts the new tab, automatically switches active page control to it, brings the application tab to the front of your screen, and detects any nested ATS iframes.
 * **Kinematics & Typing:** It uses **humanized mouse kinematics**: mouse cursors move along natural Bézier curves and types with natural log-normal intervals (15–90 ms per keystroke).
-* **Multi-Section Completion:** In Greenhouse and Workday, it populates contact info, adds work experience and education cards, and attaches the tailored PDF resume. In Lever and Ashby, it populates custom URLs, org details, and voluntary demographic surveys.
+* **Multi-Section Completion:** In Greenhouse and Workday, it populates contact info, adds work experience and education cards, and attaches the tailored PDF resume. In Lever, Ashby, and Okta, it populates custom URLs, candidate portfolio, screening questions, and voluntary demographic surveys.
 * **Pause-Before-Submit Gate:** It fills all fields, attaches the tailored PDF resume, and **intentionally yields control back to you on the final review screen**.
 * You verify the answers, give the final nod, and manually click "Submit application".
-* The submission is logged in a local SQLite database (`data/app_database.db`), and your daily budget counter advances (maximum 15 applications per 24 hours to keep your account 100% safe).
+* The submission is logged in a local SQLite database (`data/app_database.db`), and your daily budget counter advances (configurable via `config.yaml` to keep your applications running smoothly).
 
 ---
 
