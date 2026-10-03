@@ -1,6 +1,62 @@
 let currentJobs = [];
 let currentJobIndex = 0;
+let approvedJobs = [];
+let approvedCount = 0;
+let activeTab = 'pending';
 
+// --- Tab Switching ---
+function switchTab(tab) {
+    activeTab = tab;
+    const tabPending = document.getElementById('tab-pending');
+    const tabApproved = document.getElementById('tab-approved');
+    const secPending = document.getElementById('pending-section');
+    const secApproved = document.getElementById('approved-section');
+
+    if (tab === 'pending') {
+        tabPending.classList.add('active');
+        tabApproved.classList.remove('active');
+        secPending.classList.remove('hidden');
+        secApproved.classList.add('hidden');
+        if (currentJobs.length > 0 && currentJobIndex < currentJobs.length) {
+            renderJob(currentJobIndex);
+        }
+    } else {
+        tabApproved.classList.add('active');
+        tabPending.classList.remove('active');
+        secApproved.classList.remove('hidden');
+        secPending.classList.add('hidden');
+        fetchApprovedJobs();
+    }
+}
+
+// --- Status Badges & Toasts ---
+function updateQueueBadges() {
+    const queueCountEl = document.getElementById('queue-count');
+    const approvedCountEl = document.getElementById('approved-count');
+    const emptyApprovedCountEl = document.getElementById('empty-approved-count');
+
+    if (queueCountEl) queueCountEl.innerText = currentJobs.length;
+    if (approvedCountEl) approvedCountEl.innerText = approvedCount;
+    if (emptyApprovedCountEl) emptyApprovedCountEl.innerText = approvedCount;
+}
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${type === 'reject' ? 'toast-reject' : ''}`;
+    toast.innerHTML = type === 'reject'
+        ? `<span>✕</span> <span>${message}</span>`
+        : `<span>✓</span> <span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 2800);
+}
+
+// --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     fetchJobs();
 
@@ -8,22 +64,30 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-reject').addEventListener('click', rejectJob);
 });
 
+// --- Tab 1: Pending Jobs Logic ---
 async function fetchJobs() {
     try {
         const response = await fetch('/api/pending-jobs');
         const data = await response.json();
-        currentJobs = data.jobs;
+        currentJobs = data.jobs || [];
+        approvedCount = data.approved_count || 0;
+        currentJobIndex = 0;
         
-        document.getElementById('queue-count').innerText = currentJobs.length;
+        updateQueueBadges();
         document.getElementById('loading').classList.add('hidden');
         
         if (currentJobs.length > 0) {
             renderJob(0);
         } else {
+            document.getElementById('job-view').classList.add('hidden');
             document.getElementById('empty-state').classList.remove('hidden');
+            // If pending is empty but approved has jobs, automatically show the approved tab!
+            if (approvedCount > 0) {
+                switchTab('approved');
+            }
         }
     } catch (error) {
-        console.error('Error fetching jobs:', error);
+        console.error('Error fetching pending jobs:', error);
     }
 }
 
@@ -32,59 +96,82 @@ function renderJob(index) {
     if (!job) return;
     
     document.getElementById('job-view').classList.remove('hidden');
+    document.getElementById('empty-state').classList.add('hidden');
     
-    // Left Col
-    document.getElementById('job-title').innerText = job.job_details.title;
-    document.getElementById('job-company').innerText = job.job_details.company;
-    document.getElementById('job-location').innerText = job.job_details.location;
-    document.getElementById('job-reqs').innerText = job.job_details.requirements;
+    // Left Col — Job Details
+    const jd = job.job_details || {};
+    document.getElementById('job-title').innerText = jd.title || 'Untitled';
+    document.getElementById('job-company').innerText = jd.company || 'Unknown';
+    document.getElementById('job-location').innerText = jd.location || 'Not specified';
+    document.getElementById('job-reqs').innerText = jd.requirements || jd.description || 'No requirements provided';
     
-    // Right Col
-    document.getElementById('cand-name').innerText = job.tailored_resume.personal_details.full_name;
-    document.getElementById('cand-email').innerText = job.tailored_resume.personal_details.email;
+    // Right Col — Tailored Resume (with null-safe guards)
+    const tr = job.tailored_resume || {};
+    const pd = tr.personal_details || {};
+    
+    document.getElementById('cand-name').innerText = pd.full_name || 'Not yet tailored';
+    document.getElementById('cand-email').innerText = pd.email || '';
     
     // Achievements with Diff Highlighting
     const expList = document.getElementById('experience-list');
     expList.innerHTML = '';
-    job.tailored_resume.experience_history.forEach(exp => {
-        const div = document.createElement('div');
-        div.className = 'achievement-item';
-        div.innerHTML = `<strong style="color: #60a5fa; font-size: 1rem;">${exp.role} @ ${exp.company}</strong><br>`;
-        
-        const bullets = exp.achievements_diff || exp.achievements.map(a => ({ text: a, is_tailored: false }));
-        bullets.forEach(item => {
-            const achText = typeof item === 'string' ? item : item.text;
-            const isTailored = typeof item === 'object' && item.is_tailored;
-            if (isTailored) {
-                div.innerHTML += `<div class="tailored-bullet"><span class="badge-tailored">✨ Tailored</span> ${achText}</div>`;
-            } else {
-                div.innerHTML += `<div class="base-bullet">• ${achText}</div>`;
-            }
+    const expHistory = tr.experience_history || [];
+    
+    if (expHistory.length === 0) {
+        expList.innerHTML = '<p style="color: #94a3b8; font-style: italic;">No tailored achievements available.</p>';
+    } else {
+        expHistory.forEach(exp => {
+            const div = document.createElement('div');
+            div.style.marginBottom = '1rem';
+            div.innerHTML = `<strong style="color: #60a5fa; font-size: 0.95rem;">${exp.role || ''} @ ${exp.company || ''}</strong><br>`;
+            
+            const bullets = exp.achievements_diff || (exp.achievements || []).map(a => ({ text: a, is_tailored: false }));
+            bullets.forEach(item => {
+                const achText = typeof item === 'string' ? item : item.text;
+                const isTailored = typeof item === 'object' && item.is_tailored;
+                if (isTailored) {
+                    div.innerHTML += `<div class="diff-bullet is-tailored"><span class="diff-tag">✨ Tailored</span> ${achText}</div>`;
+                } else {
+                    div.innerHTML += `<div class="diff-bullet">• ${achText}</div>`;
+                }
+            });
+            
+            div.innerHTML += `<div style="margin-top: 6px;">`;
+            (exp.tech_tags || []).forEach(tag => {
+                div.innerHTML += `<span class="keyword-tag" style="margin-right: 4px;">${tag}</span>`;
+            });
+            div.innerHTML += `</div>`;
+            expList.appendChild(div);
         });
-        
-        div.innerHTML += `<div style="margin-top: 6px;">`;
-        exp.tech_tags.forEach(tag => {
-            div.innerHTML += `<span class="tech-tag">${tag}</span>`;
-        });
-        div.innerHTML += `</div>`;
-        expList.appendChild(div);
-    });
+    }
     
     // Easy Apply Form
     const form = document.getElementById('easy-apply-form');
     form.innerHTML = '';
-    if (job.application_type === 'EASY_APPLY') {
+    const answers = tr.easy_apply_answers || null;
+    
+    if (answers && Object.keys(answers).length > 0) {
         document.getElementById('easy-apply-section').classList.remove('hidden');
-        const answers = job.tailored_resume.easy_apply_answers;
         for (const [key, value] of Object.entries(answers)) {
             const group = document.createElement('div');
-            group.className = 'form-group';
+            group.style.marginBottom = '0.75rem';
             
             const label = document.createElement('label');
+            label.style.display = 'block';
+            label.style.fontSize = '0.72rem';
+            label.style.color = '#94a3b8';
+            label.style.marginBottom = '0.2rem';
             label.innerText = key.replace(/_/g, ' ').toUpperCase();
             
             const input = document.createElement('input');
-            input.className = 'form-control';
+            input.style.width = '100%';
+            input.style.boxSizing = 'border-box';
+            input.style.background = 'rgba(15, 23, 42, 0.8)';
+            input.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+            input.style.color = '#f8fafc';
+            input.style.padding = '0.45rem';
+            input.style.borderRadius = '6px';
+            input.style.fontFamily = 'inherit';
             
             if (typeof value === 'object' && value !== null) {
                 input.value = JSON.stringify(value);
@@ -108,28 +195,34 @@ function renderJob(index) {
 
 function getEditedPayload() {
     const job = currentJobs[currentJobIndex];
-    if (job.application_type === 'EASY_APPLY') {
+    if (!job) return null;
+    const tr = job.tailored_resume || {};
+    if (tr.easy_apply_answers) {
         const inputs = document.querySelectorAll('#easy-apply-form input');
         inputs.forEach(input => {
             let val = input.value.trim();
             const key = input.dataset.key;
             
-            if (val === '') {
-                job.tailored_resume.easy_apply_answers[key] = null;
+            if (key === 'salary_expectations_min' || key === 'salary_expectations_max') {
+                if (val === '') {
+                    tr.easy_apply_answers[key] = null;
+                } else if (!isNaN(val)) {
+                    tr.easy_apply_answers[key] = parseInt(val, 10);
+                } else {
+                    tr.easy_apply_answers[key] = null;
+                }
             } else if (val.toLowerCase() === 'true') {
-                job.tailored_resume.easy_apply_answers[key] = true;
+                tr.easy_apply_answers[key] = true;
             } else if (val.toLowerCase() === 'false') {
-                job.tailored_resume.easy_apply_answers[key] = false;
+                tr.easy_apply_answers[key] = false;
             } else if (val.startsWith('{') || val.startsWith('[')) {
                 try {
-                    job.tailored_resume.easy_apply_answers[key] = JSON.parse(val);
+                    tr.easy_apply_answers[key] = JSON.parse(val);
                 } catch (e) {
-                    job.tailored_resume.easy_apply_answers[key] = val;
+                    tr.easy_apply_answers[key] = val;
                 }
-            } else if (!isNaN(val) && val !== '') {
-                job.tailored_resume.easy_apply_answers[key] = Number(val);
             } else {
-                job.tailored_resume.easy_apply_answers[key] = val;
+                tr.easy_apply_answers[key] = val;
             }
         });
     }
@@ -138,8 +231,12 @@ function getEditedPayload() {
 
 async function approveJob() {
     const job = getEditedPayload();
+    if (!job) return;
 
-    document.getElementById('btn-approve').innerText = 'Approving...';
+    const approveBtn = document.getElementById('btn-approve');
+    const origText = approveBtn.innerText;
+    approveBtn.innerText = 'Approving & Compiling PDF...';
+    approveBtn.disabled = true;
     
     try {
         const response = await fetch(`/api/approve/${job.job_id}`, {
@@ -149,35 +246,239 @@ async function approveJob() {
         });
         
         if (response.ok) {
-            nextJob();
+            const companyName = job.job_details?.company || 'Company';
+            approvedCount++;
+            showToast(`Approved & PDF Compiled for ${companyName}`);
+            removeCurrentJobAndAdvance();
         } else {
-            const errData = await response.json();
-            alert(`Approval failed: ${errData.detail || response.statusText}`);
-            console.error('Approval failed:', errData);
+            const errData = await response.json().catch(() => ({ detail: response.statusText }));
+            let message = errData.detail || 'Unknown error occurred.';
+            if (typeof message === 'string' && message.includes('validation error')) {
+                message = message.replace(/\n\s*For further information visit.*/g, '');
+            }
+            alert(`Approval Notice:\n\n${message}\n\nPlease check the highlighted fields.`);
         }
     } catch (error) {
         alert(`Network error during approval: ${error.message}`);
     } finally {
-        document.getElementById('btn-approve').innerText = 'Approve & Queue';
+        approveBtn.innerText = origText;
+        approveBtn.disabled = false;
     }
 }
 
 async function rejectJob() {
     const job = currentJobs[currentJobIndex];
+    if (!job) return;
     try {
-        await fetch(`/api/reject/${job.job_id}`, { method: 'POST' });
-        nextJob();
+        const response = await fetch(`/api/reject/${job.job_id}`, { method: 'POST' });
+        if (response.ok) {
+            const companyName = job.job_details?.company || 'Job';
+            showToast(`Skipped ${companyName}`, 'reject');
+            removeCurrentJobAndAdvance();
+        }
     } catch (error) {
         console.error('Rejection failed:', error);
     }
 }
 
-function nextJob() {
-    currentJobIndex++;
-    if (currentJobIndex < currentJobs.length) {
-        renderJob(currentJobIndex);
-    } else {
+function removeCurrentJobAndAdvance() {
+    if (currentJobs.length === 0) return;
+    currentJobs.splice(currentJobIndex, 1);
+    updateQueueBadges();
+    
+    if (currentJobs.length === 0) {
         document.getElementById('job-view').classList.add('hidden');
         document.getElementById('empty-state').classList.remove('hidden');
+    } else {
+        if (currentJobIndex >= currentJobs.length) {
+            currentJobIndex = 0;
+        }
+        renderJob(currentJobIndex);
+    }
+}
+
+// --- TAB 2: Ready to Apply Command Center ---
+async function fetchApprovedJobs() {
+    const listContainer = document.getElementById('approved-jobs-list');
+    const loadingEl = document.getElementById('approved-loading');
+    const emptyEl = document.getElementById('approved-empty-state');
+
+    loadingEl.classList.remove('hidden');
+    listContainer.innerHTML = '';
+    emptyEl.classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/approved-jobs');
+        const data = await response.json();
+        approvedJobs = data.jobs || [];
+        approvedCount = data.total_approved || approvedJobs.length;
+
+        // Update budget banner
+        const budget = data.budget || {};
+        document.getElementById('budget-used').innerText = budget.current_count || budget.used_today || 0;
+        document.getElementById('budget-max').innerText = budget.daily_limit || 15;
+
+        updateQueueBadges();
+        loadingEl.classList.add('hidden');
+
+        if (approvedJobs.length === 0) {
+            emptyEl.classList.remove('hidden');
+        } else {
+            renderApprovedGrid(approvedJobs);
+        }
+    } catch (error) {
+        console.error('Error fetching approved jobs:', error);
+        loadingEl.classList.add('hidden');
+    }
+}
+
+function renderApprovedGrid(jobs) {
+    const listContainer = document.getElementById('approved-jobs-list');
+    const emptyEl = document.getElementById('approved-empty-state');
+    listContainer.innerHTML = '';
+
+    if (!jobs || jobs.length === 0) {
+        emptyEl.classList.remove('hidden');
+        return;
+    }
+    emptyEl.classList.add('hidden');
+
+    jobs.forEach(job => {
+        const card = document.createElement('div');
+        card.className = 'approved-card';
+        card.id = `approved-card-${job.job_id}`;
+
+        const source = (job.source || 'ATS').toLowerCase();
+        let pillClass = 'source-pill ';
+        if (source.includes('greenhouse')) pillClass += 'greenhouse';
+        else if (source.includes('lever')) pillClass += 'lever';
+        else if (source.includes('ashby')) pillClass += 'ashby';
+        else pillClass += 'linkedin';
+
+        const keywordsHtml = (job.matched_keywords || []).slice(0, 4)
+            .map(k => `<span class="keyword-tag">${k}</span>`).join('');
+
+        card.innerHTML = `
+            <div>
+                <div class="card-top">
+                    <div class="company-title">
+                        <h3>${job.company}</h3>
+                        <p>${job.title}</p>
+                    </div>
+                    <span class="${pillClass}">${job.source.toUpperCase()}</span>
+                </div>
+                <div class="card-meta">
+                    <span>📍 ${job.location || 'Remote'}</span>
+                    <span>📑 ATS PDF Ready</span>
+                </div>
+                <div class="tags-row">
+                    ${keywordsHtml}
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="footer-left">
+                    <a href="/api/pdf/${job.job_id}" target="_blank" class="btn-pdf">
+                        📄 View PDF
+                    </a>
+                    <button class="btn-copilot" onclick="autofillApprovedJob('${job.job_id}', this)">
+                        🚀 Launch Copilot
+                    </button>
+                </div>
+                <button class="btn-discard" title="Discard from approved" onclick="discardApprovedJob('${job.job_id}', this)">
+                    ✕
+                </button>
+            </div>
+        `;
+        listContainer.appendChild(card);
+    });
+}
+
+function filterApprovedJobs() {
+    const query = document.getElementById('approved-search').value.toLowerCase().trim();
+    if (!query) {
+        renderApprovedGrid(approvedJobs);
+        return;
+    }
+    const filtered = approvedJobs.filter(job => {
+        const companyMatch = (job.company || '').toLowerCase().includes(query);
+        const titleMatch = (job.title || '').toLowerCase().includes(query);
+        const kwMatch = (job.matched_keywords || []).some(k => k.toLowerCase().includes(query));
+        const sourceMatch = (job.source || '').toLowerCase().includes(query);
+        return companyMatch || titleMatch || kwMatch || sourceMatch;
+    });
+    renderApprovedGrid(filtered);
+}
+
+async function autofillApprovedJob(jobId, btnElement) {
+    const origText = btnElement.innerText;
+    btnElement.innerText = '⏳ Launching...';
+    btnElement.disabled = true;
+
+    try {
+        const response = await fetch(`/api/autofill/${jobId}`, { method: 'POST' });
+        const res = await response.json();
+        
+        if (response.ok) {
+            showToast(`Stealth Browser launched! Form pre-filled & paused for your review.`);
+            // Update budget
+            const usedEl = document.getElementById('budget-used');
+            if (usedEl) {
+                const currentUsed = parseInt(usedEl.innerText, 10) || 0;
+                usedEl.innerText = currentUsed + 1;
+            }
+        } else {
+            alert(`Autofill Notice:\n\n${res.detail || response.statusText}`);
+        }
+    } catch (e) {
+        console.error('Autofill error:', e);
+        alert('Autofill network error: ' + e.message);
+    } finally {
+        btnElement.innerText = origText;
+        btnElement.disabled = false;
+    }
+}
+
+async function discardApprovedJob(jobId, btnElement) {
+    if (!confirm('Remove this application from your approved queue?')) return;
+
+    try {
+        const response = await fetch(`/api/approved/${jobId}`, { method: 'DELETE' });
+        if (response.ok) {
+            approvedJobs = approvedJobs.filter(j => j.job_id !== jobId);
+            approvedCount = approvedJobs.length;
+            updateQueueBadges();
+            
+            const card = document.getElementById(`approved-card-${jobId}`);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => card.remove(), 250);
+            }
+            showToast('Job removed from approved queue', 'reject');
+        } else {
+            alert('Failed to remove job.');
+        }
+    } catch (e) {
+        console.error('Error discarding job:', e);
+    }
+}
+
+async function batchApplyNext() {
+    if (approvedJobs.length === 0) {
+        alert('No approved jobs available to apply.');
+        return;
+    }
+
+    const nextJob = approvedJobs[0];
+    const card = document.getElementById(`approved-card-${nextJob.job_id}`);
+    const btn = card ? card.querySelector('.btn-copilot') : null;
+
+    if (confirm(`Launch assisted copilot for next job: ${nextJob.title} @ ${nextJob.company}?`)) {
+        if (btn) {
+            autofillApprovedJob(nextJob.job_id, btn);
+        } else {
+            const fakeBtn = document.createElement('button');
+            autofillApprovedJob(nextJob.job_id, fakeBtn);
+        }
     }
 }

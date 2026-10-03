@@ -1,3 +1,0 @@
-next task: establish dream orgs:
-step 1: dream jobs filter: do research for the best organisations to work for for a sdet with 5+ years of experience: make a list of the organizations, for each organization, deploy a research/web search task, which should include history along with recent trends - deep research - note that this should be an org with office in bangalore or remote jobs that recruit indians - once done, plan solutioning:
-solutioning requirements: dream jobs will be another param for cli python main.py search --dream that will search all the orgs that we define as dream jobs taken from

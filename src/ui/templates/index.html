@@ -3,75 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Applier | Approval Gate</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/styles.css">
+    <title>AI Applier | Command Center & Approval Gate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css?v=2.2">
 </head>
 <body>
     <div class="app-container">
+        <!-- Header with Navigation Tabs & Safety Governor -->
         <header class="glass-header">
-            <h1><span class="gradient-text">AI Applier</span> Approval Gate</h1>
-            <div class="queue-status">Pending: <span id="queue-count">0</span></div>
+            <div class="header-left">
+                <h1><span class="gradient-text">AI Applier</span> Copilot</h1>
+                <nav class="tab-nav">
+                    <button id="tab-pending" class="tab-btn active" onclick="switchTab('pending')">
+                        📋 Staging Review <span id="queue-count" class="badge">0</span>
+                    </button>
+                    <button id="tab-approved" class="tab-btn" onclick="switchTab('approved')">
+                        🚀 Ready to Apply <span id="approved-count" class="badge badge-success">0</span>
+                    </button>
+                </nav>
+            </div>
+            <div id="budget-banner" class="budget-badge" title="Daily Safety Rate Governor (Prevents Bot Flagging)">
+                🛡️ Daily Safety Cap: <span id="budget-used">0</span> / <span id="budget-max">15</span>
+            </div>
         </header>
 
+        <div id="toast-container" class="toast-container"></div>
+
         <main id="main-content" class="glass-panel">
-            <div id="loading" class="spinner-container">
-                <div class="spinner"></div>
-                <p>Loading pending applications...</p>
-            </div>
-            
-            <div id="job-view" class="hidden">
-                <div class="job-split">
-                    <!-- Left Column: Job Details -->
-                    <div class="job-details-col">
-                        <div class="section-badge">Job Description</div>
-                        <h2 id="job-title" class="title">Title</h2>
-                        <h3 id="job-company" class="company">Company</h3>
-                        <p id="job-location" class="location">Location</p>
-                        <div class="requirements-box">
-                            <h4>Requirements</h4>
-                            <p id="job-reqs">Requirements text...</p>
+            <!-- TAB 1: PENDING REVIEW VIEW -->
+            <section id="pending-section">
+                <div id="loading" class="spinner-container">
+                    <div class="spinner"></div>
+                    <p>Loading pending applications...</p>
+                </div>
+                
+                <div id="job-view" class="hidden">
+                    <div class="job-split">
+                        <!-- Left Column: Job Details -->
+                        <div class="job-details-col">
+                            <div class="section-badge">Job Description</div>
+                            <h2 id="job-title" class="title">Title</h2>
+                            <h3 id="job-company" class="company">Company</h3>
+                            <p id="job-location" class="location">Location</p>
+                            <div class="requirements-box">
+                                <h4>Requirements</h4>
+                                <p id="job-reqs">Requirements text...</p>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Tailored Resume & Editable Answers -->
+                        <div class="resume-col">
+                            <div class="section-badge highlight">Tailored Application</div>
+                            
+                            <div class="card-section">
+                                <h4>Personal Details</h4>
+                                <p id="cand-name"></p>
+                                <p id="cand-email" class="muted"></p>
+                            </div>
+
+                            <div class="card-section">
+                                <h4>Tailored Achievements</h4>
+                                <div id="experience-list"></div>
+                            </div>
+
+                            <div id="easy-apply-section" class="card-section">
+                                <h4>Easy Apply Questions</h4>
+                                <form id="easy-apply-form">
+                                    <!-- Inputs dynamically generated -->
+                                </form>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Right Column: Tailored Resume & Editable Answers -->
-                    <div class="resume-col">
-                        <div class="section-badge highlight">Tailored Application</div>
-                        
-                        <div class="card-section">
-                            <h4>Personal Details</h4>
-                            <p id="cand-name"></p>
-                            <p id="cand-email" class="muted"></p>
-                        </div>
-
-                        <div class="card-section">
-                            <h4>Tailored Achievements</h4>
-                            <div id="experience-list"></div>
-                        </div>
-
-                        <div id="easy-apply-section" class="card-section">
-                            <h4>Easy Apply Questions</h4>
-                            <form id="easy-apply-form">
-                                <!-- Inputs dynamically generated -->
-                            </form>
-                        </div>
+                    <div class="action-bar">
+                        <button id="btn-reject" class="btn btn-secondary">Reject & Skip</button>
+                        <button id="btn-approve" class="btn btn-primary">Approve & Move to Ready to Apply</button>
                     </div>
                 </div>
 
-                <div class="action-bar">
-                    <button id="btn-reject" class="btn btn-secondary">Reject & Skip</button>
-                    <button id="btn-approve" class="btn btn-primary">Approve & Queue for Playwright</button>
+                <div id="empty-state" class="hidden empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    <h3>All Pending Jobs Reviewed!</h3>
+                    <p>Your staging queue is clear. All approved jobs are tailored, PDF-compiled, and ready to submit.</p>
+                    <button class="btn btn-primary" onclick="switchTab('approved')" style="margin-top: 1.25rem;">
+                        👉 View Ready to Apply Queue (<span id="empty-approved-count">0</span> Jobs)
+                    </button>
                 </div>
-            </div>
+            </section>
 
-            <div id="empty-state" class="hidden empty-state">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                <h3>You're all caught up!</h3>
-                <p>No pending jobs in the queue.</p>
-            </div>
+            <!-- TAB 2: READY TO APPLY COMMAND CENTER -->
+            <section id="approved-section" class="hidden">
+                <div class="approved-toolbar">
+                    <div class="search-box">
+                        <input type="text" id="approved-search" placeholder="🔍 Search company, job title, or skill..." oninput="filterApprovedJobs()">
+                    </div>
+                    <div class="toolbar-actions">
+                        <button id="btn-batch-apply" class="btn btn-accent" onclick="batchApplyNext()">
+                            ⚡ Supervised Batch Apply (Next 5)
+                        </button>
+                    </div>
+                </div>
+
+                <div id="approved-loading" class="spinner-container hidden">
+                    <div class="spinner"></div>
+                    <p>Loading approved applications & PDFs...</p>
+                </div>
+
+                <div id="approved-jobs-list" class="approved-grid">
+                    <!-- Approved job cards rendered dynamically -->
+                </div>
+
+                <div id="approved-empty-state" class="hidden empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <h3>No Approved Jobs Yet</h3>
+                    <p>Review jobs in the Staging tab and click "Approve" to compile their custom ATS PDFs and stage them here.</p>
+                    <button class="btn btn-secondary" onclick="switchTab('pending')" style="margin-top: 1.25rem;">
+                        ⬅️ Go to Staging Review
+                    </button>
+                </div>
+            </section>
         </main>
     </div>
     
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=2.2"></script>
 </body>
 </html>

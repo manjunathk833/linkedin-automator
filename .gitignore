@@ -10,13 +10,40 @@ __pycache__/
 .browser_data/
 .browser_data_test/
 
+# Candidate Personal Information, Profile & Private Notes
+singlepageresume.json
+data/resume_profile.json
+data/master_knowledge_bank.json
+data/candidate_notes.md
+data/profile/
+scripts/regenerate_profile_and_knowledge.py
+TODOS.md
+debugging.md
+
+# Databases, SQLite & Application Execution History
+*.db
+*.sqlite
+*.sqlite3
+data/app_database.db
+data/application_history.json
+data/processed_jobs.json
+data/optimization_runs.json
+
 # Data Queues & Generated Resumes (Local Runtime Artifacts)
 data/pending_queue/
 data/approved_queue/
 data/applied_queue/
+data/resumes/
 *.pdf
+
+# Verification Test Artifacts & Screenshots
 verify/*.png
 verify/*.pdf
+verify/resume_test_output.pdf
+verify/session_check.png
+verify/cdp_session_check.png
+verify/mock_*.html
+verify/mock_*.pdf
 
 # System & OS Files
 .DS_Store
@@ -39,7 +66,12 @@ Thumbs.db
 *.swp
 *.swo
 
-# Verification Scratch / Logs
+# Verification Scratch / Logs / Temp Media
 *.log
 .system_generated/
+.tempmediaStorage/
+.user_uploaded/
 scratch/
+temp/
+tmp/
+*.tmp

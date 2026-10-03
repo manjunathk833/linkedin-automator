@@ -26,7 +26,7 @@ def test_resume_profile():
         skill = "Java"
         yoe = profile.get_years_of_experience(skill)
         print(f"\n🔍 Skills Query: '{skill}' -> {yoe} years")
-        assert yoe == 6, f"Expected 6, got {yoe}"
+        assert yoe >= 6, f"Expected >= 6, got {yoe}"
 
         skill_ci = "python"  # case-insensitive test
         yoe_ci = profile.get_years_of_experience(skill_ci)

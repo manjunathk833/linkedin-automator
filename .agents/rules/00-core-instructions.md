@@ -11,3 +11,4 @@ trigger: always_on
 3. **Architecture Approach:** Use standard Playwright persistent browser contexts (Headful mode) for user-driven automation and real-time visual feedback.
 4. **Plan Adherence:** ALWAYS read `@/memory-bank/activeContext.md` before starting work.
 5. **Zero Cost:** Never implement solutions requiring paid third-party APIs.
+6. **Continuous Documentation Synchronization:** ALWAYS update `docs/`, `SYSTEM_ARCHITECTURE.md`, and `memory-bank/` to reflect any new architectural features, verification scripts, or behavior fixes before completing any task.
