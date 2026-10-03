@@ -234,7 +234,7 @@ async function fetchApprovedJobs() {
         // Update budget banner
         const budget = data.budget || {};
         document.getElementById('budget-used').innerText = budget.current_count || budget.used_today || 0;
-        document.getElementById('budget-max').innerText = budget.daily_limit || 15;
+        document.getElementById('budget-max').innerText = budget.daily_limit || 200;
 
         updateQueueBadges();
         loadingEl.classList.add('hidden');

@@ -78,7 +78,7 @@ graph TD
         W --> X["Live Application Modal (Pre-fills & Halts)"]
         X -->|Manual One-Click Submit| Y["Candidate Final Submission"]
         Y --> Z["SQLite Audit Database<br/>(data/app_database.db)"]
-        Z --> GOV["Rate Governor<br/>(≤15 Apps/Day Budget Guard)"]
+        Z --> GOV["Rate Governor<br/>(≤200 Apps/Day Budget Guard)"]
     end
 ```
 
@@ -211,7 +211,7 @@ graph TD
 * **Files:** [`src/storage/database.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/storage/database.py), [`src/autofill/governor.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/governor.py)
 * **Architecture:** Relational persistence and safety policy governor:
   * **SQLite Audit Trail:** `data/app_database.db` persists `job_applications` (source, URL, resume path, tailored JSON, timestamps) and `daily_submission_limits`.
-  * **Rolling Daily Budget Governor:** Enforces a hard quota of $\le 15$ applications per 24 hours to prevent platform rate limits and preserve account trust.
+  * **Rolling Daily Budget Governor:** Enforces a configurable daily quota (default $\le 200$ applications per 24 hours, customized via `config.yaml`) to guard against runaway loops while supporting high-volume job applications.
 
 ---
 
@@ -287,6 +287,8 @@ All features are covered by dedicated, standalone verification scripts in `verif
 | `verify/38_test_static_cache_headers.py` | Cache-Busting & Headers | Tests no-cache headers and static asset version query parameters |
 | `verify/39_test_ats_filler_resilience.py` | ATS URL & Trigger Resilience | Tests canonical ATS URL resolution and 'Apply' button trigger detection |
 | `verify/40_test_new_tab_ats_handling.py` | Multi-Tab & Popup Autofill | Tests target="_blank" and window.open() new-tab switching, focus, and form filling |
+| `verify/41_test_standardized_vendor_autofill.py` | Vendor Schemas & Filler Engine | Verifies standardized candidate profile mapping across Greenhouse, Lever, Ashby, Workday, LinkedIn |
+| `verify/42_test_safety_governor_cap_200.py` | Safety Governor Cap Scaled to 200 | Verifies dynamic config loading, default 200/day quota, and boundary cutoff behavior |
 
 * **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 104 project files).
 

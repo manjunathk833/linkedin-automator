@@ -5,12 +5,17 @@
 - **Grounded STAR Tailoring & Anti-Fabrication Gate (`src/llm/validator.py`, `src/compiler/`)**: 100% false-skill purging against authentic whitelist, and single-column ATS PDF compilation with Typst CLI.
 - **Humanized Anti-Detection Kinematics & CDP Stealth (`src/browser/`)**: Cubic Bézier cursor trajectories, log-normal keystroke jitter, and `navigator.webdriver` evasion.
 - **Multi-Tab & Popup ATS Assisted Copilot (`src/autofill/ats_filler.py`)**: Intercepts `<a target="_blank">` and `window.open()` popups, brings application tab to front, fills contact fields, attaches PDF, and halts before submit.
-- **SQLite Audit Trail & Safety Rate Governor (`src/storage/database.py`, `src/autofill/governor.py`)**: Enforces $\le 15$ applications per 24 hours cap and logs full application payloads in `data/app_database.db`.
+- **SQLite Audit Trail & Safety Rate Governor (`src/storage/database.py`, `src/autofill/governor.py`)**: Enforces configurable application quota (default $\le 200$/day, customizable in `config.yaml`) and logs full application payloads in `data/app_database.db`.
 
 # Tech Debt Log
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (104 files clean).
 
 # Verification History
+- **Phase 42: Safety Rate Governor Cap Scaled to 200/day**:
+  - Scaled `DEFAULT_DAILY_LIMIT` to 200 to empower high-volume human-in-the-loop applications without artificial bottlenecks.
+  - Added dynamic `safety_governor.daily_limit` configuration in `config.yaml` with graceful fallback.
+  - Updated UI dashboard budget badges in `src/ui/templates/index.html` and `src/ui/static/app.js`.
+  - Verified in `verify/42_test_safety_governor_cap_200.py`.
 - **Phase 41: Standardized Vendor Autofill Schemas & Centralized Master Profile**:
   - Implemented `CandidateMasterData` in `data/profile/candidate_master_data.json` and `src/autofill/vendor_schemas.py`.
   - Added modular vendor handlers `_fill_greenhouse`, `_fill_lever`, `_fill_ashby`, `_fill_workday`, and `_fill_linkedin_easy_apply` in `src/autofill/ats_filler.py`.

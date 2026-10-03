@@ -257,7 +257,7 @@ async def autofill_job(job_id: str):
     from src.autofill.linkedin_filler import LinkedInAssistedFiller
     from src.storage.database import ApplicationDatabase
 
-    # Enforce daily budget governor (≤15 applications/day)
+    # Enforce daily budget governor (≤200 applications/day)
     governor = ApplicationGovernor()
     budget = governor.check_budget()
     if not budget["allowed"]:

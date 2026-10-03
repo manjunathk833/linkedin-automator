@@ -137,8 +137,8 @@ The entire system is modular and transparent. If you want to change how it behav
   ```
 
 ### 5. "I want to change the daily application limit (budget cap)"
-* **File to edit:** [`src/autofill/governor.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/governor.py)
-* Change `DEFAULT_DAILY_LIMIT = 15` to your preferred number (e.g. `10` or `20`).
+* **Option A (Recommended):** In [`config.yaml`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/config.yaml), update `safety_governor.daily_limit` (e.g. `200` or any custom value).
+* **Option B:** In [`src/autofill/governor.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/governor.py), change `DEFAULT_DAILY_LIMIT = 200`.
 
 ### 6. "I want to update my personal contact info, phone, or LinkedIn URL"
 * **File to edit:** [`data/resume_profile.json`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/data/resume_profile.json)
