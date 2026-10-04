@@ -11,6 +11,12 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 53: Tailored vs. Standard Resume Inspection & Selection Gate**:
+  - Implemented `/api/pdf/standard` with disk-backed mtime caching returning the candidate's canonical base resume PDF from `data/resume_profile.json`.
+  - Implemented `/api/pdf/preview/{job_id}?version=tailored` generating on-the-fly preview PDFs for pending queue jobs.
+  - Upgraded `/api/approve/{job_id}` accepting `resume_choice: "tailored" | "standard"` and saving the selected resume version into the approved payload and compiled PDF.
+  - Upgraded Staging Review UI with version toggle pills (`✨ Tailored Version` vs `📄 Standard Base Version`), instant textual diff switching, dynamic approval button label, and a glassmorphic PDF Comparison Modal with tabbed preview.
+  - Verified 100% in `verify/53_test_resume_comparison_and_selection.py`.
 - **Phase 51 & 52: Company Boundary Isolation, Contamination Defense & Zero-Contamination Audit**:
   - Implemented company-exclusive marker detection in `FabricationDetector` (`COMPANY_EXCLUSIVE_MARKERS`), forbidding tools/keywords from Tata Elxsi (Appium, OTT, Burp Suite, Charles Proxy, TestRail) or Dunzo (Ekam, Merchant Service) from ever appearing under Value Labs, and vice versa.
   - Introduced `COMPANY_SCOPED_STAR_PROMPT` and `generate_company_tailored_bullets()` in `src/tailor/llm_provider.py` ensuring the LLM is only supplied achievements from that specific employer.

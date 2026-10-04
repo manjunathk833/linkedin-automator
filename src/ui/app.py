@@ -25,14 +25,40 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "data"))
 PENDING_DIR = os.path.join(DATA_DIR, "pending_queue")
 APPROVED_DIR = os.path.join(DATA_DIR, "approved_queue")
+RESUMES_DIR = os.path.join(DATA_DIR, "resumes")
 MASTER_PROFILE_PATH = os.path.join(DATA_DIR, "resume_profile.json")
 CANDIDATE_DATA_PATH = os.path.join(DATA_DIR, "profile", "candidate_master_data.json")
+STANDARD_PDF_PATH = os.path.join(RESUMES_DIR, "Manjunath_HK_Standard_Resume.pdf")
 
 os.makedirs(PENDING_DIR, exist_ok=True)
 os.makedirs(APPROVED_DIR, exist_ok=True)
+os.makedirs(RESUMES_DIR, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+
+async def get_or_create_standard_pdf() -> str:
+    """Compiles and caches the candidate's canonical base resume PDF."""
+    from src.pdf_engine.generator import PDFGenerator
+    from src.resume_store.models import ResumeProfile
+
+    need_generate = False
+    if (
+        not os.path.exists(STANDARD_PDF_PATH)
+        or os.path.exists(MASTER_PROFILE_PATH)
+        and (os.path.getmtime(MASTER_PROFILE_PATH) > os.path.getmtime(STANDARD_PDF_PATH))
+    ):
+        need_generate = True
+
+    if need_generate:
+        with open(MASTER_PROFILE_PATH, "r", encoding="utf-8") as f:
+            std_data = json.load(f)
+        profile = ResumeProfile(**std_data)
+        generator = PDFGenerator()
+        await generator.generate_pdf_async(profile, STANDARD_PDF_PATH)
+
+    return STANDARD_PDF_PATH
 
 
 def get_candidate_name_slug(payload: dict | None = None) -> str:
@@ -415,6 +441,9 @@ async def get_pending_jobs():
                     diff_payload["salary_estimate"] = extract_salary_estimate(jd)
                     diff_payload["direct_link"] = raw_payload.get("url") or raw_payload.get("job_url") or ""
                     diff_payload["source_platform"] = raw_payload.get("source", "ATS").upper()
+                    diff_payload["standard_resume"] = master_profile
+                    diff_payload["standard_pdf_url"] = "/api/pdf/standard"
+                    diff_payload["preview_pdf_url"] = f"/api/pdf/preview/{raw_payload.get('job_id')}"
 
                     jobs.append(diff_payload)
                 except Exception as e:
@@ -497,23 +526,33 @@ async def approve_job(job_id: str, payload: dict):
 
     approved_path = os.path.join(APPROVED_DIR, f"{job_id}.json")
     try:
-        if "tailored_resume" in payload:
-            print(f"Generating PDF for job {job_id}...")
+        resume_choice = payload.get("resume_choice", "tailored").lower()
+        if resume_choice not in ["tailored", "standard"]:
+            resume_choice = "tailored"
 
-            if "easy_apply_answers" in payload["tailored_resume"]:
-                payload["tailored_resume"]["easy_apply_answers"] = coerce_easy_apply_answers(
-                    payload["tailored_resume"]["easy_apply_answers"]
-                )
+        print(f"Approving job {job_id} using '{resume_choice}' resume...")
 
-            profile = ResumeProfile(**payload["tailored_resume"])
-            generator = PDFGenerator()
-            pdf_filename = generate_professional_resume_filename(job_id, payload)
-            pdf_path = os.path.join(APPROVED_DIR, pdf_filename)
+        generator = PDFGenerator()
+        pdf_filename = generate_professional_resume_filename(job_id, payload)
+        pdf_path = os.path.join(APPROVED_DIR, pdf_filename)
 
-            await generator.generate_pdf_async(profile, pdf_path)
+        if resume_choice == "standard":
+            with open(MASTER_PROFILE_PATH, "r", encoding="utf-8") as f:
+                std_data = json.load(f)
+            profile = ResumeProfile(**std_data)
+            payload["chosen_resume_version"] = "standard"
+            payload["approved_resume"] = std_data
+        else:
+            tailored_resume = payload.get("tailored_resume", {})
+            if "easy_apply_answers" in tailored_resume:
+                tailored_resume["easy_apply_answers"] = coerce_easy_apply_answers(tailored_resume["easy_apply_answers"])
+            profile = ResumeProfile(**tailored_resume)
+            payload["chosen_resume_version"] = "tailored"
+            payload["approved_resume"] = tailored_resume
 
-            payload["generated_pdf_path"] = pdf_path
-            print(f"PDF generated at {pdf_path}")
+        await generator.generate_pdf_async(profile, pdf_path)
+        payload["generated_pdf_path"] = pdf_path
+        print(f"PDF generated at {pdf_path} (version: {payload['chosen_resume_version']})")
 
         with open(approved_path, "w") as f:
             json.dump(payload, f, indent=2)
@@ -525,9 +564,10 @@ async def approve_job(job_id: str, payload: dict):
 
         return {
             "status": "success",
-            "message": f"Job {job_id} approved and saved.",
+            "message": f"Job {job_id} approved with {payload['chosen_resume_version']} resume.",
             "path": approved_path,
             "pdf_path": payload.get("generated_pdf_path"),
+            "chosen_resume_version": payload.get("chosen_resume_version", "tailored"),
         }
     except Exception as e:
         import traceback
@@ -666,6 +706,62 @@ async def get_approved_jobs():
         "total_approved": len(approved_jobs),
         "budget": budget,
     }
+
+
+@app.get("/api/pdf/standard")
+async def get_standard_pdf():
+    """Serves the compiled Standard Base Resume PDF from candidate canonical profile."""
+    pdf_path = await get_or_create_standard_pdf()
+    if not os.path.exists(pdf_path):
+        raise HTTPException(status_code=404, detail="Standard resume PDF could not be generated")
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        filename="Manjunath_HK_Standard_Resume.pdf",
+    )
+
+
+@app.get("/api/pdf/preview/{job_id}")
+async def get_preview_pdf(job_id: str, version: str = "tailored"):
+    """Generates and serves a live preview PDF (tailored or standard) for a job."""
+    if version.lower() == "standard":
+        return await get_standard_pdf()
+
+    # Look for job payload in pending_queue first, then approved_queue
+    pending_file = os.path.join(PENDING_DIR, f"{job_id}.json")
+    approved_file = os.path.join(APPROVED_DIR, f"{job_id}.json")
+    target_file = pending_file if os.path.exists(pending_file) else approved_file
+
+    if not os.path.exists(target_file):
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found for preview")
+
+    with open(target_file, "r", encoding="utf-8") as f:
+        job_data = json.load(f)
+
+    tailored_resume = job_data.get("tailored_resume")
+    if not tailored_resume:
+        raise HTTPException(status_code=400, detail="Tailored resume not found in job payload")
+
+    from src.pdf_engine.generator import PDFGenerator
+    from src.resume_store.models import ResumeProfile
+
+    preview_path = os.path.join(RESUMES_DIR, f"preview_{job_id}_tailored.pdf")
+
+    # Re-generate if not cached or if job file was updated
+    need_gen = not os.path.exists(preview_path) or (os.path.getmtime(target_file) > os.path.getmtime(preview_path))
+    if need_gen:
+        t_copy = dict(tailored_resume)
+        if "easy_apply_answers" in t_copy:
+            t_copy["easy_apply_answers"] = coerce_easy_apply_answers(t_copy["easy_apply_answers"])
+        profile = ResumeProfile(**t_copy)
+        generator = PDFGenerator()
+        await generator.generate_pdf_async(profile, preview_path)
+
+    return FileResponse(
+        path=preview_path,
+        media_type="application/pdf",
+        filename=f"Manjunath_HK_Preview_{job_id}_Tailored_Resume.pdf",
+    )
 
 
 @app.get("/api/pdf/{job_id}")

@@ -82,9 +82,21 @@
                             </div>
                         </div>
 
-                        <!-- Right Column: Tailored Resume & Editable Answers -->
+                        <!-- Right Column: Tailored vs Standard Resume & Interactive PDF Preview -->
                         <div class="resume-col">
-                            <div class="section-badge highlight">Tailored Application</div>
+                            <div class="resume-toolbar-header">
+                                <div class="resume-version-pills">
+                                    <button id="toggle-tailored" class="version-pill active" onclick="switchResumeVersion('tailored')">
+                                        ✨ Tailored Version
+                                    </button>
+                                    <button id="toggle-standard" class="version-pill" onclick="switchResumeVersion('standard')">
+                                        📄 Standard Base Version
+                                    </button>
+                                </div>
+                                <button id="btn-preview-pdf" class="btn btn-outline-sm" onclick="openPdfModal()">
+                                    👁️ Preview & Compare PDFs
+                                </button>
+                            </div>
                             
                             <div class="card-section">
                                 <h4>Personal Details</h4>
@@ -93,7 +105,10 @@
                             </div>
 
                             <div class="card-section">
-                                <h4>Tailored Achievements</h4>
+                                <div class="section-title-row">
+                                    <h4 id="achievements-section-title">✨ Tailored Achievements</h4>
+                                    <span id="resume-version-tag" class="version-tag">Tailored</span>
+                                </div>
                                 <div id="experience-list"></div>
                             </div>
 
@@ -102,7 +117,7 @@
 
                     <div class="action-bar">
                         <button id="btn-reject" class="btn btn-secondary">Reject & Skip</button>
-                        <button id="btn-approve" class="btn btn-primary">Approve & Move to Ready to Apply</button>
+                        <button id="btn-approve" class="btn btn-primary">Approve with Tailored Resume</button>
                     </div>
                 </div>
 
@@ -148,8 +163,47 @@
                 </div>
             </section>
         </main>
+
+        <!-- Resume PDF Comparison & Inspection Modal -->
+        <div id="pdf-modal" class="modal-overlay hidden" onclick="handleModalOverlayClick(event)">
+            <div class="modal-content glass-panel" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <div class="modal-title-box">
+                        <div class="modal-badge">RESUME INSPECTION GATE</div>
+                        <h3 id="modal-heading">Resume PDF Preview</h3>
+                    </div>
+                    <div class="modal-tabs">
+                        <button id="modal-tab-tailored" class="modal-tab active" onclick="switchModalPdfTab('tailored')">
+                            ✨ Tailored PDF
+                        </button>
+                        <button id="modal-tab-standard" class="modal-tab" onclick="switchModalPdfTab('standard')">
+                            📄 Standard Base PDF
+                        </button>
+                    </div>
+                    <button class="modal-close" onclick="closePdfModal()" title="Close Preview">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div id="pdf-spinner" class="spinner-container hidden">
+                        <div class="spinner"></div>
+                        <p>Loading PDF preview...</p>
+                    </div>
+                    <iframe id="pdf-frame" src="about:blank" class="pdf-iframe"></iframe>
+                </div>
+                <div class="modal-footer">
+                    <div class="modal-status">
+                        Current Selection for Approval: <strong id="modal-selection-label">✨ Tailored Resume</strong>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="btn-modal-choose-version" class="btn btn-accent-sm" onclick="confirmVersionAndClose()">
+                            ✓ Select This Version
+                        </button>
+                        <button class="btn btn-secondary-sm" onclick="closePdfModal()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
-    <script src="/static/app.js?v=2.3"></script>
+    <script src="/static/app.js?v=2.4"></script>
 </body>
 </html>

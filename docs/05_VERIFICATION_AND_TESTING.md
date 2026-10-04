@@ -55,6 +55,7 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/50_test_gemini_38_flash_pacer.py` | Rate-Paced LLM Tailoring | Tests Gemini Flash Lite rate pacer (4.0s), 60s quota circuit-breaker, and request logging | **PASSED** |
 | `verify/51_test_company_boundary_isolation.py` | Company Boundary Isolation | Tests deterministic cross-company contamination blocking and company-scoped tailoring | **PASSED** |
 | `verify/52_audit_queue_zero_contamination.py` | Queue Zero Contamination Audit | Audits all staged jobs in pending_queue asserting 100% zero cross-company contamination | **PASSED** |
+| `verify/53_test_resume_comparison_and_selection.py` | Resume Comparison & Selection Gate | Validates standard vs tailored PDF preview endpoints, inspection modal, and approval routing | **PASSED** |
 
 ---
 

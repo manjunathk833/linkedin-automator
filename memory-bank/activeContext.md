@@ -78,5 +78,17 @@
     - Successfully scraped and tailored 25 fresh jobs in `data/pending_queue/` with 100% AI Grounded STAR tailoring.
     - Executed Verification Gate 52 (`verify/52_audit_queue_zero_contamination.py`): Audited all 25 staged jobs (225 experience bullets) with **0 contamination violations (100% SUCCESS)**.
     - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 116 files).
+  - Tailored vs. Standard Resume PDF Inspection & Selection Architecture (Gate 53):
+    - Added cached `/api/pdf/standard` serving the candidate's canonical base resume PDF from `data/resume_profile.json`.
+    - Added `/api/pdf/preview/{job_id}?version=tailored` generating on-the-fly preview PDFs for pending jobs.
+    - Upgraded `/api/approve/{job_id}` to support `resume_choice: "tailored" | "standard"`, compiling and attaching the user's chosen resume version.
+    - Upgraded Command Center UI (`src/ui/templates/index.html` & `src/ui/static/app.js`):
+      - Interactive segmented version switcher (`✨ Tailored Version` vs `📄 Standard Base Version`).
+      - Real-time text preview switching in Staging Review.
+      - Glassmorphic PDF Preview & Comparison modal with tabbed side-by-side inspection (`✨ Tailored PDF` vs `📄 Standard Base PDF`).
+      - Smart action buttons updating dynamically based on choice.
+    - Verification Gate 53 (`verify/53_test_resume_comparison_and_selection.py`) passing 100%.
+    - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 117 files).
+
 
 
