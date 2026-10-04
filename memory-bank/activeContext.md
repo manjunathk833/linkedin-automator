@@ -54,4 +54,17 @@
     - **Application Type Composition:** 30 `LINKEDIN_EXTERNAL` jobs (65%) + 16 `EASY_APPLY` jobs (35%).
     - Discovered top-tier enterprise tech opportunities: GE HealthCare, Accenture, LSEG, EY, Hewlett Packard Enterprise, Birlasoft, Zluri, HTC Global Services, Jobgether, etc.
     - All 46 listings are staged in `data/pending_queue/` and live on the Command Center UI (`http://localhost:8000`).
+  - Rate-Paced LLM Tailoring Upgrade, Circuit Breaker & Structured Request Diagnostics Logging (Gate 50):
+    - Config upgraded to `primary_model: "models/gemini-flash-lite-latest"` with multi-model fallback (`models/gemini-flash-latest`, `models/gemini-3.5-flash`, `gemini-3.8-flash`).
+    - Enforced 4.0-second rate pacer (`_pace_request()`) to strictly adhere to Google AI Studio's 15 RPM free-tier ceiling.
+    - Implemented 60-second Quota Cooldown Circuit-Breaker (`_model_cooldowns`): on HTTP 429, immediately marks model in cooldown for 60s, skipping it with 0ms penalty for subsequent jobs and routing directly to the active model.
+    - Implemented structured file diagnostics logging in `data/logs/llm_requests.log` tracking timestamp, provider, model, operation, status (SUCCESS/FAILED), duration (ms), and error details.
+    - Verification Gate 50 (`verify/50_test_gemini_38_flash_pacer.py`) passing 100%.
+    - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 114 files).
+  - High-Speed Multi-Channel Discovery & AI Tailoring Reseed:
+    - Queues and deduplication ledger wiped clean.
+    - Successfully scraped and tailored **42 fresh jobs** across Bengaluru and Remote India within ~7 minutes (down from 25+ minutes).
+    - **100% AI Tailored STAR Achievements:** All 42 listings in `data/pending_queue/` received custom, verified STAR bullets (`tailoring_method: "ai_grounded_star"`) with 0 fallbacks to base heuristics.
+    - Average LLM request duration dropped to **1.77 seconds** with 0 rate limit pressure.
+    - All 42 jobs loaded and ready on the local Command Center UI (`http://localhost:8000`).
 

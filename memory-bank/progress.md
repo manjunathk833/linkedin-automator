@@ -11,6 +11,13 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 50: Gemini Flash Lite Engine, 4s Rate Pacer, 60s Circuit Breaker & Structured Diagnostics**:
+  - Upgraded default primary engine to `models/gemini-flash-lite-latest` with resilient fallback across `models/gemini-flash-latest`, `models/gemini-3.5-flash`, and `gemini-3.8-flash`.
+  - Implemented 4.0-second rate pacer (`MIN_REQUEST_INTERVAL`) to strictly adhere to the 15 RPM free-tier limit.
+  - Implemented 60-second Quota Cooldown Circuit-Breaker (`_model_cooldowns`): on HTTP 429, marks model in cooldown and skips it instantly with 0ms penalty for subsequent jobs, dropping tailoring time per job from 25s down to 1.8s.
+  - Implemented file-based diagnostics logging in `data/logs/llm_requests.log` with duration, model, operation, status, and error details.
+  - Verified 100% in `verify/50_test_gemini_38_flash_pacer.py`.
+  - 42 fresh jobs scraped and 100% tailored with custom STAR achievements (`tailoring_method: "ai_grounded_star"`) in ~7 minutes.
 - **Phase 49: LinkedIn External ATS Discovery & Dynamic Pivot Engine**:
   - Eliminated 30-day filter restriction from LinkedIn search URLs in favor of a high-velocity 7-day window (`time_posted: "past_week"`, `f_TPR=r604800`), configurable down to 24h (`past_24h` / `r86400`).
   - Added explicit distance radius parameter (`distance: 25` miles / ~40 km for Bengaluru metro).

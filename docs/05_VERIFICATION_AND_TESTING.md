@@ -83,6 +83,9 @@ python verify/39_test_ats_filler_resilience.py
 
 # 7. Test Multi-Tab & Popup ATS Form Autofill
 python verify/40_test_new_tab_ats_handling.py
+
+# 8. Test Rate-Paced Gemini Tailoring, Circuit Breaker & Request Diagnostics Logging
+python verify/50_test_gemini_38_flash_pacer.py
 ```
 
 ---

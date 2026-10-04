@@ -78,6 +78,8 @@ class ResumeTailorer:
         master_vault = self.knowledge_bank.get("master_achievements_vault", [])
 
         # 1. AI or Heuristic STAR bullet point tailoring
+        ai_succeeded = False
+        clean_bullets = []
         if self.use_ai and self.llm_provider:
             try:
                 ai_bullets = self.llm_provider.generate_tailored_bullets(
@@ -89,17 +91,24 @@ class ResumeTailorer:
                     if clean_bullets:
                         print(f"🤖 AI tailored {len(clean_bullets)} verified STAR achievements!")
                         tailored_data["experience_history"][0]["achievements"] = clean_bullets
+                        ai_succeeded = True
             except Exception as e:
                 print(f"⚠️ AI Bullet tailoring skipped (using heuristic): {e}")
 
         # Reorder achievements putting matching keywords first as heuristic baseline
-        for exp in tailored_data.get("experience_history", []):
+        for i, exp in enumerate(tailored_data.get("experience_history", [])):
+            if i == 0 and ai_succeeded:
+                # First experience already contains pristine AI tailored STAR bullets
+                continue
             achievements = exp.get("achievements", [])
             # Also run experience achievements through Fabrication Detector Gate
             valid_achievements = self.fabrication_detector.validate_all_bullets(achievements)
             matching = [a for a in valid_achievements if any(kw.lower() in a.lower() for kw in keywords)]
             non_matching = [a for a in valid_achievements if a not in matching]
             exp["achievements"] = matching + non_matching
+
+        job_payload["tailoring_method"] = "ai_grounded_star" if ai_succeeded else "heuristic_reordered"
+        job_payload["tailored_bullets_count"] = len(clean_bullets) if ai_succeeded else 0
 
         # 2. Attach JSON Resume Standard Schema Metadata
         tailored_data["$schema"] = "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json"

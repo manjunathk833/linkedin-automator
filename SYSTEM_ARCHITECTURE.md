@@ -137,7 +137,8 @@ graph TD
 ### Module 4: Grounded AI Resume Tailoring & Anti-Fabrication Gate
 * **Files:** [`src/tailor/resume_tailorer.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/resume_tailorer.py), [`src/tailor/llm_provider.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/llm_provider.py), [`src/tailor/fabrication_detector.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/fabrication_detector.py), [`src/tailor/knowledge_translator.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/knowledge_translator.py)
 * **LLM Architecture:**
-  * `HybridLLMProvider`: Primary provider Google Gemini 3.6 Flash (`temperature=0.0`); automatic fallback to local Ollama (`qwen2.5:7b`).
+  * `HybridLLMProvider`: Primary provider Google Gemini Free Tier (`models/gemini-flash-lite-latest`, `temperature=0.0`) with 4.0s minimum interval rate pacer, 60s quota cooldown circuit-breaker, and multi-model fallback chain (`models/gemini-flash-latest`, `models/gemini-3.5-flash`, `gemini-3.8-flash`); automatic fallback to local Ollama (`qwen2.5:7b`).
+  * Request Telemetry Logging: Every API invocation records timestamp, model, duration (ms), status (SUCCESS/FAILED), and error details to `data/logs/llm_requests.log`.
   * Pydantic schema validation (`TailoredBulletsResponse`, `ParsedKnowledgeResponse`, `ScreeningAnswerResponse`).
 * **Anti-Fabrication Defense-in-Depth:**
   * **Level 1 (Prompt Grounding):** Strict prompt instructions and negative few-shot examples forbidding hallucination of tools outside candidate history.
@@ -325,12 +326,14 @@ All features are covered by dedicated, standalone verification scripts in `verif
 * **Recommended Next Step:** Add unit test assertion checks during automated pipeline runs to raise alarms if unverified tools slip through.
 
 ### Threat 3: API Quota Exhaustion (Gemini Free Tier)
-* **Risk:** Hitting 20 RPM / daily limits on Gemini Free Tier during large batch tailoring.
+* **Risk:** Hitting 15 RPM / daily rate limits on Gemini Free Tier during large batch tailoring.
 * **Current Mitigation:**
-  * Multi-layer fallback to local offline Ollama (`qwen2.5:7b`).
-  * Heuristic fallback for non-AI operation if all LLMs are unreachable.
-  * Batch chunking of 5 items per request.
-* **Recommended Next Step:** Implement exponential backoff with jitter on HTTP 429 responses.
+  * **4.0s Rate Pacer:** `_pace_request()` enforces $\ge 4.0$s interval between consecutive requests (guaranteeing $\le 15$ RPM ceiling).
+  * **60s Circuit Breaker:** On `429 RESOURCE_EXHAUSTED`, marks model in cooldown for 60s, skipping it instantly with 0ms penalty for subsequent cards.
+  * **Resilient Multi-Model Fallback Chain:** Routes across `models/gemini-flash-lite-latest` (primary, ~1.8s latency), `models/gemini-flash-latest`, `models/gemini-3.5-flash`, and `gemini-3.8-flash`.
+  * **Local Offline Fallback:** Automatic fallback to local Ollama (`qwen2.5:7b`) if all Google AI Studio models are exhausted.
+  * **File Diagnostics Logging:** Complete observability via `data/logs/llm_requests.log`.
+* **Recommended Next Step:** Gate 50 test in `verify/50_test_gemini_38_flash_pacer.py` continuously audits rate pacing and request logging.
 
 ---
 
