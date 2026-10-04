@@ -31,6 +31,19 @@ class FabricationDetector:
         "Kubernetes",
     ]
 
+    COMPANY_EXCLUSIVE_MARKERS: ClassVar[dict[str, list[str]]] = {
+        "Value Labs": ["mosaic", "harness", "airline"],
+        "Dunzo": ["ekam", "merchant service", "google metrics explorer"],
+        "Tata Elxsi": [
+            "appium",
+            "testrail",
+            "charles proxy",
+            "burp suite",
+            "ott app",
+            "app store",
+        ],
+    }
+
     def __init__(self, profile: ResumeProfile, master_knowledge_bank: dict[str, Any] | None = None):
         self.profile = profile
         self.knowledge_bank = master_knowledge_bank or {}
@@ -101,3 +114,44 @@ class FabricationDetector:
                 print(f"🚨 FABRICATION DETECTED & STRIPPED: Discarded bullet claiming {res['fabricated_tools']}:")
                 print(f'   "{bullet[:90]}..."')
         return clean_bullets
+
+    def check_company_contamination(self, company: str, bullet: str) -> dict[str, Any]:
+        """
+        Validates that a bullet assigned to a specific company does not claim achievements
+        or exclusive tools that belong to another company.
+        """
+        bullet_lower = bullet.lower()
+        violating_companies = []
+        for other_comp, markers in self.COMPANY_EXCLUSIVE_MARKERS.items():
+            if other_comp.lower() not in company.lower():
+                for marker in markers:
+                    pattern = rf"\b{re.escape(marker)}\b"
+                    if re.search(pattern, bullet_lower):
+                        violating_companies.append(f"{other_comp} (marker: '{marker}')")
+                        break
+
+        is_clean = len(violating_companies) == 0
+        return {
+            "is_clean": is_clean,
+            "violating_companies": violating_companies,
+            "company": company,
+            "bullet": bullet,
+        }
+
+    def validate_company_bullets(self, company: str, bullets: list[str]) -> list[str]:
+        """
+        Filters bullets for both general tool fabrication AND cross-company contamination.
+        Ensures that bullets assigned to 'company' strictly originate from that company's experience.
+        """
+        unfabricated = self.validate_all_bullets(bullets)
+        clean_company_bullets = []
+        for bullet in unfabricated:
+            contam = self.check_company_contamination(company, bullet)
+            if contam["is_clean"]:
+                clean_company_bullets.append(bullet)
+            else:
+                print(
+                    f"🚨 CROSS-COMPANY CONTAMINATION BLOCKED: Bullet for '{company}' claimed experience from {contam['violating_companies']}:"
+                )
+                print(f'   "{bullet[:90]}..."')
+        return clean_company_bullets

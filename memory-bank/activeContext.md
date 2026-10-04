@@ -37,5 +37,46 @@
   - Tab autofocus & iframe switching hardened: Playwright now waits for new tabs to navigate away from `about:blank`, and iframe target switching is guarded against hijacking pages where form inputs are already present on the root document.
   - Verification Gate 48 (`verify/48_test_coinbase_autofill_heuristics.py`) passing 100% (28 fields filled live + resume attached).
   - Full regression test suite passing (Gates 39, 41, 44, 45, 46, 47, 48).
-  - `python main.py lint` clean with 0 errors across 110 files.
+  - `python main.py lint` clean with 0 errors across 112 files.
+  - Multi-channel LinkedIn discovery executed (`python main.py search`): 50 live Senior SDET & Automation Lead Easy Apply jobs scraped, deduplicated, tailored, and seeded into `data/pending_queue/` for human review in the Command Center UI (`http://localhost:8000`).
+  - LinkedIn External ATS Discovery & Dynamic Pivot Engine implemented:
+    - 30-day filter restriction eliminated in favor of a high-velocity 7-day window (`time_posted: "past_week"`, `f_TPR=r604800`), configurable down to 24 hours (`past_24h`).
+    - Explicit search radius parameter introduced (`distance: 25` miles / ~40 km for Bengaluru metro).
+    - Easy Apply restriction eliminated (`easy_apply_only: false`), unlocking the 80%+ enterprise opportunities linking out to external ATS platforms while retaining full Easy Apply discovery when requested.
+    - Card extraction engine updated to detect apply button text and aria labels, classifying jobs upfront as `EASY_APPLY` vs `LINKEDIN_EXTERNAL` and storing external redirect URLs.
+    - `autofill_linkedin_external` implemented in `src/autofill/ats_filler.py`: dynamically navigates to LinkedIn job views, detects external Apply buttons, captures launched external ATS popup windows/tabs via dual `page.on("popup")` and `context.on("page")` listeners, resolves canonical URLs, classifies matching vendor ATS schemas (`GREENHOUSE_STANDARD`, `LEVER_STANDARD`, `ASHBY_STANDARD`, etc.), and autofills the form before pausing for human review.
+    - FastAPI endpoint `/api/autofill/{job_id}` updated in `src/ui/app.py` to route `LINKEDIN_EXTERNAL` jobs to `ats_filler.autofill_linkedin_external()`.
+    - Verification Gate 49 (`verify/49_test_linkedin_external_ats_pivot.py`) passing 100% across URL construction, apply type heuristics, and Playwright tab pivot simulation.
+    - `python main.py lint` clean with 0 errors across 113 files.
+  - Fresh Multi-Channel Job Discovery Executed (`python main.py search`):
+    - Completely cleared previous staging queue and reset deduplication ledger.
+    - Successfully scraped and tailored **46 high-velocity jobs** across Bengaluru (25-mile radius) and Remote India posted within the last 7 days.
+    - **Application Type Composition:** 30 `LINKEDIN_EXTERNAL` jobs (65%) + 16 `EASY_APPLY` jobs (35%).
+    - Discovered top-tier enterprise tech opportunities: GE HealthCare, Accenture, LSEG, EY, Hewlett Packard Enterprise, Birlasoft, Zluri, HTC Global Services, Jobgether, etc.
+    - All 46 listings are staged in `data/pending_queue/` and live on the Command Center UI (`http://localhost:8000`).
+  - Rate-Paced LLM Tailoring Upgrade, Circuit Breaker & Structured Request Diagnostics Logging (Gate 50):
+    - Config upgraded to `primary_model: "models/gemini-flash-lite-latest"` with multi-model fallback (`models/gemini-flash-latest`, `models/gemini-3.5-flash`, `gemini-3.8-flash`).
+    - Enforced 4.0-second rate pacer (`_pace_request()`) to strictly adhere to Google AI Studio's 15 RPM free-tier ceiling.
+    - Implemented 60-second Quota Cooldown Circuit-Breaker (`_model_cooldowns`): on HTTP 429, immediately marks model in cooldown for 60s, skipping it with 0ms penalty for subsequent jobs and routing directly to the active model.
+    - Implemented structured file diagnostics logging in `data/logs/llm_requests.log` tracking timestamp, provider, model, operation, status (SUCCESS/FAILED), duration (ms), and error details.
+    - Verification Gate 50 (`verify/50_test_gemini_38_flash_pacer.py`) passing 100%.
+    - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 114 files).
+  - High-Speed Multi-Channel Discovery & AI Tailoring Reseed:
+    - Queues and deduplication ledger wiped clean.
+    - Successfully scraped and tailored **42 fresh jobs** across Bengaluru and Remote India within ~7 minutes (down from 25+ minutes).
+    - **100% AI Tailored STAR Achievements:** All 42 listings in `data/pending_queue/` received custom, verified STAR bullets (`tailoring_method: "ai_grounded_star"`) with 0 fallbacks to base heuristics.
+    - Average LLM request duration dropped to **1.77 seconds** with 0 rate limit pressure.
+    - All 42 jobs loaded and ready on the local Command Center UI (`http://localhost:8000`).
+  - Company Boundary Isolation & Cross-Company Contamination Defense (Gates 51 & 52):
+    - Audited `data/master_knowledge_bank.json` and `data/resume_profile.json`; confirmed pristine alignment with `singlepageresume.json`.
+    - Structured `data/candidate_notes.md` with explicit organization sections (`## Value Labs`, `## Dunzo`, `## Tata Elxsi`).
+    - Implemented `COMPANY_EXCLUSIVE_MARKERS`, `check_company_contamination()`, and `validate_company_bullets()` in `src/tailor/fabrication_detector.py`.
+    - Implemented `COMPANY_SCOPED_STAR_PROMPT` and `generate_company_tailored_bullets()` in `src/tailor/llm_provider.py`.
+    - Partitioned master vault by employer in `src/tailor/resume_tailorer.py`; experience blocks are tailored strictly within their own company boundary.
+    - Verification Gate 51 (`verify/51_test_company_boundary_isolation.py`) passing 100%.
+    - Completely wiped contaminated queues and executed fresh multi-channel reseed (`python main.py search`).
+    - Successfully scraped and tailored 25 fresh jobs in `data/pending_queue/` with 100% AI Grounded STAR tailoring.
+    - Executed Verification Gate 52 (`verify/52_audit_queue_zero_contamination.py`): Audited all 25 staged jobs (225 experience bullets) with **0 contamination violations (100% SUCCESS)**.
+    - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 116 files).
+
 

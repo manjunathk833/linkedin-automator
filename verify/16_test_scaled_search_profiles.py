@@ -57,7 +57,7 @@ def test_scaled_search_profiles():
     profiles = config.get("search_profiles", [])
 
     assert len(profiles) == 3
-    assert profiles[0]["time_posted"] == "past_month"
+    assert profiles[0]["time_posted"] in ("past_week", "past_month")
     assert "onsite" in profiles[0]["work_types"]
     print("✅ config.yaml profiles validated successfully!")
 

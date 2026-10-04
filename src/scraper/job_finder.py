@@ -93,13 +93,16 @@ class LinkedInJobFinder:
         experience_levels: list[str] | None = None,
         time_posted: str = "past_week",
         start: int = 0,
+        easy_apply_only: bool = False,
+        distance: int | None = None,
     ) -> str:
         """
         Constructs clean, optimized LinkedIn job search URL supporting:
-        - f_AL=true (Easy Apply filter)
+        - f_AL=true (Easy Apply filter, only when easy_apply_only is True)
         - f_WT (Work types: 1=Onsite, 2=Remote, 3=Hybrid)
         - f_E (Experience levels: 4=Mid-Senior)
         - f_TPR (Time posted: r604800=past week, r86400=past 24h, r2592000=past month)
+        - distance (Search radius in miles, e.g. 25)
         - sortBy=DD (Sort newest first)
         - start (Pagination offset: 0, 25, 50)
         """
@@ -113,7 +116,11 @@ class LinkedInJobFinder:
             clean_kw = clean_kw[1:-1].strip()
 
         base_url = "https://www.linkedin.com/jobs/search/?"
-        params = {"keywords": clean_kw, "location": location, "f_AL": "true", "sortBy": "DD"}
+        params = {"keywords": clean_kw, "location": location, "sortBy": "DD"}
+        if easy_apply_only:
+            params["f_AL"] = "true"
+        if distance is not None and int(distance) > 0:
+            params["distance"] = str(distance)
         if start > 0:
             params["start"] = str(start)
 
@@ -393,13 +400,39 @@ class LinkedInJobFinder:
             except Exception:
                 pass
 
+            # 6. Detect Application Type (EASY_APPLY vs LINKEDIN_EXTERNAL)
+            application_type = "LINKEDIN_EXTERNAL"
+            external_url = None
+            try:
+                apply_btn = page.locator(
+                    ".jobs-apply-button, .jobs-s-apply button, button.jobs-apply-button--top-card, button[data-control-name*='apply'], a.jobs-apply-button"
+                ).first
+                if await apply_btn.count() > 0:
+                    btn_text = (await apply_btn.text_content() or "").strip().lower()
+                    aria_label = (await apply_btn.get_attribute("aria-label") or "").strip().lower()
+                    combined_btn_desc = f"{btn_text} {aria_label}"
+                    if "easy apply" in combined_btn_desc:
+                        application_type = "EASY_APPLY"
+                    else:
+                        application_type = "LINKEDIN_EXTERNAL"
+                        href = await apply_btn.get_attribute("href")
+                        if href and href.startswith("http"):
+                            external_url = href
+            except Exception:
+                pass
+
+            job_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
             raw_job = {
                 "job_id": job_id,
-                "application_type": "EASY_APPLY",
+                "url": job_url,
+                "job_url": job_url,
+                "application_type": application_type,
                 "job_details": {
                     "title": title,
                     "company": company,
                     "location": loc,
+                    "job_url": job_url,
+                    "external_url": external_url,
                     "requirements": desc_text[:3000],
                 },
             }
@@ -455,6 +488,11 @@ class LinkedInJobFinder:
                 work_types = sp.get("work_types")
                 experience_levels = sp.get("experience_levels")
                 time_posted = sp.get("time_posted", "past_week")
+                easy_apply_only = sp.get(
+                    "easy_apply_only",
+                    discovery_config.get("easy_apply_only", False),
+                )
+                distance = sp.get("distance", discovery_config.get("distance"))
 
                 print(f"\n🔍 Search Profile #{profile_idx + 1}: '{keywords}' in '{location}' (max: {max_jobs})")
 
@@ -471,6 +509,8 @@ class LinkedInJobFinder:
                         experience_levels=experience_levels,
                         time_posted=time_posted,
                         start=start_offset,
+                        easy_apply_only=easy_apply_only,
+                        distance=distance,
                     )
                     print(f"🌐 Navigating to Page {page_num + 1} (start={start_offset}): {search_url}")
 

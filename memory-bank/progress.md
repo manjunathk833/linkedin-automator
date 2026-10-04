@@ -11,6 +11,31 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 51 & 52: Company Boundary Isolation, Contamination Defense & Zero-Contamination Audit**:
+  - Implemented company-exclusive marker detection in `FabricationDetector` (`COMPANY_EXCLUSIVE_MARKERS`), forbidding tools/keywords from Tata Elxsi (Appium, OTT, Burp Suite, Charles Proxy, TestRail) or Dunzo (Ekam, Merchant Service) from ever appearing under Value Labs, and vice versa.
+  - Introduced `COMPANY_SCOPED_STAR_PROMPT` and `generate_company_tailored_bullets()` in `src/tailor/llm_provider.py` ensuring the LLM is only supplied achievements from that specific employer.
+  - Partitioned `master_vault` by employer in `src/tailor/resume_tailorer.py` and validated every tailored achievement list with `validate_company_bullets()`.
+  - Structured `data/candidate_notes.md` with explicit organization sections (`## Value Labs`, `## Dunzo`, `## Tata Elxsi`).
+  - Audited `data/master_knowledge_bank.json` and `data/resume_profile.json` against `singlepageresume.json` to verify base profile integrity.
+  - Purged all contaminated queues (`approved_queue/`, `pending_queue/`, `processed_jobs.json`).
+  - Executed Verification Gate 51 (`verify/51_test_company_boundary_isolation.py`): 100% passed with zero contamination across synthetic and Media.net scenarios.
+  - Reseeded 25 fresh jobs via `python main.py search` with 100% AI Grounded STAR tailoring.
+  - Executed Verification Gate 52 (`verify/52_audit_queue_zero_contamination.py`): Audited all 25 staged jobs (225 experience bullets) with **0 contamination violations (100% SUCCESS)**.
+- **Phase 50: Gemini Flash Lite Engine, 4s Rate Pacer, 60s Circuit Breaker & Structured Diagnostics**:
+  - Upgraded default primary engine to `models/gemini-flash-lite-latest` with resilient fallback across `models/gemini-flash-latest`, `models/gemini-3.5-flash`, and `gemini-3.8-flash`.
+  - Implemented 4.0-second rate pacer (`MIN_REQUEST_INTERVAL`) to strictly adhere to the 15 RPM free-tier limit.
+  - Implemented 60-second Quota Cooldown Circuit-Breaker (`_model_cooldowns`): on HTTP 429, marks model in cooldown and skips it instantly with 0ms penalty for subsequent jobs, dropping tailoring time per job from 25s down to 1.8s.
+  - Implemented file-based diagnostics logging in `data/logs/llm_requests.log` with duration, model, operation, status, and error details.
+  - Verified 100% in `verify/50_test_gemini_38_flash_pacer.py`.
+  - 42 fresh jobs scraped and 100% tailored with custom STAR achievements (`tailoring_method: "ai_grounded_star"`) in ~7 minutes.
+- **Phase 49: LinkedIn External ATS Discovery & Dynamic Pivot Engine**:
+  - Eliminated 30-day filter restriction from LinkedIn search URLs in favor of a high-velocity 7-day window (`time_posted: "past_week"`, `f_TPR=r604800`), configurable down to 24h (`past_24h` / `r86400`).
+  - Added explicit distance radius parameter (`distance: 25` miles / ~40 km for Bengaluru metro).
+  - Eliminated forced Easy Apply restriction (`easy_apply_only: false`), unlocking the 80%+ enterprise opportunities linking out to external ATS platforms.
+  - Implemented upfront application type detection in `_extract_card_payload` checking button text/aria labels and tagging `application_type: "EASY_APPLY"` vs `"LINKEDIN_EXTERNAL"`.
+  - Implemented `autofill_linkedin_external` in `src/autofill/ats_filler.py` using dual `page.on("popup")` and `context.on("page")` listeners to capture external ATS tabs, resolve canonical URLs, classify matching ATS vendor schemas, and autofill forms before review.
+  - Updated `/api/autofill/{job_id}` in `src/ui/app.py` to route `LINKEDIN_EXTERNAL` jobs cleanly.
+  - Verified 100% in `verify/49_test_linkedin_external_ats_pivot.py`.
 - **Phase 48: Coinbase Custom Greenhouse Autofill & Embed Resolution**:
   - Implemented `COINBASE_CUSTOM_GREENHOUSE` vendor pattern in `src/autofill/vendor_schemas.py` and `classify_ats_pattern`.
   - Updated `resolve_canonical_ats_url` to resolve Coinbase wrapper URLs directly to canonical Greenhouse embed portal (`https://job-boards.greenhouse.io/embed/job_app?token={job_id}&for=coinbase&gh_jid={job_id}`), preventing 302-redirect loops and bypassing Coinbase Cloudflare challenges.

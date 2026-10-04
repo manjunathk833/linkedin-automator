@@ -43,6 +43,18 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/38_test_static_cache_headers.py` | Cache-Busting & Headers | Tests no-cache headers and static asset version query parameters | **PASSED** |
 | `verify/39_test_ats_filler_resilience.py` | ATS URL & Trigger Resilience | Tests canonical ATS URL resolution and 'Apply' button trigger detection | **PASSED** |
 | `verify/40_test_new_tab_ats_handling.py` | Multi-Tab & Popup Autofill | Tests target="_blank" and window.open() new-tab switching, focus, and form filling | **PASSED** |
+| `verify/41_test_standardized_vendor_autofill.py` | Standardized ATS Schemas | Tests unified Candidate Master Data across Greenhouse, Lever, Ashby, Workday, LinkedIn | **PASSED** |
+| `verify/42_test_safety_governor_cap_200.py` | 200/Day Rate Governor | Tests configurable high-volume daily limit (200/day) in safety governor | **PASSED** |
+| `verify/43_test_coinbase_greenhouse_live_fill.py` | React-Select Combobox Autofill | Tests 28 fields live on Greenhouse with multi-job experience loop and phone dial code | **PASSED** |
+| `verify/44_test_resume_professional_naming.py` | Candidate Resume Naming | Tests `Manjunath_HK_<Company>_<Token>_Resume.pdf` naming pattern and download headers | **PASSED** |
+| `verify/45_test_staging_job_metadata_enrichment.py` | Staging Job Intelligence | Tests US-only location warnings, experience extraction, and direct ATS posting links | **PASSED** |
+| `verify/46_test_okta_autofill_heuristics.py` | Okta Branded ATS Autofill | Tests Okta custom pattern classification, portfolio mapping, and live form fill | **PASSED** |
+| `verify/47_test_databricks_autofill_heuristics.py` | Databricks Custom ATS Suite | Tests Databricks iframe piercing, preferred name, current firm, and live autofill | **PASSED** |
+| `verify/48_test_coinbase_autofill_heuristics.py` | Coinbase Canonical Embed Autofill | Tests Coinbase wrapper resolution to embed portal, zero-error live 28-field autofill | **PASSED** |
+| `verify/49_test_linkedin_external_ats_pivot.py` | LinkedIn External ATS Pivot | Tests easy_apply_only=False, distance=25, 7-day velocity window, and external ATS pivot | **PASSED** |
+| `verify/50_test_gemini_38_flash_pacer.py` | Rate-Paced LLM Tailoring | Tests Gemini Flash Lite rate pacer (4.0s), 60s quota circuit-breaker, and request logging | **PASSED** |
+| `verify/51_test_company_boundary_isolation.py` | Company Boundary Isolation | Tests deterministic cross-company contamination blocking and company-scoped tailoring | **PASSED** |
+| `verify/52_audit_queue_zero_contamination.py` | Queue Zero Contamination Audit | Audits all staged jobs in pending_queue asserting 100% zero cross-company contamination | **PASSED** |
 
 ---
 
@@ -74,6 +86,9 @@ python verify/39_test_ats_filler_resilience.py
 
 # 7. Test Multi-Tab & Popup ATS Form Autofill
 python verify/40_test_new_tab_ats_handling.py
+
+# 8. Test Rate-Paced Gemini Tailoring, Circuit Breaker & Request Diagnostics Logging
+python verify/50_test_gemini_38_flash_pacer.py
 ```
 
 ---

@@ -6,14 +6,17 @@ discovery:
   enable_recommended_feed: true
   enable_recruiter_posts: true
   enable_similar_jobs: true
+  easy_apply_only: false       # Ingest both Easy Apply and External ATS opportunities
 
 search_profiles:
   - name: "Bengaluru Senior SDET & Automation Architect (All Work Types)"
     keywords: '("Senior SDET" OR "Senior Software Development Engineer in Test" OR "Test Automation Architect" OR "Lead SDET" OR "Senior QA Automation Engineer") NOT (Intern OR Junior)'
     location: "Bengaluru"
+    distance: 25               # Explicit 25 miles (~40 km) radius
     work_types: ["remote", "hybrid", "onsite"]
     experience_levels: ["mid_senior"]
-    time_posted: "past_month"
+    time_posted: "past_week"   # High-velocity 7-day window (avoids stale 30-day postings)
+    easy_apply_only: false
     max_jobs: 25
 
   - name: "India Remote Staff SDET & Lead QA Automation"
@@ -21,15 +24,18 @@ search_profiles:
     location: "India"
     work_types: ["remote"]
     experience_levels: ["mid_senior"]
-    time_posted: "past_month"
+    time_posted: "past_week"
+    easy_apply_only: false
     max_jobs: 25
 
   - name: "Bengaluru Hybrid & Onsite Test Automation Lead"
     keywords: '("Test Automation Lead" OR "Automation Lead" OR "Senior Test Automation Engineer") NOT (Intern OR Junior)'
     location: "Bengaluru"
+    distance: 25
     work_types: ["hybrid", "onsite"]
     experience_levels: ["mid_senior"]
-    time_posted: "past_month"
+    time_posted: "past_week"
+    easy_apply_only: false
     max_jobs: 25
 
 resume_path: "data/resume_profile.json"
@@ -37,7 +43,7 @@ browser_profile_dir: ".browser_data"
 
 llm:
   use_ai: true
-  primary_model: "gemini-3.6-flash"
+  primary_model: "models/gemini-flash-lite-latest"
 
 safety_governor:
   daily_limit: 200  # High-volume human-in-the-loop cap (safely allows ~200 apps/day)

@@ -1520,3 +1520,129 @@ class ATSAssistedFiller:
         except Exception as e:
             print(f"⚠️ ATS Autofill error: {e}")
             return {"status": "error", "error": str(e), "url": canonical_url}
+
+    async def autofill_linkedin_external(
+        self,
+        job_url: str,
+        resume_pdf_path: str | None = None,
+        company: str = "",
+    ) -> dict[str, Any]:
+        """Loads a LinkedIn job view, detects Easy Apply vs External Apply, captures opened ATS window,
+        and executes matching ATS vendor autofill logic, halting before submission for review."""
+        _pw, _context, page = await launch_stealth_browser(headless=self.headless)
+        _ACTIVE_SESSIONS.append((_pw, _context, page))
+
+        try:
+            try:
+                await page.bring_to_front()
+            except Exception:
+                pass
+
+            print(f"🌐 Navigating to LinkedIn job view: {job_url}")
+            await page.goto(job_url, wait_until="domcontentloaded", timeout=30000)
+            await asyncio.sleep(2.0)
+
+            # Locate Apply / Easy Apply button on LinkedIn job view
+            apply_btn = page.locator(
+                ".jobs-apply-button, button.jobs-apply-button--top-card, a.jobs-apply-button, "
+                "button[data-control-name*='apply'], button:has-text('Easy Apply'), "
+                "button:has-text('Apply'), a:has-text('Apply')"
+            ).first
+
+            if await apply_btn.count() == 0 or not await apply_btn.is_visible(timeout=5000):
+                # Fallback: Check if already on an ATS page or if redirected
+                if "linkedin.com" not in page.url.lower():
+                    return await self.fill_ats_page(page, page.url, resume_pdf_path)
+                return {
+                    "status": "error",
+                    "error": "Apply button not found on LinkedIn job view",
+                    "url": job_url,
+                }
+
+            btn_text = (await apply_btn.text_content() or "").strip().lower()
+            aria_label = (await apply_btn.get_attribute("aria-label") or "").strip().lower()
+            full_desc = f"{btn_text} {aria_label}"
+
+            if "easy apply" in full_desc:
+                print("🔗 Detected LinkedIn Easy Apply. Delegating to LinkedInAssistedFiller...")
+                from src.autofill.linkedin_filler import LinkedInAssistedFiller
+
+                li_filler = LinkedInAssistedFiller(headless=self.headless)
+                return await li_filler.autofill_easy_apply(job_url, resume_pdf_path)
+
+            print(f"🚀 Detected External Apply button ('{btn_text}'). Capturing external ATS popup...")
+            opened_pages: list[Any] = []
+
+            def _on_page(new_p: Any) -> None:
+                opened_pages.append(new_p)
+
+            if _context:
+                _context.on("page", _on_page)
+            try:
+                page.on("popup", _on_page)
+            except Exception:
+                pass
+
+            try:
+                await apply_btn.click()
+                for _ in range(30):
+                    if opened_pages:
+                        break
+                    await asyncio.sleep(0.1)
+            finally:
+                if _context:
+                    try:
+                        _context.remove_listener("page", _on_page)
+                    except Exception:
+                        pass
+                try:
+                    page.remove_listener("popup", _on_page)
+                except Exception:
+                    pass
+
+            # Check if LinkedIn displays an external redirect confirmation modal
+            try:
+                confirm_btn = page.locator(
+                    "button:has-text('Continue'), button:has-text('Apply on company website'), "
+                    "a:has-text('Continue'), .artdeco-modal button.artdeco-button--primary"
+                ).first
+                if await confirm_btn.count() > 0 and await confirm_btn.is_visible(timeout=1500):
+                    print("🖱️ Confirming LinkedIn external redirection modal...")
+                    await confirm_btn.click()
+                    await asyncio.sleep(1.0)
+            except Exception:
+                pass
+
+            target_page = page
+            if opened_pages:
+                target_page = opened_pages[0]
+            elif _context and len(_context.pages) > 1 and _context.pages[-1] != page:
+                target_page = _context.pages[-1]
+
+            # Wait for target page to navigate away from about:blank and linkedin redirect
+            print("⏳ Waiting for external ATS portal to load...")
+            for _ in range(50):
+                cur_url = getattr(target_page, "url", "")
+                if cur_url and cur_url != "about:blank" and "linkedin.com/jobs/view/externalApply" not in cur_url:
+                    break
+                await asyncio.sleep(0.1)
+
+            try:
+                await target_page.wait_for_load_state("domcontentloaded", timeout=15000)
+            except Exception:
+                pass
+
+            try:
+                await target_page.bring_to_front()
+            except Exception:
+                pass
+
+            external_ats_url = getattr(target_page, "url", job_url)
+            print(f"🎯 Successfully pivoted to External ATS Portal: {external_ats_url}")
+
+            # Execute canonical ATS autofill on the external ATS portal page
+            return await self.fill_ats_page(target_page, external_ats_url, resume_pdf_path)
+
+        except Exception as e:
+            print(f"⚠️ Error during LinkedIn external ATS pivot: {e}")
+            return {"status": "error", "error": str(e), "url": job_url}
