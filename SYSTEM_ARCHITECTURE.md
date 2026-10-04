@@ -366,6 +366,7 @@ All features are covered by dedicated, standalone verification scripts in `verif
 - [x] **Milestone 25:** ATS Autofill Debugger Subagent (`.agents/agents/ats_autofill_debugger.md`) and Tri-Agent Auto-Invocation Protocol (`.agents/rules/02-agent-review-protocol.md`) for fast-tracking new vendor probing, anti-collision element scoping, React-Select async handling, and zero-error live validation.
 - [x] **Milestone 26:** Custom Branded Coinbase Greenhouse Autofill Engine (`COINBASE_CUSTOM_GREENHOUSE`) resolving canonical embeds (`job-boards.greenhouse.io/embed/job_app`), bypassing Cloudflare, and populating 28 fields live with 100% precision.
 - [x] **Milestone 27:** LinkedIn External ATS Discovery & Dynamic Pivot Engine: eliminated 30-day filter for high-velocity 7-day window (`past_week`), exposed explicit distance controls (`distance: 25`), eliminated Easy Apply forced restriction (`easy_apply_only: false`), implemented upfront `LINKEDIN_EXTERNAL` tagging, and built seamless Playwright popup pivoting into ATS vendor schemas (`autofill_linkedin_external`).
+- [x] **Milestone 28:** Company Boundary Isolation & Contamination Defense: partitioned candidate knowledge vault by employer (`Value Labs`, `Dunzo`, `Tata Elxsi`), introduced company-exclusive marker mapping in `FabricationDetector`, implemented scoped prompting in `generate_company_tailored_bullets()`, and established deterministic validation preventing cross-employer achievement leakage. Verified via Gates 51 and 52.
 
 ---
 

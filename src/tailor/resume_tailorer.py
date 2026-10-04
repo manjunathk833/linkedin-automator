@@ -74,41 +74,54 @@ class ResumeTailorer:
         # Clone master profile data
         tailored_data = json.loads(json.dumps(self.master_data))
 
-        # Retrieve Master Knowledge Vault STAR achievements
+        # Partition Master Knowledge Vault by normalized company name
         master_vault = self.knowledge_bank.get("master_achievements_vault", [])
+        vault_by_company: dict[str, list[dict]] = {}
+        for item in master_vault:
+            c_name = item.get("company", "").strip()
+            norm = "Value Labs" if "Value Labs" in c_name else c_name
+            vault_by_company.setdefault(norm, []).append(item)
 
-        # 1. AI or Heuristic STAR bullet point tailoring
-        ai_succeeded = False
-        clean_bullets = []
-        if self.use_ai and self.llm_provider:
-            try:
-                ai_bullets = self.llm_provider.generate_tailored_bullets(
-                    job_reqs, self.master_profile, master_vault=master_vault
-                )
-                if ai_bullets and len(ai_bullets) > 0 and len(tailored_data.get("experience_history", [])) > 0:
-                    # Run through Fabrication Detector Gate
-                    clean_bullets = self.fabrication_detector.validate_all_bullets(ai_bullets)
-                    if clean_bullets:
-                        print(f"🤖 AI tailored {len(clean_bullets)} verified STAR achievements!")
-                        tailored_data["experience_history"][0]["achievements"] = clean_bullets
-                        ai_succeeded = True
-            except Exception as e:
-                print(f"⚠️ AI Bullet tailoring skipped (using heuristic): {e}")
+        any_ai_applied = False
+        total_custom_bullets = 0
 
-        # Reorder achievements putting matching keywords first as heuristic baseline
-        for i, exp in enumerate(tailored_data.get("experience_history", [])):
-            if i == 0 and ai_succeeded:
-                # First experience already contains pristine AI tailored STAR bullets
-                continue
-            achievements = exp.get("achievements", [])
-            # Also run experience achievements through Fabrication Detector Gate
-            valid_achievements = self.fabrication_detector.validate_all_bullets(achievements)
-            matching = [a for a in valid_achievements if any(kw.lower() in a.lower() for kw in keywords)]
-            non_matching = [a for a in valid_achievements if a not in matching]
-            exp["achievements"] = matching + non_matching
+        # Tailor each experience block strictly within its own company scope
+        for exp in tailored_data.get("experience_history", []):
+            comp_raw = exp.get("company", "").strip()
+            comp_norm = "Value Labs" if "Value Labs" in comp_raw else comp_raw
+            comp_vault = vault_by_company.get(comp_norm, [])
+            canonical_bullets = exp.get("achievements", [])
+            tailored_bullets = []
 
-        job_payload["tailoring_method"] = "ai_grounded_star" if ai_succeeded else "heuristic_reordered"
-        job_payload["tailored_bullets_count"] = len(clean_bullets) if ai_succeeded else 0
+            # 1. AI Tailoring: Only if this company has vault variants to choose from/polish
+            if self.use_ai and self.llm_provider and len(comp_vault) > len(canonical_bullets):
+                try:
+                    ai_bullets = self.llm_provider.generate_company_tailored_bullets(
+                        company_name=comp_norm,
+                        job_description=job_reqs,
+                        profile=self.master_profile,
+                        company_vault=comp_vault,
+                    )
+                    # Validate against both Tool Fabrication AND Cross-Company Contamination
+                    clean_ai = self.fabrication_detector.validate_company_bullets(comp_norm, ai_bullets)
+                    if clean_ai and len(clean_ai) >= 2:
+                        tailored_bullets = clean_ai
+                        any_ai_applied = True
+                        total_custom_bullets += len(clean_ai)
+                except Exception as e:
+                    print(f"⚠️ AI tailoring skipped for {comp_raw} (using company heuristics): {e}")
+
+            # 2. Heuristic Reordering: If AI was skipped/rejected, reorder THIS COMPANY'S own achievements
+            if not tailored_bullets:
+                clean_canon = self.fabrication_detector.validate_company_bullets(comp_norm, canonical_bullets)
+                matching = [a for a in clean_canon if any(kw.lower() in a.lower() for kw in keywords)]
+                non_matching = [a for a in clean_canon if a not in matching]
+                tailored_bullets = matching + non_matching
+
+            exp["achievements"] = tailored_bullets
+
+        job_payload["tailoring_method"] = "ai_grounded_star" if any_ai_applied else "heuristic_reordered"
+        job_payload["tailored_bullets_count"] = total_custom_bullets
 
         # 2. Attach JSON Resume Standard Schema Metadata
         tailored_data["$schema"] = "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json"

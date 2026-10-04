@@ -67,4 +67,16 @@
     - **100% AI Tailored STAR Achievements:** All 42 listings in `data/pending_queue/` received custom, verified STAR bullets (`tailoring_method: "ai_grounded_star"`) with 0 fallbacks to base heuristics.
     - Average LLM request duration dropped to **1.77 seconds** with 0 rate limit pressure.
     - All 42 jobs loaded and ready on the local Command Center UI (`http://localhost:8000`).
+  - Company Boundary Isolation & Cross-Company Contamination Defense (Gates 51 & 52):
+    - Audited `data/master_knowledge_bank.json` and `data/resume_profile.json`; confirmed pristine alignment with `singlepageresume.json`.
+    - Structured `data/candidate_notes.md` with explicit organization sections (`## Value Labs`, `## Dunzo`, `## Tata Elxsi`).
+    - Implemented `COMPANY_EXCLUSIVE_MARKERS`, `check_company_contamination()`, and `validate_company_bullets()` in `src/tailor/fabrication_detector.py`.
+    - Implemented `COMPANY_SCOPED_STAR_PROMPT` and `generate_company_tailored_bullets()` in `src/tailor/llm_provider.py`.
+    - Partitioned master vault by employer in `src/tailor/resume_tailorer.py`; experience blocks are tailored strictly within their own company boundary.
+    - Verification Gate 51 (`verify/51_test_company_boundary_isolation.py`) passing 100%.
+    - Completely wiped contaminated queues and executed fresh multi-channel reseed (`python main.py search`).
+    - Successfully scraped and tailored 25 fresh jobs in `data/pending_queue/` with 100% AI Grounded STAR tailoring.
+    - Executed Verification Gate 52 (`verify/52_audit_queue_zero_contamination.py`): Audited all 25 staged jobs (225 experience bullets) with **0 contamination violations (100% SUCCESS)**.
+    - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 116 files).
+
 

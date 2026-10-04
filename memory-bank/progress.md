@@ -11,6 +11,16 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 51 & 52: Company Boundary Isolation, Contamination Defense & Zero-Contamination Audit**:
+  - Implemented company-exclusive marker detection in `FabricationDetector` (`COMPANY_EXCLUSIVE_MARKERS`), forbidding tools/keywords from Tata Elxsi (Appium, OTT, Burp Suite, Charles Proxy, TestRail) or Dunzo (Ekam, Merchant Service) from ever appearing under Value Labs, and vice versa.
+  - Introduced `COMPANY_SCOPED_STAR_PROMPT` and `generate_company_tailored_bullets()` in `src/tailor/llm_provider.py` ensuring the LLM is only supplied achievements from that specific employer.
+  - Partitioned `master_vault` by employer in `src/tailor/resume_tailorer.py` and validated every tailored achievement list with `validate_company_bullets()`.
+  - Structured `data/candidate_notes.md` with explicit organization sections (`## Value Labs`, `## Dunzo`, `## Tata Elxsi`).
+  - Audited `data/master_knowledge_bank.json` and `data/resume_profile.json` against `singlepageresume.json` to verify base profile integrity.
+  - Purged all contaminated queues (`approved_queue/`, `pending_queue/`, `processed_jobs.json`).
+  - Executed Verification Gate 51 (`verify/51_test_company_boundary_isolation.py`): 100% passed with zero contamination across synthetic and Media.net scenarios.
+  - Reseeded 25 fresh jobs via `python main.py search` with 100% AI Grounded STAR tailoring.
+  - Executed Verification Gate 52 (`verify/52_audit_queue_zero_contamination.py`): Audited all 25 staged jobs (225 experience bullets) with **0 contamination violations (100% SUCCESS)**.
 - **Phase 50: Gemini Flash Lite Engine, 4s Rate Pacer, 60s Circuit Breaker & Structured Diagnostics**:
   - Upgraded default primary engine to `models/gemini-flash-lite-latest` with resilient fallback across `models/gemini-flash-latest`, `models/gemini-3.5-flash`, and `gemini-3.8-flash`.
   - Implemented 4.0-second rate pacer (`MIN_REQUEST_INTERVAL`) to strictly adhere to the 15 RPM free-tier limit.

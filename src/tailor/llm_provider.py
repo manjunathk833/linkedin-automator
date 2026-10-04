@@ -72,6 +72,12 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
+    def generate_company_tailored_bullets(
+        self, company_name: str, job_description: str, profile: ResumeProfile, company_vault: list[dict]
+    ) -> list[str]:
+        pass
+
+    @abstractmethod
     def answer_screening_question(self, question: str, profile: ResumeProfile) -> str:
         pass
 
@@ -113,6 +119,32 @@ Summary: {candidate_summary}
 
 Select 3-4 authentic STAR bullet points from the Candidate Vault that best match the Target JD requirements.
 Return JSON strictly adhering to the schema.
+"""
+
+
+COMPANY_SCOPED_STAR_PROMPT = """
+You are a Senior SDET Talent Architect and Technical Resume Editor.
+Your task is to select and polish the candidate's authentic technical achievements for a SPECIFIC COMPANY ROLE to match a target Job Description (JD).
+
+### ABSOLUTE GROUNDING & COMPANY BOUNDARY MANDATES:
+1. STRICT COMPANY BOUNDARY: You are tailoring achievements SPECIFICALLY for the candidate's tenure at: {company_name}.
+   You may ONLY select and polish achievements from the {company_name} Vault provided below.
+   You must NEVER claim or incorporate achievements, projects, or tools from other employers.
+2. NO TOOL HALLUCINATION: You may ONLY use tools, frameworks, and languages that appear in the {company_name} Vault.
+3. FACTUAL METRICS & OUTCOMES: Never invent projects, dates, or metrics not present in the Vault.
+
+### CANDIDATE:
+Candidate: {candidate_name}
+Target Role Tenure: {company_name}
+
+### AUTHENTIC ACHIEVEMENTS VAULT FOR {company_name} ONLY:
+{company_vault_text}
+
+### TARGET JOB DESCRIPTION:
+{job_description}
+
+Select and polish 3 authentic STAR bullet points from the {company_name} Vault that best highlight the candidate's fit for the Target JD.
+Return JSON strictly adhering to schema.
 """
 
 
@@ -260,6 +292,90 @@ class GeminiLLMProvider(LLMProvider):
 
         raise last_error or RuntimeError("Gemini failed to generate tailored bullets.")
 
+    def generate_company_tailored_bullets(
+        self, company_name: str, job_description: str, profile: ResumeProfile, company_vault: list[dict]
+    ) -> list[str]:
+        if not self.is_available():
+            raise RuntimeError("Gemini API key not configured or client unavailable.")
+
+        prompt = COMPANY_SCOPED_STAR_PROMPT.format(
+            candidate_name=profile.personal_details.full_name,
+            company_name=company_name,
+            company_vault_text=str(company_vault),
+            job_description=job_description,
+        )
+
+        models_to_try = [self.model_name]
+        for fallback in [
+            "models/gemini-flash-lite-latest",
+            "models/gemini-flash-latest",
+            "models/gemini-3.5-flash",
+            "gemini-3.8-flash",
+        ]:
+            if fallback not in models_to_try:
+                models_to_try.append(fallback)
+
+        last_error = None
+        for current_model in models_to_try:
+            if self._is_model_in_cooldown(current_model):
+                continue
+            for attempt in range(2):
+                self._pace_request()
+                start_time = time.time()
+                try:
+                    response = self.client.models.generate_content(
+                        model=current_model,
+                        contents=prompt,
+                        config={
+                            "temperature": 0.0,
+                            "response_mime_type": "application/json",
+                            "response_schema": TailoredBulletsResponse,
+                        },
+                    )
+                    duration_ms = (time.time() - start_time) * 1000.0
+                    parsed = TailoredBulletsResponse.model_validate_json(response.text)
+                    bullets = parsed.tailored_bullets
+                    log_llm_request(
+                        "Gemini",
+                        current_model,
+                        f"generate_company_tailored_bullets[{company_name}]",
+                        "SUCCESS",
+                        duration_ms,
+                        details=f"bullets={len(bullets)}",
+                    )
+                    print(
+                        f"✅ [Gemini] Successfully tailored {len(bullets)} bullets for {company_name} in {duration_ms:.0f}ms (model: {current_model})"
+                    )
+                    return bullets
+                except Exception as e:
+                    last_error = e
+                    duration_ms = (time.time() - start_time) * 1000.0
+                    err_str = str(e)
+                    log_llm_request(
+                        "Gemini",
+                        current_model,
+                        f"generate_company_tailored_bullets[{company_name}]",
+                        "FAILED",
+                        duration_ms,
+                        details=err_str[:250].replace("\n", " "),
+                    )
+                    print(
+                        f"⚠️ [Gemini] Attempt {attempt + 1} failed on {current_model} for {company_name}: {err_str[:120]}"
+                    )
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                        self._set_model_cooldown(current_model, 60.0)
+                        break
+                    if ("503" in err_str or "UNAVAILABLE" in err_str) and attempt == 0:
+                        backoff = 2.0
+                        print(
+                            f"⏳ Gemini transient demand spike encountered. Backing off {backoff:.1f}s before retry..."
+                        )
+                        time.sleep(backoff)
+                        continue
+                    break
+
+        raise last_error or RuntimeError(f"Gemini failed to generate tailored bullets for {company_name}.")
+
     def answer_screening_question(self, question: str, profile: ResumeProfile) -> str:
         if not self.is_available():
             raise RuntimeError("Gemini API key not configured or client unavailable.")
@@ -404,6 +520,49 @@ class OllamaLLMProvider(LLMProvider):
             )
             raise
 
+    def generate_company_tailored_bullets(
+        self, company_name: str, job_description: str, profile: ResumeProfile, company_vault: list[dict]
+    ) -> list[str]:
+        import ollama
+
+        prompt = COMPANY_SCOPED_STAR_PROMPT.format(
+            candidate_name=profile.personal_details.full_name,
+            company_name=company_name,
+            company_vault_text=str(company_vault),
+            job_description=job_description,
+        )
+
+        start_time = time.time()
+        try:
+            response = ollama.chat(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                options={"temperature": 0.0},
+                format=TailoredBulletsResponse.model_json_schema(),
+            )
+            duration_ms = (time.time() - start_time) * 1000.0
+            parsed = TailoredBulletsResponse.model_validate_json(response["message"]["content"])
+            log_llm_request(
+                "Ollama",
+                self.model_name,
+                f"generate_company_tailored_bullets[{company_name}]",
+                "SUCCESS",
+                duration_ms,
+                details=f"bullets={len(parsed.tailored_bullets)}",
+            )
+            return parsed.tailored_bullets
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000.0
+            log_llm_request(
+                "Ollama",
+                self.model_name,
+                f"generate_company_tailored_bullets[{company_name}]",
+                "FAILED",
+                duration_ms,
+                details=str(e)[:250].replace("\n", " "),
+            )
+            raise
+
     def answer_screening_question(self, question: str, profile: ResumeProfile) -> str:
         import ollama
 
@@ -506,6 +665,25 @@ class HybridLLMProvider(LLMProvider):
             return self.ollama.generate_tailored_bullets(job_description, profile, master_vault=master_vault)
         except Exception as e_ollama:
             print(f"⚠️ Local Ollama also failed: {e_ollama}")
+            raise
+
+    def generate_company_tailored_bullets(
+        self, company_name: str, job_description: str, profile: ResumeProfile, company_vault: list[dict]
+    ) -> list[str]:
+        if self.gemini.is_available():
+            try:
+                print(f"✨ Using Primary Gemini API Provider for {company_name}...")
+                return self.gemini.generate_company_tailored_bullets(
+                    company_name, job_description, profile, company_vault
+                )
+            except Exception as e:
+                print(f"⚠️ Gemini API failed for {company_name}: {e}. Falling back to Ollama...")
+
+        try:
+            print(f"🦙 Using Local Ollama Fallback Provider for {company_name}...")
+            return self.ollama.generate_company_tailored_bullets(company_name, job_description, profile, company_vault)
+        except Exception as e_ollama:
+            print(f"⚠️ Local Ollama also failed for {company_name}: {e_ollama}")
             raise
 
     def answer_screening_question(self, question: str, profile: ResumeProfile) -> str:

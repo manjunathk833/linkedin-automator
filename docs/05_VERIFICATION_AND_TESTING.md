@@ -52,6 +52,9 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/47_test_databricks_autofill_heuristics.py` | Databricks Custom ATS Suite | Tests Databricks iframe piercing, preferred name, current firm, and live autofill | **PASSED** |
 | `verify/48_test_coinbase_autofill_heuristics.py` | Coinbase Canonical Embed Autofill | Tests Coinbase wrapper resolution to embed portal, zero-error live 28-field autofill | **PASSED** |
 | `verify/49_test_linkedin_external_ats_pivot.py` | LinkedIn External ATS Pivot | Tests easy_apply_only=False, distance=25, 7-day velocity window, and external ATS pivot | **PASSED** |
+| `verify/50_test_gemini_38_flash_pacer.py` | Rate-Paced LLM Tailoring | Tests Gemini Flash Lite rate pacer (4.0s), 60s quota circuit-breaker, and request logging | **PASSED** |
+| `verify/51_test_company_boundary_isolation.py` | Company Boundary Isolation | Tests deterministic cross-company contamination blocking and company-scoped tailoring | **PASSED** |
+| `verify/52_audit_queue_zero_contamination.py` | Queue Zero Contamination Audit | Audits all staged jobs in pending_queue asserting 100% zero cross-company contamination | **PASSED** |
 
 ---
 
