@@ -48,4 +48,10 @@
     - FastAPI endpoint `/api/autofill/{job_id}` updated in `src/ui/app.py` to route `LINKEDIN_EXTERNAL` jobs to `ats_filler.autofill_linkedin_external()`.
     - Verification Gate 49 (`verify/49_test_linkedin_external_ats_pivot.py`) passing 100% across URL construction, apply type heuristics, and Playwright tab pivot simulation.
     - `python main.py lint` clean with 0 errors across 113 files.
+  - Fresh Multi-Channel Job Discovery Executed (`python main.py search`):
+    - Completely cleared previous staging queue and reset deduplication ledger.
+    - Successfully scraped and tailored **46 high-velocity jobs** across Bengaluru (25-mile radius) and Remote India posted within the last 7 days.
+    - **Application Type Composition:** 30 `LINKEDIN_EXTERNAL` jobs (65%) + 16 `EASY_APPLY` jobs (35%).
+    - Discovered top-tier enterprise tech opportunities: GE HealthCare, Accenture, LSEG, EY, Hewlett Packard Enterprise, Birlasoft, Zluri, HTC Global Services, Jobgether, etc.
+    - All 46 listings are staged in `data/pending_queue/` and live on the Command Center UI (`http://localhost:8000`).
 
