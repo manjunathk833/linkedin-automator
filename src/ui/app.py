@@ -718,6 +718,12 @@ async def get_standard_pdf():
         path=pdf_path,
         media_type="application/pdf",
         filename="Manjunath_HK_Standard_Resume.pdf",
+        content_disposition_type="inline",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
     )
 
 
@@ -761,6 +767,12 @@ async def get_preview_pdf(job_id: str, version: str = "tailored"):
         path=preview_path,
         media_type="application/pdf",
         filename=f"Manjunath_HK_Preview_{job_id}_Tailored_Resume.pdf",
+        content_disposition_type="inline",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
     )
 
 
@@ -780,6 +792,12 @@ async def get_job_pdf(job_id: str):
         path=pdf_path,
         media_type="application/pdf",
         filename=download_name,
+        content_disposition_type="inline",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
     )
 
 

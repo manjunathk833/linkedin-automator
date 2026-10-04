@@ -346,28 +346,37 @@ function switchModalPdfTab(version) {
     const selectionLabel = document.getElementById('modal-selection-label');
     const chooseBtn = document.getElementById('btn-modal-choose-version');
     const spinner = document.getElementById('pdf-spinner');
+    const extLink = document.getElementById('modal-tab-open-external');
 
+    let pdfUrl = '/api/pdf/standard';
     if (version === 'standard') {
         if (tabStandard) tabStandard.classList.add('active');
         if (tabTailored) tabTailored.classList.remove('active');
         if (selectionLabel) selectionLabel.innerText = '📄 Standard Base Resume';
         if (chooseBtn) chooseBtn.innerText = '✓ Select Standard Base Version';
-        if (iframe) {
-            if (spinner) spinner.classList.remove('hidden');
-            iframe.onload = () => { if (spinner) spinner.classList.add('hidden'); };
-            iframe.src = '/api/pdf/standard';
-        }
+        pdfUrl = '/api/pdf/standard';
     } else {
         if (tabTailored) tabTailored.classList.add('active');
         if (tabStandard) tabStandard.classList.remove('active');
         if (selectionLabel) selectionLabel.innerText = '✨ Tailored Resume';
         if (chooseBtn) chooseBtn.innerText = '✓ Select Tailored Version';
         const job = currentJobs[currentJobIndex];
-        if (iframe && job) {
-            if (spinner) spinner.classList.remove('hidden');
-            iframe.onload = () => { if (spinner) spinner.classList.add('hidden'); };
-            iframe.src = `/api/pdf/preview/${job.job_id}?version=tailored`;
-        }
+        pdfUrl = job ? `/api/pdf/preview/${job.job_id}?version=tailored` : '/api/pdf/standard';
+    }
+
+    if (extLink) extLink.href = pdfUrl;
+
+    if (iframe) {
+        if (spinner) spinner.classList.remove('hidden');
+        iframe.onload = () => {
+            if (spinner) spinner.classList.add('hidden');
+        };
+        // Fallback auto-dismiss in case Chrome's PDF viewer suppresses DOM onload event
+        setTimeout(() => {
+            if (spinner) spinner.classList.add('hidden');
+        }, 1000);
+
+        iframe.src = pdfUrl;
     }
 }
 

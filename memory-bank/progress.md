@@ -11,6 +11,11 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 54: PDF Inline Preview Disposition & Download Elimination**:
+  - Configured `content_disposition_type="inline"` and cache-control headers across `/api/pdf/standard`, `/api/pdf/preview/{job_id}`, and `/api/pdf/{job_id}` in `src/ui/app.py`.
+  - Fixed unintended file downloads on modal preview click, allowing Chrome/Safari to render PDFs directly in the modal iframe.
+  - Added external "Open in New Tab ↗" navigation link to the modal header and resilient timeout for iframe loading spinner.
+  - Verified 100% in `verify/54_test_pdf_inline_preview_headers.py`.
 - **Phase 53: Tailored vs. Standard Resume Inspection & Selection Gate**:
   - Implemented `/api/pdf/standard` with disk-backed mtime caching returning the candidate's canonical base resume PDF from `data/resume_profile.json`.
   - Implemented `/api/pdf/preview/{job_id}?version=tailored` generating on-the-fly preview PDFs for pending queue jobs.

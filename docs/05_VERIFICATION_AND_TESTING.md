@@ -56,6 +56,7 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/51_test_company_boundary_isolation.py` | Company Boundary Isolation | Tests deterministic cross-company contamination blocking and company-scoped tailoring | **PASSED** |
 | `verify/52_audit_queue_zero_contamination.py` | Queue Zero Contamination Audit | Audits all staged jobs in pending_queue asserting 100% zero cross-company contamination | **PASSED** |
 | `verify/53_test_resume_comparison_and_selection.py` | Resume Comparison & Selection Gate | Validates standard vs tailored PDF preview endpoints, inspection modal, and approval routing | **PASSED** |
+| `verify/54_test_pdf_inline_preview_headers.py` | PDF Inline Preview Disposition | Verifies Content-Disposition: inline and no-cache headers preventing unintended downloads | **PASSED** |
 
 ---
 

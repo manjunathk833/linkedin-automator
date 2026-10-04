@@ -89,6 +89,14 @@
       - Smart action buttons updating dynamically based on choice.
     - Verification Gate 53 (`verify/53_test_resume_comparison_and_selection.py`) passing 100%.
     - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 117 files).
+  - PDF Preview Inline Disposition & Download Elimination (Gate 54):
+    - Configured `content_disposition_type="inline"` and no-cache headers across `/api/pdf/standard`, `/api/pdf/preview/{job_id}`, and `/api/pdf/{job_id}` in `src/ui/app.py`.
+    - Eliminated unintended browser file downloads when previewing PDFs.
+    - Added direct "Open in New Tab ↗" external navigation link to the modal header.
+    - Added iframe auto-dismiss timeout (1.0s) for `#pdf-spinner` in `src/ui/static/app.js`.
+    - Verification Gate 54 (`verify/54_test_pdf_inline_preview_headers.py`) passing 100%.
+    - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 118 files).
+
 
 
 
