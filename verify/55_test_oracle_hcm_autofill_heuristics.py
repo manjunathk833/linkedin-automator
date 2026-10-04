@@ -64,6 +64,12 @@ def test_ats_pattern_classification():
     oracle_generic_url = "https://oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/job/999"
     assert classify_ats_pattern(oracle_generic_url) == ATSVendorPattern.ORACLE_CLOUD_HCM
 
+    akamai_job_url = "https://akamai.com/careers/job-3314"
+    assert classify_ats_pattern(akamai_job_url) == ATSVendorPattern.ORACLE_CLOUD_HCM
+
+    candidate_exp_url = "https://company.candidateexperience.net/job/1"
+    assert classify_ats_pattern(candidate_exp_url) == ATSVendorPattern.ORACLE_CLOUD_HCM
+
     # Existing vendors
     okta_url = "https://www.okta.com/company/careers/rd/senior-software-engineer-in-test-8236753/"
     assert classify_ats_pattern(okta_url) == ATSVendorPattern.OKTA_BRANDED_GREENHOUSE

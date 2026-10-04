@@ -476,7 +476,12 @@ def classify_ats_pattern(url: str) -> str:
         return ATSVendorPattern.COINBASE_CUSTOM_GREENHOUSE
 
     # 2. Standard ATS Job Boards
-    if "oraclecloud.com" in clean_url or "fa.ocs.oraclecloud.com" in clean_url:
+    if (
+        "oraclecloud.com" in clean_url
+        or "fa.ocs.oraclecloud.com" in clean_url
+        or "candidateexperience" in clean_url
+        or ("akamai" in clean_url and ("job" in clean_url or "career" in clean_url))
+    ):
         return ATSVendorPattern.ORACLE_CLOUD_HCM
     if "greenhouse.io" in clean_url:
         return ATSVendorPattern.GREENHOUSE_STANDARD

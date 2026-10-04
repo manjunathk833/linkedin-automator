@@ -130,10 +130,36 @@ class ATSAssistedFiller:
         resume_pdf_path: str | None = None,
     ) -> dict[str, Any]:
         """Fills out the application form on the given page or frame locator."""
-        if getattr(page, "url", None) != job_url:
+        page_url = getattr(page, "url", "")
+        # Prefer the actual page url if valid and not about:blank
+        active_url = page_url if (page_url and page_url != "about:blank") else job_url
+
+        if getattr(page, "url", None) != job_url and (not page_url or page_url == "about:blank"):
             print(f"🌐 Navigating to ATS posting: {job_url}")
             await page.goto(job_url, wait_until="domcontentloaded", timeout=30000)
             await asyncio.sleep(2.0)
+            page_url = getattr(page, "url", "")
+            active_url = page_url if (page_url and page_url != "about:blank") else job_url
+
+        # Check vendor pattern upfront
+        pattern = classify_ats_pattern(active_url)
+        print(f"🎯 Pattern Recognition Engine: Identified ATS Pattern [{pattern}] for URL: {active_url}")
+
+        # Dedicated multi-stage handlers that manage their own initial trigger / stages:
+        if pattern == ATSVendorPattern.ORACLE_CLOUD_HCM:
+            print("☁️ Routing directly to dedicated Oracle Cloud HCM multi-stage autofill handler...")
+            fields_filled, resume_attached = await self._fill_oracle_hcm(page, resume_pdf_path)
+            status = "ready_for_review" if (fields_filled > 0 or resume_attached) else "needs_manual_navigation"
+            print("\n🔔 ========================================================")
+            print(f"🔔 ATS AUTOFILL COMPLETE: {fields_filled} fields typed, Resume Attached={resume_attached}")
+            print("🔔 Status: Pausing session for candidate manual review and submission.")
+            print("🔔 ========================================================\n")
+            return {
+                "status": status,
+                "fields_filled": fields_filled,
+                "resume_attached": resume_attached,
+                "url": getattr(page, "url", active_url),
+            }
 
         # 1. Check if the page has an embedded Greenhouse or Lever iframe
         target: Any = page
@@ -740,36 +766,52 @@ class ATSAssistedFiller:
         # 0. Cookie Consent Dismissal
         try:
             cookie_btn = target.locator(
-                "button#onetrust-accept-btn-handler, button:has-text('Accept All'), button:has-text('Accept Cookies')"
+                "button#onetrust-accept-btn-handler, button:has-text('Accept All'), button:has-text('Accept Cookies'), button.cc-accept"
             ).first
             if await cookie_btn.count() > 0 and await cookie_btn.is_visible():
                 print("🍪 Dismissing cookie consent banner...")
-                await cookie_btn.click()
+                try:
+                    await cookie_btn.click(timeout=2000)
+                except Exception:
+                    await cookie_btn.click(force=True)
                 await asyncio.sleep(0.5)
         except Exception as e:
             print(f"⚠️ Cookie banner check notice: {e}")
 
         # 1. Stage 1: Check if we are on the initial Job Description page and need to click 'Apply Now'
         try:
-            email_field = target.locator("input#primary-email-0, input[type='email']").first
+            email_field = target.locator("input#primary-email-0, input[type='email'], input[name*='email' i]").first
             core_name_field = target.locator("input[name*='lastName' i], input#last-name").first
             is_email_visible = await email_field.is_visible() if await email_field.count() > 0 else False
             is_core_visible = await core_name_field.is_visible() if await core_name_field.count() > 0 else False
 
             if not is_email_visible and not is_core_visible:
                 apply_btn = target.locator(
-                    "button.apply-now-button.apply-now-button--apply-now, button:has-text('Apply Now'), button:has-text('Apply')"
+                    "button.apply-now-button.apply-now-button--apply-now, button.apply-now-button, button:has-text('Apply Now'), button:has-text('Apply')"
                 ).first
                 if await apply_btn.count() > 0 and await apply_btn.is_visible():
                     print("🖱️ Clicking 'Apply Now' button on Oracle HCM job detail page...")
-                    await apply_btn.click()
-                    await asyncio.sleep(2.0)
+                    try:
+                        await apply_btn.click(timeout=3000)
+                    except Exception:
+                        await apply_btn.click(force=True)
+                    # Dynamically wait for email gate to render
+                    try:
+                        await email_field.wait_for(state="visible", timeout=8000)
+                    except Exception:
+                        await asyncio.sleep(2.0)
         except Exception as e:
             print(f"⚠️ Stage 1 apply trigger notice: {e}")
 
         # 2. Stage 2: Email & Legal Disclaimer Gate (/job/.../apply/email)
         try:
-            email_input = target.locator("input#primary-email-0, input[type='email'], input[name*='email']").first
+            email_input = target.locator("input#primary-email-0, input[type='email'], input[name*='email' i]").first
+            try:
+                if await email_input.count() > 0 and not await email_input.is_visible():
+                    await email_input.wait_for(state="visible", timeout=6000)
+            except Exception:
+                pass
+
             if await email_input.count() > 0 and await email_input.is_visible():
                 print("📧 Detected Oracle HCM email gate. Populating email and legal disclaimer...")
                 if await self._fill_text_input(email_input, p.email):
@@ -777,7 +819,7 @@ class ATSAssistedFiller:
 
                 # Legal disclaimer checkbox
                 consent_cb = target.locator(
-                    "label.legal-disclaimer-container input[type='checkbox'], input[type='checkbox']#legal-terms, input[type='checkbox']"
+                    "label.legal-disclaimer-container input[type='checkbox'], input[type='checkbox']#legal-terms, label:has-text('agree') input[type='checkbox'], input[type='checkbox']"
                 ).first
                 if await consent_cb.count() > 0:
                     try:
@@ -791,8 +833,19 @@ class ATSAssistedFiller:
                 next_btn = target.locator("button:has-text('Next'), button.next-button, button[type='submit']").first
                 if await next_btn.count() > 0 and await next_btn.is_visible():
                     print("➡️ Submitting email gate with 'Next' button...")
-                    await next_btn.click()
-                    await asyncio.sleep(3.0)
+                    try:
+                        await next_btn.click(timeout=3000)
+                    except Exception:
+                        await next_btn.click(force=True)
+
+                    # Dynamically wait for Section 1 fields to become visible (up to 12s)
+                    core_field = target.locator(
+                        "input[name*='lastName' i], input#last-name, input[name*='firstName' i], input#first-name, input[type='file']"
+                    ).first
+                    try:
+                        await core_field.wait_for(state="visible", timeout=12000)
+                    except Exception:
+                        await asyncio.sleep(3.0)
         except Exception as e:
             print(f"⚠️ Stage 2 email gate notice: {e}")
 
@@ -1794,13 +1847,22 @@ class ATSAssistedFiller:
             elif _context and len(_context.pages) > 1 and _context.pages[-1] != page:
                 target_page = _context.pages[-1]
 
-            # Wait for target page to navigate away from about:blank and linkedin redirect
+            # Wait for target page to navigate away from about:blank and any linkedin redirect URL
             print("⏳ Waiting for external ATS portal to load...")
-            for _ in range(50):
+            for _ in range(100):  # Wait up to 10.0 seconds
                 cur_url = getattr(target_page, "url", "")
-                if cur_url and cur_url != "about:blank" and "linkedin.com/jobs/view/externalApply" not in cur_url:
+                if cur_url and cur_url != "about:blank" and "linkedin.com" not in cur_url.lower():
                     break
                 await asyncio.sleep(0.1)
+
+            # Fallback: scan all pages in context in case popup opened in another tab
+            if "linkedin.com" in getattr(target_page, "url", "").lower() and _context:
+                for p in _context.pages:
+                    p_url = getattr(p, "url", "")
+                    if p_url and p_url != "about:blank" and "linkedin.com" not in p_url.lower():
+                        print(f"📑 Identified active external ATS tab ({p_url}). Switching target...")
+                        target_page = p
+                        break
 
             try:
                 await target_page.wait_for_load_state("domcontentloaded", timeout=15000)
@@ -1812,7 +1874,7 @@ class ATSAssistedFiller:
             except Exception:
                 pass
 
-            external_ats_url = getattr(target_page, "url", job_url)
+            external_ats_url = getattr(target_page, "url", "") or job_url
             print(f"🎯 Successfully pivoted to External ATS Portal: {external_ats_url}")
 
             # Execute canonical ATS autofill on the external ATS portal page
