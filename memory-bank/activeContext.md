@@ -96,7 +96,15 @@
     - Added iframe auto-dismiss timeout (1.0s) for `#pdf-spinner` in `src/ui/static/app.js`.
     - Verification Gate 54 (`verify/54_test_pdf_inline_preview_headers.py`) passing 100%.
     - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 118 files).
-
-
-
-
+  - Oracle Cloud HCM (Akamai) Multi-Stage ATS Autofill Engine (Gate 55):
+    - Probed live Akamai career page (`https://fa-extu-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/...`) using browser subagent to analyze multi-stage application flow.
+    - Banked `ORACLE_CLOUD_HCM` in `ATSVendorPattern`, `VENDOR_SCHEMAS`, and `classify_ats_pattern` in `src/autofill/vendor_schemas.py`.
+    - Implemented multi-stage `_fill_oracle_hcm` in `src/autofill/ats_filler.py`:
+      * Cookie consent dismissal (`#onetrust-accept-btn-handler`).
+      * Stage 1: Initial Job Overview -> 'Apply Now' click trigger.
+      * Stage 2: Email & Legal Disclaimer gate (`#primary-email-0`, legal disclaimer checkbox, 'Next' button).
+      * Stage 3: Section 1 form completion: Title pill 'Mr.', First Name, Last Name, Phone Country (+91), Phone Number, Portfolio link, and Resume attachment.
+      * Synthetic event dispatch (`input`, `change`, `blur`) for all fields.
+    - Added Verification Gate 55 (`verify/55_test_oracle_hcm_autofill_heuristics.py`) validating pattern recognition across 10 vendors, schema banking, and Playwright multi-stage simulation with zero contamination.
+    - Verification Gate 55 passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 119 files).

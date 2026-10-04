@@ -11,6 +11,17 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 55: Oracle Cloud HCM (Akamai) Multi-Stage ATS Autofill Engine**:
+  - Probed live Akamai career portal (`https://fa-extu-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/...`) using browser subagent to dissect multi-step flow.
+  - Banked `ORACLE_CLOUD_HCM` into `ATSVendorPattern`, `VENDOR_SCHEMAS`, and `classify_ats_pattern` in `src/autofill/vendor_schemas.py`.
+  - Implemented `_fill_oracle_hcm` in `src/autofill/ats_filler.py`:
+    * Automated cookie banner dismissal (`#onetrust-accept-btn-handler`).
+    * Automated Stage 1 traversal via `button.apply-now-button`.
+    * Automated Stage 2 Email Gate & legal disclaimer checkbox submission (`button.next-button`).
+    * Automated Stage 3 Section 1 core candidate profile population (Title pill 'Mr.', First Name, Last Name, Phone Country +91, Phone Number, Portfolio link, and Resume PDF attachment).
+    * Synthetic event dispatches (`input`, `change`, `blur`) for all form fields.
+  - Created and executed Verification Gate 55 (`verify/55_test_oracle_hcm_autofill_heuristics.py`): 100% passed with zero contamination across pattern recognition, schema registry, and multi-stage Playwright simulation.
+  - Lint clean: 0 errors across 119 files.
 - **Phase 54: PDF Inline Preview Disposition & Download Elimination**:
   - Configured `content_disposition_type="inline"` and cache-control headers across `/api/pdf/standard`, `/api/pdf/preview/{job_id}`, and `/api/pdf/{job_id}` in `src/ui/app.py`.
   - Fixed unintended file downloads on modal preview click, allowing Chrome/Safari to render PDFs directly in the modal iframe.

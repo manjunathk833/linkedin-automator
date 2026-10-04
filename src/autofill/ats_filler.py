@@ -296,6 +296,9 @@ class ATSAssistedFiller:
         elif pattern == ATSVendorPattern.WORKDAY_STANDARD:
             print("🏢 Identified Workday standard portal.")
             fields_filled, resume_attached = await self._fill_workday(target, resume_pdf_path)
+        elif pattern == ATSVendorPattern.ORACLE_CLOUD_HCM:
+            print("☁️ Identified Oracle Cloud HCM / Fusion Candidate Experience portal.")
+            fields_filled, resume_attached = await self._fill_oracle_hcm(page, resume_pdf_path)
         elif pattern == ATSVendorPattern.LINKEDIN_EASY_APPLY:
             print("🔗 Identified LinkedIn Easy Apply modal.")
             fields_filled, resume_attached = await self._fill_linkedin_easy_apply(page, resume_pdf_path)
@@ -722,6 +725,178 @@ class ATSAssistedFiller:
                 filled += 1
         except Exception:
             pass
+
+        return filled, attached
+
+    async def _fill_oracle_hcm(self, page: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
+        """Fills Oracle Cloud HCM / Fusion Candidate Experience application form."""
+        filled = 0
+        attached = False
+        p = self.master_data.personal
+        profiles = self.master_data.profiles
+        schema = get_vendor_schema(ATSVendorPattern.ORACLE_CLOUD_HCM).get("selectors", {})
+        target = page
+
+        # 0. Cookie Consent Dismissal
+        try:
+            cookie_btn = target.locator(
+                "button#onetrust-accept-btn-handler, button:has-text('Accept All'), button:has-text('Accept Cookies')"
+            ).first
+            if await cookie_btn.count() > 0 and await cookie_btn.is_visible():
+                print("🍪 Dismissing cookie consent banner...")
+                await cookie_btn.click()
+                await asyncio.sleep(0.5)
+        except Exception as e:
+            print(f"⚠️ Cookie banner check notice: {e}")
+
+        # 1. Stage 1: Check if we are on the initial Job Description page and need to click 'Apply Now'
+        try:
+            email_field = target.locator("input#primary-email-0, input[type='email']").first
+            core_name_field = target.locator("input[name*='lastName' i], input#last-name").first
+            is_email_visible = await email_field.is_visible() if await email_field.count() > 0 else False
+            is_core_visible = await core_name_field.is_visible() if await core_name_field.count() > 0 else False
+
+            if not is_email_visible and not is_core_visible:
+                apply_btn = target.locator(
+                    "button.apply-now-button.apply-now-button--apply-now, button:has-text('Apply Now'), button:has-text('Apply')"
+                ).first
+                if await apply_btn.count() > 0 and await apply_btn.is_visible():
+                    print("🖱️ Clicking 'Apply Now' button on Oracle HCM job detail page...")
+                    await apply_btn.click()
+                    await asyncio.sleep(2.0)
+        except Exception as e:
+            print(f"⚠️ Stage 1 apply trigger notice: {e}")
+
+        # 2. Stage 2: Email & Legal Disclaimer Gate (/job/.../apply/email)
+        try:
+            email_input = target.locator("input#primary-email-0, input[type='email'], input[name*='email']").first
+            if await email_input.count() > 0 and await email_input.is_visible():
+                print("📧 Detected Oracle HCM email gate. Populating email and legal disclaimer...")
+                if await self._fill_text_input(email_input, p.email):
+                    filled += 1
+
+                # Legal disclaimer checkbox
+                consent_cb = target.locator(
+                    "label.legal-disclaimer-container input[type='checkbox'], input[type='checkbox']#legal-terms, input[type='checkbox']"
+                ).first
+                if await consent_cb.count() > 0:
+                    try:
+                        if not await consent_cb.is_checked():
+                            await consent_cb.check()
+                    except Exception:
+                        await consent_cb.click(force=True)
+                    print("✅ Checked legal disclaimer consent checkbox.")
+
+                # Click Next button
+                next_btn = target.locator("button:has-text('Next'), button.next-button, button[type='submit']").first
+                if await next_btn.count() > 0 and await next_btn.is_visible():
+                    print("➡️ Submitting email gate with 'Next' button...")
+                    await next_btn.click()
+                    await asyncio.sleep(3.0)
+        except Exception as e:
+            print(f"⚠️ Stage 2 email gate notice: {e}")
+
+        # 3. Stage 3: Section 1 - Candidate Profile & Resume (/job/.../apply/section/1)
+        # 3.1 Resume Attachment
+        resume_sel = ", ".join(schema.get("resume", ["input[type='file'][name*='resume']", "input[type='file']"]))
+        if resume_pdf_path and os.path.exists(resume_pdf_path):
+            try:
+                res_el = target.locator(resume_sel).first
+                if await res_el.count() > 0:
+                    await res_el.set_input_files(os.path.abspath(resume_pdf_path))
+                    attached = True
+                    filled += 1
+                    print(f"📎 Attached resume PDF to Oracle Cloud HCM form: {os.path.basename(resume_pdf_path)}")
+            except Exception as e:
+                print(f"⚠️ Oracle HCM resume upload notice: {e}")
+
+        # 3.2 Title Radio Pill (e.g., 'Mr.')
+        try:
+            title_pill = target.locator(
+                "label:has-text('Mr.'), input[type='radio'][value='Mr.'], input[type='radio'][value='MR']"
+            ).first
+            if await title_pill.count() > 0 and await title_pill.is_visible():
+                await title_pill.click()
+                filled += 1
+                print("🎯 Selected title pill: 'Mr.'")
+        except Exception as e:
+            print(f"⚠️ Title pill selection notice: {e}")
+
+        # 3.3 First Name
+        first_sel = ", ".join(
+            schema.get(
+                "first_name",
+                ["input[name*='firstName' i]", "input#first-name", "input[aria-label*='First Name' i]"],
+            )
+        )
+        if await self._fill_text_input(target.locator(first_sel), p.first_name):
+            filled += 1
+
+        # 3.4 Last Name
+        last_sel = ", ".join(
+            schema.get(
+                "last_name",
+                ["input[name*='lastName' i]", "input#last-name", "input[aria-label*='Last Name' i]"],
+            )
+        )
+        if await self._fill_text_input(target.locator(last_sel), p.last_name):
+            filled += 1
+
+        # 3.5 Middle Name (optional)
+        middle_sel = ", ".join(
+            schema.get(
+                "middle_name",
+                ["input[name*='middleName' i]", "input#middle-name", "input[aria-label*='Middle Name' i]"],
+            )
+        )
+        try:
+            middle_el = target.locator(middle_sel).first
+            if await middle_el.count() > 0 and await middle_el.is_visible():
+                pass
+        except Exception:
+            pass
+
+        # 3.6 Phone Country Dial Code & Phone Number
+        try:
+            # Country combobox / dropdown if present
+            country_combobox = target.locator(
+                "div.phone-country-code, select[name*='country' i], div[role='combobox']:has-text('+'), div.select-country"
+            ).first
+            if await country_combobox.count() > 0 and await country_combobox.is_visible():
+                await self._select_react_combobox(target, country_combobox, "India (+91)")
+
+            # Phone number text input
+            phone_sel = ", ".join(
+                schema.get(
+                    "phone",
+                    ["input[type='tel']", "input[name*='phone' i]", "input[aria-label*='Phone' i]"],
+                )
+            )
+            phone_digits = p.phone
+            if phone_digits.startswith("+91"):
+                phone_digits = phone_digits.replace("+91", "").strip()
+            if await self._fill_text_input(target.locator(phone_sel), phone_digits):
+                filled += 1
+        except Exception as e:
+            print(f"⚠️ Phone field notice: {e}")
+
+        # 3.7 Links (Portfolio / LinkedIn)
+        link_val = profiles.portfolio or profiles.linkedin
+        if link_val:
+            website_sel = ", ".join(
+                schema.get(
+                    "website",
+                    ["input[name*='link' i]", "input[aria-label*='Link' i]", "input[placeholder*='Link' i]"],
+                )
+            )
+            if await self._fill_text_input(target.locator(website_sel), link_val):
+                filled += 1
+            elif profiles.linkedin:
+                linkedin_sel = ", ".join(
+                    schema.get("linkedin", ["input[name*='linkedin' i]", "input[aria-label*='LinkedIn' i]"])
+                )
+                if await self._fill_text_input(target.locator(linkedin_sel), profiles.linkedin):
+                    filled += 1
 
         return filled, attached
 

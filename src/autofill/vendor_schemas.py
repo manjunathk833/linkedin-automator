@@ -160,10 +160,90 @@ class ATSVendorPattern:
     OKTA_BRANDED_GREENHOUSE = "OKTA_BRANDED_GREENHOUSE"
     DATABRICKS_CUSTOM_GREENHOUSE = "DATABRICKS_CUSTOM_GREENHOUSE"
     COINBASE_CUSTOM_GREENHOUSE = "COINBASE_CUSTOM_GREENHOUSE"
+    ORACLE_CLOUD_HCM = "ORACLE_CLOUD_HCM"
     GENERIC_ATS_FALLBACK = "GENERIC_ATS_FALLBACK"
 
 
 VENDOR_SCHEMAS: dict[str, dict[str, Any]] = {
+    ATSVendorPattern.ORACLE_CLOUD_HCM: {
+        "vendor_name": "Oracle Cloud HCM",
+        "url_identifiers": ["oraclecloud.com", "fa.ocs.oraclecloud.com"],
+        "url_patterns": [
+            r"oraclecloud\.com/hcmUI/CandidateExperience",
+            r".*\.fa\.ocs\.oraclecloud\.com",
+        ],
+        "dom_fingerprints": [
+            "button.apply-now-button",
+            "input#primary-email-0",
+            "label.legal-disclaimer-container",
+            ".application-container",
+        ],
+        "selectors": {
+            "apply_button": [
+                "button.apply-now-button.apply-now-button--apply-now",
+                "button:has-text('Apply Now')",
+                "button:has-text('Apply')",
+            ],
+            "cookie_accept": [
+                "button#onetrust-accept-btn-handler",
+                "button:has-text('Accept All')",
+                "button:has-text('Accept Cookies')",
+            ],
+            "email": [
+                "input#primary-email-0",
+                "input[type='email']",
+                "input[name*='email']",
+            ],
+            "consent_checkbox": [
+                "label.legal-disclaimer-container input[type='checkbox']",
+                "input[type='checkbox']#legal-terms",
+                "input[type='checkbox']",
+            ],
+            "next_button": [
+                "button:has-text('Next')",
+                "button.next-button",
+                "button[type='submit']",
+            ],
+            "resume": [
+                "input[type='file'][name*='resume']",
+                "input[type='file']",
+            ],
+            "title": [
+                "label:has-text('Mr.')",
+                "input[type='radio'][value='Mr.']",
+                "input[type='radio'][value='MR']",
+            ],
+            "first_name": [
+                "input[name*='firstName' i]",
+                "input#first-name",
+                "input[aria-label*='First Name' i]",
+            ],
+            "last_name": [
+                "input[name*='lastName' i]",
+                "input#last-name",
+                "input[aria-label*='Last Name' i]",
+            ],
+            "middle_name": [
+                "input[name*='middleName' i]",
+                "input#middle-name",
+                "input[aria-label*='Middle Name' i]",
+            ],
+            "phone": [
+                "input[type='tel']",
+                "input[name*='phone' i]",
+                "input[aria-label*='Phone' i]",
+            ],
+            "website": [
+                "input[name*='link' i]",
+                "input[aria-label*='Link' i]",
+                "input[placeholder*='Link' i]",
+            ],
+            "linkedin": [
+                "input[name*='linkedin' i]",
+                "input[aria-label*='LinkedIn' i]",
+            ],
+        },
+    },
     ATSVendorPattern.OKTA_BRANDED_GREENHOUSE: {
         "vendor_name": "Okta Branded Greenhouse",
         "url_identifiers": ["okta.com"],
@@ -396,6 +476,8 @@ def classify_ats_pattern(url: str) -> str:
         return ATSVendorPattern.COINBASE_CUSTOM_GREENHOUSE
 
     # 2. Standard ATS Job Boards
+    if "oraclecloud.com" in clean_url or "fa.ocs.oraclecloud.com" in clean_url:
+        return ATSVendorPattern.ORACLE_CLOUD_HCM
     if "greenhouse.io" in clean_url:
         return ATSVendorPattern.GREENHOUSE_STANDARD
     if "lever.co" in clean_url:
