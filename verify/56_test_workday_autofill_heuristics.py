@@ -462,6 +462,82 @@ async def test_full_fill_ats_page_routing_workday():
     print("✅ Step 4: fill_ats_page direct routing for Workday verified successfully.")
 
 
+WORKDAY_VERIFY_MOCK_HTML = """<!DOCTYPE html>
+<html>
+<head>
+  <title>Workday Sign In - Verification Required</title>
+</head>
+<body>
+  <div id="auth-verify-gate">
+    <h2>Sign In</h2>
+    <div data-automation-id="errorMessage">An email has been sent to you. Please verify your account.</div>
+    <div>
+      <label>Email Address</label>
+      <input type="email" data-automation-id="email" value="manjunathhk833@gmail.com" />
+    </div>
+    <div>
+      <label>Password</label>
+      <input type="password" data-automation-id="password" />
+    </div>
+    <button type="button" data-automation-id="signInSubmitButton" onclick="simulateVerification()">Sign In</button>
+  </div>
+
+  <div id="stage-3" style="display:none;">
+    <h2>My Information</h2>
+    <input type="text" data-automation-id="legalNameSection_firstName" />
+  </div>
+
+  <script>
+    function simulateVerification() {
+      // Transition from sign-in verification gate to Stage 3 application form
+      document.getElementById('auth-verify-gate').style.display = 'none';
+      document.getElementById('stage-3').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
+"""
+
+
+async def test_workday_email_verification_holding_gate():
+    print("🧪 Step 5: Testing Workday email verification holding gate & auto-sign-in...")
+
+    master_data = load_candidate_master_data()
+    filler = ATSAssistedFiller(headless=True, master_data=master_data)
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+
+        await page.set_content(WORKDAY_VERIFY_MOCK_HTML, wait_until="domcontentloaded")
+
+        # 1. Assert email verification screen is detected
+        is_verify_screen = await filler._is_workday_email_verification_screen(page)
+        assert is_verify_screen is True, "Failed to detect Workday email verification screen"
+
+        # 2. Execute verification holding loop (max_wait_seconds=15)
+        workday_pwd = master_data.personal.workday_default_password
+        resumed = await filler._handle_workday_email_verification_loop(
+            target=page,
+            workday_pwd=workday_pwd,
+            max_wait_seconds=15,
+        )
+
+        assert resumed is True, "Verification loop did not resume successfully"
+
+        # 3. Assert Stage 3 form is now mounted and visible
+        assert await page.locator("#stage-3").is_visible(), "Stage 3 should be visible after verification"
+        assert await page.locator("input[data-automation-id='legalNameSection_firstName']").is_visible()
+
+        # 4. Verify password was populated before submission
+        pwd_val = await page.locator("input[data-automation-id='password']").input_value()
+        assert pwd_val == workday_pwd, f"Password was not populated: {pwd_val}"
+
+        await browser.close()
+
+    print("✅ Step 5: Workday email verification holding gate & auto-sign-in verified successfully.")
+
+
 async def main():
     print("\n🚀 ========================================================")
     print("🚀 Running Verification Gate 56: Workday Standard ATS")
@@ -471,6 +547,7 @@ async def main():
     test_workday_vendor_schema_and_master_data()
     await test_workday_playwright_autofill_simulation()
     await test_full_fill_ats_page_routing_workday()
+    await test_workday_email_verification_holding_gate()
 
     print("\n🎉 ========================================================")
     print("🎉 Verification Gate 56 PASSED: Workday Standard Fully Integrated")

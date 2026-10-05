@@ -1650,6 +1650,142 @@ class ATSAssistedFiller:
 
         return "unknown"
 
+    async def _is_workday_email_verification_screen(self, target: Any) -> bool:
+        """Detects whether the current page is Workday's post-registration email verification screen."""
+        try:
+            notices = [
+                "text='Please verify your account'",
+                "text='An email has been sent to you'",
+                "div:has-text('Please verify your account')",
+                "div:has-text('An email has been sent to you')",
+                "span:has-text('Please verify your account')",
+                "span:has-text('An email has been sent to you')",
+                "p:has-text('Please verify your account')",
+                "p:has-text('An email has been sent to you')",
+                "[data-automation-id*='errorMessage']:has-text('verify')",
+            ]
+            for sel in notices:
+                loc = target.locator(sel).first
+                if await loc.count() > 0 and await loc.is_visible():
+                    return True
+
+            page = getattr(target, "page", target)
+            curr_url = getattr(page, "url", "")
+            if "/login" in curr_url and "redirect=" in curr_url:
+                sign_in_btn = target.locator(
+                    "button[data-automation-id='signInSubmitButton'], button:has-text('Sign In')"
+                ).first
+                if await sign_in_btn.count() > 0 and await sign_in_btn.is_visible():
+                    body_loc = target.locator("body")
+                    if await body_loc.count() > 0:
+                        body_text = await body_loc.inner_text()
+                        if "verify your account" in body_text.lower() or "email has been sent" in body_text.lower():
+                            return True
+        except Exception:
+            pass
+        return False
+
+    async def _handle_workday_email_verification_loop(
+        self, target: Any, workday_pwd: str, max_wait_seconds: int = 180
+    ) -> bool:
+        """Post-registration Email Verification Holding Gate.
+
+        Monitors Workday's '/login?redirect=...' screen when 'Please verify your account' is shown.
+        Alerts candidate with audible chime and instructions, ensures credentials are ready,
+        and periodically polls/clicks 'Sign In' until candidate verifies via email and Workday
+        redirects to the job application form (e.g. 'My Information' section).
+        """
+        if not await self._is_workday_email_verification_screen(target):
+            return False
+
+        p = self.master_data.personal
+        print("\n" + "=" * 68)
+        print("🔔 ==================================================================")
+        print("🔔 WORKDAY EMAIL VERIFICATION HOLDING GATE DETECTED")
+        print(f"🔔 Workday has sent an account verification email to: {p.email}")
+        print("🔔 Please open your email inbox and click the verification link!")
+        print("🔔 Copilot is holding and will automatically click 'Sign In' once verified,")
+        print("🔔 then seamlessly resume filling Stage 3 ('My Information').")
+        print("🔔 (You can also click 'Sign In' manually in Chrome at any time).")
+        print("🔔 ==================================================================\n")
+        print("\a")  # audible chime
+
+        email_inp = target.locator("input[data-automation-id='email'], input#email, input[type='email']").first
+        pwd_inp = target.locator("input[data-automation-id='password'], input#password, input[type='password']").first
+
+        try:
+            if await email_inp.count() > 0 and await email_inp.is_visible():
+                curr_email = await email_inp.input_value()
+                if not curr_email:
+                    await self._fill_text_input(email_inp, p.email)
+
+            if await pwd_inp.count() > 0 and await pwd_inp.is_visible():
+                curr_pwd = await pwd_inp.input_value()
+                if not curr_pwd:
+                    await self._fill_text_input(pwd_inp, workday_pwd)
+        except Exception as e:
+            print(f"⚠️ Notice preparing verification gate inputs: {e}")
+
+        start_time = time.time()
+        while time.time() - start_time < max_wait_seconds:
+            await asyncio.sleep(5.0)
+
+            # 1. Check if application form is already visible
+            info_el = target.locator(
+                "[data-automation-id='legalNameSection_firstName'], input[name*='firstName' i]"
+            ).first
+            if await info_el.count() > 0 and await info_el.is_visible():
+                print("🎉 Workday account verified and application form mounted! Resuming autofill...")
+                return True
+
+            # 2. Check if URL left /login and navigated to application
+            page = getattr(target, "page", target)
+            curr_url = getattr(page, "url", "")
+            if curr_url and "/login" not in curr_url and ("/job/" in curr_url or "/apply/" in curr_url):
+                print(f"🎉 Workday navigated to application page: {curr_url}. Waiting for hydration...")
+                await asyncio.sleep(2.0)
+                return True
+
+            # 3. If still on verification/sign-in screen, ensure password and click Sign In
+            sign_in_btn = target.locator(
+                "button[data-automation-id='signInSubmitButton'], button:has-text('Sign In')"
+            ).first
+            if await sign_in_btn.count() > 0 and await sign_in_btn.is_visible():
+                try:
+                    if await pwd_inp.count() > 0 and await pwd_inp.is_visible():
+                        curr_pwd = await pwd_inp.input_value()
+                        if not curr_pwd:
+                            await self._fill_text_input(pwd_inp, workday_pwd)
+                except Exception:
+                    pass
+
+                elapsed = int(time.time() - start_time)
+                print(
+                    f"⏳ [{elapsed}s / {max_wait_seconds}s] Checking Workday email verification status via Sign In..."
+                )
+                try:
+                    await sign_in_btn.click(timeout=3000)
+                except Exception:
+                    try:
+                        await sign_in_btn.click(force=True)
+                    except Exception:
+                        pass
+
+                await asyncio.sleep(2.5)
+
+                if await info_el.count() > 0 and await info_el.is_visible():
+                    print("🎉 Workday account verified and application form mounted! Resuming autofill...")
+                    return True
+
+                curr_url = getattr(page, "url", "")
+                if curr_url and "/login" not in curr_url and ("/job/" in curr_url or "/apply/" in curr_url):
+                    print(f"🎉 Workday navigated to application page: {curr_url}. Resuming autofill...")
+                    await asyncio.sleep(2.0)
+                    return True
+
+        print("⚠️ Workday email verification loop timed out.")
+        return False
+
     async def _fill_workday(self, target: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
         """Fills standard Workday application fields with hydration barrier, state-machine transitions,
         bidirectional auth fallback, OTP handshake, and resilient form population."""
@@ -1808,6 +1944,9 @@ class ATSAssistedFiller:
                             await create_acc_btn.click(force=True)
                         await asyncio.sleep(2.5)
 
+                    # Post-Registration Email Verification Notice check
+                    await self._handle_workday_email_verification_loop(target, workday_pwd)
+
                     # Bidirectional Fallback A: Check if account already exists
                     account_exists = target.locator(
                         "div[role='alert']:has-text('already exists'), div:has-text('account already exists'), [data-automation-id*='errorMessage']:has-text('already exists')"
@@ -1845,6 +1984,9 @@ class ATSAssistedFiller:
                             await sign_in_submit.click(force=True)
                         await asyncio.sleep(2.5)
 
+                    # Check if redirected to or still on Email Verification notice
+                    await self._handle_workday_email_verification_loop(target, workday_pwd)
+
                     # Bidirectional Fallback B: Check if account does NOT exist
                     account_not_found = target.locator(
                         "div[role='alert']:has-text('invalid'), div[role='alert']:has-text('exist'), div:has-text('invalid user name'), div:has-text('not find an account'), [data-automation-id*='errorMessage']:has-text('invalid')"
@@ -1875,6 +2017,12 @@ class ATSAssistedFiller:
                                 await asyncio.sleep(2.5)
         except Exception as e:
             print(f"⚠️ Stage 2 auth notice: {e}")
+
+        # Post-Registration Email Verification Holding Gate Check
+        try:
+            await self._handle_workday_email_verification_loop(target, workday_pwd)
+        except Exception as e:
+            print(f"⚠️ Email verification gate notice: {e}")
 
         # OTP / Email Verification Gate Check
         try:
@@ -1912,7 +2060,7 @@ class ATSAssistedFiller:
                 "[data-automation-id='legalNameSection_firstName'], input[id*='legalNameSection_firstName'], input[name*='firstName' i]"
             ).first
             try:
-                await fn_input.wait_for(state="visible", timeout=10000)
+                await fn_input.wait_for(state="visible", timeout=15000)
             except Exception:
                 pass
 

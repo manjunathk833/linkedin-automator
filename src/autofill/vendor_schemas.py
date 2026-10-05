@@ -512,6 +512,12 @@ VENDOR_SCHEMAS: dict[str, dict[str, Any]] = {
                 "input[aria-label*='code' i]",
                 "input[placeholder*='code' i]",
             ],
+            "email_verification_notice": [
+                "text='Please verify your account'",
+                "text='An email has been sent to you'",
+                "div:has-text('Please verify your account')",
+                "div:has-text('An email has been sent to you')",
+            ],
             "first_name": [
                 "[data-automation-id='legalNameSection_firstName']",
                 "input[id*='legalNameSection_firstName']",

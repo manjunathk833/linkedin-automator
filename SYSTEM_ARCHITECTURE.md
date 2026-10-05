@@ -311,6 +311,8 @@ All features are covered by dedicated, standalone verification scripts in `verif
 | `verify/53_test_resume_comparison_and_selection.py` | Resume Comparison & Dynamic Routing | Verifies tailored vs standard toggle, selection persistence, and approved queue compilation |
 | `verify/54_test_pdf_inline_preview_headers.py` | PDF Inline Preview Headers | Verifies Content-Disposition: inline and Content-Type: application/pdf on preview endpoints |
 | `verify/55_test_oracle_hcm_autofill_heuristics.py` | Oracle Cloud HCM (Akamai) Suite | Verifies pattern classification, multi-stage flow (Job -> Email Gate -> Section 1), and zero contamination |
+| `verify/56_test_workday_autofill_heuristics.py` | Workday Standard Multi-Stage & Verification Gate | Verifies pattern classification, tenant auth, post-registration email verification loop, and auto-sign-in form resumption |
+| `verify/56b_test_workday_live_page_autofill.py` | Workday Live Portal Probing | Verifies live JioStar portal hydration barrier, modal opening, and live auth gate detection |
 
 * **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 109 project files).
 
