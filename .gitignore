@@ -68,6 +68,9 @@ Thumbs.db
 
 # Verification Scratch / Logs / Temp Media
 *.log
+data/logs/*.log
+data/logs/*.jsonl
+data/logs/screenshots/
 .system_generated/
 .tempmediaStorage/
 .user_uploaded/

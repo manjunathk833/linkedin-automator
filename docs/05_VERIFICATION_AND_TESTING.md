@@ -60,6 +60,7 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/55_test_oracle_hcm_autofill_heuristics.py` | Oracle Cloud HCM (Akamai) Autofill | Validates Oracle Cloud HCM pattern classification, multi-stage traversal, and form precision | **PASSED** |
 | `verify/56_test_workday_autofill_heuristics.py` | Workday Standard ATS Autofill | Validates Workday pattern classification, tenant auth gate, OTP loop, multi-stage autofill, and resume attachment | **PASSED** |
 | `verify/56b_test_workday_live_page_autofill.py` | Workday Live Portal Probing | Validates live JioStar portal hydration barrier, modal opening, and live auth gate detection | **PASSED** |
+| `verify/57_test_autofill_logger_and_learning_vault.py` | Structured Diagnostics, Event Logger & Learning Vault | Validates JSONL events, failure screenshots, DOM element dumps, Learning Vault banking, and Workday navbar anti-collision | **PASSED** |
 
 ---
 

@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "description": "Persistent repository of ATS autofill failure patterns, root causes, and verified fixes.",
+  "lessons": [
+    {
+      "id": "LESSON-001",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "State machine stuck on Overview or misclassifying Job Overview page as auth_sign_in.",
+      "root_cause": "Broad 'button:has-text(Sign In)' selector matched the global navbar 'Sign In' header button on the job overview page before checking for applyButton.",
+      "fix_rule": "Prioritize applyButton for 'overview' when password input is absent; strictly target button[data-automation-id='signInSubmitButton'] inside auth container.",
+      "date_banked": "2026-10-05T17:30:00Z"
+    },
+    {
+      "id": "LESSON-002",
+      "vendor": "GREENHOUSE_STANDARD",
+      "symptom": "Combobox selecting transient loading spinner instead of real option.",
+      "root_cause": "Async React-Select combobox displays .select__menu-notice--loading while fetching suggestions.",
+      "fix_rule": "Filter out .select__menu-notice using .select__option:not(.select__menu-notice).",
+      "date_banked": "2026-10-03T10:00:00Z"
+    },
+    {
+      "id": "LESSON-003",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Autofill halts after credential entry on Workday.",
+      "root_cause": "Workday post-auth redirect lands back on /job/... overview page, requiring an authenticated 'Apply' click before Stage 3 mounts.",
+      "fix_rule": "Use state machine loop (max 20 transitions) that handles overview -> modal -> auth -> overview -> info dynamically.",
+      "date_banked": "2026-10-05T16:00:00Z"
+    },
+    {
+      "id": "LESSON-004",
+      "vendor": "COMMON",
+      "symptom": "Red validation outlines persist after filling inputs.",
+      "root_cause": "Setting input value without synthetic event dispatch leaves internal React/Angular state uncommitted.",
+      "fix_rule": "Always dispatch 'input', 'change', and 'blur' events on modified form elements.",
+      "date_banked": "2026-10-03T12:00:00Z"
+    },
+    {
+      "id": "LESSON-005",
+      "vendor": "COMMON",
+      "symptom": "Phone dial code matches British Indian Ocean Territory (+246) instead of India (+91).",
+      "root_cause": "Substring search for 'India' matches territory name before country name.",
+      "fix_rule": "Search and match exact dial code string '+91' before fallback to country name.",
+      "date_banked": "2026-10-02T18:00:00Z"
+    },
+    {
+      "id": "LESSON-006",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-05T12:25:39.721140+00:00"
+    }
+  ]
+}

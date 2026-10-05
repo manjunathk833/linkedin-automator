@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from src.autofill.autofill_logger import AutofillLogger
 from src.autofill.form_mapper import FormFieldMapper
 from src.autofill.vendor_schemas import (
     ATSVendorPattern,
@@ -93,6 +94,7 @@ class ATSAssistedFiller:
     def __init__(self, headless: bool = False, master_data: CandidateMasterData | None = None):
         self.headless = headless
         self.mapper = FormFieldMapper()
+        self.logger = AutofillLogger.get_logger()
         if master_data is not None:
             self.master_data = master_data
         else:
@@ -148,12 +150,25 @@ class ATSAssistedFiller:
         # Check vendor pattern upfront
         pattern = classify_ats_pattern(active_url)
         print(f"🎯 Pattern Recognition Engine: Identified ATS Pattern [{pattern}] for URL: {active_url}")
+        self.logger.log(
+            event_type="SESSION_START",
+            message=f"Starting ATS autofill for pattern [{pattern}]",
+            vendor=str(pattern),
+            url=active_url,
+        )
 
         # Dedicated multi-stage handlers that manage their own initial trigger / stages:
         if pattern == ATSVendorPattern.ORACLE_CLOUD_HCM:
             print("☁️ Routing directly to dedicated Oracle Cloud HCM multi-stage autofill handler...")
             fields_filled, resume_attached = await self._fill_oracle_hcm(page, resume_pdf_path)
             status = "ready_for_review" if (fields_filled > 0 or resume_attached) else "needs_manual_navigation"
+            self.logger.log(
+                event_type="COMPLETED",
+                message=f"Oracle Cloud HCM autofill finished: {fields_filled} fields typed, resume={resume_attached}",
+                vendor=str(pattern),
+                url=getattr(page, "url", active_url),
+                details={"fields_filled": fields_filled, "resume_attached": resume_attached, "status": status},
+            )
             print("\n🔔 ========================================================")
             print(f"🔔 ATS AUTOFILL COMPLETE: {fields_filled} fields typed, Resume Attached={resume_attached}")
             print("🔔 Status: Pausing session for candidate manual review and submission.")
@@ -168,6 +183,13 @@ class ATSAssistedFiller:
             print("🏢 Routing directly to dedicated Workday multi-stage autofill handler...")
             fields_filled, resume_attached = await self._fill_workday(page, resume_pdf_path)
             status = "ready_for_review" if (fields_filled > 0 or resume_attached) else "needs_manual_navigation"
+            self.logger.log(
+                event_type="COMPLETED",
+                message=f"Workday autofill finished: {fields_filled} fields typed, resume={resume_attached}",
+                vendor=str(pattern),
+                url=getattr(page, "url", active_url),
+                details={"fields_filled": fields_filled, "resume_attached": resume_attached, "status": status},
+            )
             print("\n🔔 ========================================================")
             print(f"🔔 ATS AUTOFILL COMPLETE: {fields_filled} fields typed, Resume Attached={resume_attached}")
             print("🔔 Status: Pausing session for candidate manual review and submission.")
@@ -1828,21 +1850,7 @@ class ATSAssistedFiller:
             if await verify_pwd_inp.count() > 0 and await verify_pwd_inp.is_visible():
                 return "auth_create"
 
-            # 7. Auth Gate: Sign In Mode (signInSubmitButton or login URL with credentials)
-            sign_in_submit = target.locator(
-                "button[data-automation-id='signInSubmitButton'], button:has-text('Sign In'), button:has-text('Sign in')"
-            ).first
-            email_or_pwd = target.locator(
-                "input[data-automation-id='email'], input#email, input[data-automation-id='password'], input#password"
-            ).first
-            page = getattr(target, "page", target)
-            curr_url = getattr(page, "url", "")
-            if (await sign_in_submit.count() > 0 and await sign_in_submit.is_visible()) or (
-                "/login" in curr_url and await email_or_pwd.count() > 0 and await email_or_pwd.is_visible()
-            ):
-                return "auth_sign_in"
-
-            # 8. 'Start Your Application' Modal
+            # 7. 'Start Your Application' Modal
             modal_el = target.locator(
                 "[data-automation-id='applyManually'], button:has-text('Apply Manually'), a:has-text('Apply Manually'), "
                 "[data-automation-id='useMyLastApplication'], button:has-text('Use My Last Application')"
@@ -1850,12 +1858,29 @@ class ATSAssistedFiller:
             if await modal_el.count() > 0 and await modal_el.is_visible():
                 return "modal"
 
-            # 9. Job Overview page ('Apply' button present)
+            # Check presence of credential fields (to disambiguate Overview vs Auth Gate)
+            pwd_inp = target.locator(
+                "input[data-automation-id='password'], input#password, input[type='password']"
+            ).first
+            has_pwd = await pwd_inp.count() > 0 and await pwd_inp.is_visible()
+
+            # 8. Job Overview page ('Apply' button present, without password field)
             apply_el = target.locator(
                 "[data-automation-id='applyButton'], a[role='button']:has-text('Apply'), button:has-text('Apply'), a:has-text('Apply'), [data-automation-id='adventureButton']"
             ).first
-            if await apply_el.count() > 0 and await apply_el.is_visible():
+            if await apply_el.count() > 0 and await apply_el.is_visible() and not has_pwd:
                 return "overview"
+
+            # 9. Auth Gate: Sign In Mode (Must have password input visible, AND signInSubmitButton or /login URL)
+            sign_in_submit = target.locator(
+                "button[data-automation-id='signInSubmitButton'], [data-automation-id='authDialog'] button:has-text('Sign In'), form button[type='submit']"
+            ).first
+            page = getattr(target, "page", target)
+            curr_url = getattr(page, "url", "")
+            if has_pwd and (
+                (await sign_in_submit.count() > 0 and await sign_in_submit.is_visible()) or ("/login" in curr_url)
+            ):
+                return "auth_sign_in"
 
         except Exception:
             pass
@@ -1899,11 +1924,21 @@ class ATSAssistedFiller:
             transition_count += 1
             curr_state = await self._detect_workday_state(target)
             print(f"🔄 Workday State Machine [Transition {transition_count}/20]: Active State = [{curr_state}]")
+            self.logger.log(
+                event_type="STATE_TRANSITION",
+                message=f"Workday State Machine [Transition {transition_count}/20]: Active State = [{curr_state}]",
+                vendor="WORKDAY_STANDARD",
+                url=getattr(getattr(target, "page", target), "url", ""),
+                state=curr_state,
+            )
 
             if curr_state == last_state and curr_state not in ("info", "experience"):
                 state_stuck_count += 1
                 if state_stuck_count >= 4:
                     print(f"⚠️ Workday State Machine reached stuck threshold on [{curr_state}]. Diagnostic snapshot:")
+                    await self.logger.capture_diagnostic(
+                        target, f"stuck_{curr_state}", vendor="WORKDAY_STANDARD", state=curr_state
+                    )
                     await self._capture_workday_diagnostic(target, f"stuck_{curr_state}")
                     break
             else:
@@ -1958,7 +1993,7 @@ class ATSAssistedFiller:
                     "input[data-automation-id='verifyPassword'], input#verifyPassword"
                 ).first
                 create_acc_btn = target.locator(
-                    "button[data-automation-id='createAccountSubmitButton'], button:has-text('Create Account')"
+                    "button[data-automation-id='createAccountSubmitButton'], [data-automation-id='authDialog'] button:has-text('Create Account'), form button[type='submit']"
                 ).first
 
                 if await email_inp.count() > 0 and await email_inp.is_visible():
@@ -2016,7 +2051,7 @@ class ATSAssistedFiller:
                     "input[data-automation-id='password'], input#password, input[type='password']"
                 ).first
                 sign_in_submit = target.locator(
-                    "button[data-automation-id='signInSubmitButton'], button:has-text('Sign In'), button:has-text('Sign in')"
+                    "button[data-automation-id='signInSubmitButton'], [data-automation-id='authDialog'] button:has-text('Sign In'), form button[type='submit']"
                 ).first
 
                 if await email_inp.count() > 0 and await email_inp.is_visible():
@@ -2486,6 +2521,11 @@ class ATSAssistedFiller:
 
             external_ats_url = getattr(target_page, "url", "") or job_url
             print(f"🎯 Successfully pivoted to External ATS Portal: {external_ats_url}")
+            self.logger.log(
+                event_type="ATS_PIVOT",
+                message=f"Pivoted from LinkedIn to external ATS portal: {external_ats_url}",
+                url=external_ats_url,
+            )
 
             # Execute canonical ATS autofill on the external ATS portal page
             return await self.fill_ats_page(target_page, external_ats_url, resume_pdf_path)

@@ -122,6 +122,47 @@ def handle_lint():
     subprocess.run(["bash", script])
 
 
+def handle_autofill_audit():
+    """Prints a diagnostics audit report of recent autofill events and learning vault lessons."""
+    from src.autofill.autofill_logger import AutofillLogger
+
+    logger = AutofillLogger.get_logger()
+    summary = logger.get_audit_summary(limit=10)
+
+    print("\n" + "=" * 65)
+    print("  ATS AUTOFILL DIAGNOSTICS & LEARNING VAULT AUDIT")
+    print("=" * 65)
+
+    print(f"\n🧠 Banked Lessons in Learning Vault ({summary['total_lessons_banked']} total):")
+    for lesson in summary["lessons"]:
+        print(f"  [{lesson['id']}] [{lesson['vendor']}]")
+        print(f"     • Symptom:    {lesson['symptom']}")
+        print(f"     • Root Cause: {lesson['root_cause']}")
+        print(f"     • Fix Rule:   {lesson['fix_rule']}")
+        print()
+
+    recent_events = summary["recent_events"]
+    print(f"📜 Recent Autofill Events ({len(recent_events)} captured):")
+    if not recent_events:
+        print("  (No recent events recorded in data/logs/autofill_events.jsonl)")
+    else:
+        for ev in recent_events[-5:]:
+            ts = ev.get("timestamp", "")[:19]
+            ev_type = ev.get("event_type", "INFO")
+            vendor = ev.get("vendor", "UNKNOWN")
+            st = ev.get("state", "N/A")
+            msg = ev.get("message", "")
+            print(f"  [{ts}] [{ev_type}] [{vendor}] [{st}]: {msg}")
+
+    recent_screenshots = summary["recent_screenshots"]
+    if recent_screenshots:
+        print(f"\n📸 Recent Diagnostic Screenshots ({len(recent_screenshots)} captured):")
+        for sc in recent_screenshots[:5]:
+            print(f"  • {sc}")
+
+    print("\n" + "=" * 65 + "\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="LinkedIn Job Search & Application Automation Orchestrator",
@@ -177,6 +218,12 @@ def main():
     # 8. lint
     subparsers.add_parser("lint", help="Run Ruff auto-fix linter and code formatter")
 
+    # 9. autofill (diagnostics and learning vault audit)
+    parser_autofill = subparsers.add_parser("autofill", help="Inspect ATS autofill diagnostic logs and learning vault")
+    parser_autofill.add_argument(
+        "--audit", action="store_true", default=True, help="Display recent events and banked lessons"
+    )
+
     args = parser.parse_args()
     config = load_config(args.config)
     runner = JobSearchPipelineRunner(config)
@@ -198,6 +245,8 @@ def main():
         asyncio.run(handle_login(config))
     elif cmd == "lint":
         handle_lint()
+    elif cmd == "autofill":
+        handle_autofill_audit()
     else:
         parser.print_help()
 
