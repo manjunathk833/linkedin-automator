@@ -1,0 +1,139 @@
+{
+  "version": "1.0",
+  "description": "Deterministic question and field mapping taxonomy for Workday ATS tenants (JioStar, Adobe, Nvidia, Walmart, etc.).",
+  "radio_questions": [
+    {
+      "pattern": "previously.*(employed|worked|work).*for|previously.*employed.*by|former.*employee",
+      "answer": "No",
+      "description": "Prior employment question"
+    },
+    {
+      "pattern": "authorized.*to.*work|legally.*authorized|work.*authorization",
+      "answer": "Yes",
+      "description": "Work authorization question"
+    },
+    {
+      "pattern": "require.*(sponsorship|visa)|will.*you.*require.*sponsor",
+      "answer": "No",
+      "description": "Visa sponsorship requirement question"
+    },
+    {
+      "pattern": "relative.*(employed|working)|family.*member.*(employed|working)",
+      "answer": "No",
+      "description": "Employee relative / nepotism disclosure"
+    },
+    {
+      "pattern": "government.*(official|employee)|public.*official",
+      "answer": "No",
+      "description": "Government official disclosure"
+    },
+    {
+      "pattern": "conflict.*of.*interest",
+      "answer": "No",
+      "description": "Conflict of interest disclosure"
+    },
+    {
+      "pattern": "at.*least.*18|18.*years.*of.*age|age.*of.*majority",
+      "answer": "Yes",
+      "description": "Minimum age compliance question"
+    },
+    {
+      "pattern": "non-compete|non.*solicitation|restrictive.*covenant",
+      "answer": "No",
+      "description": "Restrictive covenant disclosure"
+    },
+    {
+      "pattern": "disability|have.*a.*disability",
+      "answer": "No",
+      "description": "Voluntary disability disclosure"
+    },
+    {
+      "pattern": "veteran|protected.*veteran",
+      "answer": "No",
+      "description": "Voluntary veteran disclosure"
+    },
+    {
+      "pattern": "^gender$|gender.*identity",
+      "answer": "Male",
+      "description": "Voluntary gender disclosure"
+    }
+  ],
+  "dropdown_questions": [
+    {
+      "pattern": "^prefix$|prefix.*\\*|salutation",
+      "answer": "Mr.",
+      "description": "Name prefix / salutation"
+    },
+    {
+      "pattern": "how.*did.*you.*hear|source.*prompt|where.*did.*you.*hear",
+      "answer": "LinkedIn",
+      "description": "Recruitment source"
+    },
+    {
+      "pattern": "phone.*device.*type|device.*type",
+      "answer": "Mobile",
+      "description": "Phone device classification"
+    },
+    {
+      "pattern": "country.*phone.*code|dial.*code",
+      "answer": "+91",
+      "description": "India country dial code"
+    },
+    {
+      "pattern": "^country$|country.*\\*",
+      "answer": "India",
+      "description": "Primary country selection"
+    },
+    {
+      "pattern": "state|province|region|country.*region",
+      "answer": "Karnataka",
+      "description": "State / province selection"
+    },
+    {
+      "pattern": "notice.*period",
+      "answer": "30 Days",
+      "description": "Notice period dropdown"
+    },
+    {
+      "pattern": "^gender$|gender.*identity",
+      "answer": "Male",
+      "description": "Voluntary gender disclosure"
+    },
+    {
+      "pattern": "veteran.*status|protected.*veteran",
+      "answer": "I am not a protected veteran",
+      "description": "Voluntary veteran disclosure"
+    },
+    {
+      "pattern": "disability.*status|have.*a.*disability",
+      "answer": "No, I do not have a disability",
+      "description": "Voluntary disability disclosure"
+    }
+  ],
+  "text_questions": [
+    {
+      "pattern": "first.*name|given.*name",
+      "source_key": "personal.first_name"
+    },
+    {
+      "pattern": "last.*name|family.*name|surname",
+      "source_key": "personal.last_name"
+    },
+    {
+      "pattern": "address.*line.*1|street.*address",
+      "source_key": "personal.address_line1"
+    },
+    {
+      "pattern": "^city$|city.*town",
+      "source_key": "personal.city"
+    },
+    {
+      "pattern": "postal.*code|zip.*code|pin.*code",
+      "source_key": "personal.postal_code"
+    },
+    {
+      "pattern": "phone.*number|mobile.*number",
+      "source_key": "personal.phone"
+    }
+  ]
+}

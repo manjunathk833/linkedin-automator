@@ -148,5 +148,20 @@
     - Added CLI diagnostic command `python main.py autofill audit` displaying recent events, failure screenshots, and all banked lessons.
     - Created and executed Verification Gate 57 (`verify/57_test_autofill_logger_and_learning_vault.py`), passing 100%.
     - Codebase linted cleanly via `python main.py lint` (0 errors across 124 files).
+  - Workday Deterministic Dynamic Question Solver & Taxonomy Store (Gate 58):
+    - Diagnosed tenant-specific screening questions stopping autofill on Workday Stage 1 ('My Information') and Stage 3 ('Application Questions') (e.g. JioStar prior employment radio group and mandatory Prefix dropdown).
+    - Established deterministic taxonomy mapping file `data/profile/workday_field_mappings.json` cataloging regex patterns for prior employment, authorization, sponsorship, nepotism/relatives, conflict of interest, minimum age compliance, non-compete, voluntary disability/veteran/gender disclosures, prefix, device type, and country code.
+    - Updated `CandidateMasterData` and `MasterPersonalDetails` (`src/autofill/vendor_schemas.py`) and `data/profile/candidate_master_data.json` to include `"prefix": "Mr."`.
+    - Implemented `_resolve_workday_questions()` in `src/autofill/ats_filler.py`: dynamically scans radio groups (`fieldset`, `div[role='radiogroup']`) and custom dropdown comboboxes (`button[aria-haspopup='listbox']`), matching against candidate profile data and deterministic taxonomy rules.
+    - Hardened `_select_react_combobox`: guards against calling `.fill()` or `.press("Enter")` on `<button>` elements, clicking the trigger and selecting option from menu listbox.
+    - Expanded `_detect_workday_state` to recognize all 5 Workday breadcrumb stages: `info`, `experience`, `questions`, `disclosures`, and `review`.
+    - Created and executed Verification Gate 58 (`verify/58_test_workday_dynamic_question_solver.py`), passing 100% across all 4 steps:
+      * Step 1: Prior employment radio answered [No], Prefix dropdown selected [Mr.].
+      * Step 2: Stage 3 Application Questions answered (Work authorization [Yes], Visa sponsorship [No]).
+      * Step 3: Stage 4 Voluntary Disclosures answered (Disability status [No]).
+      * Step 4: Multi-stage traversal verified through State Machine up to Review Gate.
+    - Full regression suite verified: Gates 56, 57, and 58 passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 125 files).
+
 
 

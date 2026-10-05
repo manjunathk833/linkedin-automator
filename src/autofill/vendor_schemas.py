@@ -28,6 +28,7 @@ class MasterPersonalDetails(BaseModel):
     country: str = "India"
     postal_code: str = "560001"
     location: str = "Bengaluru, Karnataka, India"
+    prefix: str = "Mr."
     workday_default_password: str = "Candidate@2026Auto!"
 
 

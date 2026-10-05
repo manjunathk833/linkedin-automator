@@ -8,6 +8,7 @@ resume PDF, and halts before submission for candidate review.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import re
 import time
@@ -442,21 +443,24 @@ class ATSAssistedFiller:
                 if await inner_input.count() > 0:
                     input_el = inner_input
 
-            # Focus and clear/type
+            # Focus / click trigger
             await input_el.click(timeout=1200)
             await asyncio.sleep(0.15)
-            type_text = "India" if ("+91" in search_text or search_text == "India") else search_text
-            await input_el.fill(type_text)
-            await input_el.dispatch_event("input")
-            await asyncio.sleep(0.5)
 
-            # Check if options menu opened (.select__option, div[role='option'], li[role='option'])
+            is_text_input = await input_el.evaluate("e => ['input', 'textarea'].includes(e.tagName.toLowerCase())")
+            if is_text_input:
+                type_text = "India" if ("+91" in search_text or search_text == "India") else search_text
+                await input_el.fill(type_text)
+                await input_el.dispatch_event("input")
+            await asyncio.sleep(0.4)
+
+            # Check if options menu opened (.select__option, div[role='option'], li[role='option'], [role='option'])
             container = target if hasattr(target, "locator") else getattr(target, "page", target)
             options = container.locator(
-                ".select__option:not(.select__menu-notice), div[role='option']:not(.select__menu-notice), li[role='option']"
+                ".select__option:not(.select__menu-notice), [role='option']:not(.select__menu-notice), li[role='option'], div[data-automation-id*='promptOption']"
             )
             try:
-                await options.first.wait_for(state="visible", timeout=3500)
+                await options.first.wait_for(state="visible", timeout=3000)
             except Exception:
                 pass
 
@@ -504,12 +508,13 @@ class ATSAssistedFiller:
                         await asyncio.sleep(0.2)
                         return True
 
-            # If no dropdown option matched, press Enter and dispatch events
-            await input_el.press("Enter")
-            await input_el.dispatch_event("change")
-            await input_el.dispatch_event("blur")
-            await asyncio.sleep(0.3)
-            return True
+            # If no dropdown option matched and it's an input, press Enter and dispatch events
+            if is_text_input:
+                await input_el.press("Enter")
+                await input_el.dispatch_event("change")
+                await input_el.dispatch_event("blur")
+                await asyncio.sleep(0.3)
+                return True
         except Exception:
             pass
         return False
@@ -1808,49 +1813,188 @@ class ATSAssistedFiller:
         print("⚠️ Workday email verification loop timed out.")
         return False
 
+    async def _resolve_workday_questions(self, target: Any) -> int:
+        """Deterministically discovers and answers tenant-specific screening questions
+        (radio groups, dropdowns, and custom inputs) across Workday stages using the
+        persistent workday_field_mappings.json taxonomy and CandidateMasterData."""
+        answered = 0
+        mapping_file = PROJECT_ROOT / "data" / "profile" / "workday_field_mappings.json"
+        mappings: dict[str, Any] = {}
+        if mapping_file.exists():
+            try:
+                with open(mapping_file, encoding="utf-8") as f:
+                    mappings = json.load(f)
+            except Exception:
+                mappings = {}
+
+        radio_rules = mappings.get("radio_questions", [])
+        dropdown_rules = mappings.get("dropdown_questions", [])
+
+        # 1. Answer Radio Groups
+        try:
+            radio_groups = await target.locator(
+                "fieldset:has(input[type='radio']), div[role='radiogroup'], [data-automation-id*='formField']:has(input[type='radio']), div:has(input[type='radio'])"
+            ).all()
+
+            for rg in radio_groups:
+                try:
+                    q_text = ""
+                    legend = rg.locator("legend, label, h3, h4, [data-automation-id*='label']").first
+                    if await legend.count() > 0:
+                        q_text = (await legend.text_content() or "").strip()
+
+                    if not q_text:
+                        continue
+
+                    target_ans = None
+                    for rule in radio_rules:
+                        pat = rule.get("pattern", "")
+                        if pat and re.search(pat, q_text, re.IGNORECASE):
+                            target_ans = rule.get("answer", "No")
+                            break
+
+                    if target_ans is None:
+                        if re.search(
+                            r"previous|former.*employ|worked.*for|worked.*at|predecessor", q_text, re.IGNORECASE
+                        ):
+                            target_ans = "No"
+                        elif re.search(r"authorized.*to.*work|18.*years", q_text, re.IGNORECASE):
+                            target_ans = "Yes"
+                        elif re.search(r"require.*sponsor", q_text, re.IGNORECASE) or re.search(
+                            r"disability|veteran", q_text, re.IGNORECASE
+                        ):
+                            target_ans = "No"
+
+                    if target_ans:
+                        radio_btn = rg.locator(
+                            f"label:has-text('{target_ans}') input[type='radio'], input[type='radio'][value*='{target_ans.lower()}'], label:has-text('{target_ans}')"
+                        ).first
+                        if await radio_btn.count() > 0:
+                            is_checked = False
+                            try:
+                                is_checked = await radio_btn.is_checked()
+                            except Exception:
+                                pass
+                            if not is_checked:
+                                print(f"🔘 Workday Question Solver: Answering '{q_text[:50]}...' -> [{target_ans}]")
+                                try:
+                                    await radio_btn.click(timeout=1500)
+                                except Exception:
+                                    await radio_btn.click(force=True)
+                                answered += 1
+                                self.logger.log(
+                                    event_type="QUESTION_ANSWERED",
+                                    message=f"Answered radio question: '{q_text[:40]}' -> '{target_ans}'",
+                                    vendor="WORKDAY_STANDARD",
+                                    details={"question": q_text, "answer": target_ans, "type": "radio"},
+                                )
+                                await asyncio.sleep(0.3)
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"⚠️ Radio resolution notice: {e}")
+
+        # 2. Answer Dropdowns / Comboboxes
+        try:
+            combos = await target.locator(
+                "div:has(> label):has(button[aria-haspopup='listbox']), div:has(> label):has([role='combobox']), [data-automation-id*='formField']:has(button), div:has(label):has(button[data-automation-id*='prefix' i])"
+            ).all()
+
+            for cb_cont in combos:
+                try:
+                    label_el = cb_cont.locator("label, [data-automation-id*='label']").first
+                    if await label_el.count() == 0:
+                        continue
+                    lbl_text = (await label_el.text_content() or "").strip()
+                    if not lbl_text:
+                        continue
+
+                    target_val = None
+                    for rule in dropdown_rules:
+                        pat = rule.get("pattern", "")
+                        if pat and re.search(pat, lbl_text, re.IGNORECASE):
+                            target_val = rule.get("answer")
+                            break
+
+                    if target_val:
+                        btn = cb_cont.locator("button, [role='combobox']").first
+                        if await btn.count() > 0 and await btn.is_visible():
+                            curr_val = (await btn.text_content() or "").strip()
+                            if not curr_val or "select" in curr_val.lower():
+                                print(f"📋 Workday Question Solver: Selecting dropdown '{lbl_text}' -> [{target_val}]")
+                                if await self._select_react_combobox(target, btn, target_val):
+                                    answered += 1
+                                    self.logger.log(
+                                        event_type="QUESTION_ANSWERED",
+                                        message=f"Selected dropdown '{lbl_text}' -> '{target_val}'",
+                                        vendor="WORKDAY_STANDARD",
+                                        details={"question": lbl_text, "answer": target_val, "type": "dropdown"},
+                                    )
+                                    await asyncio.sleep(0.3)
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"⚠️ Dropdown resolution notice: {e}")
+
+        return answered
+
     async def _detect_workday_state(self, target: Any) -> str:
         """Classifies the active Workday DOM state into one of:
-        'email_verify', 'info', 'experience', 'review', 'otp', 'auth_create', 'auth_sign_in', 'modal', 'overview', 'unknown'
+        'email_verify', 'info', 'experience', 'questions', 'disclosures', 'review', 'otp', 'auth_create', 'auth_sign_in', 'modal', 'overview', 'unknown'
         """
         try:
             # 1. Post-registration email verification screen
             if await self._is_workday_email_verification_screen(target):
                 return "email_verify"
 
-            # 2. Stage 3 'My Information' section
+            # 2. Stage 1 'My Information' section
             info_el = target.locator(
-                "[data-automation-id='legalNameSection_firstName'], input[id*='legalNameSection_firstName']"
+                "[data-automation-id='legalNameSection_firstName'], input[id*='legalNameSection_firstName'], h2:has-text('My Information'), [data-automation-id='legalNameSection_prefix']"
             ).first
             if await info_el.count() > 0 and await info_el.is_visible():
                 return "info"
 
-            # 3. Stage 4 'My Experience' section
+            # 3. Stage 2 'My Experience' section
             resume_el = target.locator(
-                "input[type='file'], [data-automation-id='file-upload-dropzone'], [data-automation-id='website']"
+                "input[type='file'], [data-automation-id='file-upload-dropzone'], h2:has-text('My Experience')"
             ).first
             if await resume_el.count() > 0 and await resume_el.is_visible():
                 return "experience"
 
-            # 4. Review / Final Submission Gate
+            # 4. Stage 3 'Application Questions'
+            q_el = target.locator(
+                "h2:has-text('Application Questions'), [data-automation-id='applicationQuestions']"
+            ).first
+            if await q_el.count() > 0 and await q_el.is_visible():
+                return "questions"
+
+            # 5. Stage 4 'Voluntary Disclosures'
+            vd_el = target.locator(
+                "h2:has-text('Voluntary Disclosures'), [data-automation-id='voluntaryDisclosures']"
+            ).first
+            if await vd_el.count() > 0 and await vd_el.is_visible():
+                return "disclosures"
+
+            # 6. Stage 5 Review / Final Submission Gate
             review_btn = target.locator(
-                "button[data-automation-id='bottom-navigation-submit-button'], button:has-text('Submit Application')"
+                "button[data-automation-id='bottom-navigation-submit-button'], button:has-text('Submit Application'), h2:has-text('Review')"
             ).first
             if await review_btn.count() > 0 and await review_btn.is_visible():
                 return "review"
 
-            # 5. OTP verification code screen
+            # 7. OTP verification code screen
             otp_el = target.locator("input[data-automation-id='verificationCode'], input[name*='verification' i]").first
             if await otp_el.count() > 0 and await otp_el.is_visible():
                 return "otp"
 
-            # 6. Auth Gate: Create Account Mode (verifyPassword input present)
+            # 8. Auth Gate: Create Account Mode (verifyPassword input present)
             verify_pwd_inp = target.locator(
                 "input[data-automation-id='verifyPassword'], input#verifyPassword, input[aria-label*='Verify' i]"
             ).first
             if await verify_pwd_inp.count() > 0 and await verify_pwd_inp.is_visible():
                 return "auth_create"
 
-            # 7. 'Start Your Application' Modal
+            # 9. 'Start Your Application' Modal
             modal_el = target.locator(
                 "[data-automation-id='applyManually'], button:has-text('Apply Manually'), a:has-text('Apply Manually'), "
                 "[data-automation-id='useMyLastApplication'], button:has-text('Use My Last Application')"
@@ -1864,14 +2008,14 @@ class ATSAssistedFiller:
             ).first
             has_pwd = await pwd_inp.count() > 0 and await pwd_inp.is_visible()
 
-            # 8. Job Overview page ('Apply' button present, without password field)
+            # 10. Job Overview page ('Apply' button present, without password field)
             apply_el = target.locator(
                 "[data-automation-id='applyButton'], a[role='button']:has-text('Apply'), button:has-text('Apply'), a:has-text('Apply'), [data-automation-id='adventureButton']"
             ).first
             if await apply_el.count() > 0 and await apply_el.is_visible() and not has_pwd:
                 return "overview"
 
-            # 9. Auth Gate: Sign In Mode (Must have password input visible, AND signInSubmitButton or /login URL)
+            # 11. Auth Gate: Sign In Mode (Must have password input visible, AND signInSubmitButton or /login URL)
             sign_in_submit = target.locator(
                 "button[data-automation-id='signInSubmitButton'], [data-automation-id='authDialog'] button:has-text('Sign In'), form button[type='submit']"
             ).first
@@ -2108,15 +2252,31 @@ class ATSAssistedFiller:
                     if not await otp_field.is_visible():
                         break
 
-            # --- State 6: Stage 3 'My Information' ---
+            # --- State 6: Stage 1 'My Information' ---
             elif curr_state == "info":
                 print("📋 Populating Workday 'My Information' (Personal Details, Address, Phone, Source)...")
+
+                # A. Resolve custom tenant screening questions (e.g. prior employment radio group)
+                ans_count = await self._resolve_workday_questions(target)
+                filled += ans_count
+
+                # B. Prefix Dropdown (Mr., Ms., etc.)
+                prefix_drop = target.locator(
+                    "[data-automation-id='legalNameSection_prefix'], button[data-automation-id*='prefix' i], button[aria-label*='prefix' i], div:has(label:has-text('Prefix')) button"
+                ).first
+                if await prefix_drop.count() > 0 and await prefix_drop.is_visible():
+                    prefix_val = getattr(p, "prefix", "Mr.") or "Mr."
+                    await self._select_react_combobox(target, prefix_drop, prefix_val)
+                    filled += 1
+
+                # C. Country Dropdown
                 country_drop = target.locator(
                     "[data-automation-id='legalNameSection_country'], [data-automation-id='addressSection_country']"
                 ).first
                 if await country_drop.count() > 0 and await country_drop.is_visible():
                     await self._select_react_combobox(target, country_drop, "India")
 
+                # D. Names
                 fn_input = target.locator(
                     "[data-automation-id='legalNameSection_firstName'], input[id*='legalNameSection_firstName'], input[name*='firstName' i]"
                 ).first
@@ -2129,6 +2289,7 @@ class ATSAssistedFiller:
                 if await ln_input.count() > 0 and await self._fill_text_input(ln_input, p.last_name):
                     filled += 1
 
+                # E. Address
                 addr_input = target.locator(
                     "[data-automation-id='addressSection_addressLine1'], input[id*='addressSection_addressLine1']"
                 ).first
@@ -2155,6 +2316,7 @@ class ATSAssistedFiller:
                 if await postal_input.count() > 0 and await self._fill_text_input(postal_input, p.postal_code):
                     filled += 1
 
+                # F. Phone
                 device_drop = target.locator(
                     "[data-automation-id='phone-device-type'], button[aria-label*='phone device' i]"
                 ).first
@@ -2177,6 +2339,7 @@ class ATSAssistedFiller:
                 if await phone_input.count() > 0 and await self._fill_text_input(phone_input, phone_digits):
                     filled += 1
 
+                # G. Source
                 source_drop = target.locator(
                     "[data-automation-id='sourcePrompt'], button[aria-label*='how did you hear' i]"
                 ).first
@@ -2195,7 +2358,7 @@ class ATSAssistedFiller:
                         await next_btn.click(force=True)
                     await asyncio.sleep(2.5)
 
-            # --- State 7: Stage 4 'My Experience' ---
+            # --- State 7: Stage 2 'My Experience' ---
             elif curr_state == "experience":
                 print("📋 Populating Workday 'My Experience' (Resume PDF & Websites)...")
                 resume_input = target.locator(
@@ -2216,10 +2379,53 @@ class ATSAssistedFiller:
                     if i < len(urls_to_fill) and await self._fill_text_input(u_inp, urls_to_fill[i]):
                         filled += 1
 
-                print("🎉 Stage 4 complete. Halting at review gate for candidate confirmation.")
-                return filled, attached
+                next_btn = target.locator(
+                    "button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue')"
+                ).first
+                if await next_btn.count() > 0 and await next_btn.is_visible():
+                    print("➡️ Advancing from 'My Experience' to 'Application Questions'...")
+                    try:
+                        await next_btn.click(timeout=3000)
+                    except Exception:
+                        await next_btn.click(force=True)
+                    await asyncio.sleep(2.5)
+                else:
+                    print("🎉 Stage 2 complete. Halting at review gate for candidate confirmation.")
+                    return filled, attached
 
-            # --- State 8: Review / Final Submit Gate ---
+            # --- State 8: Stage 3 'Application Questions' ---
+            elif curr_state == "questions":
+                print("📋 Populating Workday 'Application Questions'...")
+                q_ans = await self._resolve_workday_questions(target)
+                filled += q_ans
+                next_btn = target.locator(
+                    "button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue')"
+                ).first
+                if await next_btn.count() > 0 and await next_btn.is_visible():
+                    print("➡️ Advancing from 'Application Questions' to next stage...")
+                    try:
+                        await next_btn.click(timeout=3000)
+                    except Exception:
+                        await next_btn.click(force=True)
+                    await asyncio.sleep(2.5)
+
+            # --- State 9: Stage 4 'Voluntary Disclosures' ---
+            elif curr_state == "disclosures":
+                print("📋 Populating Workday 'Voluntary Disclosures'...")
+                d_ans = await self._resolve_workday_questions(target)
+                filled += d_ans
+                next_btn = target.locator(
+                    "button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue')"
+                ).first
+                if await next_btn.count() > 0 and await next_btn.is_visible():
+                    print("➡️ Advancing from 'Voluntary Disclosures' to Review...")
+                    try:
+                        await next_btn.click(timeout=3000)
+                    except Exception:
+                        await next_btn.click(force=True)
+                    await asyncio.sleep(2.5)
+
+            # --- State 10: Review / Final Submit Gate ---
             elif curr_state == "review":
                 print("🎉 Workday Application Review Gate reached. Halting before submission.")
                 return filled, attached
