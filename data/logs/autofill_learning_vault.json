@@ -57,6 +57,22 @@
       "root_cause": "Simulated collision test",
       "fix_rule": "Strictly target data-automation-id",
       "date_banked": "2026-10-05T13:47:21.242766+00:00"
+    },
+    {
+      "id": "LESSON-008",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "State classified as 'unknown' and radio options unchecked on live Workday 'My Information' stage.",
+      "root_cause": "Live Workday uses BEM IDs ('name--legalName--firstName', 'address--addressLine1') without data-automation-id, radio buttons use boolean value='false' with sibling labels, and Save & Continue uses pageFooterNextButton.",
+      "fix_rule": "Match dual-tier selectors (BEM IDs + data-automation-id), group radio inputs by name with value='false'/'true' and sibling label[for] resolution, and recognize pageFooterNextButton.",
+      "date_banked": "2026-10-06T00:15:00+05:30"
+    },
+    {
+      "id": "LESSON-009",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-05T19:30:24.306913+00:00"
     }
   ]
 }

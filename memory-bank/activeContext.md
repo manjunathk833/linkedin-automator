@@ -162,6 +162,18 @@
       * Step 4: Multi-stage traversal verified through State Machine up to Review Gate.
     - Full regression suite verified: Gates 56, 57, and 58 passing 100%.
     - Codebase linted cleanly via `python main.py lint` (0 errors across 125 files).
+  - Workday Live BEM Schema Precision & Sibling Radio Resolution (Gate 59):
+    - Diagnosed live Workday layout from diagnostic dump `autofill_dom_stuck_unknown_1791225819.json`: Stage 1 inputs use BEM IDs (`name--legalName--firstName`, `address--addressLine1`) without `data-automation-id`, causing `_detect_workday_state` to misclassify as `unknown`.
+    - Expanded `_detect_workday_state` with dual-tier selectors covering BEM IDs (`legalName--firstName`, `candidateIsPreviousWorker`, `legalName--title`) and `/apply` URL patterns.
+    - Updated `_resolve_workday_questions` to scan distinct radio groups by `name`, matching boolean `value="false"`/`"true"` and clicking sibling `<label for="...">`.
+    - Fully mapped Stage 1 field locators for BEM IDs: First Name, Last Name, Prefix `Mr.`, Country, Address 1, City, State, Postal Code, Phone Type, Country Code `+91`, and Phone Number.
+    - Added `pageFooterNextButton` to advance from 'My Information' to 'My Experience'.
+    - Accelerated `_wait_for_workday_ready` to instantly recognize Stage 1 mounting without waiting for hydration timeouts.
+    - Banked `LESSON-008` in `autofill_learning_vault.json`.
+    - Created and executed Verification Gate 59 (`verify/59_test_workday_live_dom_schema_precision.py`), passing 100% across state detection, sibling radio resolution, full field autofill, and stage advancement.
+    - Full regression suite verified: Gates 57, 58, and 59 passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 126 files).
+
 
 
 

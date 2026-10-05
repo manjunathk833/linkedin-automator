@@ -62,6 +62,7 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/56b_test_workday_live_page_autofill.py` | Workday Live Portal Probing | Validates live JioStar portal hydration barrier, modal opening, and live auth gate detection | **PASSED** |
 | `verify/57_test_autofill_logger_and_learning_vault.py` | Structured Diagnostics, Event Logger & Learning Vault | Validates JSONL events, failure screenshots, DOM element dumps, Learning Vault banking, and Workday navbar anti-collision | **PASSED** |
 | `verify/58_test_workday_dynamic_question_solver.py` | Workday Deterministic Dynamic Question Solver | Validates dynamic radio & dropdown question answering (prior employment, prefix, auth, disclosures) and multi-stage traversal | **PASSED** |
+| `verify/59_test_workday_live_dom_schema_precision.py` | Workday Live BEM Schema Precision & Sibling Radios | Validates live Workday BEM IDs (`name--legalName--firstName`, `address--...`), sibling `candidateIsPreviousWorker` radio (`false`), and `pageFooterNextButton` | **PASSED** |
 
 ---
 
