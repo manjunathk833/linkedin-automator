@@ -10,6 +10,8 @@ from __future__ import annotations
 import asyncio
 import os
 import re
+import time
+from pathlib import Path
 from typing import Any
 
 from src.autofill.form_mapper import FormFieldMapper
@@ -22,6 +24,8 @@ from src.autofill.vendor_schemas import (
 )
 from src.browser.cdp_stealth import launch_stealth_browser
 from src.browser.kinematics import human_type
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Global registry holding active browser sessions to prevent Python garbage collection from closing the window
 _ACTIVE_SESSIONS: list[tuple[Any, Any, Any]] = []
@@ -1581,13 +1585,78 @@ class ATSAssistedFiller:
 
         return filled, attached
 
+    async def _capture_workday_diagnostic(self, target: Any, stage_name: str) -> None:
+        """Captures diagnostic screenshot and logs visible buttons and elements for post-mortem analysis."""
+        try:
+            page = getattr(target, "page", target)
+            ts = int(time.time())
+            snap_dir = PROJECT_ROOT / ".system_generated"
+            snap_dir.mkdir(parents=True, exist_ok=True)
+            snap_path = snap_dir / f"diagnostics_workday_{stage_name}_{ts}.png"
+            if hasattr(page, "screenshot"):
+                await page.screenshot(path=str(snap_path), full_page=False)
+                print(f"📸 Diagnostic snapshot saved: {snap_path}")
+
+            visible_btns: list[str] = []
+            if hasattr(page, "locator"):
+                btns = await page.locator("button, a[role='button']").all()
+                for b in btns[:15]:
+                    try:
+                        if await b.is_visible():
+                            t = (await b.text_content() or "").strip()
+                            if t and t not in visible_btns:
+                                visible_btns.append(t)
+                    except Exception:
+                        pass
+            print(f"🔍 Diagnostic visible buttons/actions: {visible_btns}")
+        except Exception as e:
+            print(f"⚠️ Diagnostic capture notice: {e}")
+
+    async def _wait_for_workday_ready(self, target: Any, timeout: float = 15.0) -> str:
+        """Waits for Workday Single-Page Application client hydration and identifies active initial state.
+        Returns one of: 'overview', 'modal', 'auth', 'info', 'unknown'
+        """
+        start = time.time()
+        print("⏳ Waiting for Workday SPA client hydration and component mounting...")
+        while time.time() - start < timeout:
+            try:
+                # 1. Check if 'My Information' section is already active
+                info_el = target.locator("[data-automation-id='legalNameSection_firstName']").first
+                if await info_el.count() > 0 and await info_el.is_visible():
+                    return "info"
+
+                # 2. Check if Auth Gate ('Create Account' or 'Sign In') is active
+                email_el = target.locator("input[data-automation-id='email'], input#email").first
+                if await email_el.count() > 0 and await email_el.is_visible():
+                    return "auth"
+
+                # 3. Check if 'Start Your Application' modal is active
+                modal_el = target.locator(
+                    "[data-automation-id='applyManually'], a[href*='/apply/applyManually'], button:has-text('Apply Manually')"
+                ).first
+                if await modal_el.count() > 0 and await modal_el.is_visible():
+                    return "modal"
+
+                # 4. Check if Job Overview 'Apply' trigger button is active
+                apply_el = target.locator(
+                    "[data-automation-id='applyButton'], a[role='button']:has-text('Apply'), button:has-text('Apply'), a:has-text('Apply'), [data-automation-id='adventureButton']"
+                ).first
+                if await apply_el.count() > 0 and await apply_el.is_visible():
+                    return "overview"
+            except Exception:
+                pass
+
+            await asyncio.sleep(0.3)
+
+        return "unknown"
+
     async def _fill_workday(self, target: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
-        """Fills standard Workday application fields with multi-stage auth gate, OTP handshake, and forms."""
+        """Fills standard Workday application fields with hydration barrier, state-machine transitions,
+        bidirectional auth fallback, OTP handshake, and resilient form population."""
         filled = 0
         attached = False
         p = self.master_data.personal
         profiles = self.master_data.profiles
-        get_vendor_schema(ATSVendorPattern.WORKDAY_STANDARD).get("selectors", {})
         workday_pwd = getattr(p, "workday_default_password", "Candidate@2026Auto!")
 
         # 0. Cookie Consent Dismissal
@@ -1605,53 +1674,79 @@ class ATSAssistedFiller:
         except Exception:
             pass
 
-        # 1. Stage 1: Check if on Job Overview page and click 'Apply' -> 'Apply Manually'
-        try:
+        # 1. Hydration Barrier: Wait for Workday SPA to mount and detect current state
+        initial_state = await self._wait_for_workday_ready(target, timeout=15.0)
+        print(f"🎯 Workday Hydration Barrier: Initial detected state = [{initial_state}]")
+
+        # 2. State 1: Job Overview -> Apply Trigger
+        if initial_state == "overview":
             apply_btn = target.locator(
-                "a[role='button']:has-text('Apply'), button:has-text('Apply'), [data-automation-id='applyButton'], a[href*='/apply']"
+                "[data-automation-id='applyButton'], a[role='button']:has-text('Apply'), button:has-text('Apply'), a:has-text('Apply'), [data-automation-id='adventureButton']"
             ).first
-            create_acc_el = target.locator(
-                "input[data-automation-id='email'], input#email, [data-automation-id='createAccountSubmitButton']"
-            ).first
-            create_acc_visible = (await create_acc_el.count() > 0) and (await create_acc_el.is_visible())
-
-            info_el = target.locator("[data-automation-id='legalNameSection_firstName']").first
-            info_visible = (await info_el.count() > 0) and (await info_el.is_visible())
-
-            if (
-                not create_acc_visible
-                and not info_visible
-                and await apply_btn.count() > 0
-                and await apply_btn.is_visible()
-            ):
-                print("🖱️ Clicking 'Apply' button on Workday job overview...")
+            print("🖱️ Initiating Workday 'Apply' trigger with post-condition verification...")
+            modal_opened = False
+            for attempt in range(3):
                 try:
+                    await apply_btn.scroll_into_view_if_needed(timeout=2000)
                     await apply_btn.click(timeout=3000)
                 except Exception:
                     await apply_btn.click(force=True)
-                await asyncio.sleep(1.5)
 
-            # Check for 'Start Your Application' modal options
-            apply_manually_btn = target.locator(
-                "a[href*='/apply/applyManually'], [data-automation-id='applyManually'], a:has-text('Apply Manually'), button:has-text('Apply Manually')"
-            ).first
-            try:
-                if await apply_manually_btn.count() > 0:
-                    await apply_manually_btn.wait_for(state="visible", timeout=3000)
-            except Exception:
-                pass
+                # Post-condition: Wait up to 3.5s for modal options or auth gate to appear
+                for _ in range(12):
+                    await asyncio.sleep(0.3)
+                    has_modal = await target.locator(
+                        "[data-automation-id='applyManually'], a[href*='/apply/applyManually'], button:has-text('Apply Manually')"
+                    ).first.is_visible()
+                    has_auth = await target.locator("input[data-automation-id='email'], input#email").first.is_visible()
+                    if has_modal or has_auth:
+                        modal_opened = True
+                        break
+                if modal_opened:
+                    print(f"✅ 'Apply' trigger confirmed on attempt {attempt + 1}.")
+                    break
+                else:
+                    print(f"⚠️ Modal not visible after attempt {attempt + 1}. Retrying click...")
 
-            if await apply_manually_btn.count() > 0 and await apply_manually_btn.is_visible():
-                print("📝 Selected 'Apply Manually' in Workday application modal...")
+            if not modal_opened:
+                print("❌ Post-condition failed: 'Start Your Application' modal did not appear.")
+                await self._capture_workday_diagnostic(target, "apply_modal_failed")
+
+        # 3. State 2: 'Start Your Application' Modal -> 'Apply Manually'
+        apply_manually_btn = target.locator(
+            "[data-automation-id='applyManually'], a[href*='/apply/applyManually'], button:has-text('Apply Manually'), a:has-text('Apply Manually'), [data-automation-id*='applyManually']"
+        ).first
+        if await apply_manually_btn.count() > 0 and await apply_manually_btn.is_visible():
+            print("📝 Selecting 'Apply Manually' in Workday application modal...")
+            auth_opened = False
+            for attempt in range(3):
                 try:
+                    await apply_manually_btn.scroll_into_view_if_needed(timeout=1500)
                     await apply_manually_btn.click(timeout=3000)
                 except Exception:
                     await apply_manually_btn.click(force=True)
-                await asyncio.sleep(2.0)
-        except Exception as e:
-            print(f"⚠️ Stage 1 apply trigger notice: {e}")
 
-        # 2. Stage 2: Auth Gate (Create Account / Sign In / OTP Handshake)
+                # Post-condition: Wait up to 4.5s for auth inputs or info page
+                for _ in range(15):
+                    await asyncio.sleep(0.3)
+                    has_email = await target.locator(
+                        "input[data-automation-id='email'], input#email"
+                    ).first.is_visible()
+                    has_info = await target.locator(
+                        "[data-automation-id='legalNameSection_firstName']"
+                    ).first.is_visible()
+                    if has_email or has_info:
+                        auth_opened = True
+                        break
+                if auth_opened:
+                    print(f"✅ 'Apply Manually' confirmed on attempt {attempt + 1}.")
+                    break
+
+            if not auth_opened:
+                print("❌ Post-condition failed: Auth gate did not appear after clicking 'Apply Manually'.")
+                await self._capture_workday_diagnostic(target, "auth_gate_failed")
+
+        # 4. State 3: Bidirectional Auth Gate (Create Account <-> Sign In)
         try:
             email_inp = target.locator("input[data-automation-id='email'], input#email, input[type='email']").first
             pwd_inp = target.locator(
@@ -1663,31 +1758,37 @@ class ATSAssistedFiller:
             create_acc_btn = target.locator(
                 "button[data-automation-id='createAccountSubmitButton'], button:has-text('Create Account')"
             ).first
+            sign_in_submit = target.locator(
+                "button[data-automation-id='signInSubmitButton'], button:has-text('Sign In')"
+            ).first
 
-            # Wait briefly if auth form is loading
-            try:
-                if await email_inp.count() > 0 and not await email_inp.is_visible():
+            # Wait briefly if email input is in DOM but still hydrating
+            if await email_inp.count() > 0 and not await email_inp.is_visible():
+                try:
                     await email_inp.wait_for(state="visible", timeout=5000)
-            except Exception:
-                pass
+                except Exception:
+                    pass
 
             if await email_inp.count() > 0 and await email_inp.is_visible():
-                print("🔐 Detected Workday Auth Gate. Populating credentials...")
-                if await self._fill_text_input(email_inp, p.email):
-                    filled += 1
-                if (
-                    await pwd_inp.count() > 0
-                    and await pwd_inp.is_visible()
-                    and await self._fill_text_input(pwd_inp, workday_pwd)
-                ):
-                    filled += 1
+                print("🔐 Detected Workday Auth Gate. Evaluating screen mode (Create Account vs Sign In)...")
+                await self._fill_text_input(email_inp, p.email)
+                filled += 1
 
-                # If Create Account is active (verify password field present)
-                if await verify_pwd_inp.count() > 0 and await verify_pwd_inp.is_visible():
+                is_create_account = await verify_pwd_inp.count() > 0 and await verify_pwd_inp.is_visible()
+
+                # Mode A: Screen is 'Create Account' (Standard Workday Default)
+                if is_create_account:
+                    print("📝 Current Mode: Create Account. Populating credentials and agreements...")
+                    if (
+                        await pwd_inp.count() > 0
+                        and await pwd_inp.is_visible()
+                        and await self._fill_text_input(pwd_inp, workday_pwd)
+                    ):
+                        filled += 1
+
                     if await self._fill_text_input(verify_pwd_inp, workday_pwd):
                         filled += 1
 
-                    # Terms agreement checkbox
                     agree_cb = target.locator(
                         "input[data-automation-id='createAccountCheckbox'], input[type='checkbox']#createAccountCheckbox, label:has-text('I agree') input[type='checkbox'], input[type='checkbox']"
                     ).first
@@ -1707,11 +1808,35 @@ class ATSAssistedFiller:
                             await create_acc_btn.click(force=True)
                         await asyncio.sleep(2.5)
 
-                # Else if standard Sign In is active
-                else:
-                    sign_in_submit = target.locator(
-                        "button[data-automation-id='signInSubmitButton'], button:has-text('Sign In')"
+                    # Bidirectional Fallback A: Check if account already exists
+                    account_exists = target.locator(
+                        "div[role='alert']:has-text('already exists'), div:has-text('account already exists'), [data-automation-id*='errorMessage']:has-text('already exists')"
                     ).first
+                    if await account_exists.count() > 0 and await account_exists.is_visible():
+                        print("ℹ️ Account already exists on this tenant. Switching to Sign In...")
+                        sign_in_link = target.locator(
+                            "button:has-text('Sign In'), a:has-text('Sign In'), [data-automation-id='signInLink']"
+                        ).first
+                        if await sign_in_link.count() > 0 and await sign_in_link.is_visible():
+                            await sign_in_link.click()
+                            await asyncio.sleep(1.5)
+                            pwd_re = target.locator("input[data-automation-id='password'], input#password").first
+                            if await pwd_re.count() > 0:
+                                await self._fill_text_input(pwd_re, workday_pwd)
+                            if await sign_in_submit.count() > 0 and await sign_in_submit.is_visible():
+                                await sign_in_submit.click()
+                                await asyncio.sleep(2.5)
+
+                # Mode B: Screen is 'Sign In' (Custom Tenant View)
+                else:
+                    print("🔑 Current Mode: Sign In. Populating password and submitting...")
+                    if (
+                        await pwd_inp.count() > 0
+                        and await pwd_inp.is_visible()
+                        and await self._fill_text_input(pwd_inp, workday_pwd)
+                    ):
+                        filled += 1
+
                     if await sign_in_submit.count() > 0 and await sign_in_submit.is_visible():
                         print("🚀 Submitting 'Sign In'...")
                         try:
@@ -1720,27 +1845,34 @@ class ATSAssistedFiller:
                             await sign_in_submit.click(force=True)
                         await asyncio.sleep(2.5)
 
-                # Check if account already exists alert appears
-                account_exists = target.locator(
-                    "div[role='alert']:has-text('already exists'), div:has-text('account already exists'), [data-automation-id*='errorMessage']:has-text('already exists')"
-                ).first
-                if await account_exists.count() > 0 and await account_exists.is_visible():
-                    print("ℹ️ Account already exists on this tenant. Switching to Sign In...")
-                    sign_in_link = target.locator(
-                        "button:has-text('Sign In'), a:has-text('Sign In'), [data-automation-id='signInLink']"
+                    # Bidirectional Fallback B: Check if account does NOT exist
+                    account_not_found = target.locator(
+                        "div[role='alert']:has-text('invalid'), div[role='alert']:has-text('exist'), div:has-text('invalid user name'), div:has-text('not find an account'), [data-automation-id*='errorMessage']:has-text('invalid')"
                     ).first
-                    if await sign_in_link.count() > 0 and await sign_in_link.is_visible():
-                        await sign_in_link.click()
-                        await asyncio.sleep(1.5)
-                        pwd_re = target.locator("input[data-automation-id='password'], input#password").first
-                        if await pwd_re.count() > 0:
-                            await self._fill_text_input(pwd_re, workday_pwd)
-                        sign_in_btn = target.locator(
-                            "button[data-automation-id='signInSubmitButton'], button:has-text('Sign In')"
+                    if await account_not_found.count() > 0 and await account_not_found.is_visible():
+                        print("ℹ️ No account found on this tenant. Switching to Create Account...")
+                        create_acc_link = target.locator(
+                            "[data-automation-id='createAccountLink'], button:has-text('Create Account'), a:has-text('Create Account')"
                         ).first
-                        if await sign_in_btn.count() > 0 and await sign_in_btn.is_visible():
-                            await sign_in_btn.click()
-                            await asyncio.sleep(2.5)
+                        if await create_acc_link.count() > 0 and await create_acc_link.is_visible():
+                            await create_acc_link.click()
+                            await asyncio.sleep(1.5)
+                            await self._fill_text_input(email_inp, p.email)
+                            pwd_re = target.locator("input[data-automation-id='password'], input#password").first
+                            await self._fill_text_input(pwd_re, workday_pwd)
+                            vp = target.locator(
+                                "input[data-automation-id='verifyPassword'], input#verifyPassword"
+                            ).first
+                            if await vp.count() > 0:
+                                await self._fill_text_input(vp, workday_pwd)
+                            agree_cb = target.locator(
+                                "input[data-automation-id='createAccountCheckbox'], input[type='checkbox']#createAccountCheckbox, label:has-text('I agree') input[type='checkbox']"
+                            ).first
+                            if await agree_cb.count() > 0 and not await agree_cb.is_checked():
+                                await agree_cb.check()
+                            if await create_acc_btn.count() > 0 and await create_acc_btn.is_visible():
+                                await create_acc_btn.click()
+                                await asyncio.sleep(2.5)
         except Exception as e:
             print(f"⚠️ Stage 2 auth notice: {e}")
 

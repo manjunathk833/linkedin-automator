@@ -123,3 +123,12 @@
     - Created and executed Verification Gate 56 (`verify/56_test_workday_autofill_heuristics.py`) validating pattern recognition across Workday tenants, schema banking, and Playwright multi-stage simulation with 14 fields typed and resume attached.
     - Verification Gate 56 passing 100%.
     - Codebase linted cleanly via `python main.py lint` (0 errors across 120 files).
+  - Workday SPA Hydration Barrier, State Machine & Live Sandbox Probing (Gate 56b):
+    - Diagnosed race condition where Workday SPA client-side hydration delayed the `[data-automation-id='applyButton']` mounting past instant `domcontentloaded` checks.
+    - Implemented `_wait_for_workday_ready()` hydration barrier polling for active page states (`overview`, `modal`, `auth`, `info`).
+    - Implemented State Machine transitions with post-condition verification and bounded retries (up to 3 attempts with scroll-into-view).
+    - Built bidirectional authentication fallback: handles both Create Account $\rightarrow$ Sign In (if account exists) and Sign In $\rightarrow$ Create Account (if account not found).
+    - Built automated diagnostic crash dump (`_capture_workday_diagnostic()`) capturing instant full-page screenshots to `.system_generated/` and logging visible buttons on any transition failure.
+    - Created and executed Verification Gate 56b (`verify/56b_test_workday_live_page_autofill.py`): verified live navigation to JioStar Workday portal, hydration detection, Apply button click, modal opening, Apply Manually traversal, and live Auth Gate mounting in 8 seconds.
+    - Gates 56 and 56b passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 121 files).

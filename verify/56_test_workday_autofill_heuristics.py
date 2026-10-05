@@ -119,6 +119,7 @@ def test_workday_vendor_schema_and_master_data():
         "create_account_verify_password",
         "create_account_checkbox",
         "create_account_submit",
+        "create_account_link",
         "sign_in_link",
         "sign_in_submit",
         "otp_input",

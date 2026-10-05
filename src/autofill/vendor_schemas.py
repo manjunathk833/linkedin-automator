@@ -448,21 +448,29 @@ VENDOR_SCHEMAS: dict[str, dict[str, Any]] = {
         ],
         "selectors": {
             "apply_button": [
+                "[data-automation-id='applyButton']",
                 "a[role='button']:has-text('Apply')",
                 "button:has-text('Apply')",
-                "[data-automation-id='applyButton']",
+                "a:has-text('Apply')",
+                "[data-automation-id='adventureButton']",
                 "a[href*='/apply']",
             ],
             "apply_manually": [
-                "a[href*='/apply/applyManually']",
                 "[data-automation-id='applyManually']",
+                "a[href*='/apply/applyManually']",
                 "button:has-text('Apply Manually')",
                 "a:has-text('Apply Manually')",
+                "[data-automation-id*='applyManually']",
             ],
             "autofill_with_resume": [
                 "a[href*='/apply/autofillWithResume']",
                 "[data-automation-id='autofillWithResume']",
                 "button:has-text('Autofill with Resume')",
+            ],
+            "create_account_link": [
+                "[data-automation-id='createAccountLink']",
+                "a:has-text('Create Account')",
+                "button:has-text('Create Account')",
             ],
             "create_account_email": [
                 "input[data-automation-id='email']",

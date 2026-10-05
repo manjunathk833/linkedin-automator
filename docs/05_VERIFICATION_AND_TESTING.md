@@ -59,6 +59,7 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/54_test_pdf_inline_preview_headers.py` | PDF Inline Preview Disposition | Verifies Content-Disposition: inline and no-cache headers preventing unintended downloads | **PASSED** |
 | `verify/55_test_oracle_hcm_autofill_heuristics.py` | Oracle Cloud HCM (Akamai) Autofill | Validates Oracle Cloud HCM pattern classification, multi-stage traversal, and form precision | **PASSED** |
 | `verify/56_test_workday_autofill_heuristics.py` | Workday Standard ATS Autofill | Validates Workday pattern classification, tenant auth gate, OTP loop, multi-stage autofill, and resume attachment | **PASSED** |
+| `verify/56b_test_workday_live_page_autofill.py` | Workday Live Portal Probing | Validates live JioStar portal hydration barrier, modal opening, and live auth gate detection | **PASSED** |
 
 ---
 
