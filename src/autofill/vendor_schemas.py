@@ -28,6 +28,7 @@ class MasterPersonalDetails(BaseModel):
     country: str = "India"
     postal_code: str = "560001"
     location: str = "Bengaluru, Karnataka, India"
+    workday_default_password: str = "Candidate@2026Auto!"
 
 
 class MasterProfiles(BaseModel):
@@ -438,12 +439,123 @@ VENDOR_SCHEMAS: dict[str, dict[str, Any]] = {
         "vendor_name": "Workday Standard",
         "url_identifiers": ["workday.com", "myworkdayjobs.com"],
         "url_patterns": [r"myworkdayjobs\.com", r"workday"],
-        "dom_fingerprints": ["[data-automation-id='legalNameSection_firstName']"],
+        "dom_fingerprints": [
+            "[data-automation-id='legalNameSection_firstName']",
+            "[data-automation-id='applyButton']",
+            "[data-automation-id='applyManually']",
+            "[data-automation-id='createAccountSubmitButton']",
+            "[data-automation-id='signInSubmitButton']",
+        ],
         "selectors": {
-            "first_name": ["[data-automation-id='legalNameSection_firstName']"],
-            "last_name": ["[data-automation-id='legalNameSection_lastName']"],
-            "email": ["[data-automation-id='email']"],
-            "phone": ["[data-automation-id='phone-number']"],
+            "apply_button": [
+                "a[role='button']:has-text('Apply')",
+                "button:has-text('Apply')",
+                "[data-automation-id='applyButton']",
+                "a[href*='/apply']",
+            ],
+            "apply_manually": [
+                "a[href*='/apply/applyManually']",
+                "[data-automation-id='applyManually']",
+                "button:has-text('Apply Manually')",
+                "a:has-text('Apply Manually')",
+            ],
+            "autofill_with_resume": [
+                "a[href*='/apply/autofillWithResume']",
+                "[data-automation-id='autofillWithResume']",
+                "button:has-text('Autofill with Resume')",
+            ],
+            "create_account_email": [
+                "input[data-automation-id='email']",
+                "input#email",
+                "input[type='email']",
+            ],
+            "create_account_password": [
+                "input[data-automation-id='password']",
+                "input#password",
+                "input[type='password']",
+            ],
+            "create_account_verify_password": [
+                "input[data-automation-id='verifyPassword']",
+                "input#verifyPassword",
+                "input[aria-label*='Verify' i]",
+            ],
+            "create_account_checkbox": [
+                "input[data-automation-id='createAccountCheckbox']",
+                "input[type='checkbox']#createAccountCheckbox",
+                "label:has-text('I agree') input[type='checkbox']",
+                "input[type='checkbox']",
+            ],
+            "create_account_submit": [
+                "button[data-automation-id='createAccountSubmitButton']",
+                "button:has-text('Create Account')",
+            ],
+            "sign_in_link": [
+                "button:has-text('Sign In')",
+                "a:has-text('Sign In')",
+                "[data-automation-id='signInLink']",
+            ],
+            "sign_in_submit": [
+                "button[data-automation-id='signInSubmitButton']",
+                "button:has-text('Sign In')",
+            ],
+            "otp_input": [
+                "input[data-automation-id='verificationCode']",
+                "input[name*='verification' i]",
+                "input[aria-label*='code' i]",
+                "input[placeholder*='code' i]",
+            ],
+            "first_name": [
+                "[data-automation-id='legalNameSection_firstName']",
+                "input[id*='legalNameSection_firstName']",
+                "input[name*='firstName' i]",
+            ],
+            "last_name": [
+                "[data-automation-id='legalNameSection_lastName']",
+                "input[id*='legalNameSection_lastName']",
+                "input[name*='lastName' i]",
+            ],
+            "address_line1": [
+                "[data-automation-id='addressSection_addressLine1']",
+                "input[id*='addressSection_addressLine1']",
+            ],
+            "city": [
+                "[data-automation-id='addressSection_city']",
+                "input[id*='addressSection_city']",
+            ],
+            "state": [
+                "[data-automation-id='addressSection_countryRegion']",
+                "button[data-automation-id='addressSection_countryRegion']",
+            ],
+            "postal_code": [
+                "[data-automation-id='addressSection_postalCode']",
+                "input[id*='addressSection_postalCode']",
+            ],
+            "phone_device_type": [
+                "[data-automation-id='phone-device-type']",
+                "button[aria-label*='phone device' i]",
+            ],
+            "phone_country_code": [
+                "[data-automation-id='countryPhoneCode']",
+                "button[aria-label*='country phone code' i]",
+            ],
+            "phone_number": [
+                "[data-automation-id='phone-number']",
+                "input[type='tel']",
+                "input[id*='phone-number']",
+            ],
+            "source": [
+                "[data-automation-id='sourcePrompt']",
+                "button[aria-label*='how did you hear' i]",
+            ],
+            "resume": [
+                "input[type='file']",
+                "[data-automation-id='file-upload-dropzone'] input[type='file']",
+            ],
+            "save_and_continue": [
+                "button[data-automation-id='bottom-navigation-next-button']",
+                "button:has-text('Save and Continue')",
+                "button:has-text('Next')",
+            ],
         },
     },
     ATSVendorPattern.LINKEDIN_EASY_APPLY: {

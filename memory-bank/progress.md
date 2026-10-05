@@ -11,6 +11,20 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 56: Workday Standard ATS Vendor Schema & Multi-Stage Application Automation**:
+  - Probed live JioStar Workday portal (`https://jiostar.wd102.myworkdayjobs.com/JioStar/...`) via browser subagent.
+  - Added `workday_default_password` satisfying all complexity requirements to `data/profile/candidate_master_data.json` and `MasterPersonalDetails`.
+  - Expanded `WORKDAY_STANDARD` in `src/autofill/vendor_schemas.py` with comprehensive DOM selectors across all stages.
+  - Implemented multi-stage `_fill_workday` in `src/autofill/ats_filler.py` covering:
+    * Stage 0: Cookie consent dismissal.
+    * Stage 1: 'Apply' -> 'Apply Manually' modal traversal.
+    * Stage 2: Create Account / Sign-In auto-population with fallback to Sign-In.
+    * Stage 2b: 120-second dynamic OTP / Email Verification wait loop with audible chime (`\a`).
+    * Stage 3: 'My Information' personal details, address, city, state, postal code, mobile device type, +91 dial code, phone, and source.
+    * Stage 4: 'My Experience' tailored resume PDF upload and website links.
+  - Added upfront direct routing in `fill_ats_page()` for `WORKDAY_STANDARD`.
+  - Created and executed Verification Gate 56 (`verify/56_test_workday_autofill_heuristics.py`): 100% passed with zero contamination across pattern recognition, schema registry, and multi-stage Playwright simulation (14 fields typed, resume attached).
+  - Lint clean: 0 errors across 120 files.
 - **Phase 55: Oracle Cloud HCM (Akamai) Multi-Stage ATS Autofill Engine**:
   - Probed live Akamai career portal (`https://fa-extu-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/...`) using browser subagent to dissect multi-step flow.
   - Banked `ORACLE_CLOUD_HCM` into `ATSVendorPattern`, `VENDOR_SCHEMAS`, and `classify_ats_pattern` in `src/autofill/vendor_schemas.py`.

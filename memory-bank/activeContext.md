@@ -108,3 +108,18 @@
     - Added Verification Gate 55 (`verify/55_test_oracle_hcm_autofill_heuristics.py`) validating pattern recognition across 10 vendors, schema banking, and Playwright multi-stage simulation with zero contamination.
     - Verification Gate 55 passing 100%.
     - Codebase linted cleanly via `python main.py lint` (0 errors across 119 files).
+  - Workday Standard ATS Vendor Schema & Multi-Stage Application Automation (Gate 56):
+    - Probed live JioStar Workday portal (`https://jiostar.wd102.myworkdayjobs.com/JioStar/...`) via browser subagent.
+    - Updated `data/profile/candidate_master_data.json` and `MasterPersonalDetails` with `workday_default_password` satisfying all complexity requirements.
+    - Expanded `WORKDAY_STANDARD` in `src/autofill/vendor_schemas.py` with comprehensive DOM selectors across all application stages.
+    - Implemented multi-stage `_fill_workday` in `src/autofill/ats_filler.py`:
+      * Stage 0: Cookie consent dismissal.
+      * Stage 1: 'Apply' -> 'Apply Manually' modal traversal.
+      * Stage 2: Create Account / Sign-In auto-population with fallback to Sign-In.
+      * Stage 2b: 120-second dynamic OTP / Email Verification wait loop with audible chime (`\a`).
+      * Stage 3: 'My Information' personal details, address, city, state, postal code, mobile device type, +91 dial code, phone, and source.
+      * Stage 4: 'My Experience' tailored resume PDF upload and website links.
+    - Added upfront direct routing in `fill_ats_page()` for `WORKDAY_STANDARD`.
+    - Created and executed Verification Gate 56 (`verify/56_test_workday_autofill_heuristics.py`) validating pattern recognition across Workday tenants, schema banking, and Playwright multi-stage simulation with 14 fields typed and resume attached.
+    - Verification Gate 56 passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 120 files).

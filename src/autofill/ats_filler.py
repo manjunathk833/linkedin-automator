@@ -160,6 +160,20 @@ class ATSAssistedFiller:
                 "resume_attached": resume_attached,
                 "url": getattr(page, "url", active_url),
             }
+        elif pattern == ATSVendorPattern.WORKDAY_STANDARD:
+            print("🏢 Routing directly to dedicated Workday multi-stage autofill handler...")
+            fields_filled, resume_attached = await self._fill_workday(page, resume_pdf_path)
+            status = "ready_for_review" if (fields_filled > 0 or resume_attached) else "needs_manual_navigation"
+            print("\n🔔 ========================================================")
+            print(f"🔔 ATS AUTOFILL COMPLETE: {fields_filled} fields typed, Resume Attached={resume_attached}")
+            print("🔔 Status: Pausing session for candidate manual review and submission.")
+            print("🔔 ========================================================\n")
+            return {
+                "status": status,
+                "fields_filled": fields_filled,
+                "resume_attached": resume_attached,
+                "url": getattr(page, "url", active_url),
+            }
 
         # 1. Check if the page has an embedded Greenhouse or Lever iframe
         target: Any = page
@@ -1568,39 +1582,346 @@ class ATSAssistedFiller:
         return filled, attached
 
     async def _fill_workday(self, target: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
-        """Fills standard Workday application fields."""
+        """Fills standard Workday application fields with multi-stage auth gate, OTP handshake, and forms."""
         filled = 0
         attached = False
         p = self.master_data.personal
+        profiles = self.master_data.profiles
+        get_vendor_schema(ATSVendorPattern.WORKDAY_STANDARD).get("selectors", {})
+        workday_pwd = getattr(p, "workday_default_password", "Candidate@2026Auto!")
 
-        for label_text, val in [
-            ("Legal First Name", p.first_name),
-            ("Legal Last Name", p.last_name),
-            ("Email", p.email),
-            ("Phone Number", p.phone),
-            ("Address Line 1", p.address_line1 or p.city),
-            ("City", p.city),
-            ("Postal Code", p.postal_code),
-        ]:
+        # 0. Cookie Consent Dismissal
+        try:
+            cookie_btn = target.locator(
+                "button#onetrust-accept-btn-handler, button:has-text('Accept All'), button:has-text('Accept Cookies'), [data-automation-id='legalNoticeAcceptButton']"
+            ).first
+            if await cookie_btn.count() > 0 and await cookie_btn.is_visible():
+                print("🍪 Dismissing Workday cookie consent banner...")
+                try:
+                    await cookie_btn.click(timeout=2000)
+                except Exception:
+                    await cookie_btn.click(force=True)
+                await asyncio.sleep(0.5)
+        except Exception:
+            pass
+
+        # 1. Stage 1: Check if on Job Overview page and click 'Apply' -> 'Apply Manually'
+        try:
+            apply_btn = target.locator(
+                "a[role='button']:has-text('Apply'), button:has-text('Apply'), [data-automation-id='applyButton'], a[href*='/apply']"
+            ).first
+            create_acc_el = target.locator(
+                "input[data-automation-id='email'], input#email, [data-automation-id='createAccountSubmitButton']"
+            ).first
+            create_acc_visible = (await create_acc_el.count() > 0) and (await create_acc_el.is_visible())
+
+            info_el = target.locator("[data-automation-id='legalNameSection_firstName']").first
+            info_visible = (await info_el.count() > 0) and (await info_el.is_visible())
+
+            if (
+                not create_acc_visible
+                and not info_visible
+                and await apply_btn.count() > 0
+                and await apply_btn.is_visible()
+            ):
+                print("🖱️ Clicking 'Apply' button on Workday job overview...")
+                try:
+                    await apply_btn.click(timeout=3000)
+                except Exception:
+                    await apply_btn.click(force=True)
+                await asyncio.sleep(1.5)
+
+            # Check for 'Start Your Application' modal options
+            apply_manually_btn = target.locator(
+                "a[href*='/apply/applyManually'], [data-automation-id='applyManually'], a:has-text('Apply Manually'), button:has-text('Apply Manually')"
+            ).first
             try:
-                inp = target.get_by_label(label_text, exact=False)
-                if await inp.is_visible(timeout=1000) and not (await inp.input_value()):
-                    await human_type(inp, val)
-                    filled += 1
+                if await apply_manually_btn.count() > 0:
+                    await apply_manually_btn.wait_for(state="visible", timeout=3000)
             except Exception:
                 pass
 
-        # Attach Resume
-        if resume_pdf_path and os.path.exists(resume_pdf_path):
+            if await apply_manually_btn.count() > 0 and await apply_manually_btn.is_visible():
+                print("📝 Selected 'Apply Manually' in Workday application modal...")
+                try:
+                    await apply_manually_btn.click(timeout=3000)
+                except Exception:
+                    await apply_manually_btn.click(force=True)
+                await asyncio.sleep(2.0)
+        except Exception as e:
+            print(f"⚠️ Stage 1 apply trigger notice: {e}")
+
+        # 2. Stage 2: Auth Gate (Create Account / Sign In / OTP Handshake)
+        try:
+            email_inp = target.locator("input[data-automation-id='email'], input#email, input[type='email']").first
+            pwd_inp = target.locator(
+                "input[data-automation-id='password'], input#password, input[type='password']"
+            ).first
+            verify_pwd_inp = target.locator(
+                "input[data-automation-id='verifyPassword'], input#verifyPassword, input[aria-label*='Verify' i]"
+            ).first
+            create_acc_btn = target.locator(
+                "button[data-automation-id='createAccountSubmitButton'], button:has-text('Create Account')"
+            ).first
+
+            # Wait briefly if auth form is loading
             try:
-                res_file = target.locator("input[type='file']").first
-                if await res_file.count() > 0:
-                    print(f"📎 Attaching tailored resume: {resume_pdf_path}")
-                    await res_file.set_input_files(resume_pdf_path)
-                    attached = True
+                if await email_inp.count() > 0 and not await email_inp.is_visible():
+                    await email_inp.wait_for(state="visible", timeout=5000)
+            except Exception:
+                pass
+
+            if await email_inp.count() > 0 and await email_inp.is_visible():
+                print("🔐 Detected Workday Auth Gate. Populating credentials...")
+                if await self._fill_text_input(email_inp, p.email):
+                    filled += 1
+                if (
+                    await pwd_inp.count() > 0
+                    and await pwd_inp.is_visible()
+                    and await self._fill_text_input(pwd_inp, workday_pwd)
+                ):
+                    filled += 1
+
+                # If Create Account is active (verify password field present)
+                if await verify_pwd_inp.count() > 0 and await verify_pwd_inp.is_visible():
+                    if await self._fill_text_input(verify_pwd_inp, workday_pwd):
+                        filled += 1
+
+                    # Terms agreement checkbox
+                    agree_cb = target.locator(
+                        "input[data-automation-id='createAccountCheckbox'], input[type='checkbox']#createAccountCheckbox, label:has-text('I agree') input[type='checkbox'], input[type='checkbox']"
+                    ).first
+                    if await agree_cb.count() > 0:
+                        try:
+                            if not await agree_cb.is_checked():
+                                await agree_cb.check()
+                        except Exception:
+                            await agree_cb.click(force=True)
+                        print("✅ Checked Workday terms agreement checkbox.")
+
+                    if await create_acc_btn.count() > 0 and await create_acc_btn.is_visible():
+                        print("🚀 Submitting 'Create Account'...")
+                        try:
+                            await create_acc_btn.click(timeout=3000)
+                        except Exception:
+                            await create_acc_btn.click(force=True)
+                        await asyncio.sleep(2.5)
+
+                # Else if standard Sign In is active
+                else:
+                    sign_in_submit = target.locator(
+                        "button[data-automation-id='signInSubmitButton'], button:has-text('Sign In')"
+                    ).first
+                    if await sign_in_submit.count() > 0 and await sign_in_submit.is_visible():
+                        print("🚀 Submitting 'Sign In'...")
+                        try:
+                            await sign_in_submit.click(timeout=3000)
+                        except Exception:
+                            await sign_in_submit.click(force=True)
+                        await asyncio.sleep(2.5)
+
+                # Check if account already exists alert appears
+                account_exists = target.locator(
+                    "div[role='alert']:has-text('already exists'), div:has-text('account already exists'), [data-automation-id*='errorMessage']:has-text('already exists')"
+                ).first
+                if await account_exists.count() > 0 and await account_exists.is_visible():
+                    print("ℹ️ Account already exists on this tenant. Switching to Sign In...")
+                    sign_in_link = target.locator(
+                        "button:has-text('Sign In'), a:has-text('Sign In'), [data-automation-id='signInLink']"
+                    ).first
+                    if await sign_in_link.count() > 0 and await sign_in_link.is_visible():
+                        await sign_in_link.click()
+                        await asyncio.sleep(1.5)
+                        pwd_re = target.locator("input[data-automation-id='password'], input#password").first
+                        if await pwd_re.count() > 0:
+                            await self._fill_text_input(pwd_re, workday_pwd)
+                        sign_in_btn = target.locator(
+                            "button[data-automation-id='signInSubmitButton'], button:has-text('Sign In')"
+                        ).first
+                        if await sign_in_btn.count() > 0 and await sign_in_btn.is_visible():
+                            await sign_in_btn.click()
+                            await asyncio.sleep(2.5)
+        except Exception as e:
+            print(f"⚠️ Stage 2 auth notice: {e}")
+
+        # OTP / Email Verification Gate Check
+        try:
+            otp_field = target.locator(
+                "input[data-automation-id='verificationCode'], input[name*='verification' i], input[aria-label*='code' i], input[placeholder*='code' i]"
+            ).first
+            if await otp_field.count() > 0 and await otp_field.is_visible():
+                print("\n" + "=" * 65)
+                print("🔔 ========================================================")
+                print("🔔 WORKDAY EMAIL VERIFICATION / OTP GATE DETECTED")
+                print("🔔 A one-time verification code has been sent to your email.")
+                print("🔔 Please enter the code in the open Chrome window.")
+                print("🔔 Copilot is monitoring page transition to resume autofill automatically...")
+                print("🔔 ========================================================\n")
+                print("\a")  # audible chime
+
+                # Dynamic wait loop: Wait up to 120 seconds for candidate to enter OTP and advance
+                for _second in range(120):
                     await asyncio.sleep(1.0)
-            except Exception as e:
-                print(f"⚠️ Resume attachment notice: {e}")
+                    info_check = target.locator(
+                        "[data-automation-id='legalNameSection_firstName'], [data-automation-id='bottom-navigation-next-button'], input[name*='firstName' i]"
+                    ).first
+                    if await info_check.count() > 0 and await info_check.is_visible():
+                        print("🎉 OTP Verified! Resuming automated Workday application flow...")
+                        break
+                    if not (await otp_field.is_visible()):
+                        await asyncio.sleep(2.0)
+                        break
+        except Exception as e:
+            print(f"⚠️ OTP gate check notice: {e}")
+
+        # 3. Stage 3: My Information Form (Personal Details, Address, Phone, Source)
+        try:
+            fn_input = target.locator(
+                "[data-automation-id='legalNameSection_firstName'], input[id*='legalNameSection_firstName'], input[name*='firstName' i]"
+            ).first
+            try:
+                await fn_input.wait_for(state="visible", timeout=10000)
+            except Exception:
+                pass
+
+            if await fn_input.count() > 0 and await fn_input.is_visible():
+                print("📋 Detected Workday 'My Information' section. Populating personal details...")
+
+                # Country selection if present
+                country_drop = target.locator(
+                    "[data-automation-id='legalNameSection_country'], [data-automation-id='addressSection_country']"
+                ).first
+                if await country_drop.count() > 0 and await country_drop.is_visible():
+                    await self._select_react_combobox(target, country_drop, "India")
+
+                # First & Last Name
+                if await self._fill_text_input(fn_input, p.first_name):
+                    filled += 1
+
+                ln_input = target.locator(
+                    "[data-automation-id='legalNameSection_lastName'], input[id*='legalNameSection_lastName'], input[name*='lastName' i]"
+                ).first
+                if await self._fill_text_input(ln_input, p.last_name):
+                    filled += 1
+
+                # Address Line 1
+                addr_input = target.locator(
+                    "[data-automation-id='addressSection_addressLine1'], input[id*='addressSection_addressLine1']"
+                ).first
+                addr_val = p.address_line1 or p.city
+                if await self._fill_text_input(addr_input, addr_val):
+                    filled += 1
+
+                # City
+                city_input = target.locator(
+                    "[data-automation-id='addressSection_city'], input[id*='addressSection_city']"
+                ).first
+                if await self._fill_text_input(city_input, p.city):
+                    filled += 1
+
+                # State / Region
+                state_el = target.locator(
+                    "[data-automation-id='addressSection_countryRegion'], button[data-automation-id='addressSection_countryRegion']"
+                ).first
+                if await state_el.count() > 0 and await state_el.is_visible():
+                    await self._select_react_combobox(target, state_el, p.state or "Karnataka")
+                    filled += 1
+
+                # Postal Code
+                postal_input = target.locator(
+                    "[data-automation-id='addressSection_postalCode'], input[id*='addressSection_postalCode']"
+                ).first
+                if await self._fill_text_input(postal_input, p.postal_code):
+                    filled += 1
+
+                # Phone Device Type (Mobile)
+                device_drop = target.locator(
+                    "[data-automation-id='phone-device-type'], button[aria-label*='phone device' i]"
+                ).first
+                if await device_drop.count() > 0 and await device_drop.is_visible():
+                    await self._select_react_combobox(target, device_drop, "Mobile")
+                    filled += 1
+
+                # Phone Country Dial Code (+91)
+                phone_code = target.locator(
+                    "[data-automation-id='countryPhoneCode'], button[aria-label*='country phone code' i]"
+                ).first
+                if await phone_code.count() > 0 and await phone_code.is_visible():
+                    await self._select_react_combobox(target, phone_code, "India (+91)")
+
+                # Phone Number
+                phone_input = target.locator(
+                    "[data-automation-id='phone-number'], input[type='tel'], input[id*='phone-number']"
+                ).first
+                phone_digits = p.phone
+                if phone_digits.startswith("+91"):
+                    phone_digits = phone_digits.replace("+91", "").strip()
+                if await self._fill_text_input(phone_input, phone_digits):
+                    filled += 1
+
+                # Source: How did you hear about us? -> LinkedIn
+                source_drop = target.locator(
+                    "[data-automation-id='sourcePrompt'], button[aria-label*='how did you hear' i]"
+                ).first
+                if await source_drop.count() > 0 and await source_drop.is_visible():
+                    await self._select_react_combobox(target, source_drop, "LinkedIn")
+                    filled += 1
+
+                # Save and Continue to My Experience
+                next_btn = target.locator(
+                    "button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue')"
+                ).first
+                if await next_btn.count() > 0 and await next_btn.is_visible():
+                    print("➡️ Advancing to 'My Experience' section...")
+                    try:
+                        await next_btn.click(timeout=3000)
+                    except Exception:
+                        await next_btn.click(force=True)
+                    await asyncio.sleep(2.5)
+        except Exception as e:
+            print(f"⚠️ Stage 3 My Information notice: {e}")
+
+        # 4. Stage 4: My Experience Form (Resume Upload, Work History, Websites)
+        try:
+            resume_input = target.locator(
+                "input[type='file'], [data-automation-id='file-upload-dropzone'] input[type='file']"
+            ).first
+            if await resume_input.count() > 0 and resume_pdf_path and os.path.exists(resume_pdf_path):
+                print(f"📎 Attaching tailored resume PDF: {os.path.basename(resume_pdf_path)}")
+                await resume_input.set_input_files(os.path.abspath(resume_pdf_path))
+                attached = True
+                filled += 1
+                await asyncio.sleep(1.5)
+
+            # Websites / URLs
+            website_inputs = await target.locator(
+                "[data-automation-id='website'], input[aria-label*='Website' i], input[placeholder*='URL' i]"
+            ).all()
+            urls_to_fill = [u for u in [profiles.linkedin, profiles.portfolio, profiles.github] if u]
+            for i, u_inp in enumerate(website_inputs):
+                if i < len(urls_to_fill) and await self._fill_text_input(u_inp, urls_to_fill[i]):
+                    filled += 1
+        except Exception as e:
+            print(f"⚠️ Stage 4 My Experience notice: {e}")
+
+        # Fallback label search if specific data-automation-ids were not found
+        if filled == 0:
+            for label_text, val in [
+                ("Legal First Name", p.first_name),
+                ("Legal Last Name", p.last_name),
+                ("Email", p.email),
+                ("Phone Number", p.phone),
+                ("Address Line 1", p.address_line1 or p.city),
+                ("City", p.city),
+                ("Postal Code", p.postal_code),
+            ]:
+                try:
+                    inp = target.get_by_label(label_text, exact=False)
+                    if await inp.is_visible(timeout=1000) and not (await inp.input_value()):
+                        await human_type(inp, val)
+                        filled += 1
+                except Exception:
+                    pass
 
         return filled, attached
 
