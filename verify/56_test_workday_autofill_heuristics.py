@@ -538,6 +538,110 @@ async def test_workday_email_verification_holding_gate():
     print("✅ Step 5: Workday email verification holding gate & auto-sign-in verified successfully.")
 
 
+WORKDAY_SIGNIN_REDIRECT_MOCK_HTML = """<!DOCTYPE html>
+<html>
+<head>
+  <title>Workday Sign In & Redirect Simulation</title>
+  <style>.hidden { display: none; }</style>
+</head>
+<body>
+  <!-- Stage 1: Overview -->
+  <div id="stage-overview">
+    <h2>Senior SDET Job</h2>
+    <button data-automation-id="applyButton" onclick="onApplyClick()">Apply</button>
+  </div>
+
+  <!-- Modal -->
+  <div id="stage-modal" class="hidden">
+    <button data-automation-id="applyManually" onclick="goToSignIn()">Apply Manually</button>
+  </div>
+
+  <!-- Sign In -->
+  <div id="stage-sign-in" class="hidden">
+    <h2>Sign In</h2>
+    <input type="email" data-automation-id="email" />
+    <input type="password" data-automation-id="password" />
+    <button type="button" data-automation-id="signInSubmitButton" onclick="simulateLoginRedirect()">Sign In</button>
+  </div>
+
+  <!-- Stage 3: My Information -->
+  <div id="stage-info" class="hidden">
+    <h2>My Information</h2>
+    <input type="text" data-automation-id="legalNameSection_firstName" />
+    <input type="text" data-automation-id="legalNameSection_lastName" />
+    <button type="button" data-automation-id="bottom-navigation-next-button" onclick="goToExperience()">Save and Continue</button>
+  </div>
+
+  <!-- Stage 4: My Experience -->
+  <div id="stage-exp" class="hidden">
+    <h2>My Experience</h2>
+    <input type="file" name="resume" />
+    <input type="text" data-automation-id="website" />
+  </div>
+
+  <script>
+    let isLoggedIn = false;
+    function onApplyClick() {
+      if (!isLoggedIn) {
+        document.getElementById('stage-overview').classList.add('hidden');
+        document.getElementById('stage-modal').classList.remove('hidden');
+      } else {
+        document.getElementById('stage-overview').classList.add('hidden');
+        document.getElementById('stage-info').classList.remove('hidden');
+      }
+    }
+    function goToSignIn() {
+      document.getElementById('stage-modal').classList.add('hidden');
+      document.getElementById('stage-sign-in').classList.remove('hidden');
+    }
+    function simulateLoginRedirect() {
+      isLoggedIn = true;
+      document.getElementById('stage-sign-in').classList.add('hidden');
+      document.getElementById('stage-overview').classList.remove('hidden');
+    }
+    function goToExperience() {
+      document.getElementById('stage-info').classList.add('hidden');
+      document.getElementById('stage-exp').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
+"""
+
+
+async def test_workday_post_auth_redirect_and_sign_in_loop():
+    print("🧪 Step 6: Testing Workday post-auth redirection loop & re-entry...")
+
+    master_data = load_candidate_master_data()
+    filler = ATSAssistedFiller(headless=True, master_data=master_data)
+
+    dummy_pdf = PROJECT_ROOT / "verify" / "resume_test_output.pdf"
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+
+        await page.set_content(WORKDAY_SIGNIN_REDIRECT_MOCK_HTML, wait_until="domcontentloaded")
+
+        fields_filled, resume_attached = await filler._fill_workday(
+            target=page,
+            resume_pdf_path=str(dummy_pdf) if dummy_pdf.exists() else None,
+        )
+
+        print(
+            f"📊 Post-Auth Redirection Loop Results: fields_filled={fields_filled}, resume_attached={resume_attached}"
+        )
+        assert fields_filled >= 3, f"Expected at least 3 fields filled, got {fields_filled}"
+        assert resume_attached is True, "Resume should have been attached"
+
+        # Assert Stage 4 is visible after full state machine traversal
+        assert await page.locator("#stage-exp").is_visible(), "Stage 4 should be visible after post-auth loop"
+
+        await browser.close()
+
+    print("✅ Step 6: Workday post-auth redirection loop & re-entry verified successfully.")
+
+
 async def main():
     print("\n🚀 ========================================================")
     print("🚀 Running Verification Gate 56: Workday Standard ATS")
@@ -548,6 +652,7 @@ async def main():
     await test_workday_playwright_autofill_simulation()
     await test_full_fill_ats_page_routing_workday()
     await test_workday_email_verification_holding_gate()
+    await test_workday_post_auth_redirect_and_sign_in_loop()
 
     print("\n🎉 ========================================================")
     print("🎉 Verification Gate 56 PASSED: Workday Standard Fully Integrated")
