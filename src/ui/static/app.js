@@ -696,6 +696,11 @@ async function markCurrentJobApplied() {
     const job = currentJobs[currentJobIndex];
     if (!job) return;
 
+    const companyName = job.job_details?.company || 'Company';
+    const jobTitle = job.job_details?.title || 'this role';
+    const confirmed = confirm(`Confirm Submission:\n\nHave you submitted your application for ${jobTitle} @ ${companyName}?\n\nClick OK to record as applied and move to tracking.`);
+    if (!confirmed) return;
+
     const btn = document.getElementById('btn-mark-applied-staging');
     const origText = btn ? btn.innerText : '';
     if (btn) {
@@ -709,7 +714,6 @@ async function markCurrentJobApplied() {
         });
         const data = await response.json();
         if (response.ok) {
-            const companyName = job.job_details?.company || 'Company';
             showToast(`✅ Marked as Applied: ${companyName}`);
             removeCurrentJobAndAdvance();
             updateQueueBadges();
@@ -728,6 +732,13 @@ async function markCurrentJobApplied() {
 }
 
 async function markApprovedJobApplied(jobId, btnElement) {
+    const job = approvedJobs.find(j => j.job_id === jobId);
+    const companyName = job ? job.company : 'Company';
+    const jobTitle = job ? job.title : 'this role';
+
+    const confirmed = confirm(`Confirm Submission:\n\nHave you submitted your application for ${jobTitle} @ ${companyName}?\n\nClick OK to record as applied and move to tracking.`);
+    if (!confirmed) return;
+
     const origText = btnElement ? btnElement.innerText : '';
     if (btnElement) {
         btnElement.innerText = '⏳ Saving...';
@@ -740,9 +751,7 @@ async function markApprovedJobApplied(jobId, btnElement) {
         });
         const data = await response.json();
         if (response.ok) {
-            const job = approvedJobs.find(j => j.job_id === jobId);
-            const comp = job ? job.company : jobId;
-            showToast(`✅ Saved to Applied Tracking: ${comp}`);
+            showToast(`✅ Saved to Applied Tracking: ${companyName}`);
 
             const card = document.getElementById(`approved-card-${jobId}`);
             if (card) {

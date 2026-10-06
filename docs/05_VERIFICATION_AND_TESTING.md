@@ -65,6 +65,7 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/59_test_workday_live_dom_schema_precision.py` | Workday Live BEM Schema Precision & Sibling Radios | Validates live Workday BEM IDs (`name--legalName--firstName`, `address--...`), sibling `candidateIsPreviousWorker` radio (`false`), and `pageFooterNextButton` | **PASSED** |
 | `verify/60_test_manual_takeover_fallback.py` | Human-in-the-Loop Manual Takeover Fallback | Validates graceful manual apply fallback, headful browser takeover, candidate cheat sheet injection, and submission confirmation detection | **PASSED** |
 | `verify/61_test_application_tracking_and_auto_purge.py` | Application Tracking, Database Indexing & Auto-Purge | Validates SQLite status and applied_at indexing (<1ms lookups), mark-applied endpoints, auto-purge of pending queues, and live dashboard tracking | **PASSED** |
+| `verify/62_test_user_driven_applied_and_approved_purge.py` | User-Driven Applied Trigger & Approved Queue Temp Purge | Validates browser launch isolation from applied status, repeat-click safety, explicit user confirmation gate, complete temp PDF/JSON purge from approved queue, and resume archiving | **PASSED** |
 
 ---
 
@@ -111,6 +112,9 @@ python verify/60_test_manual_takeover_fallback.py
 
 # 12. Test Application Tracking, Database Indexing & Auto-Purge Flow
 python verify/61_test_application_tracking_and_auto_purge.py
+
+# 13. Test User-Driven Applied Trigger & Complete Approved Queue Temp Purge
+python verify/62_test_user_driven_applied_and_approved_purge.py
 ```
 
 ---

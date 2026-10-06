@@ -205,6 +205,20 @@
       * Built glassmorphic Tab 3 UI featuring KPI stat cards (Total Applied, Applied Today, Active Portals), client-side search/filter bar, applied cards grid, view tailored PDF links, direct job posting links, and archive buttons.
     - Created and executed Verification Gate 61 (`verify/61_test_application_tracking_and_auto_purge.py`), passing 100% across SQLite schema/indexes, auto-purge on retrieval, mark-applied endpoints, tracking view, and scraper defense.
     - Codebase linted cleanly via `python main.py lint` (0 errors across 127 files).
+  - User-Driven Applied Trigger Isolation & Complete Approved Queue Temp Purge (Gate 62):
+    - Disentangled browser launching from application completion in SQLite:
+      * Restricted `ApplicationDatabase.is_job_applied()` and `get_applied_job_ids()` (`src/storage/database.py`) strictly to `status = 'applied'`.
+      * Browser launches (`/api/autofill/{job_id}` and `/api/autofill/manual/{job_id}`) record `copilot_launched` and `manual_takeover_opened` audit entries without setting `applied` or triggering auto-purge.
+      * Repeated clicks on Copilot or Manual Apply no longer prematurely purge jobs from `data/approved_queue/`.
+    - User-Driven Confirmation Gate in Command Center UI:
+      * `markApprovedJobApplied()` and `markCurrentJobApplied()` in `src/ui/static/app.js` require explicit confirmation dialog (`"Confirm Submission: Have you submitted your application for <Role> @ <Company>?"`) before firing `POST /api/tracking/mark-applied/{job_id}`.
+    - Complete Approved Queue Temp Data Purge & PDF Archiving:
+      * When a job is marked applied, the compiled ATS PDF is safely copied/archived into `data/resumes/{pdf_filename}`, updating the DB record.
+      * All temp files (`{job_id}.json` and any matching `{job_id}*.pdf` or `token*.pdf`) are completely unlinked from `data/approved_queue/`.
+      * Updated `resolve_job_pdf_path()` to search both `data/approved_queue/` and `data/resumes/`, ensuring `/api/pdf/{job_id}` in the Applied Tracking view serves the archived resume without 404 errors.
+      * Added `clean_approved_queue_temp_data()` and `POST /api/approved/cleanup` to sweep any orphaned files from `data/approved_queue/`.
+    - Created and executed Verification Gate 62 (`verify/62_test_user_driven_applied_and_approved_purge.py`), passing 100% across browser launch isolation, repeat click safety, user confirmation trigger, temp file purge, and resume archiving.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 129 files).
 
 
 

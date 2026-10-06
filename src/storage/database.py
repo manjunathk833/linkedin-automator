@@ -150,22 +150,20 @@ class ApplicationDatabase:
             return dict(row)
 
     def is_job_applied(self, job_id: str) -> bool:
-        """Returns True if job_id has been recorded as applied or autofilled in the database."""
+        """Returns True if job_id has been explicitly marked as applied in the database."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT 1 FROM job_applications WHERE id = ? AND status IN ('applied', 'assisted_autofilled', 'manual_takeover_opened') LIMIT 1;",
+                "SELECT 1 FROM job_applications WHERE id = ? AND status = 'applied' LIMIT 1;",
                 (job_id,),
             )
             return cursor.fetchone() is not None
 
     def get_applied_job_ids(self) -> set[str]:
-        """Returns the set of all job IDs that have been marked as applied."""
+        """Returns the set of all job IDs that have been explicitly marked as applied."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT id FROM job_applications WHERE status IN ('applied', 'assisted_autofilled', 'manual_takeover_opened');"
-            )
+            cursor.execute("SELECT id FROM job_applications WHERE status = 'applied';")
             return {row["id"] for row in cursor.fetchall()}
 
     def get_all_applications(self, limit: int = 200, status_filter: str | None = None) -> list[dict[str, Any]]:

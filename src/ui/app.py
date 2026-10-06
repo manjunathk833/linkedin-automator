@@ -156,24 +156,34 @@ def resolve_job_pdf_path(job_id: str, payload: dict | None = None) -> tuple[str,
         except Exception:
             pass
 
-    # 3. Check for modern candidate-named resume file in APPROVED_DIR
+    search_dirs = [APPROVED_DIR, RESUMES_DIR]
     target_filename = generate_professional_resume_filename(job_id, payload)
-    target_path = os.path.join(APPROVED_DIR, target_filename)
-    if os.path.exists(target_path):
-        return target_path, target_filename
 
-    # 4. Check for pattern match in APPROVED_DIR using the job token
+    # 3. Check for modern candidate-named resume file in search directories
+    for sdir in search_dirs:
+        if os.path.exists(sdir):
+            target_path = os.path.join(sdir, target_filename)
+            if os.path.exists(target_path):
+                return target_path, target_filename
+
+    # 4. Check for pattern match in search directories using the job token
     token = extract_job_token(job_id)
-    if os.path.exists(APPROVED_DIR):
-        for fname in os.listdir(APPROVED_DIR):
-            if fname.endswith(".pdf") and token in fname:
-                found_path = os.path.join(APPROVED_DIR, fname)
-                return found_path, fname
+    for sdir in search_dirs:
+        if os.path.exists(sdir):
+            for fname in os.listdir(sdir):
+                if fname.endswith(".pdf") and (token in fname or job_id in fname):
+                    found_path = os.path.join(sdir, fname)
+                    return found_path, fname
 
     # 5. Fallback to legacy path for backward compatibility
     legacy_filename = f"{job_id}_resume.pdf"
-    legacy_path = os.path.join(APPROVED_DIR, legacy_filename)
-    return legacy_path, legacy_filename
+    for sdir in search_dirs:
+        if os.path.exists(sdir):
+            legacy_path = os.path.join(sdir, legacy_filename)
+            if os.path.exists(legacy_path):
+                return legacy_path, legacy_filename
+
+    return os.path.join(APPROVED_DIR, legacy_filename), legacy_filename
 
 
 def extract_job_experience(text: str) -> str:
@@ -678,7 +688,7 @@ async def autofill_job(job_id: str):
             job_url=job_url,
             resume_path=pdf_path or "",
             tailored_data=job_data.get("tailored_resume", {}),
-            status="assisted_autofilled",
+            status="copilot_launched",
         )
 
     fields_n = result.get("fields_filled", 0)
@@ -753,9 +763,50 @@ async def manual_apply_job(job_id: str):
     }
 
 
+def clean_approved_queue_temp_data():
+    """
+    Removes all temp files from data/approved_queue/ for jobs that are already marked applied,
+    or orphaned PDFs whose JSON payload is missing.
+    """
+    if not os.path.exists(APPROVED_DIR):
+        return
+    from src.storage.database import ApplicationDatabase
+
+    applied_ids = ApplicationDatabase().get_applied_job_ids()
+
+    for fname in os.listdir(APPROVED_DIR):
+        if fname == ".gitkeep":
+            continue
+        fpath = os.path.join(APPROVED_DIR, fname)
+        if fname.endswith(".json"):
+            jid = fname.replace(".json", "")
+            if jid in applied_ids:
+                try:
+                    os.remove(fpath)
+                except Exception:
+                    pass
+        elif fname.endswith(".pdf"):
+            active_json_ids = {f.replace(".json", "") for f in os.listdir(APPROVED_DIR) if f.endswith(".json")}
+            is_active = any(aid in fname for aid in active_json_ids)
+            if not is_active:
+                try:
+                    os.remove(fpath)
+                except Exception:
+                    pass
+
+
+@app.post("/api/approved/cleanup")
+async def cleanup_approved_queue():
+    """Manual trigger to clean up all orphaned temp files in data/approved_queue/."""
+    clean_approved_queue_temp_data()
+    return {"status": "success", "message": "Approved queue temporary data cleaned."}
+
+
 @app.post("/api/tracking/mark-applied/{job_id}")
 async def mark_job_applied(job_id: str):
-    """Marks a job as APPLIED in SQLite database and removes it from pending & approved queues."""
+    """Marks a job as APPLIED in SQLite database, archives PDF to resumes dir, and purges all temp data."""
+    import shutil
+
     from src.storage.database import ApplicationDatabase
 
     pending_file = os.path.join(PENDING_DIR, f"{job_id}.json")
@@ -774,7 +825,19 @@ async def mark_job_applied(job_id: str):
     company_name = job_details.get("company", "Unknown")
     job_title = job_details.get("title", "Senior SDET")
     job_url = job_data.get("url") or job_data.get("job_url") or f"https://www.linkedin.com/jobs/view/{job_id}/"
-    pdf_path, _ = resolve_job_pdf_path(job_id, job_data) if job_data else ("", None)
+    pdf_path, pdf_filename = resolve_job_pdf_path(job_id, job_data) if job_data else ("", "")
+
+    # Archive PDF into data/resumes/ so temp data in data/approved_queue/ can be purged completely
+    os.makedirs(RESUMES_DIR, exist_ok=True)
+    if pdf_path and os.path.exists(pdf_path):
+        archived_pdf_path = os.path.join(RESUMES_DIR, pdf_filename)
+        if os.path.abspath(pdf_path) != os.path.abspath(archived_pdf_path):
+            try:
+                shutil.copy2(pdf_path, archived_pdf_path)
+            except Exception as e:
+                print(f"Error copying PDF to resumes archive: {e}")
+        if os.path.exists(archived_pdf_path):
+            pdf_path = archived_pdf_path
 
     db = ApplicationDatabase()
     db.record_application(
@@ -788,17 +851,32 @@ async def mark_job_applied(job_id: str):
         status="applied",
     )
 
-    # Purge file from queues
+    # Purge file from pending queue
     if os.path.exists(pending_file):
         try:
             os.remove(pending_file)
         except Exception:
             pass
+
+    # Purge file from approved queue
     if os.path.exists(approved_file):
         try:
             os.remove(approved_file)
         except Exception:
             pass
+
+    # Purge any temp PDFs in approved_queue matching this job
+    token = extract_job_token(job_id)
+    if os.path.exists(APPROVED_DIR):
+        for fname in os.listdir(APPROVED_DIR):
+            if fname.endswith(".pdf") and (token in fname or job_id in fname):
+                try:
+                    os.remove(os.path.join(APPROVED_DIR, fname))
+                except Exception:
+                    pass
+
+    # Run general cleanup for any orphaned temp data in approved queue
+    clean_approved_queue_temp_data()
 
     # Record into processed_jobs deduplication ledger
     try:
@@ -848,6 +926,8 @@ async def delete_tracked_job(job_id: str):
 async def get_approved_jobs():
     from src.autofill.governor import ApplicationGovernor
     from src.storage.database import ApplicationDatabase
+
+    clean_approved_queue_temp_data()
 
     db = ApplicationDatabase()
     applied_job_ids = db.get_applied_job_ids()
