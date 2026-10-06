@@ -15,7 +15,9 @@ singlepageresume.json
 data/resume_profile.json
 data/master_knowledge_bank.json
 data/candidate_notes.md
-data/profile/
+data/profile/*
+!data/profile/workday_field_mappings.json
+!data/profile/allowed_tools_whitelist.json
 scripts/regenerate_profile_and_knowledge.py
 TODOS.md
 debugging.md
@@ -68,6 +70,9 @@ Thumbs.db
 
 # Verification Scratch / Logs / Temp Media
 *.log
+data/logs/*.log
+data/logs/*.jsonl
+data/logs/screenshots/
 .system_generated/
 .tempmediaStorage/
 .user_uploaded/

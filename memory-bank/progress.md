@@ -11,6 +11,49 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 56b: Workday SPA Hydration Barrier, State Machine & Live Portal Verification**:
+  - Implemented `_wait_for_workday_ready()` polling barrier that waits for Workday client framework hydration before triggering actions.
+  - Built state machine transitions with post-condition assertions and bounded retries (up to 3x with scrolling).
+  - Implemented bidirectional auth gate handling Create Account $\leftrightarrow$ Sign In fallback.
+  - Implemented automatic diagnostic crash dumps (`_capture_workday_diagnostic()`) capturing full-page screenshots to `.system_generated/` and logging visible buttons on any failure.
+  - Created and executed Verification Gate 56b (`verify/56b_test_workday_live_page_autofill.py`): verified live navigation to JioStar Workday portal, hydration detection, Apply button click, modal opening, Apply Manually traversal, and live Auth Gate mounting in 8 seconds.
+  - Lint clean: 0 errors across 121 files.
+- **Phase 56: Workday Standard ATS Vendor Schema & Multi-Stage Application Automation**:
+  - Probed live JioStar Workday portal (`https://jiostar.wd102.myworkdayjobs.com/JioStar/...`) via browser subagent.
+  - Added `workday_default_password` satisfying all complexity requirements to `data/profile/candidate_master_data.json` and `MasterPersonalDetails`.
+  - Expanded `WORKDAY_STANDARD` in `src/autofill/vendor_schemas.py` with comprehensive DOM selectors across all stages.
+  - Implemented multi-stage `_fill_workday` in `src/autofill/ats_filler.py` covering:
+    * Stage 0: Cookie consent dismissal.
+    * Stage 1: 'Apply' -> 'Apply Manually' modal traversal.
+    * Stage 2: Create Account / Sign-In auto-population with fallback to Sign-In.
+    * Stage 2b: 120-second dynamic OTP / Email Verification wait loop with audible chime (`\a`).
+    * Stage 3: 'My Information' personal details, address, city, state, postal code, mobile device type, +91 dial code, phone, and source.
+    * Stage 4: 'My Experience' tailored resume PDF upload and website links.
+  - Added upfront direct routing in `fill_ats_page()` for `WORKDAY_STANDARD`.
+  - Created and executed Verification Gate 56 (`verify/56_test_workday_autofill_heuristics.py`): 100% passed with zero contamination across pattern recognition, schema registry, and multi-stage Playwright simulation (14 fields typed, resume attached).
+  - Lint clean: 0 errors across 120 files.
+- **Phase 55: Oracle Cloud HCM (Akamai) Multi-Stage ATS Autofill Engine**:
+  - Probed live Akamai career portal (`https://fa-extu-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/...`) using browser subagent to dissect multi-step flow.
+  - Banked `ORACLE_CLOUD_HCM` into `ATSVendorPattern`, `VENDOR_SCHEMAS`, and `classify_ats_pattern` in `src/autofill/vendor_schemas.py`.
+  - Implemented `_fill_oracle_hcm` in `src/autofill/ats_filler.py`:
+    * Automated cookie banner dismissal (`#onetrust-accept-btn-handler`).
+    * Automated Stage 1 traversal via `button.apply-now-button`.
+    * Automated Stage 2 Email Gate & legal disclaimer checkbox submission (`button.next-button`).
+    * Automated Stage 3 Section 1 core candidate profile population (Title pill 'Mr.', First Name, Last Name, Phone Country +91, Phone Number, Portfolio link, and Resume PDF attachment).
+    * Synthetic event dispatches (`input`, `change`, `blur`) for all form fields.
+  - Created and executed Verification Gate 55 (`verify/55_test_oracle_hcm_autofill_heuristics.py`): 100% passed with zero contamination across pattern recognition, schema registry, and multi-stage Playwright simulation.
+  - Lint clean: 0 errors across 119 files.
+- **Phase 54: PDF Inline Preview Disposition & Download Elimination**:
+  - Configured `content_disposition_type="inline"` and cache-control headers across `/api/pdf/standard`, `/api/pdf/preview/{job_id}`, and `/api/pdf/{job_id}` in `src/ui/app.py`.
+  - Fixed unintended file downloads on modal preview click, allowing Chrome/Safari to render PDFs directly in the modal iframe.
+  - Added external "Open in New Tab ↗" navigation link to the modal header and resilient timeout for iframe loading spinner.
+  - Verified 100% in `verify/54_test_pdf_inline_preview_headers.py`.
+- **Phase 53: Tailored vs. Standard Resume Inspection & Selection Gate**:
+  - Implemented `/api/pdf/standard` with disk-backed mtime caching returning the candidate's canonical base resume PDF from `data/resume_profile.json`.
+  - Implemented `/api/pdf/preview/{job_id}?version=tailored` generating on-the-fly preview PDFs for pending queue jobs.
+  - Upgraded `/api/approve/{job_id}` accepting `resume_choice: "tailored" | "standard"` and saving the selected resume version into the approved payload and compiled PDF.
+  - Upgraded Staging Review UI with version toggle pills (`✨ Tailored Version` vs `📄 Standard Base Version`), instant textual diff switching, dynamic approval button label, and a glassmorphic PDF Comparison Modal with tabbed preview.
+  - Verified 100% in `verify/53_test_resume_comparison_and_selection.py`.
 - **Phase 51 & 52: Company Boundary Isolation, Contamination Defense & Zero-Contamination Audit**:
   - Implemented company-exclusive marker detection in `FabricationDetector` (`COMPANY_EXCLUSIVE_MARKERS`), forbidding tools/keywords from Tata Elxsi (Appium, OTT, Burp Suite, Charles Proxy, TestRail) or Dunzo (Ekam, Merchant Service) from ever appearing under Value Labs, and vice versa.
   - Introduced `COMPANY_SCOPED_STAR_PROMPT` and `generate_company_tailored_bullets()` in `src/tailor/llm_provider.py` ensuring the LLM is only supplied achievements from that specific employer.

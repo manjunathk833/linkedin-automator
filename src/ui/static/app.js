@@ -3,6 +3,8 @@ let currentJobIndex = 0;
 let approvedJobs = [];
 let approvedCount = 0;
 let activeTab = 'pending';
+let selectedResumeVersion = 'tailored'; // 'tailored' or 'standard'
+let currentModalTab = 'tailored';
 
 // --- Tab Switching ---
 function switchTab(tab) {
@@ -166,36 +168,90 @@ function renderJob(index) {
 
     document.getElementById('job-reqs').innerText = jd.requirements || jd.description || 'No requirements provided';
     
-    // Right Col — Tailored Resume (with null-safe guards)
-    const tr = job.tailored_resume || {};
-    const pd = tr.personal_details || {};
+    // Reset or preserve resume version for current job
+    selectedResumeVersion = job._selected_version || 'tailored';
+    updateResumeView();
+}
+
+function switchResumeVersion(version) {
+    selectedResumeVersion = version;
+    const job = currentJobs[currentJobIndex];
+    if (job) {
+        job._selected_version = version;
+    }
+    updateResumeView();
+}
+
+function updateResumeView() {
+    const job = currentJobs[currentJobIndex];
+    if (!job) return;
+
+    const toggleTailored = document.getElementById('toggle-tailored');
+    const toggleStandard = document.getElementById('toggle-standard');
+    const sectionTitle = document.getElementById('achievements-section-title');
+    const versionTag = document.getElementById('resume-version-tag');
+    const approveBtn = document.getElementById('btn-approve');
+
+    if (selectedResumeVersion === 'standard') {
+        if (toggleStandard) toggleStandard.classList.add('active');
+        if (toggleTailored) toggleTailored.classList.remove('active');
+        if (sectionTitle) sectionTitle.innerText = '📄 Standard Base Achievements';
+        if (versionTag) {
+            versionTag.innerText = 'Standard Base';
+            versionTag.className = 'version-tag standard';
+        }
+        if (approveBtn) approveBtn.innerText = 'Approve with Standard Base Resume';
+    } else {
+        if (toggleTailored) toggleTailored.classList.add('active');
+        if (toggleStandard) toggleStandard.classList.remove('active');
+        if (sectionTitle) sectionTitle.innerText = '✨ Tailored Achievements';
+        if (versionTag) {
+            versionTag.innerText = 'Tailored';
+            versionTag.className = 'version-tag tailored';
+        }
+        if (approveBtn) approveBtn.innerText = 'Approve with Tailored Resume';
+    }
+
+    // Determine which resume data source to render
+    const activeResume = (selectedResumeVersion === 'standard')
+        ? (job.standard_resume || {})
+        : (job.tailored_resume || {});
     
-    document.getElementById('cand-name').innerText = pd.full_name || 'Not yet tailored';
-    document.getElementById('cand-email').innerText = pd.email || '';
-    
-    // Achievements with Diff Highlighting
+    const pd = activeResume.personal_details || (job.tailored_resume || {}).personal_details || {};
+    const candNameEl = document.getElementById('cand-name');
+    const candEmailEl = document.getElementById('cand-email');
+    if (candNameEl) candNameEl.innerText = pd.full_name || 'Candidate Name';
+    if (candEmailEl) candEmailEl.innerText = pd.email || '';
+
     const expList = document.getElementById('experience-list');
+    if (!expList) return;
     expList.innerHTML = '';
-    const expHistory = tr.experience_history || [];
-    
+
+    const expHistory = activeResume.experience_history || [];
     if (expHistory.length === 0) {
-        expList.innerHTML = '<p style="color: #94a3b8; font-style: italic;">No tailored achievements available.</p>';
+        expList.innerHTML = `<p style="color: #94a3b8; font-style: italic;">No ${selectedResumeVersion} achievements available.</p>`;
     } else {
         expHistory.forEach(exp => {
             const div = document.createElement('div');
             div.style.marginBottom = '1rem';
             div.innerHTML = `<strong style="color: #60a5fa; font-size: 0.95rem;">${exp.role || ''} @ ${exp.company || ''}</strong><br>`;
             
-            const bullets = exp.achievements_diff || (exp.achievements || []).map(a => ({ text: a, is_tailored: false }));
-            bullets.forEach(item => {
-                const achText = typeof item === 'string' ? item : item.text;
-                const isTailored = typeof item === 'object' && item.is_tailored;
-                if (isTailored) {
-                    div.innerHTML += `<div class="diff-bullet is-tailored"><span class="diff-tag">✨ Tailored</span> ${achText}</div>`;
-                } else {
-                    div.innerHTML += `<div class="diff-bullet">• ${achText}</div>`;
-                }
-            });
+            if (selectedResumeVersion === 'tailored') {
+                const bullets = exp.achievements_diff || (exp.achievements || []).map(a => ({ text: a, is_tailored: false }));
+                bullets.forEach(item => {
+                    const achText = typeof item === 'string' ? item : item.text;
+                    const isTailored = typeof item === 'object' && item.is_tailored;
+                    if (isTailored) {
+                        div.innerHTML += `<div class="diff-bullet is-tailored"><span class="diff-tag">✨ Tailored</span> ${achText}</div>`;
+                    } else {
+                        div.innerHTML += `<div class="diff-bullet">• ${achText}</div>`;
+                    }
+                });
+            } else {
+                (exp.achievements || []).forEach(ach => {
+                    div.innerHTML += `<div class="diff-bullet">• ${ach}</div>`;
+                });
+            }
             
             div.innerHTML += `<div style="margin-top: 6px;">`;
             (exp.tech_tags || []).forEach(tag => {
@@ -205,7 +261,6 @@ function renderJob(index) {
             expList.appendChild(div);
         });
     }
-    
 }
 
 async function approveJob() {
@@ -217,17 +272,23 @@ async function approveJob() {
     approveBtn.innerText = 'Approving & Compiling PDF...';
     approveBtn.disabled = true;
     
+    // Inject chosen resume version into payload
+    const approvalPayload = Object.assign({}, job, {
+        resume_choice: selectedResumeVersion || 'tailored'
+    });
+    
     try {
         const response = await fetch(`/api/approve/${job.job_id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(job)
+            body: JSON.stringify(approvalPayload)
         });
         
         if (response.ok) {
             const companyName = job.job_details?.company || 'Company';
             approvedCount++;
-            showToast(`Approved & PDF Compiled for ${companyName}`);
+            const chosenVer = selectedResumeVersion === 'standard' ? 'Standard Base' : 'Tailored';
+            showToast(`Approved with ${chosenVer} PDF for ${companyName}`);
             removeCurrentJobAndAdvance();
         } else {
             const errData = await response.json().catch(() => ({ detail: response.statusText }));
@@ -243,6 +304,87 @@ async function approveJob() {
         approveBtn.innerText = origText;
         approveBtn.disabled = false;
     }
+}
+
+// --- PDF Preview & Comparison Modal Logic ---
+function openPdfModal() {
+    const job = currentJobs[currentJobIndex];
+    if (!job) return;
+
+    const modal = document.getElementById('pdf-modal');
+    if (!modal) return;
+
+    const jd = job.job_details || {};
+    const headingEl = document.getElementById('modal-heading');
+    if (headingEl) {
+        headingEl.innerText = `${jd.title || 'Job'} @ ${jd.company || 'Company'}`;
+    }
+
+    currentModalTab = selectedResumeVersion || 'tailored';
+    modal.classList.remove('hidden');
+    switchModalPdfTab(currentModalTab);
+}
+
+function closePdfModal() {
+    const modal = document.getElementById('pdf-modal');
+    const iframe = document.getElementById('pdf-frame');
+    if (modal) modal.classList.add('hidden');
+    if (iframe) iframe.src = 'about:blank';
+}
+
+function handleModalOverlayClick(event) {
+    if (event.target && event.target.id === 'pdf-modal') {
+        closePdfModal();
+    }
+}
+
+function switchModalPdfTab(version) {
+    currentModalTab = version;
+    const tabTailored = document.getElementById('modal-tab-tailored');
+    const tabStandard = document.getElementById('modal-tab-standard');
+    const iframe = document.getElementById('pdf-frame');
+    const selectionLabel = document.getElementById('modal-selection-label');
+    const chooseBtn = document.getElementById('btn-modal-choose-version');
+    const spinner = document.getElementById('pdf-spinner');
+    const extLink = document.getElementById('modal-tab-open-external');
+
+    let pdfUrl = '/api/pdf/standard';
+    if (version === 'standard') {
+        if (tabStandard) tabStandard.classList.add('active');
+        if (tabTailored) tabTailored.classList.remove('active');
+        if (selectionLabel) selectionLabel.innerText = '📄 Standard Base Resume';
+        if (chooseBtn) chooseBtn.innerText = '✓ Select Standard Base Version';
+        pdfUrl = '/api/pdf/standard';
+    } else {
+        if (tabTailored) tabTailored.classList.add('active');
+        if (tabStandard) tabStandard.classList.remove('active');
+        if (selectionLabel) selectionLabel.innerText = '✨ Tailored Resume';
+        if (chooseBtn) chooseBtn.innerText = '✓ Select Tailored Version';
+        const job = currentJobs[currentJobIndex];
+        pdfUrl = job ? `/api/pdf/preview/${job.job_id}?version=tailored` : '/api/pdf/standard';
+    }
+
+    if (extLink) extLink.href = pdfUrl;
+
+    if (iframe) {
+        if (spinner) spinner.classList.remove('hidden');
+        iframe.onload = () => {
+            if (spinner) spinner.classList.add('hidden');
+        };
+        // Fallback auto-dismiss in case Chrome's PDF viewer suppresses DOM onload event
+        setTimeout(() => {
+            if (spinner) spinner.classList.add('hidden');
+        }, 1000);
+
+        iframe.src = pdfUrl;
+    }
+}
+
+function confirmVersionAndClose() {
+    switchResumeVersion(currentModalTab);
+    closePdfModal();
+    const verName = currentModalTab === 'standard' ? 'Standard Base' : 'Tailored';
+    showToast(`Active selection updated to ${verName} Resume`);
 }
 
 async function rejectJob() {
@@ -362,6 +504,9 @@ function renderApprovedGrid(jobs) {
                     <button class="btn-copilot" onclick="autofillApprovedJob('${job.job_id}', this)">
                         🚀 Launch Copilot
                     </button>
+                    <button class="btn-manual" onclick="manualApplyApprovedJob('${job.job_id}', this)" title="Open in Chrome with Candidate Cheat Sheet">
+                        🖐️ Manual Apply
+                    </button>
                 </div>
                 <button class="btn-discard" title="Discard from approved" onclick="discardApprovedJob('${job.job_id}', this)">
                     ✕
@@ -414,6 +559,66 @@ async function autofillApprovedJob(jobId, btnElement) {
     } finally {
         btnElement.innerText = origText;
         btnElement.disabled = false;
+    }
+}
+
+async function manualApplyApprovedJob(jobId, btnElement) {
+    const origText = btnElement.innerText;
+    btnElement.innerText = '⏳ Opening...';
+    btnElement.disabled = true;
+
+    try {
+        const response = await fetch(`/api/autofill/manual/${jobId}`, { method: 'POST' });
+        const res = await response.json();
+        
+        if (response.ok) {
+            showToast(`Headful Chrome launched with Candidate Cheat Sheet!`);
+            const usedEl = document.getElementById('budget-used');
+            if (usedEl) {
+                const currentUsed = parseInt(usedEl.innerText, 10) || 0;
+                usedEl.innerText = currentUsed + 1;
+            }
+        } else {
+            alert(`Manual Apply Notice:\n\n${res.detail || response.statusText}`);
+        }
+    } catch (e) {
+        console.error('Manual apply error:', e);
+        alert('Manual apply network error: ' + e.message);
+    } finally {
+        btnElement.innerText = origText;
+        btnElement.disabled = false;
+    }
+}
+
+async function manualApplyCurrentStagingJob() {
+    const job = currentJobs[currentJobIndex];
+    if (!job) return;
+    const btn = document.getElementById('btn-manual-staging');
+    if (btn) {
+        btn.innerText = '⏳ Opening...';
+        btn.disabled = true;
+    }
+    try {
+        const response = await fetch(`/api/autofill/manual/${job.job_id}`, { method: 'POST' });
+        const res = await response.json();
+        if (response.ok) {
+            showToast(`Headful Chrome launched with Candidate Cheat Sheet!`);
+            const usedEl = document.getElementById('budget-used');
+            if (usedEl) {
+                const currentUsed = parseInt(usedEl.innerText, 10) || 0;
+                usedEl.innerText = currentUsed + 1;
+            }
+        } else {
+            alert(`Manual Apply Notice:\n\n${res.detail || response.statusText}`);
+        }
+    } catch (e) {
+        console.error('Manual apply error:', e);
+        alert('Manual apply network error: ' + e.message);
+    } finally {
+        if (btn) {
+            btn.innerText = '🖐️ Manual Apply';
+            btn.disabled = false;
+        }
     }
 }
 

@@ -1,0 +1,94 @@
+{
+  "version": "1.0",
+  "description": "Persistent repository of ATS autofill failure patterns, root causes, and verified fixes.",
+  "lessons": [
+    {
+      "id": "LESSON-001",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "State machine stuck on Overview or misclassifying Job Overview page as auth_sign_in.",
+      "root_cause": "Broad 'button:has-text(Sign In)' selector matched the global navbar 'Sign In' header button on the job overview page before checking for applyButton.",
+      "fix_rule": "Prioritize applyButton for 'overview' when password input is absent; strictly target button[data-automation-id='signInSubmitButton'] inside auth container.",
+      "date_banked": "2026-10-05T17:30:00Z"
+    },
+    {
+      "id": "LESSON-002",
+      "vendor": "GREENHOUSE_STANDARD",
+      "symptom": "Combobox selecting transient loading spinner instead of real option.",
+      "root_cause": "Async React-Select combobox displays .select__menu-notice--loading while fetching suggestions.",
+      "fix_rule": "Filter out .select__menu-notice using .select__option:not(.select__menu-notice).",
+      "date_banked": "2026-10-03T10:00:00Z"
+    },
+    {
+      "id": "LESSON-003",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Autofill halts after credential entry on Workday.",
+      "root_cause": "Workday post-auth redirect lands back on /job/... overview page, requiring an authenticated 'Apply' click before Stage 3 mounts.",
+      "fix_rule": "Use state machine loop (max 20 transitions) that handles overview -> modal -> auth -> overview -> info dynamically.",
+      "date_banked": "2026-10-05T16:00:00Z"
+    },
+    {
+      "id": "LESSON-004",
+      "vendor": "COMMON",
+      "symptom": "Red validation outlines persist after filling inputs.",
+      "root_cause": "Setting input value without synthetic event dispatch leaves internal React/Angular state uncommitted.",
+      "fix_rule": "Always dispatch 'input', 'change', and 'blur' events on modified form elements.",
+      "date_banked": "2026-10-03T12:00:00Z"
+    },
+    {
+      "id": "LESSON-005",
+      "vendor": "COMMON",
+      "symptom": "Phone dial code matches British Indian Ocean Territory (+246) instead of India (+91).",
+      "root_cause": "Substring search for 'India' matches territory name before country name.",
+      "fix_rule": "Search and match exact dial code string '+91' before fallback to country name.",
+      "date_banked": "2026-10-02T18:00:00Z"
+    },
+    {
+      "id": "LESSON-006",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-05T12:25:39.721140+00:00"
+    },
+    {
+      "id": "LESSON-007",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-05T13:47:21.242766+00:00"
+    },
+    {
+      "id": "LESSON-008",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "State classified as 'unknown' and radio options unchecked on live Workday 'My Information' stage.",
+      "root_cause": "Live Workday uses BEM IDs ('name--legalName--firstName', 'address--addressLine1') without data-automation-id, radio buttons use boolean value='false' with sibling labels, and Save & Continue uses pageFooterNextButton.",
+      "fix_rule": "Match dual-tier selectors (BEM IDs + data-automation-id), group radio inputs by name with value='false'/'true' and sibling label[for] resolution, and recognize pageFooterNextButton.",
+      "date_banked": "2026-10-06T00:15:00+05:30"
+    },
+    {
+      "id": "LESSON-009",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-05T19:30:24.306913+00:00"
+    },
+    {
+      "id": "LESSON-010",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Repeated transitions stuck on Stage 1 ('My Information') without advancing due to tenant-specific custom fields or strict validation errors.",
+      "root_cause": "Workday state machine excluded 'info' and 'experience' from stuck counting, cycling indefinitely instead of yielding control to the user.",
+      "fix_rule": "Enforce universal state_stuck_count >= 2 threshold triggering Human-in-the-Loop Manual Takeover Mode with audible chime (\\a), candidate cheat sheet terminal card, DOM widget injection, and background submission confirmation listener.",
+      "date_banked": "2026-10-06T12:20:00+05:30"
+    },
+    {
+      "id": "LESSON-011",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-06T07:45:27.246087+00:00"
+    }
+  ]
+}

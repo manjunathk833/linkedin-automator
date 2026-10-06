@@ -28,6 +28,8 @@ class MasterPersonalDetails(BaseModel):
     country: str = "India"
     postal_code: str = "560001"
     location: str = "Bengaluru, Karnataka, India"
+    prefix: str = "Mr."
+    workday_default_password: str = "Candidate@2026Auto!"
 
 
 class MasterProfiles(BaseModel):
@@ -160,10 +162,90 @@ class ATSVendorPattern:
     OKTA_BRANDED_GREENHOUSE = "OKTA_BRANDED_GREENHOUSE"
     DATABRICKS_CUSTOM_GREENHOUSE = "DATABRICKS_CUSTOM_GREENHOUSE"
     COINBASE_CUSTOM_GREENHOUSE = "COINBASE_CUSTOM_GREENHOUSE"
+    ORACLE_CLOUD_HCM = "ORACLE_CLOUD_HCM"
     GENERIC_ATS_FALLBACK = "GENERIC_ATS_FALLBACK"
 
 
 VENDOR_SCHEMAS: dict[str, dict[str, Any]] = {
+    ATSVendorPattern.ORACLE_CLOUD_HCM: {
+        "vendor_name": "Oracle Cloud HCM",
+        "url_identifiers": ["oraclecloud.com", "fa.ocs.oraclecloud.com"],
+        "url_patterns": [
+            r"oraclecloud\.com/hcmUI/CandidateExperience",
+            r".*\.fa\.ocs\.oraclecloud\.com",
+        ],
+        "dom_fingerprints": [
+            "button.apply-now-button",
+            "input#primary-email-0",
+            "label.legal-disclaimer-container",
+            ".application-container",
+        ],
+        "selectors": {
+            "apply_button": [
+                "button.apply-now-button.apply-now-button--apply-now",
+                "button:has-text('Apply Now')",
+                "button:has-text('Apply')",
+            ],
+            "cookie_accept": [
+                "button#onetrust-accept-btn-handler",
+                "button:has-text('Accept All')",
+                "button:has-text('Accept Cookies')",
+            ],
+            "email": [
+                "input#primary-email-0",
+                "input[type='email']",
+                "input[name*='email']",
+            ],
+            "consent_checkbox": [
+                "label.legal-disclaimer-container input[type='checkbox']",
+                "input[type='checkbox']#legal-terms",
+                "input[type='checkbox']",
+            ],
+            "next_button": [
+                "button:has-text('Next')",
+                "button.next-button",
+                "button[type='submit']",
+            ],
+            "resume": [
+                "input[type='file'][name*='resume']",
+                "input[type='file']",
+            ],
+            "title": [
+                "label:has-text('Mr.')",
+                "input[type='radio'][value='Mr.']",
+                "input[type='radio'][value='MR']",
+            ],
+            "first_name": [
+                "input[name*='firstName' i]",
+                "input#first-name",
+                "input[aria-label*='First Name' i]",
+            ],
+            "last_name": [
+                "input[name*='lastName' i]",
+                "input#last-name",
+                "input[aria-label*='Last Name' i]",
+            ],
+            "middle_name": [
+                "input[name*='middleName' i]",
+                "input#middle-name",
+                "input[aria-label*='Middle Name' i]",
+            ],
+            "phone": [
+                "input[type='tel']",
+                "input[name*='phone' i]",
+                "input[aria-label*='Phone' i]",
+            ],
+            "website": [
+                "input[name*='link' i]",
+                "input[aria-label*='Link' i]",
+                "input[placeholder*='Link' i]",
+            ],
+            "linkedin": [
+                "input[name*='linkedin' i]",
+                "input[aria-label*='LinkedIn' i]",
+            ],
+        },
+    },
     ATSVendorPattern.OKTA_BRANDED_GREENHOUSE: {
         "vendor_name": "Okta Branded Greenhouse",
         "url_identifiers": ["okta.com"],
@@ -358,12 +440,137 @@ VENDOR_SCHEMAS: dict[str, dict[str, Any]] = {
         "vendor_name": "Workday Standard",
         "url_identifiers": ["workday.com", "myworkdayjobs.com"],
         "url_patterns": [r"myworkdayjobs\.com", r"workday"],
-        "dom_fingerprints": ["[data-automation-id='legalNameSection_firstName']"],
+        "dom_fingerprints": [
+            "[data-automation-id='legalNameSection_firstName']",
+            "[data-automation-id='applyButton']",
+            "[data-automation-id='applyManually']",
+            "[data-automation-id='createAccountSubmitButton']",
+            "[data-automation-id='signInSubmitButton']",
+        ],
         "selectors": {
-            "first_name": ["[data-automation-id='legalNameSection_firstName']"],
-            "last_name": ["[data-automation-id='legalNameSection_lastName']"],
-            "email": ["[data-automation-id='email']"],
-            "phone": ["[data-automation-id='phone-number']"],
+            "apply_button": [
+                "[data-automation-id='applyButton']",
+                "a[role='button']:has-text('Apply')",
+                "button:has-text('Apply')",
+                "a:has-text('Apply')",
+                "[data-automation-id='adventureButton']",
+                "a[href*='/apply']",
+            ],
+            "apply_manually": [
+                "[data-automation-id='applyManually']",
+                "a[href*='/apply/applyManually']",
+                "button:has-text('Apply Manually')",
+                "a:has-text('Apply Manually')",
+                "[data-automation-id*='applyManually']",
+            ],
+            "autofill_with_resume": [
+                "a[href*='/apply/autofillWithResume']",
+                "[data-automation-id='autofillWithResume']",
+                "button:has-text('Autofill with Resume')",
+            ],
+            "create_account_link": [
+                "[data-automation-id='createAccountLink']",
+                "a:has-text('Create Account')",
+                "button:has-text('Create Account')",
+            ],
+            "create_account_email": [
+                "input[data-automation-id='email']",
+                "input#email",
+                "input[type='email']",
+            ],
+            "create_account_password": [
+                "input[data-automation-id='password']",
+                "input#password",
+                "input[type='password']",
+            ],
+            "create_account_verify_password": [
+                "input[data-automation-id='verifyPassword']",
+                "input#verifyPassword",
+                "input[aria-label*='Verify' i]",
+            ],
+            "create_account_checkbox": [
+                "input[data-automation-id='createAccountCheckbox']",
+                "input[type='checkbox']#createAccountCheckbox",
+                "label:has-text('I agree') input[type='checkbox']",
+                "input[type='checkbox']",
+            ],
+            "create_account_submit": [
+                "button[data-automation-id='createAccountSubmitButton']",
+                "button:has-text('Create Account')",
+            ],
+            "sign_in_link": [
+                "button:has-text('Sign In')",
+                "a:has-text('Sign In')",
+                "[data-automation-id='signInLink']",
+            ],
+            "sign_in_submit": [
+                "button[data-automation-id='signInSubmitButton']",
+                "button:has-text('Sign In')",
+            ],
+            "otp_input": [
+                "input[data-automation-id='verificationCode']",
+                "input[name*='verification' i]",
+                "input[aria-label*='code' i]",
+                "input[placeholder*='code' i]",
+            ],
+            "email_verification_notice": [
+                "text='Please verify your account'",
+                "text='An email has been sent to you'",
+                "div:has-text('Please verify your account')",
+                "div:has-text('An email has been sent to you')",
+            ],
+            "first_name": [
+                "[data-automation-id='legalNameSection_firstName']",
+                "input[id*='legalNameSection_firstName']",
+                "input[name*='firstName' i]",
+            ],
+            "last_name": [
+                "[data-automation-id='legalNameSection_lastName']",
+                "input[id*='legalNameSection_lastName']",
+                "input[name*='lastName' i]",
+            ],
+            "address_line1": [
+                "[data-automation-id='addressSection_addressLine1']",
+                "input[id*='addressSection_addressLine1']",
+            ],
+            "city": [
+                "[data-automation-id='addressSection_city']",
+                "input[id*='addressSection_city']",
+            ],
+            "state": [
+                "[data-automation-id='addressSection_countryRegion']",
+                "button[data-automation-id='addressSection_countryRegion']",
+            ],
+            "postal_code": [
+                "[data-automation-id='addressSection_postalCode']",
+                "input[id*='addressSection_postalCode']",
+            ],
+            "phone_device_type": [
+                "[data-automation-id='phone-device-type']",
+                "button[aria-label*='phone device' i]",
+            ],
+            "phone_country_code": [
+                "[data-automation-id='countryPhoneCode']",
+                "button[aria-label*='country phone code' i]",
+            ],
+            "phone_number": [
+                "[data-automation-id='phone-number']",
+                "input[type='tel']",
+                "input[id*='phone-number']",
+            ],
+            "source": [
+                "[data-automation-id='sourcePrompt']",
+                "button[aria-label*='how did you hear' i]",
+            ],
+            "resume": [
+                "input[type='file']",
+                "[data-automation-id='file-upload-dropzone'] input[type='file']",
+            ],
+            "save_and_continue": [
+                "button[data-automation-id='bottom-navigation-next-button']",
+                "button:has-text('Save and Continue')",
+                "button:has-text('Next')",
+            ],
         },
     },
     ATSVendorPattern.LINKEDIN_EASY_APPLY: {
@@ -396,6 +603,13 @@ def classify_ats_pattern(url: str) -> str:
         return ATSVendorPattern.COINBASE_CUSTOM_GREENHOUSE
 
     # 2. Standard ATS Job Boards
+    if (
+        "oraclecloud.com" in clean_url
+        or "fa.ocs.oraclecloud.com" in clean_url
+        or "candidateexperience" in clean_url
+        or ("akamai" in clean_url and ("job" in clean_url or "career" in clean_url))
+    ):
+        return ATSVendorPattern.ORACLE_CLOUD_HCM
     if "greenhouse.io" in clean_url:
         return ATSVendorPattern.GREENHOUSE_STANDARD
     if "lever.co" in clean_url:

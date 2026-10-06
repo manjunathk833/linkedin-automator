@@ -78,5 +78,117 @@
     - Successfully scraped and tailored 25 fresh jobs in `data/pending_queue/` with 100% AI Grounded STAR tailoring.
     - Executed Verification Gate 52 (`verify/52_audit_queue_zero_contamination.py`): Audited all 25 staged jobs (225 experience bullets) with **0 contamination violations (100% SUCCESS)**.
     - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 116 files).
+  - Tailored vs. Standard Resume PDF Inspection & Selection Architecture (Gate 53):
+    - Added cached `/api/pdf/standard` serving the candidate's canonical base resume PDF from `data/resume_profile.json`.
+    - Added `/api/pdf/preview/{job_id}?version=tailored` generating on-the-fly preview PDFs for pending jobs.
+    - Upgraded `/api/approve/{job_id}` to support `resume_choice: "tailored" | "standard"`, compiling and attaching the user's chosen resume version.
+    - Upgraded Command Center UI (`src/ui/templates/index.html` & `src/ui/static/app.js`):
+      - Interactive segmented version switcher (`✨ Tailored Version` vs `📄 Standard Base Version`).
+      - Real-time text preview switching in Staging Review.
+      - Glassmorphic PDF Preview & Comparison modal with tabbed side-by-side inspection (`✨ Tailored PDF` vs `📄 Standard Base PDF`).
+      - Smart action buttons updating dynamically based on choice.
+    - Verification Gate 53 (`verify/53_test_resume_comparison_and_selection.py`) passing 100%.
+    - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 117 files).
+  - PDF Preview Inline Disposition & Download Elimination (Gate 54):
+    - Configured `content_disposition_type="inline"` and no-cache headers across `/api/pdf/standard`, `/api/pdf/preview/{job_id}`, and `/api/pdf/{job_id}` in `src/ui/app.py`.
+    - Eliminated unintended browser file downloads when previewing PDFs.
+    - Added direct "Open in New Tab ↗" external navigation link to the modal header.
+    - Added iframe auto-dismiss timeout (1.0s) for `#pdf-spinner` in `src/ui/static/app.js`.
+    - Verification Gate 54 (`verify/54_test_pdf_inline_preview_headers.py`) passing 100%.
+    - Codebase linted cleanly via `./verify/autofix_lint.sh` (0 errors across 118 files).
+  - Oracle Cloud HCM (Akamai) Multi-Stage ATS Autofill Engine (Gate 55):
+    - Probed live Akamai career page (`https://fa-extu-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/...`) using browser subagent to analyze multi-stage application flow.
+    - Banked `ORACLE_CLOUD_HCM` in `ATSVendorPattern`, `VENDOR_SCHEMAS`, and `classify_ats_pattern` in `src/autofill/vendor_schemas.py`.
+    - Implemented multi-stage `_fill_oracle_hcm` in `src/autofill/ats_filler.py`:
+      * Cookie consent dismissal (`#onetrust-accept-btn-handler`).
+      * Stage 1: Initial Job Overview -> 'Apply Now' click trigger.
+      * Stage 2: Email & Legal Disclaimer gate (`#primary-email-0`, legal disclaimer checkbox, 'Next' button).
+      * Stage 3: Section 1 form completion: Title pill 'Mr.', First Name, Last Name, Phone Country (+91), Phone Number, Portfolio link, and Resume attachment.
+      * Synthetic event dispatch (`input`, `change`, `blur`) for all fields.
+    - Added Verification Gate 55 (`verify/55_test_oracle_hcm_autofill_heuristics.py`) validating pattern recognition across 10 vendors, schema banking, and Playwright multi-stage simulation with zero contamination.
+    - Verification Gate 55 passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 119 files).
+  - Workday Standard ATS Vendor Schema & Multi-Stage Application Automation (Gate 56):
+    - Probed live JioStar Workday portal (`https://jiostar.wd102.myworkdayjobs.com/JioStar/...`) via browser subagent.
+    - Updated `data/profile/candidate_master_data.json` and `MasterPersonalDetails` with `workday_default_password` satisfying all complexity requirements.
+    - Expanded `WORKDAY_STANDARD` in `src/autofill/vendor_schemas.py` with comprehensive DOM selectors across all application stages.
+    - Implemented multi-stage `_fill_workday` in `src/autofill/ats_filler.py`:
+      * Stage 0: Cookie consent dismissal.
+      * Stage 1: 'Apply' -> 'Apply Manually' modal traversal.
+      * Stage 2: Create Account / Sign-In auto-population with fallback to Sign-In.
+      * Stage 2b: 120-second dynamic OTP / Email Verification wait loop with audible chime (`\a`).
+      * Stage 3: 'My Information' personal details, address, city, state, postal code, mobile device type, +91 dial code, phone, and source.
+      * Stage 4: 'My Experience' tailored resume PDF upload and website links.
+    - Added upfront direct routing in `fill_ats_page()` for `WORKDAY_STANDARD`.
+    - Created and executed Verification Gate 56 (`verify/56_test_workday_autofill_heuristics.py`) validating pattern recognition across Workday tenants, schema banking, and Playwright multi-stage simulation with 14 fields typed and resume attached.
+    - Verification Gate 56 passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 120 files).
+  - Workday SPA Hydration Barrier, State Machine & Live Sandbox Probing (Gate 56b):
+    - Diagnosed race condition where Workday SPA client-side hydration delayed the `[data-automation-id='applyButton']` mounting past instant `domcontentloaded` checks.
+    - Implemented `_wait_for_workday_ready()` hydration barrier polling for active page states (`overview`, `modal`, `auth`, `info`).
+    - Implemented State Machine transitions with post-condition verification and bounded retries (up to 3 attempts with scroll-into-view).
+    - Built bidirectional authentication fallback: handles both Create Account $\rightarrow$ Sign In (if account exists) and Sign In $\rightarrow$ Create Account (if account not found).
+    - Built automated diagnostic crash dump (`_capture_workday_diagnostic()`) capturing instant full-page screenshots to `.system_generated/` and logging visible buttons on any transition failure.
+    - Created and executed Verification Gate 56b (`verify/56b_test_workday_live_page_autofill.py`): verified live navigation to JioStar Workday portal, hydration detection, Apply button click, modal opening, Apply Manually traversal, and live Auth Gate mounting in 8 seconds.
+    - Gates 56 and 56b passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 121 files).
+  - Workday Autonomous State Machine Engine & Post-Auth Redirection Loop:
+    - Diagnosed post-auth redirection behavior where Workday redirects authenticated users back to the Job Overview page (`/job/...`), requiring an authenticated 'Apply' click before entering Stage 3 ('My Information').
+    - Refactored `_fill_workday()` from a linear sequence into an autonomous State Machine loop (`while transition_count < 20`) with decoupled DOM state classification (`_detect_workday_state()`).
+    - Handled all dynamic transitions across Overview $\rightarrow$ Modal $\rightarrow$ Create Account $\rightarrow$ Sign In $\rightarrow$ Email Verification $\rightarrow$ Post-Auth Redirection Loop $\rightarrow$ Stage 3 ('My Information') $\rightarrow$ Stage 4 ('My Experience') $\rightarrow$ Review Gate.
+    - Expanded Verification Gate 56 with Step 6 (`test_workday_post_auth_redirect_and_sign_in_loop`) simulating the full authentication redirect loop, re-entry via authenticated Apply trigger, and seamless form completion.
+    - Verification Gate 56 passing 100% across all 6 steps.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 121 files).
+  - Structured Diagnostics, Event Logger & Persistent Learning Vault (Gate 57):
+    - Diagnosed subtle selector collision where global header navbar "Sign In" link was matched by loose text selectors on the Job Overview page, misclassifying overview as `auth_sign_in` and clicking the navbar instead of form buttons.
+    - Implemented strict element scoping: `overview` state strictly prioritized when `applyButton` is visible without password inputs; `auth_sign_in` strictly requires visible password input and `[data-automation-id='signInSubmitButton']`.
+    - Created `AutofillLogger` (`src/autofill/autofill_logger.py`) producing structured JSONL audit events (`data/logs/autofill_events.jsonl`), human-readable diagnostic logs (`data/logs/autofill_diagnostics.log`), and automated failure captures with full-page screenshots and structured DOM element dumps in `data/logs/screenshots/`.
+    - Established persistent `data/logs/autofill_learning_vault.json` cataloging past automation failures, root causes, and permanent fix rules to prevent repetitive debugging cycles.
+    - Created autonomous agent instruction `.agents/agents/autofill_learning_debugger.md`.
+    - Added CLI diagnostic command `python main.py autofill audit` displaying recent events, failure screenshots, and all banked lessons.
+    - Created and executed Verification Gate 57 (`verify/57_test_autofill_logger_and_learning_vault.py`), passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 124 files).
+  - Workday Deterministic Dynamic Question Solver & Taxonomy Store (Gate 58):
+    - Diagnosed tenant-specific screening questions stopping autofill on Workday Stage 1 ('My Information') and Stage 3 ('Application Questions') (e.g. JioStar prior employment radio group and mandatory Prefix dropdown).
+    - Established deterministic taxonomy mapping file `data/profile/workday_field_mappings.json` cataloging regex patterns for prior employment, authorization, sponsorship, nepotism/relatives, conflict of interest, minimum age compliance, non-compete, voluntary disability/veteran/gender disclosures, prefix, device type, and country code.
+    - Updated `CandidateMasterData` and `MasterPersonalDetails` (`src/autofill/vendor_schemas.py`) and `data/profile/candidate_master_data.json` to include `"prefix": "Mr."`.
+    - Implemented `_resolve_workday_questions()` in `src/autofill/ats_filler.py`: dynamically scans radio groups (`fieldset`, `div[role='radiogroup']`) and custom dropdown comboboxes (`button[aria-haspopup='listbox']`), matching against candidate profile data and deterministic taxonomy rules.
+    - Hardened `_select_react_combobox`: guards against calling `.fill()` or `.press("Enter")` on `<button>` elements, clicking the trigger and selecting option from menu listbox.
+    - Expanded `_detect_workday_state` to recognize all 5 Workday breadcrumb stages: `info`, `experience`, `questions`, `disclosures`, and `review`.
+    - Created and executed Verification Gate 58 (`verify/58_test_workday_dynamic_question_solver.py`), passing 100% across all 4 steps:
+      * Step 1: Prior employment radio answered [No], Prefix dropdown selected [Mr.].
+      * Step 2: Stage 3 Application Questions answered (Work authorization [Yes], Visa sponsorship [No]).
+      * Step 3: Stage 4 Voluntary Disclosures answered (Disability status [No]).
+      * Step 4: Multi-stage traversal verified through State Machine up to Review Gate.
+    - Full regression suite verified: Gates 56, 57, and 58 passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 125 files).
+  - Workday Live BEM Schema Precision & Sibling Radio Resolution (Gate 59):
+    - Diagnosed live Workday layout from diagnostic dump `autofill_dom_stuck_unknown_1791225819.json`: Stage 1 inputs use BEM IDs (`name--legalName--firstName`, `address--addressLine1`) without `data-automation-id`, causing `_detect_workday_state` to misclassify as `unknown`.
+    - Expanded `_detect_workday_state` with dual-tier selectors covering BEM IDs (`legalName--firstName`, `candidateIsPreviousWorker`, `legalName--title`) and `/apply` URL patterns.
+    - Updated `_resolve_workday_questions` to scan distinct radio groups by `name`, matching boolean `value="false"`/`"true"` and clicking sibling `<label for="...">`.
+    - Fully mapped Stage 1 field locators for BEM IDs: First Name, Last Name, Prefix `Mr.`, Country, Address 1, City, State, Postal Code, Phone Type, Country Code `+91`, and Phone Number.
+    - Added `pageFooterNextButton` to advance from 'My Information' to 'My Experience'.
+    - Accelerated `_wait_for_workday_ready` to instantly recognize Stage 1 mounting without waiting for hydration timeouts.
+    - Banked `LESSON-008` in `autofill_learning_vault.json`.
+    - Created and executed Verification Gate 59 (`verify/59_test_workday_live_dom_schema_precision.py`), passing 100% across state detection, sibling radio resolution, full field autofill, and stage advancement.
+    - Full regression suite verified: Gates 57, 58, and 59 passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 126 files).
+  - Human-in-the-Loop Manual Takeover Fallback Mode & Submission Confirmation Detector (Gate 60):
+    - Eliminated infinite state cycling on complex enterprise ATS forms (e.g. JioStar Workday) by removing stage exclusions and enforcing a bounded stuck threshold (`state_stuck_count >= 2`).
+    - Implemented `_enter_manual_takeover_mode()` in `src/autofill/ats_filler.py`:
+      * Emits audible terminal chime (`\a`) to immediately alert user.
+      * Prints formatted Candidate Quick-Reference Card in terminal with all personal details, contact info, credential data, and absolute path to tailored PDF resume.
+      * Injects non-intrusive floating glassmorphic `#antigravity-copilot-helper` cheat-sheet widget directly into page DOM with candidate details and dismiss button.
+      * Launches non-blocking background listener `_monitor_manual_submission()` monitoring for URL and page text confirmation markers (`/application-complete`, `submitted`, `thank-you`, `application submitted`, etc.).
+      * Upon user submission, detects confirmation, sounds double chime (`\a\a`), logs `SUBMISSION_CONFIRMED`, and records application status as `APPLIED` in SQLite `ApplicationDatabase`.
+    - Implemented dedicated FastAPI endpoint `POST /api/autofill/manual/{job_id}` (`src/ui/app.py`) launching headful Chrome directly with the candidate cheat-sheet widget and tailored resume PDF ready for manual completion.
+    - Updated Command Center UI (`src/ui/templates/index.html`, `src/ui/static/app.js`, `src/ui/static/styles.css`): added vibrant amber `🖐️ Manual Apply` buttons on both Staging Review action bar and Approved Applications card grid.
+    - Banked `LESSON-010` in `data/logs/autofill_learning_vault.json`.
+    - Created and executed Verification Gate 60 (`verify/60_test_manual_takeover_fallback.py`): verified stuck threshold trigger, cheat-sheet DOM injection, background submission detector, and FastAPI endpoint passing 100%.
+    - Full regression suite verified: Gates 57, 58, 59, and 60 passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 127 files).
+
+
+
 
 

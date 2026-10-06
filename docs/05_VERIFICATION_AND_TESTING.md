@@ -55,6 +55,14 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/50_test_gemini_38_flash_pacer.py` | Rate-Paced LLM Tailoring | Tests Gemini Flash Lite rate pacer (4.0s), 60s quota circuit-breaker, and request logging | **PASSED** |
 | `verify/51_test_company_boundary_isolation.py` | Company Boundary Isolation | Tests deterministic cross-company contamination blocking and company-scoped tailoring | **PASSED** |
 | `verify/52_audit_queue_zero_contamination.py` | Queue Zero Contamination Audit | Audits all staged jobs in pending_queue asserting 100% zero cross-company contamination | **PASSED** |
+| `verify/53_test_resume_comparison_and_selection.py` | Resume Comparison & Selection Gate | Validates standard vs tailored PDF preview endpoints, inspection modal, and approval routing | **PASSED** |
+| `verify/54_test_pdf_inline_preview_headers.py` | PDF Inline Preview Disposition | Verifies Content-Disposition: inline and no-cache headers preventing unintended downloads | **PASSED** |
+| `verify/55_test_oracle_hcm_autofill_heuristics.py` | Oracle Cloud HCM (Akamai) Autofill | Validates Oracle Cloud HCM pattern classification, multi-stage traversal, and form precision | **PASSED** |
+| `verify/56_test_workday_autofill_heuristics.py` | Workday Standard ATS Autofill | Validates Workday pattern classification, tenant auth gate, OTP loop, multi-stage autofill, and resume attachment | **PASSED** |
+| `verify/56b_test_workday_live_page_autofill.py` | Workday Live Portal Probing | Validates live JioStar portal hydration barrier, modal opening, and live auth gate detection | **PASSED** |
+| `verify/57_test_autofill_logger_and_learning_vault.py` | Structured Diagnostics, Event Logger & Learning Vault | Validates JSONL events, failure screenshots, DOM element dumps, Learning Vault banking, and Workday navbar anti-collision | **PASSED** |
+| `verify/58_test_workday_dynamic_question_solver.py` | Workday Deterministic Dynamic Question Solver | Validates dynamic radio & dropdown question answering (prior employment, prefix, auth, disclosures) and multi-stage traversal | **PASSED** |
+| `verify/59_test_workday_live_dom_schema_precision.py` | Workday Live BEM Schema Precision & Sibling Radios | Validates live Workday BEM IDs (`name--legalName--firstName`, `address--...`), sibling `candidateIsPreviousWorker` radio (`false`), and `pageFooterNextButton` | **PASSED** |
 
 ---
 
@@ -89,6 +97,15 @@ python verify/40_test_new_tab_ats_handling.py
 
 # 8. Test Rate-Paced Gemini Tailoring, Circuit Breaker & Request Diagnostics Logging
 python verify/50_test_gemini_38_flash_pacer.py
+
+# 9. Test Workday Dynamic Question Solver & Screening Taxonomy
+python verify/58_test_workday_dynamic_question_solver.py
+
+# 10. Test Workday Live BEM Schema Precision & Sibling Radio Matching
+python verify/59_test_workday_live_dom_schema_precision.py
+
+# 11. Test Human-in-the-Loop Manual Takeover Fallback & Submission Confirmation Detector
+python verify/60_test_manual_takeover_fallback.py
 ```
 
 ---
