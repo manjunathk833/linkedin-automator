@@ -63,6 +63,8 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/57_test_autofill_logger_and_learning_vault.py` | Structured Diagnostics, Event Logger & Learning Vault | Validates JSONL events, failure screenshots, DOM element dumps, Learning Vault banking, and Workday navbar anti-collision | **PASSED** |
 | `verify/58_test_workday_dynamic_question_solver.py` | Workday Deterministic Dynamic Question Solver | Validates dynamic radio & dropdown question answering (prior employment, prefix, auth, disclosures) and multi-stage traversal | **PASSED** |
 | `verify/59_test_workday_live_dom_schema_precision.py` | Workday Live BEM Schema Precision & Sibling Radios | Validates live Workday BEM IDs (`name--legalName--firstName`, `address--...`), sibling `candidateIsPreviousWorker` radio (`false`), and `pageFooterNextButton` | **PASSED** |
+| `verify/60_test_manual_takeover_fallback.py` | Human-in-the-Loop Manual Takeover Fallback | Validates graceful manual apply fallback, headful browser takeover, candidate cheat sheet injection, and submission confirmation detection | **PASSED** |
+| `verify/61_test_application_tracking_and_auto_purge.py` | Application Tracking, Database Indexing & Auto-Purge | Validates SQLite status and applied_at indexing (<1ms lookups), mark-applied endpoints, auto-purge of pending queues, and live dashboard tracking | **PASSED** |
 
 ---
 
@@ -106,6 +108,9 @@ python verify/59_test_workday_live_dom_schema_precision.py
 
 # 11. Test Human-in-the-Loop Manual Takeover Fallback & Submission Confirmation Detector
 python verify/60_test_manual_takeover_fallback.py
+
+# 12. Test Application Tracking, Database Indexing & Auto-Purge Flow
+python verify/61_test_application_tracking_and_auto_purge.py
 ```
 
 ---

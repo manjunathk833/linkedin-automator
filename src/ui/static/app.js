@@ -2,6 +2,7 @@ let currentJobs = [];
 let currentJobIndex = 0;
 let approvedJobs = [];
 let approvedCount = 0;
+let trackedApplications = [];
 let activeTab = 'pending';
 let selectedResumeVersion = 'tailored'; // 'tailored' or 'standard'
 let currentModalTab = 'tailored';
@@ -11,35 +12,54 @@ function switchTab(tab) {
     activeTab = tab;
     const tabPending = document.getElementById('tab-pending');
     const tabApproved = document.getElementById('tab-approved');
+    const tabTracking = document.getElementById('tab-tracking');
     const secPending = document.getElementById('pending-section');
     const secApproved = document.getElementById('approved-section');
+    const secTracking = document.getElementById('tracking-section');
+
+    [tabPending, tabApproved, tabTracking].forEach(t => t && t.classList.remove('active'));
+    [secPending, secApproved, secTracking].forEach(s => s && s.classList.add('hidden'));
 
     if (tab === 'pending') {
-        tabPending.classList.add('active');
-        tabApproved.classList.remove('active');
-        secPending.classList.remove('hidden');
-        secApproved.classList.add('hidden');
+        if (tabPending) tabPending.classList.add('active');
+        if (secPending) secPending.classList.remove('hidden');
         if (currentJobs.length > 0 && currentJobIndex < currentJobs.length) {
             renderJob(currentJobIndex);
         }
-    } else {
-        tabApproved.classList.add('active');
-        tabPending.classList.remove('active');
-        secApproved.classList.remove('hidden');
-        secPending.classList.add('hidden');
+    } else if (tab === 'approved') {
+        if (tabApproved) tabApproved.classList.add('active');
+        if (secApproved) secApproved.classList.remove('hidden');
         fetchApprovedJobs();
+    } else if (tab === 'tracking') {
+        if (tabTracking) tabTracking.classList.add('active');
+        if (secTracking) secTracking.classList.remove('hidden');
+        loadAppliedTracking();
     }
 }
 
 // --- Status Badges & Toasts ---
-function updateQueueBadges() {
+async function updateQueueBadges() {
     const queueCountEl = document.getElementById('queue-count');
     const approvedCountEl = document.getElementById('approved-count');
     const emptyApprovedCountEl = document.getElementById('empty-approved-count');
+    const trackingCountEl = document.getElementById('tracking-count');
 
     if (queueCountEl) queueCountEl.innerText = currentJobs.length;
     if (approvedCountEl) approvedCountEl.innerText = approvedCount;
     if (emptyApprovedCountEl) emptyApprovedCountEl.innerText = approvedCount;
+
+    if (trackingCountEl) {
+        try {
+            const resp = await fetch('/api/tracking/applied?limit=1');
+            if (resp.ok) {
+                const data = await resp.json();
+                const total = data.stats?.total_applied ?? (data.total || 0);
+                trackingCountEl.innerText = total;
+            }
+        } catch (e) {
+            // Silently ignore badge network failure
+        }
+    }
 }
 
 function showToast(message, type = 'success') {
@@ -507,6 +527,9 @@ function renderApprovedGrid(jobs) {
                     <button class="btn-manual" onclick="manualApplyApprovedJob('${job.job_id}', this)" title="Open in Chrome with Candidate Cheat Sheet">
                         🖐️ Manual Apply
                     </button>
+                    <button class="btn-mark-applied" onclick="markApprovedJobApplied('${job.job_id}', this)" title="Mark as applied and move to tracking">
+                        ✅ Applied
+                    </button>
                 </div>
                 <button class="btn-discard" title="Discard from approved" onclick="discardApprovedJob('${job.job_id}', this)">
                     ✕
@@ -664,5 +687,260 @@ async function batchApplyNext() {
             const fakeBtn = document.createElement('button');
             autofillApprovedJob(nextJob.job_id, fakeBtn);
         }
+    }
+}
+
+// --- TAB 3: APPLIED TRACKING DASHBOARD LOGIC ---
+
+async function markCurrentJobApplied() {
+    const job = currentJobs[currentJobIndex];
+    if (!job) return;
+
+    const btn = document.getElementById('btn-mark-applied-staging');
+    const origText = btn ? btn.innerText : '';
+    if (btn) {
+        btn.innerText = '⏳ Saving...';
+        btn.disabled = true;
+    }
+
+    try {
+        const response = await fetch(`/api/tracking/mark-applied/${job.job_id}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        if (response.ok) {
+            const companyName = job.job_details?.company || 'Company';
+            showToast(`✅ Marked as Applied: ${companyName}`);
+            removeCurrentJobAndAdvance();
+            updateQueueBadges();
+        } else {
+            alert(`Could not mark as applied:\n\n${data.detail || response.statusText}`);
+        }
+    } catch (err) {
+        console.error('Error marking staging job applied:', err);
+        alert(`Network error marking job applied: ${err.message}`);
+    } finally {
+        if (btn) {
+            btn.innerText = origText;
+            btn.disabled = false;
+        }
+    }
+}
+
+async function markApprovedJobApplied(jobId, btnElement) {
+    const origText = btnElement ? btnElement.innerText : '';
+    if (btnElement) {
+        btnElement.innerText = '⏳ Saving...';
+        btnElement.disabled = true;
+    }
+
+    try {
+        const response = await fetch(`/api/tracking/mark-applied/${jobId}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        if (response.ok) {
+            const job = approvedJobs.find(j => j.job_id === jobId);
+            const comp = job ? job.company : jobId;
+            showToast(`✅ Saved to Applied Tracking: ${comp}`);
+
+            const card = document.getElementById(`approved-card-${jobId}`);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => card.remove(), 250);
+            }
+            approvedJobs = approvedJobs.filter(j => j.job_id !== jobId);
+            approvedCount = approvedJobs.length;
+            updateQueueBadges();
+
+            if (approvedJobs.length === 0) {
+                const emptyEl = document.getElementById('approved-empty-state');
+                if (emptyEl) emptyEl.classList.remove('hidden');
+            }
+        } else {
+            alert(`Could not mark as applied:\n\n${data.detail || response.statusText}`);
+        }
+    } catch (err) {
+        console.error('Error marking approved job applied:', err);
+        alert(`Network error: ${err.message}`);
+    } finally {
+        if (btnElement) {
+            btnElement.innerText = origText;
+            btnElement.disabled = false;
+        }
+    }
+}
+
+async function loadAppliedTracking() {
+    const loadingEl = document.getElementById('tracking-loading');
+    const listContainer = document.getElementById('tracking-jobs-list');
+    const emptyEl = document.getElementById('tracking-empty-state');
+
+    if (loadingEl) loadingEl.classList.remove('hidden');
+    if (listContainer) listContainer.innerHTML = '';
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/tracking/applied');
+        const data = await response.json();
+        trackedApplications = data.applications || [];
+
+        // Update KPIs
+        const stats = data.stats || {};
+        const kpiTotal = document.getElementById('kpi-total-applied');
+        const kpiToday = document.getElementById('kpi-today-applied');
+        const kpiPlatforms = document.getElementById('kpi-platforms-count');
+        const badgeCount = document.getElementById('tracking-count');
+
+        if (kpiTotal) kpiTotal.innerText = stats.total_applied || trackedApplications.length;
+        if (kpiToday) kpiToday.innerText = stats.applied_today || 0;
+        if (kpiPlatforms) {
+            const sources = Object.keys(stats.source_breakdown || {});
+            kpiPlatforms.innerText = sources.length || (trackedApplications.length > 0 ? 1 : 0);
+        }
+        if (badgeCount) badgeCount.innerText = stats.total_applied || trackedApplications.length;
+
+        if (loadingEl) loadingEl.classList.add('hidden');
+
+        if (trackedApplications.length === 0) {
+            if (emptyEl) emptyEl.classList.remove('hidden');
+        } else {
+            renderTrackingGrid(trackedApplications);
+        }
+    } catch (error) {
+        console.error('Error fetching applied tracking:', error);
+        if (loadingEl) loadingEl.classList.add('hidden');
+    }
+}
+
+function renderTrackingGrid(apps) {
+    const listContainer = document.getElementById('tracking-jobs-list');
+    const emptyEl = document.getElementById('tracking-empty-state');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    if (!apps || apps.length === 0) {
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        return;
+    }
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    apps.forEach(app => {
+        const card = document.createElement('div');
+        card.className = 'tracking-card';
+        card.id = `tracking-card-${app.job_id}`;
+
+        const source = (app.source || 'ATS').toLowerCase();
+        let pillClass = 'source-pill ';
+        if (source.includes('greenhouse')) pillClass += 'greenhouse';
+        else if (source.includes('lever')) pillClass += 'lever';
+        else if (source.includes('ashby')) pillClass += 'ashby';
+        else pillClass += 'linkedin';
+
+        // Format applied timestamp
+        let formattedDate = 'Recently';
+        if (app.applied_at) {
+            try {
+                const d = new Date(app.applied_at);
+                formattedDate = d.toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                formattedDate = app.applied_at;
+            }
+        }
+
+        const statusClass = (app.status || 'applied').toLowerCase().includes('interview')
+            ? 'interview'
+            : (app.status || 'applied').toLowerCase().includes('submitted')
+                ? 'submitted'
+                : 'applied';
+
+        const statusDisplay = (app.status || 'Applied').replace(/_/g, ' ').toUpperCase();
+        const hasPdf = Boolean(app.resume_path);
+        const jobUrl = app.job_url || '#';
+
+        card.innerHTML = `
+            <div>
+                <div class="tracking-card-header">
+                    <div class="tracking-company-title">
+                        <h3>${app.company_name || 'Unknown Company'}</h3>
+                        <p>${app.job_title || 'Software Engineer'}</p>
+                    </div>
+                    <div class="tracking-badge-group">
+                        <span class="${pillClass}">${(app.source || 'ATS').toUpperCase()}</span>
+                        <span class="status-pill ${statusClass}">${statusDisplay}</span>
+                    </div>
+                </div>
+                <div class="tracking-meta">
+                    <span>🕒 Applied: <strong>${formattedDate}</strong></span>
+                    <span>🆔 ID: <code>${app.job_id}</code></span>
+                </div>
+            </div>
+            <div class="tracking-footer">
+                <div class="tracking-footer-actions">
+                    <a href="/api/pdf/${app.job_id}" target="_blank" class="btn-pdf" ${hasPdf ? '' : 'style="display:none;"'}>
+                        📄 View Tailored PDF
+                    </a>
+                    ${jobUrl && jobUrl !== '#' ? `<a href="${jobUrl}" target="_blank" class="btn-secondary-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px;">🔗 Job Posting ↗</a>` : ''}
+                </div>
+                <button class="btn-discard" title="Delete from tracking archive" onclick="deleteTrackedApplication('${app.job_id}', this)">
+                    🗑️
+                </button>
+            </div>
+        `;
+        listContainer.appendChild(card);
+    });
+}
+
+function filterTrackingJobs() {
+    const input = document.getElementById('tracking-search');
+    if (!input) return;
+    const query = input.value.toLowerCase().trim();
+    if (!query) {
+        renderTrackingGrid(trackedApplications);
+        return;
+    }
+    const filtered = trackedApplications.filter(app => {
+        const comp = (app.company_name || '').toLowerCase().includes(query);
+        const title = (app.job_title || '').toLowerCase().includes(query);
+        const src = (app.source || '').toLowerCase().includes(query);
+        const status = (app.status || '').toLowerCase().includes(query);
+        const jobId = (app.job_id || '').toLowerCase().includes(query);
+        return comp || title || src || status || jobId;
+    });
+    renderTrackingGrid(filtered);
+}
+
+async function deleteTrackedApplication(jobId, btnElement) {
+    if (!confirm(`Remove application #${jobId} from tracking archive?`)) return;
+
+    try {
+        const response = await fetch(`/api/tracking/${jobId}`, { method: 'DELETE' });
+        if (response.ok) {
+            trackedApplications = trackedApplications.filter(a => a.job_id !== jobId);
+            const card = document.getElementById(`tracking-card-${jobId}`);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => card.remove(), 250);
+            }
+            showToast('Application removed from tracking archive');
+            updateQueueBadges();
+            const kpiTotal = document.getElementById('kpi-total-applied');
+            if (kpiTotal) kpiTotal.innerText = trackedApplications.length;
+            if (trackedApplications.length === 0) {
+                const emptyEl = document.getElementById('tracking-empty-state');
+                if (emptyEl) emptyEl.classList.remove('hidden');
+            }
+        } else {
+            alert('Failed to remove application.');
+        }
+    } catch (e) {
+        console.error('Error deleting tracked application:', e);
     }
 }

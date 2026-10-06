@@ -85,6 +85,10 @@ class LinkedInJobFilter:
         print(f"  Evaluating {len(json_files)} job(s) in {self.queue_dir}...")
         print("=" * 50)
 
+        from src.storage.database import ApplicationDatabase
+
+        applied_ids = ApplicationDatabase().get_applied_job_ids()
+
         retained = []
         filtered = []
         status_updates = {}
@@ -107,8 +111,12 @@ class LinkedInJobFilter:
 
             rejection_reason = None
 
+            # 0. Database Applied Filter
+            if job_id in applied_ids:
+                rejection_reason = "Already marked as APPLIED in application database"
+
             # 1. Easy Apply Filter
-            if app_type != "EASY_APPLY":
+            elif app_type != "EASY_APPLY":
                 rejection_reason = "Missing Easy Apply flag"
 
             # 2. Role Title Keyword Alignment

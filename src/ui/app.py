@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
@@ -397,14 +398,39 @@ async def get_pending_jobs():
             _tailorer = ResumeTailorer(use_ai=False)
         return _tailorer
 
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    applied_job_ids = db.get_applied_job_ids()
+
     jobs = []
     if os.path.exists(PENDING_DIR):
         for filename in os.listdir(PENDING_DIR):
             if filename.endswith(".json"):
+                job_id_from_name = filename.replace(".json", "")
                 file_path = os.path.join(PENDING_DIR, filename)
+
+                # Check if job was already applied in the database; if so, purge and skip!
+                if job_id_from_name in applied_job_ids:
+                    print(f"🧹 Purging already applied job {job_id_from_name} from pending queue...")
+                    try:
+                        os.remove(file_path)
+                    except Exception:
+                        pass
+                    continue
+
                 try:
                     with open(file_path, "r") as f:
                         raw_payload = json.load(f)
+
+                    payload_job_id = raw_payload.get("job_id") or job_id_from_name
+                    if payload_job_id in applied_job_ids:
+                        print(f"🧹 Purging already applied job {payload_job_id} from pending queue...")
+                        try:
+                            os.remove(file_path)
+                        except Exception:
+                            pass
+                        continue
 
                     # On-demand tailoring fallback: if tailored_resume is missing, tailor now
                     if "tailored_resume" not in raw_payload:
@@ -727,9 +753,104 @@ async def manual_apply_job(job_id: str):
     }
 
 
+@app.post("/api/tracking/mark-applied/{job_id}")
+async def mark_job_applied(job_id: str):
+    """Marks a job as APPLIED in SQLite database and removes it from pending & approved queues."""
+    from src.storage.database import ApplicationDatabase
+
+    pending_file = os.path.join(PENDING_DIR, f"{job_id}.json")
+    approved_file = os.path.join(APPROVED_DIR, f"{job_id}.json")
+    target_file = pending_file if os.path.exists(pending_file) else approved_file
+
+    job_data: dict[str, Any] = {}
+    if os.path.exists(target_file):
+        try:
+            with open(target_file, "r", encoding="utf-8") as f:
+                job_data = json.load(f)
+        except Exception:
+            pass
+
+    job_details = job_data.get("job_details", {})
+    company_name = job_details.get("company", "Unknown")
+    job_title = job_details.get("title", "Senior SDET")
+    job_url = job_data.get("url") or job_data.get("job_url") or f"https://www.linkedin.com/jobs/view/{job_id}/"
+    pdf_path, _ = resolve_job_pdf_path(job_id, job_data) if job_data else ("", None)
+
+    db = ApplicationDatabase()
+    db.record_application(
+        job_id=job_id,
+        source=job_data.get("source", "manual"),
+        company_name=company_name,
+        job_title=job_title,
+        job_url=job_url,
+        resume_path=pdf_path or "",
+        tailored_data=job_data.get("tailored_resume", {}),
+        status="applied",
+    )
+
+    # Purge file from queues
+    if os.path.exists(pending_file):
+        try:
+            os.remove(pending_file)
+        except Exception:
+            pass
+    if os.path.exists(approved_file):
+        try:
+            os.remove(approved_file)
+        except Exception:
+            pass
+
+    # Record into processed_jobs deduplication ledger
+    try:
+        from src.scraper.job_finder import LinkedInJobFinder
+
+        finder = LinkedInJobFinder()
+        finder.mark_job_processed(job_id=job_id, company=company_name, title=job_title, status="APPLIED")
+    except Exception:
+        pass
+
+    stats = db.get_application_stats()
+    return {
+        "status": "success",
+        "message": f"Job {job_id} ({company_name}) marked as applied and moved to tracking.",
+        "job_id": job_id,
+        "stats": stats,
+    }
+
+
+@app.get("/api/tracking/applied")
+async def get_applied_tracking(limit: int = 200, status: str | None = None):
+    """Retrieves all tracked applications and summary KPIs from SQLite database."""
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    applications = db.get_all_applications(limit=limit, status_filter=status)
+    stats = db.get_application_stats()
+    return {
+        "status": "success",
+        "total": len(applications),
+        "applications": applications,
+        "stats": stats,
+    }
+
+
+@app.delete("/api/tracking/{job_id}")
+async def delete_tracked_job(job_id: str):
+    """Deletes an application record from the tracking repository."""
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    deleted = db.delete_application(job_id)
+    return {"status": "success" if deleted else "not_found", "job_id": job_id}
+
+
 @app.get("/api/approved-jobs")
 async def get_approved_jobs():
     from src.autofill.governor import ApplicationGovernor
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    applied_job_ids = db.get_applied_job_ids()
 
     governor = ApplicationGovernor()
     budget = governor.check_budget()
@@ -743,11 +864,29 @@ async def get_approved_jobs():
 
         for filename in files:
             file_path = os.path.join(APPROVED_DIR, filename)
+            job_id_from_name = filename.replace(".json", "")
+
+            # Auto-purge if already marked as applied!
+            if job_id_from_name in applied_job_ids:
+                print(f"🧹 Purging already applied job {job_id_from_name} from approved queue...")
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                continue
+
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     payload = json.load(f)
 
-                job_id = payload.get("job_id", filename.replace(".json", ""))
+                job_id = payload.get("job_id", job_id_from_name)
+                if job_id in applied_job_ids:
+                    print(f"🧹 Purging already applied job {job_id} from approved queue...")
+                    try:
+                        os.remove(file_path)
+                    except Exception:
+                        pass
+                    continue
                 jd = payload.get("job_details", {})
                 pdf_path, pdf_filename = resolve_job_pdf_path(job_id, payload)
 

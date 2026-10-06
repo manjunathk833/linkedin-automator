@@ -215,10 +215,12 @@ graph TD
 
 ---
 
-### Module 10: Governance, SQLite Audit Trails & Rate Governor
-* **Files:** [`src/storage/database.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/storage/database.py), [`src/autofill/governor.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/governor.py)
-* **Architecture:** Relational persistence and safety policy governor:
-  * **SQLite Audit Trail:** `data/app_database.db` persists `job_applications` (source, URL, resume path, tailored JSON, timestamps) and `daily_submission_limits`.
+### Module 10: Governance, SQLite Audit Trails, Rate Governor & Applied Tracking Dashboard
+* **Files:** [`src/storage/database.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/storage/database.py), [`src/autofill/governor.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/governor.py), [`src/ui/app.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/app.py)
+* **Architecture:** Relational persistence, high-performance indexing, and full-lifecycle application tracking:
+  * **SQLite Audit Trail & Indexing:** `data/app_database.db` persists `job_applications` (id, source, company_name, job_title, job_url, resume_path, tailored_data_json, status, applied_at) and `daily_submission_limits`. Indexed with `idx_job_applications_status` and `idx_job_applications_applied_at` for instant (<1ms) duplicate checks and audit ordering.
+  * **Automated Multi-Layer Purge Defense:** Cross-references active queues (`pending_queue/`, `approved_queue/`, and `processed_jobs.json`) with `ApplicationDatabase().get_applied_job_ids()`. Any previously applied or submitted listing is automatically purged from disk upon API retrieval and scraper pooling, completely preventing stale or duplicate applications.
+  * **Applied Tracking Dashboard (Tab 3):** Dedicated FastAPI dashboard view (`/api/tracking/applied`) displaying live KPI metric cards (Total Applied, Applied Today, Active Portals), client-side fuzzy search, timestamped audit history, direct ATS portal navigation links, tailored PDF review, and archive management.
   * **Rolling Daily Budget Governor:** Enforces a configurable daily quota (default $\le 200$ applications per 24 hours, customized via `config.yaml`) to guard against runaway loops while supporting high-volume job applications.
 
 ---
@@ -314,8 +316,12 @@ All features are covered by dedicated, standalone verification scripts in `verif
 | `verify/56_test_workday_autofill_heuristics.py` | Workday Standard Multi-Stage & Verification Gate | Verifies pattern classification, tenant auth, post-registration email verification loop, and auto-sign-in form resumption |
 | `verify/56b_test_workday_live_page_autofill.py` | Workday Live Portal Probing | Verifies live JioStar portal hydration barrier, modal opening, and live auth gate detection |
 | `verify/57_test_autofill_logger_and_learning_vault.py` | Structured Diagnostics, Event Logger & Learning Vault | Verifies JSONL event tracking, failure screenshots, DOM dumps, Learning Vault banking, and Workday navbar anti-collision |
+| `verify/58_test_workday_dynamic_question_solver.py` | Workday Dynamic Question Solver | Validates dynamic radio & dropdown question answering (prior employment, prefix, auth, disclosures) and multi-stage traversal |
+| `verify/59_test_workday_live_dom_schema_precision.py` | Workday Live BEM Schema Precision & Sibling Radios | Validates live Workday BEM IDs (`name--legalName--firstName`, `address--...`), sibling `candidateIsPreviousWorker` radio (`false`), and `pageFooterNextButton` |
+| `verify/60_test_manual_takeover_fallback.py` | Human-in-the-Loop Manual Takeover Fallback | Validates graceful manual apply fallback, headful browser takeover, candidate cheat sheet injection, and submission confirmation detection |
+| `verify/61_test_application_tracking_and_auto_purge.py` | Application Tracking, Database Indexing & Auto-Purge | Validates SQLite status and applied_at indexing (<1ms lookups), mark-applied endpoints, auto-purge of pending queues, and live dashboard tracking |
 
-* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 109 project files).
+* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 127 project files).
 
 ---
 

@@ -49,6 +49,9 @@ class ApplicationDatabase:
                     status TEXT NOT NULL
                 );
 
+                CREATE INDEX IF NOT EXISTS idx_job_applications_status ON job_applications(status);
+                CREATE INDEX IF NOT EXISTS idx_job_applications_applied_at ON job_applications(applied_at DESC);
+
                 CREATE TABLE IF NOT EXISTS daily_submission_limits (
                     date_bucket TEXT PRIMARY KEY,
                     submission_count INTEGER DEFAULT 0
@@ -97,13 +100,14 @@ class ApplicationDatabase:
         company_name: str,
         job_title: str,
         job_url: str,
-        resume_path: str,
-        tailored_data: dict[str, Any] | str,
+        resume_path: str = "",
+        tailored_data: dict[str, Any] | str | None = None,
         screening_qa: dict[str, Any] | str | None = None,
         status: str = "applied",
     ) -> None:
         """Records an application event into the audit trail and updates daily submission counter."""
-        tailored_json = tailored_data if isinstance(tailored_data, str) else json.dumps(tailored_data)
+        tailored_payload = tailored_data if tailored_data is not None else {}
+        tailored_json = tailored_payload if isinstance(tailored_payload, str) else json.dumps(tailored_payload)
         qa_json = screening_qa if isinstance(screening_qa, str) or screening_qa is None else json.dumps(screening_qa)
 
         with self._get_connection() as conn:
@@ -144,3 +148,77 @@ class ApplicationDatabase:
             if not row:
                 return None
             return dict(row)
+
+    def is_job_applied(self, job_id: str) -> bool:
+        """Returns True if job_id has been recorded as applied or autofilled in the database."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT 1 FROM job_applications WHERE id = ? AND status IN ('applied', 'assisted_autofilled', 'manual_takeover_opened') LIMIT 1;",
+                (job_id,),
+            )
+            return cursor.fetchone() is not None
+
+    def get_applied_job_ids(self) -> set[str]:
+        """Returns the set of all job IDs that have been marked as applied."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id FROM job_applications WHERE status IN ('applied', 'assisted_autofilled', 'manual_takeover_opened');"
+            )
+            return {row["id"] for row in cursor.fetchall()}
+
+    def get_all_applications(self, limit: int = 200, status_filter: str | None = None) -> list[dict[str, Any]]:
+        """Retrieves all application records ordered by applied_at DESC for tracking."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if status_filter:
+                cursor.execute(
+                    "SELECT * FROM job_applications WHERE status = ? ORDER BY applied_at DESC LIMIT ?",
+                    (status_filter, limit),
+                )
+            else:
+                cursor.execute(
+                    "SELECT * FROM job_applications ORDER BY applied_at DESC LIMIT ?",
+                    (limit,),
+                )
+            rows = cursor.fetchall()
+            applications = []
+            for row in rows:
+                item = dict(row)
+                item["job_id"] = item.get("id")
+                applications.append(item)
+            return applications
+
+    def get_application_stats(self) -> dict[str, Any]:
+        """Returns summary statistics for the tracking dashboard."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) AS total FROM job_applications;")
+            total = cursor.fetchone()["total"]
+
+            today_count = self.get_today_submission_count()
+
+            cursor.execute("SELECT source, COUNT(*) AS cnt FROM job_applications GROUP BY source ORDER BY cnt DESC;")
+            sources = {row["source"]: row["cnt"] for row in cursor.fetchall()}
+
+            cursor.execute("SELECT status, COUNT(*) AS cnt FROM job_applications GROUP BY status ORDER BY cnt DESC;")
+            statuses = {row["status"]: row["cnt"] for row in cursor.fetchall()}
+
+            return {
+                "total_applied": total,
+                "today_applied": today_count,
+                "applied_today": today_count,
+                "sources": sources,
+                "source_breakdown": sources,
+                "statuses": statuses,
+                "status_breakdown": statuses,
+            }
+
+    def delete_application(self, job_id: str) -> bool:
+        """Deletes an application record by job_id."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM job_applications WHERE id = ?", (job_id,))
+            conn.commit()
+            return cursor.rowcount > 0

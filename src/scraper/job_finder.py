@@ -54,6 +54,15 @@ class LinkedInJobFinder:
         job_ids = data.get("job_ids", {})
         composite_hashes = data.get("composite_hashes", {})
 
+        # 0. Check SQLite persistent database for completed applications
+        try:
+            from src.storage.database import ApplicationDatabase
+
+            if ApplicationDatabase().is_job_applied(job_id):
+                return True
+        except Exception:
+            pass
+
         # 1. Check primary job_id
         if job_id in job_ids:
             return True

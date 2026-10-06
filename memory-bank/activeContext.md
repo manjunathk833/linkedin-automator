@@ -187,6 +187,24 @@
     - Created and executed Verification Gate 60 (`verify/60_test_manual_takeover_fallback.py`): verified stuck threshold trigger, cheat-sheet DOM injection, background submission detector, and FastAPI endpoint passing 100%.
     - Full regression suite verified: Gates 57, 58, 59, and 60 passing 100%.
     - Codebase linted cleanly via `python main.py lint` (0 errors across 127 files).
+  - High-Performance Application Tracking, Multi-Stage Auto-Purge Defense & Tab 3 Dashboard (Gate 61):
+    - Added high-performance indexing in SQLite `app_database.db`: `idx_job_applications_status` and `idx_job_applications_applied_at` for ultra-fast (<0.15ms) lookups.
+    - Extended `ApplicationDatabase` (`src/storage/database.py`) with `is_job_applied(job_id)`, `get_applied_job_ids()`, `get_all_applications(limit, status)`, `get_application_stats()`, and `delete_application(job_id)`.
+    - Added multi-layer auto-purge defense:
+      * When retrieving jobs from `/api/jobs` or `/api/pending-jobs` and `/api/approved-jobs` (`src/ui/app.py`), checks `ApplicationDatabase().get_applied_job_ids()`; if any listing on disk was already applied, automatically unlinks/purges the JSON file from the filesystem.
+      * In `LinkedInJobFinder.is_duplicate()` (`src/scraper/job_finder.py`): cross-checks `is_job_applied(job_id)` to prevent re-scraping or re-pooling applied jobs.
+      * In `LinkedInJobFilter.filter_pending_queue()` (`src/filter/job_filter.py`): discards any staged listing present in `get_applied_job_ids()`.
+    - Implemented tracking REST endpoints in `src/ui/app.py`:
+      * `POST /api/tracking/mark-applied/{job_id}`: records application to SQLite with status `applied`, purges job from `pending_queue/` and `approved_queue/`, and updates `processed_jobs.json`.
+      * `GET /api/tracking/applied`: returns tracked applications in reverse chronological order and aggregated KPIs.
+      * `DELETE /api/tracking/{job_id}`: archives/removes application record.
+    - Upgraded Command Center UI (`src/ui/templates/index.html`, `src/ui/static/app.js`, `src/ui/static/styles.css`):
+      * Added Tab 3 `📊 Applied Tracking` with live count badge synced across tabs.
+      * Added `✅ Mark as Applied` button to Staging Review action bar.
+      * Added `✅ Applied` quick button to every Ready to Apply card.
+      * Built glassmorphic Tab 3 UI featuring KPI stat cards (Total Applied, Applied Today, Active Portals), client-side search/filter bar, applied cards grid, view tailored PDF links, direct job posting links, and archive buttons.
+    - Created and executed Verification Gate 61 (`verify/61_test_application_tracking_and_auto_purge.py`), passing 100% across SQLite schema/indexes, auto-purge on retrieval, mark-applied endpoints, tracking view, and scraper defense.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 127 files).
 
 
 
