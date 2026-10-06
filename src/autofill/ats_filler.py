@@ -11,6 +11,7 @@ import asyncio
 import json
 import os
 import re
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -135,6 +136,9 @@ class ATSAssistedFiller:
         page: Any,
         job_url: str,
         resume_pdf_path: str | None = None,
+        job_id: str = "",
+        company: str = "",
+        job_title: str = "",
     ) -> dict[str, Any]:
         """Fills out the application form on the given page or frame locator."""
         page_url = getattr(page, "url", "")
@@ -170,10 +174,15 @@ class ATSAssistedFiller:
                 url=getattr(page, "url", active_url),
                 details={"fields_filled": fields_filled, "resume_attached": resume_attached, "status": status},
             )
-            print("\n🔔 ========================================================")
-            print(f"🔔 ATS AUTOFILL COMPLETE: {fields_filled} fields typed, Resume Attached={resume_attached}")
-            print("🔔 Status: Pausing session for candidate manual review and submission.")
-            print("🔔 ========================================================\n")
+            await self._enter_manual_takeover_mode(
+                target=page,
+                portal_name=f"{company or 'Oracle Cloud HCM'} Application",
+                resume_pdf_path=resume_pdf_path,
+                job_id=job_id,
+                company_name=company,
+                job_title=job_title,
+                job_url=active_url,
+            )
             return {
                 "status": status,
                 "fields_filled": fields_filled,
@@ -182,7 +191,14 @@ class ATSAssistedFiller:
             }
         elif pattern == ATSVendorPattern.WORKDAY_STANDARD:
             print("🏢 Routing directly to dedicated Workday multi-stage autofill handler...")
-            fields_filled, resume_attached = await self._fill_workday(page, resume_pdf_path)
+            fields_filled, resume_attached = await self._fill_workday(
+                page,
+                resume_pdf_path,
+                job_id=job_id,
+                company=company,
+                job_title=job_title,
+                job_url=active_url,
+            )
             status = "ready_for_review" if (fields_filled > 0 or resume_attached) else "needs_manual_navigation"
             self.logger.log(
                 event_type="COMPLETED",
@@ -191,10 +207,6 @@ class ATSAssistedFiller:
                 url=getattr(page, "url", active_url),
                 details={"fields_filled": fields_filled, "resume_attached": resume_attached, "status": status},
             )
-            print("\n🔔 ========================================================")
-            print(f"🔔 ATS AUTOFILL COMPLETE: {fields_filled} fields typed, Resume Attached={resume_attached}")
-            print("🔔 Status: Pausing session for candidate manual review and submission.")
-            print("🔔 ========================================================\n")
             return {
                 "status": status,
                 "fields_filled": fields_filled,
@@ -362,7 +374,14 @@ class ATSAssistedFiller:
             fields_filled, resume_attached = await self._fill_ashby(target, resume_pdf_path)
         elif pattern == ATSVendorPattern.WORKDAY_STANDARD:
             print("🏢 Identified Workday standard portal.")
-            fields_filled, resume_attached = await self._fill_workday(target, resume_pdf_path)
+            fields_filled, resume_attached = await self._fill_workday(
+                target,
+                resume_pdf_path,
+                job_id=job_id,
+                company=company,
+                job_title=job_title,
+                job_url=active_url,
+            )
         elif pattern == ATSVendorPattern.ORACLE_CLOUD_HCM:
             print("☁️ Identified Oracle Cloud HCM / Fusion Candidate Experience portal.")
             fields_filled, resume_attached = await self._fill_oracle_hcm(page, resume_pdf_path)
@@ -375,10 +394,15 @@ class ATSAssistedFiller:
 
         status = "ready_for_review" if (fields_filled > 0 or resume_attached) else "needs_manual_navigation"
 
-        print("\n🔔 ========================================================")
-        print(f"🔔 ATS AUTOFILL COMPLETE: {fields_filled} fields typed, Resume Attached={resume_attached}")
-        print("🔔 Status: Pausing session for candidate manual review and submission.")
-        print("🔔 ========================================================\n")
+        await self._enter_manual_takeover_mode(
+            target=page,
+            portal_name=f"{company or str(pattern)} Application",
+            resume_pdf_path=resume_pdf_path,
+            job_id=job_id,
+            company_name=company,
+            job_title=job_title,
+            job_url=active_url,
+        )
 
         return {
             "status": status,
@@ -1639,6 +1663,257 @@ class ATSAssistedFiller:
         except Exception as e:
             print(f"⚠️ Diagnostic capture notice: {e}")
 
+    async def _enter_manual_takeover_mode(
+        self,
+        target: Any,
+        portal_name: str = "ATS Application",
+        resume_pdf_path: str | None = None,
+        job_id: str = "",
+        company_name: str = "",
+        job_title: str = "",
+        job_url: str = "",
+    ) -> dict[str, Any]:
+        """Activates graceful Human-in-the-Loop Manual Takeover Mode.
+        Sounds audible alert (\\a), renders candidate quick-reference card in terminal,
+        injects a non-intrusive floating helper widget into the web page DOM, and
+        starts a background monitor detecting submission confirmation."""
+        p = self.master_data.personal
+        profiles = self.master_data.profiles
+        workday_pwd = getattr(p, "workday_default_password", "Candidate@2026Auto!")
+
+        full_name = p.full_name or f"{p.first_name} {p.last_name}"
+        email = p.email
+        phone = p.phone
+        address = p.address_line1 or p.city
+        loc_str = f"{p.city}, {p.state} {p.postal_code}, India"
+        linkedin = profiles.linkedin or ""
+        github = profiles.github or ""
+        portfolio = profiles.portfolio or ""
+        pdf_display = os.path.basename(resume_pdf_path) if resume_pdf_path else "None (Tailored PDF)"
+
+        # 1. Ring audible terminal bell to get candidate attention
+        try:
+            sys.stdout.write("\a")
+            sys.stdout.flush()
+        except Exception:
+            pass
+
+        # 2. Render prominent Candidate Quick-Reference Card in terminal
+        print("\n" + "=" * 70)
+        print(f"🔔 🖐️  MANUAL TAKEOVER ACTIVATED: {portal_name}")
+        print("🔔 The automation has yielded control to you in headful Chrome.")
+        print("🔔 Candidate details are listed below for quick reference:")
+        print("=" * 70)
+        print(f"  👤 Full Name:       {full_name}")
+        print(f"  📧 Email:           {email}")
+        print(f"  📱 Phone:           {phone}")
+        print(f"  🏠 Street Address:  {address}")
+        print(f"  📍 Location:        {loc_str}")
+        print(f"  🔗 LinkedIn:        {linkedin}")
+        print(f"  💻 GitHub:          {github}")
+        print(f"  🌐 Portfolio:       {portfolio}")
+        print(f"  🔑 Portal Password: {workday_pwd}")
+        if resume_pdf_path:
+            print(f"  📄 Resume PDF:      {os.path.abspath(resume_pdf_path)}")
+        print("=" * 70)
+        print("💡 Hint: Complete any remaining fields and submit. The system is monitoring")
+        print("   the page and will automatically log confirmation when submitted.")
+        print("=" * 70 + "\n")
+
+        # 3. Inject floating Candidate Cheat Sheet widget into the DOM (if page is accessible)
+        page = getattr(target, "page", target)
+        if hasattr(page, "evaluate"):
+            try:
+                card_js = f"""
+                (() => {{
+                    if (document.getElementById('antigravity-copilot-helper')) return;
+                    const c = document.createElement('div');
+                    c.id = 'antigravity-copilot-helper';
+                    c.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:rgba(15,23,42,0.95);border:1px solid rgba(56,189,248,0.5);border-radius:12px;padding:14px 18px;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:12px;box-shadow:0 12px 28px rgba(0,0,0,0.6);backdrop-filter:blur(8px);max-width:340px;line-height:1.5;';
+                    c.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px;">
+                            <span style="color:#38bdf8;font-weight:700;font-size:13px;">🖐️ Candidate Cheat Sheet</span>
+                            <button onclick="document.getElementById('antigravity-copilot-helper').remove()" style="background:transparent;border:none;color:#94a3b8;font-size:16px;cursor:pointer;padding:0 4px;">✕</button>
+                        </div>
+                        <div style="display:grid;gap:4px;">
+                            <div><span style="color:#94a3b8;">Name:</span> <strong>{full_name}</strong></div>
+                            <div><span style="color:#94a3b8;">Email:</span> <strong>{email}</strong></div>
+                            <div><span style="color:#94a3b8;">Phone:</span> <strong>{phone}</strong></div>
+                            <div><span style="color:#94a3b8;">Location:</span> <strong>{p.city}, {p.state}</strong></div>
+                            <div><span style="color:#94a3b8;">Workday Pass:</span> <strong>{workday_pwd}</strong></div>
+                            <div style="margin-top:4px;padding-top:4px;border-top:1px dashed rgba(255,255,255,0.15);font-size:11px;color:#a5f3fc;word-break:break-all;">
+                                📄 Resume: {pdf_display}
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(c);
+                }})();
+                """
+                await page.evaluate(card_js)
+            except Exception:
+                pass
+
+        # 4. Schedule background submission confirmation listener
+        if hasattr(page, "url"):
+            asyncio.create_task(
+                self._monitor_manual_submission(
+                    page=page,
+                    job_id=job_id,
+                    company_name=company_name,
+                    job_title=job_title,
+                    job_url=job_url or getattr(page, "url", ""),
+                    resume_path=resume_pdf_path or "",
+                )
+            )
+
+        self.logger.log(
+            event_type="MANUAL_TAKEOVER_ACTIVATED",
+            message=f"Manual takeover activated for {portal_name}",
+            url=getattr(page, "url", job_url),
+            details={"portal_name": portal_name, "job_id": job_id, "resume": pdf_display},
+        )
+
+        return {
+            "status": "manual_takeover_activated",
+            "mode": "manual",
+            "url": getattr(page, "url", job_url),
+            "message": f"Manual takeover activated for {portal_name}. Browser remains open.",
+        }
+
+    async def _monitor_manual_submission(
+        self,
+        page: Any,
+        job_id: str = "",
+        company_name: str = "",
+        job_title: str = "",
+        job_url: str = "",
+        resume_path: str = "",
+        timeout: float = 600.0,
+    ) -> None:
+        """Monitors the active page in the background for application submission confirmation markers."""
+        start_time = time.time()
+        confirmation_url_markers = [
+            "application-complete",
+            "submitted",
+            "thank-you",
+            "thank_you",
+            "confirmation",
+            "jobs/applied",
+            "submission-complete",
+        ]
+        confirmation_text_markers = [
+            "thank you for applying",
+            "application submitted",
+            "application has been submitted",
+            "your application was submitted",
+            "your application has been received",
+            "we have received your application",
+            "application complete",
+            "successfully submitted",
+        ]
+
+        while time.time() - start_time < timeout:
+            try:
+                if hasattr(page, "is_closed") and page.is_closed():
+                    break
+
+                cur_url = getattr(page, "url", "").lower()
+
+                # 1. URL match check
+                url_match = any(m in cur_url for m in confirmation_url_markers)
+
+                # 2. Page text match check
+                text_match = False
+                if not url_match and hasattr(page, "get_by_text"):
+                    for phrase in confirmation_text_markers:
+                        try:
+                            loc = page.get_by_text(phrase, exact=False).first
+                            if await loc.count() > 0 and await loc.is_visible():
+                                text_match = True
+                                break
+                        except Exception:
+                            pass
+
+                if url_match or text_match:
+                    try:
+                        sys.stdout.write("\a\a")
+                        sys.stdout.flush()
+                    except Exception:
+                        pass
+
+                    print("\n" + "=" * 70)
+                    print(f"🎉 APPLICATION SUBMISSION CONFIRMED: {company_name or 'ATS'} ({job_id or 'Manual'})")
+                    print(f"🎉 Detection marker: url_match={url_match}, text_match={text_match}")
+                    print(f"🎉 Final page URL: {getattr(page, 'url', '')}")
+                    print("=" * 70 + "\n")
+
+                    self.logger.log(
+                        event_type="SUBMISSION_CONFIRMED",
+                        message=f"Application submission confirmed for {company_name} ({job_id})",
+                        url=getattr(page, "url", ""),
+                        details={"url_match": url_match, "text_match": text_match, "job_id": job_id},
+                    )
+
+                    if job_id:
+                        try:
+                            from src.storage.database import ApplicationDatabase
+
+                            db = ApplicationDatabase()
+                            db.record_application(
+                                job_id=job_id,
+                                source="manual_takeover",
+                                company_name=company_name or "Unknown",
+                                job_title=job_title or "Senior SDET",
+                                job_url=job_url or getattr(page, "url", ""),
+                                resume_path=resume_path,
+                                tailored_data={},
+                                status="applied",
+                            )
+                        except Exception as db_err:
+                            print(f"⚠️ Notice recording confirmation to DB: {db_err}")
+                    break
+            except Exception:
+                pass
+
+            await asyncio.sleep(2.5)
+
+    async def launch_manual_takeover(
+        self,
+        job_url: str,
+        resume_pdf_path: str | None = None,
+        company: str = "",
+        job_id: str = "",
+        job_title: str = "",
+    ) -> dict[str, Any]:
+        """Launches a headful stealth browser directly to the job URL, injects the candidate cheat sheet,
+        and yields manual control to the user."""
+        canonical_url = resolve_canonical_ats_url(job_url, company=company)
+        _pw, _context, page = await launch_stealth_browser(headless=False)
+        _ACTIVE_SESSIONS.append((_pw, _context, page))
+
+        try:
+            await page.bring_to_front()
+        except Exception:
+            pass
+
+        print(f"🌐 Navigating to job application page for manual takeover: {canonical_url}")
+        try:
+            await page.goto(canonical_url, wait_until="domcontentloaded", timeout=30000)
+            await asyncio.sleep(1.5)
+        except Exception as e:
+            print(f"⚠️ Page navigation notice: {e}")
+
+        res = await self._enter_manual_takeover_mode(
+            target=page,
+            portal_name=f"{company or 'ATS'} Application",
+            resume_pdf_path=resume_pdf_path,
+            job_id=job_id,
+            company_name=company,
+            job_title=job_title,
+            job_url=canonical_url,
+        )
+        return res
+
     async def _wait_for_workday_ready(self, target: Any, timeout: float = 15.0) -> str:
         """Waits for Workday Single-Page Application client hydration and identifies active initial state.
         Returns one of: 'overview', 'modal', 'auth', 'info', 'unknown'
@@ -2150,7 +2425,15 @@ class ATSAssistedFiller:
 
         return "unknown"
 
-    async def _fill_workday(self, target: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
+    async def _fill_workday(
+        self,
+        target: Any,
+        resume_pdf_path: str | None,
+        job_id: str = "",
+        company: str = "",
+        job_title: str = "",
+        job_url: str = "",
+    ) -> tuple[int, bool]:
         """Fills standard Workday application fields using an autonomous state machine loop.
         Handles dynamic transitions across Job Overview, Modals, Create Account, Sign In,
         Post-Registration Verification, Stage 3 My Information, and Stage 4 My Experience."""
@@ -2195,15 +2478,27 @@ class ATSAssistedFiller:
                 state=curr_state,
             )
 
-            if curr_state == last_state and curr_state not in ("info", "experience"):
+            if curr_state == last_state:
                 state_stuck_count += 1
-                if state_stuck_count >= 4:
-                    print(f"⚠️ Workday State Machine reached stuck threshold on [{curr_state}]. Diagnostic snapshot:")
+                if state_stuck_count >= 2:
+                    print(
+                        f"⚠️ Workday State Machine reached stuck threshold (count={state_stuck_count}) on [{curr_state}]. Yielding to Manual Takeover Mode..."
+                    )
                     await self.logger.capture_diagnostic(
                         target, f"stuck_{curr_state}", vendor="WORKDAY_STANDARD", state=curr_state
                     )
                     await self._capture_workday_diagnostic(target, f"stuck_{curr_state}")
-                    break
+                    page_obj = getattr(target, "page", target)
+                    await self._enter_manual_takeover_mode(
+                        target=page_obj,
+                        portal_name=f"{company or 'Workday'} Application",
+                        resume_pdf_path=resume_pdf_path,
+                        job_id=job_id,
+                        company_name=company,
+                        job_title=job_title,
+                        job_url=job_url,
+                    )
+                    return filled, attached
             else:
                 state_stuck_count = 0
                 last_state = curr_state
@@ -2578,6 +2873,16 @@ class ATSAssistedFiller:
             # --- State 10: Review / Final Submit Gate ---
             elif curr_state == "review":
                 print("🎉 Workday Application Review Gate reached. Halting before submission.")
+                page_obj = getattr(target, "page", target)
+                await self._enter_manual_takeover_mode(
+                    target=page_obj,
+                    portal_name=f"{company or 'Workday'} Review Gate",
+                    resume_pdf_path=resume_pdf_path,
+                    job_id=job_id,
+                    company_name=company,
+                    job_title=job_title,
+                    job_url=job_url,
+                )
                 return filled, attached
 
             else:
@@ -2603,6 +2908,16 @@ class ATSAssistedFiller:
                 except Exception:
                     pass
 
+        page_obj = getattr(target, "page", target)
+        await self._enter_manual_takeover_mode(
+            target=page_obj,
+            portal_name=f"{company or 'Workday'} Application",
+            resume_pdf_path=resume_pdf_path,
+            job_id=job_id,
+            company_name=company,
+            job_title=job_title,
+            job_url=job_url,
+        )
         return filled, attached
 
     async def _fill_linkedin_easy_apply(self, page: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
@@ -2728,6 +3043,8 @@ class ATSAssistedFiller:
         job_url: str,
         resume_pdf_path: str | None = None,
         company: str = "",
+        job_id: str = "",
+        job_title: str = "",
     ) -> dict[str, Any]:
         """Loads the public ATS job page, pre-fills candidate inputs, attaches resume, and yields control."""
         canonical_url = resolve_canonical_ats_url(job_url, company=company)
@@ -2743,18 +3060,39 @@ class ATSAssistedFiller:
             except Exception:
                 pass
 
-            result = await self.fill_ats_page(page, canonical_url, resume_pdf_path)
+            result = await self.fill_ats_page(
+                page=page,
+                job_url=canonical_url,
+                resume_pdf_path=resume_pdf_path,
+                job_id=job_id,
+                company=company,
+                job_title=job_title,
+            )
             return result
 
         except Exception as e:
             print(f"⚠️ ATS Autofill error: {e}")
-            return {"status": "error", "error": str(e), "url": canonical_url}
+            try:
+                await self._enter_manual_takeover_mode(
+                    target=page,
+                    portal_name=f"{company or 'ATS'} Application",
+                    resume_pdf_path=resume_pdf_path,
+                    job_id=job_id,
+                    company_name=company,
+                    job_title=job_title,
+                    job_url=canonical_url,
+                )
+            except Exception:
+                pass
+            return {"status": "manual_takeover_activated", "error": str(e), "url": canonical_url}
 
     async def autofill_linkedin_external(
         self,
         job_url: str,
         resume_pdf_path: str | None = None,
         company: str = "",
+        job_id: str = "",
+        job_title: str = "",
     ) -> dict[str, Any]:
         """Loads a LinkedIn job view, detects Easy Apply vs External Apply, captures opened ATS window,
         and executes matching ATS vendor autofill logic, halting before submission for review."""
@@ -2781,7 +3119,14 @@ class ATSAssistedFiller:
             if await apply_btn.count() == 0 or not await apply_btn.is_visible(timeout=5000):
                 # Fallback: Check if already on an ATS page or if redirected
                 if "linkedin.com" not in page.url.lower():
-                    return await self.fill_ats_page(page, page.url, resume_pdf_path)
+                    return await self.fill_ats_page(
+                        page=page,
+                        job_url=page.url,
+                        resume_pdf_path=resume_pdf_path,
+                        job_id=job_id,
+                        company=company,
+                        job_title=job_title,
+                    )
                 return {
                     "status": "error",
                     "error": "Apply button not found on LinkedIn job view",
@@ -2884,8 +3229,27 @@ class ATSAssistedFiller:
             )
 
             # Execute canonical ATS autofill on the external ATS portal page
-            return await self.fill_ats_page(target_page, external_ats_url, resume_pdf_path)
+            return await self.fill_ats_page(
+                page=target_page,
+                job_url=external_ats_url,
+                resume_pdf_path=resume_pdf_path,
+                job_id=job_id,
+                company=company,
+                job_title=job_title,
+            )
 
         except Exception as e:
             print(f"⚠️ Error during LinkedIn external ATS pivot: {e}")
-            return {"status": "error", "error": str(e), "url": job_url}
+            try:
+                await self._enter_manual_takeover_mode(
+                    target=page,
+                    portal_name=f"{company or 'LinkedIn External'} Application",
+                    resume_pdf_path=resume_pdf_path,
+                    job_id=job_id,
+                    company_name=company,
+                    job_title=job_title,
+                    job_url=job_url,
+                )
+            except Exception:
+                pass
+            return {"status": "manual_takeover_activated", "error": str(e), "url": job_url}

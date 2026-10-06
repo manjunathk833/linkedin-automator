@@ -73,6 +73,22 @@
       "root_cause": "Simulated collision test",
       "fix_rule": "Strictly target data-automation-id",
       "date_banked": "2026-10-05T19:30:24.306913+00:00"
+    },
+    {
+      "id": "LESSON-010",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Repeated transitions stuck on Stage 1 ('My Information') without advancing due to tenant-specific custom fields or strict validation errors.",
+      "root_cause": "Workday state machine excluded 'info' and 'experience' from stuck counting, cycling indefinitely instead of yielding control to the user.",
+      "fix_rule": "Enforce universal state_stuck_count >= 2 threshold triggering Human-in-the-Loop Manual Takeover Mode with audible chime (\\a), candidate cheat sheet terminal card, DOM widget injection, and background submission confirmation listener.",
+      "date_banked": "2026-10-06T12:20:00+05:30"
+    },
+    {
+      "id": "LESSON-011",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-06T07:45:27.246087+00:00"
     }
   ]
 }

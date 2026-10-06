@@ -504,6 +504,9 @@ function renderApprovedGrid(jobs) {
                     <button class="btn-copilot" onclick="autofillApprovedJob('${job.job_id}', this)">
                         🚀 Launch Copilot
                     </button>
+                    <button class="btn-manual" onclick="manualApplyApprovedJob('${job.job_id}', this)" title="Open in Chrome with Candidate Cheat Sheet">
+                        🖐️ Manual Apply
+                    </button>
                 </div>
                 <button class="btn-discard" title="Discard from approved" onclick="discardApprovedJob('${job.job_id}', this)">
                     ✕
@@ -556,6 +559,66 @@ async function autofillApprovedJob(jobId, btnElement) {
     } finally {
         btnElement.innerText = origText;
         btnElement.disabled = false;
+    }
+}
+
+async function manualApplyApprovedJob(jobId, btnElement) {
+    const origText = btnElement.innerText;
+    btnElement.innerText = '⏳ Opening...';
+    btnElement.disabled = true;
+
+    try {
+        const response = await fetch(`/api/autofill/manual/${jobId}`, { method: 'POST' });
+        const res = await response.json();
+        
+        if (response.ok) {
+            showToast(`Headful Chrome launched with Candidate Cheat Sheet!`);
+            const usedEl = document.getElementById('budget-used');
+            if (usedEl) {
+                const currentUsed = parseInt(usedEl.innerText, 10) || 0;
+                usedEl.innerText = currentUsed + 1;
+            }
+        } else {
+            alert(`Manual Apply Notice:\n\n${res.detail || response.statusText}`);
+        }
+    } catch (e) {
+        console.error('Manual apply error:', e);
+        alert('Manual apply network error: ' + e.message);
+    } finally {
+        btnElement.innerText = origText;
+        btnElement.disabled = false;
+    }
+}
+
+async function manualApplyCurrentStagingJob() {
+    const job = currentJobs[currentJobIndex];
+    if (!job) return;
+    const btn = document.getElementById('btn-manual-staging');
+    if (btn) {
+        btn.innerText = '⏳ Opening...';
+        btn.disabled = true;
+    }
+    try {
+        const response = await fetch(`/api/autofill/manual/${job.job_id}`, { method: 'POST' });
+        const res = await response.json();
+        if (response.ok) {
+            showToast(`Headful Chrome launched with Candidate Cheat Sheet!`);
+            const usedEl = document.getElementById('budget-used');
+            if (usedEl) {
+                const currentUsed = parseInt(usedEl.innerText, 10) || 0;
+                usedEl.innerText = currentUsed + 1;
+            }
+        } else {
+            alert(`Manual Apply Notice:\n\n${res.detail || response.statusText}`);
+        }
+    } catch (e) {
+        console.error('Manual apply error:', e);
+        alert('Manual apply network error: ' + e.message);
+    } finally {
+        if (btn) {
+            btn.innerText = '🖐️ Manual Apply';
+            btn.disabled = false;
+        }
     }
 }
 

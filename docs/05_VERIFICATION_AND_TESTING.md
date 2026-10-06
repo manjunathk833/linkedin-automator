@@ -97,6 +97,15 @@ python verify/40_test_new_tab_ats_handling.py
 
 # 8. Test Rate-Paced Gemini Tailoring, Circuit Breaker & Request Diagnostics Logging
 python verify/50_test_gemini_38_flash_pacer.py
+
+# 9. Test Workday Dynamic Question Solver & Screening Taxonomy
+python verify/58_test_workday_dynamic_question_solver.py
+
+# 10. Test Workday Live BEM Schema Precision & Sibling Radio Matching
+python verify/59_test_workday_live_dom_schema_precision.py
+
+# 11. Test Human-in-the-Loop Manual Takeover Fallback & Submission Confirmation Detector
+python verify/60_test_manual_takeover_fallback.py
 ```
 
 ---

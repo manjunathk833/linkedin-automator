@@ -612,6 +612,7 @@ async def autofill_job(job_id: str):
     pdf_path, _ = resolve_job_pdf_path(job_id, job_data)
 
     company_name = job_data.get("job_details", {}).get("company", "")
+    job_title = job_data.get("job_details", {}).get("title", "")
     external_url = job_data.get("job_details", {}).get("external_url")
 
     # Routing logic:
@@ -620,21 +621,27 @@ async def autofill_job(job_id: str):
         ats in job_url.lower() for ats in ["greenhouse", "lever", "ashby", "myworkdayjobs", "coinbase", "databricks"]
     ):
         ats_filler = ATSAssistedFiller(headless=False)
-        result = await ats_filler.autofill_ats_application(job_url, pdf_path, company=company_name)
+        result = await ats_filler.autofill_ats_application(
+            job_url, pdf_path, company=company_name, job_id=job_id, job_title=job_title
+        )
     # 2. LinkedIn External Apply (navigates to LinkedIn, clicks external apply, captures ATS popup)
     elif app_type == "LINKEDIN_EXTERNAL" or (app_type != "EASY_APPLY" and "linkedin.com" in job_url.lower()):
         ats_filler = ATSAssistedFiller(headless=False)
         if external_url and external_url.startswith("http"):
-            result = await ats_filler.autofill_ats_application(external_url, pdf_path, company=company_name)
+            result = await ats_filler.autofill_ats_application(
+                external_url, pdf_path, company=company_name, job_id=job_id, job_title=job_title
+            )
         else:
-            result = await ats_filler.autofill_linkedin_external(job_url, pdf_path, company=company_name)
+            result = await ats_filler.autofill_linkedin_external(
+                job_url, pdf_path, company=company_name, job_id=job_id, job_title=job_title
+            )
     # 3. LinkedIn Easy Apply
     else:
         li_filler = LinkedInAssistedFiller(headless=False)
         result = await li_filler.autofill_easy_apply(job_url, pdf_path)
 
     # Record application audit event
-    if result.get("status") in ("ready_for_review", "applied", "success"):
+    if result.get("status") in ("ready_for_review", "applied", "success", "manual_takeover_activated"):
         db = ApplicationDatabase()
         job_details = job_data.get("job_details", {})
         db.record_application(
@@ -656,6 +663,67 @@ async def autofill_job(job_id: str):
         "result": result,
         "remaining_today": budget["remaining"] - 1,
         "message": f"Copilot active for {company_name or job_id}: {fields_n} fields pre-filled {attach_str}. Review in Chrome.",
+    }
+
+
+@app.post("/api/autofill/manual/{job_id}")
+async def manual_apply_job(job_id: str):
+    from src.autofill.ats_filler import ATSAssistedFiller
+    from src.autofill.governor import ApplicationGovernor
+    from src.storage.database import ApplicationDatabase
+
+    # Enforce daily budget governor
+    governor = ApplicationGovernor()
+    budget = governor.check_budget()
+    if not budget["allowed"]:
+        raise HTTPException(status_code=429, detail=budget["message"])
+
+    pending_file = os.path.join(PENDING_DIR, f"{job_id}.json")
+    approved_file = os.path.join(APPROVED_DIR, f"{job_id}.json")
+    target_file = pending_file if os.path.exists(pending_file) else approved_file
+
+    if not os.path.exists(target_file):
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found in queues")
+
+    with open(target_file, "r", encoding="utf-8") as f:
+        job_data = json.load(f)
+
+    job_url = job_data.get("url") or job_data.get("job_url") or f"https://www.linkedin.com/jobs/view/{job_id}/"
+    pdf_path, _ = resolve_job_pdf_path(job_id, job_data)
+
+    job_details = job_data.get("job_details", {})
+    company_name = job_details.get("company", "")
+    job_title = job_details.get("title", "")
+    external_url = job_details.get("external_url")
+
+    target_url = external_url if (external_url and external_url.startswith("http")) else job_url
+
+    ats_filler = ATSAssistedFiller(headless=False)
+    result = await ats_filler.launch_manual_takeover(
+        job_url=target_url,
+        resume_pdf_path=pdf_path,
+        company=company_name,
+        job_id=job_id,
+        job_title=job_title,
+    )
+
+    db = ApplicationDatabase()
+    db.record_application(
+        job_id=job_id,
+        source=job_data.get("source", "linkedin"),
+        company_name=company_name or "Unknown",
+        job_title=job_title or "Unknown",
+        job_url=target_url,
+        resume_path=pdf_path or "",
+        tailored_data=job_data.get("tailored_resume", {}),
+        status="manual_takeover_opened",
+    )
+
+    return {
+        "status": "success",
+        "result": result,
+        "remaining_today": budget["remaining"] - 1,
+        "message": f"Manual Apply opened for {company_name or job_id}. Headful Chrome is open with Candidate Reference Card.",
     }
 
 

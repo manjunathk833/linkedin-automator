@@ -173,6 +173,21 @@
     - Created and executed Verification Gate 59 (`verify/59_test_workday_live_dom_schema_precision.py`), passing 100% across state detection, sibling radio resolution, full field autofill, and stage advancement.
     - Full regression suite verified: Gates 57, 58, and 59 passing 100%.
     - Codebase linted cleanly via `python main.py lint` (0 errors across 126 files).
+  - Human-in-the-Loop Manual Takeover Fallback Mode & Submission Confirmation Detector (Gate 60):
+    - Eliminated infinite state cycling on complex enterprise ATS forms (e.g. JioStar Workday) by removing stage exclusions and enforcing a bounded stuck threshold (`state_stuck_count >= 2`).
+    - Implemented `_enter_manual_takeover_mode()` in `src/autofill/ats_filler.py`:
+      * Emits audible terminal chime (`\a`) to immediately alert user.
+      * Prints formatted Candidate Quick-Reference Card in terminal with all personal details, contact info, credential data, and absolute path to tailored PDF resume.
+      * Injects non-intrusive floating glassmorphic `#antigravity-copilot-helper` cheat-sheet widget directly into page DOM with candidate details and dismiss button.
+      * Launches non-blocking background listener `_monitor_manual_submission()` monitoring for URL and page text confirmation markers (`/application-complete`, `submitted`, `thank-you`, `application submitted`, etc.).
+      * Upon user submission, detects confirmation, sounds double chime (`\a\a`), logs `SUBMISSION_CONFIRMED`, and records application status as `APPLIED` in SQLite `ApplicationDatabase`.
+    - Implemented dedicated FastAPI endpoint `POST /api/autofill/manual/{job_id}` (`src/ui/app.py`) launching headful Chrome directly with the candidate cheat-sheet widget and tailored resume PDF ready for manual completion.
+    - Updated Command Center UI (`src/ui/templates/index.html`, `src/ui/static/app.js`, `src/ui/static/styles.css`): added vibrant amber `🖐️ Manual Apply` buttons on both Staging Review action bar and Approved Applications card grid.
+    - Banked `LESSON-010` in `data/logs/autofill_learning_vault.json`.
+    - Created and executed Verification Gate 60 (`verify/60_test_manual_takeover_fallback.py`): verified stuck threshold trigger, cheat-sheet DOM injection, background submission detector, and FastAPI endpoint passing 100%.
+    - Full regression suite verified: Gates 57, 58, 59, and 60 passing 100%.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 127 files).
+
 
 
 
