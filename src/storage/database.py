@@ -7,6 +7,7 @@ while enforcing daily quota governance (≤15 applications/24 hours).
 from __future__ import annotations
 
 import datetime
+import hashlib
 import json
 import os
 import sqlite3
@@ -158,6 +159,43 @@ class ApplicationDatabase:
                 (job_id,),
             )
             return cursor.fetchone() is not None
+
+    def is_company_role_applied(self, company_name: str, job_title: str) -> bool:
+        """
+        Returns True if a job for the given company and title has already been applied.
+        Normalizes company and title case-insensitively and whitespace-trimmed to prevent cross-source reseeding.
+        """
+        if not company_name or not job_title:
+            return False
+        clean_company = company_name.strip().lower()
+        clean_title = job_title.strip().lower()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT 1 FROM job_applications
+                WHERE LOWER(TRIM(company_name)) = ?
+                  AND LOWER(TRIM(job_title)) = ?
+                  AND status = 'applied'
+                LIMIT 1;
+                """,
+                (clean_company, clean_title),
+            )
+            return cursor.fetchone() is not None
+
+    def get_applied_composite_hashes(self) -> set[str]:
+        """Returns set of md5(company_title) composite hashes for all applied jobs."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT company_name, job_title FROM job_applications WHERE status = 'applied';")
+            hashes = set()
+            for row in cursor.fetchall():
+                comp = (row["company_name"] or "").strip().lower()
+                tit = (row["job_title"] or "").strip().lower()
+                if comp and tit:
+                    norm = f"{comp}_{tit}"
+                    hashes.add(hashlib.md5(norm.encode("utf-8")).hexdigest())
+            return hashes
 
     def get_applied_job_ids(self) -> set[str]:
         """Returns the set of all job IDs that have been explicitly marked as applied."""

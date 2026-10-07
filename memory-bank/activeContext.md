@@ -219,6 +219,29 @@
       * Added `clean_approved_queue_temp_data()` and `POST /api/approved/cleanup` to sweep any orphaned files from `data/approved_queue/`.
     - Created and executed Verification Gate 62 (`verify/62_test_user_driven_applied_and_approved_purge.py`), passing 100% across browser launch isolation, repeat click safety, user confirmation trigger, temp file purge, and resume archiving.
     - Codebase linted cleanly via `python main.py lint` (0 errors across 129 files).
+  - Unified Job Search Architecture & Cross-Source Applied Reseed Defense (Gate 63):
+    - Confirmed and hardened cross-source applied defense in SQLite `ApplicationDatabase` (`src/storage/database.py`):
+      * Added `is_company_role_applied(company_name, job_title)` providing normalized, case-insensitive, whitespace-trimmed duplicate protection.
+      * Added `get_applied_composite_hashes()` returning md5 hashes for all applied roles.
+    - Upgraded `ATSDiscoveryCoordinator` (`src/ingestion/ats_discovery.py`):
+      * Integrated pre-ingestion duplicate and reseed checks (`is_duplicate`) querying SQLite (`is_job_applied`, `is_company_role_applied`), `processed_jobs.json`, and physical queues.
+      * Integrated AI resume tailoring directly into ATS ingestion via `ResumeTailorer(use_ai=self.use_ai)`.
+      * Automatically registers newly discovered enterprise jobs into `processed_jobs.json` with composite hashes.
+    - Enhanced `LinkedInJobFinder.is_duplicate()` (`src/scraper/job_finder.py`):
+      * Checks `ApplicationDatabase().is_company_role_applied(company, title)` so LinkedIn never reseeds a role already applied via Greenhouse/Lever/Ashby.
+      * Added `--headless` support via `discovery_config.get("headless", False)`.
+    - Hardened `LinkedInJobFilter` (`src/filter/job_filter.py`):
+      * Dynamically resolves `easy_apply_only` setting from `config.yaml` (defaulting to False).
+      * Successfully retains `LINKEDIN_EXTERNAL` and `ATS_*` (`ATS_GREENHOUSE`, `ATS_LEVER`, `ATS_ASHBY`) listings in pending queue.
+    - Unified Orchestration in `JobSearchPipelineRunner.run_search_stage()` (`src/pipeline/runner.py`):
+      * Multi-track discovery coordinating Track 1 (Direct Keyless ATS REST) and Track 2 (LinkedIn Multi-Channel Stealth) in a single unified execution.
+      * Supports source selection (`all`, `linkedin`, `ats`) and headless execution for CI/CD / daily scheduled runs.
+    - Added CLI flags in `main.py`: `python main.py search [--source all|linkedin|ats] [--headless]` and `python main.py run [--source all|linkedin|ats] [--headless]`.
+    - Added REST endpoint `POST /api/discovery/run` in `src/ui/app.py` for one-click background execution from web dashboard or CI pipelines.
+    - Updated `config.yaml` with unified `discovery.source: "all"` and `discovery.headless: false`.
+    - Created and executed Verification Gate 63 (`verify/63_test_unified_job_search.py`), passing 100% across SQLite checks, ATS pre-ingestion guard, cross-platform deduplication, multi-source retention, runner orchestration, and API response.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 130 files).
+
 
 
 

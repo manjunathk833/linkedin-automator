@@ -54,11 +54,12 @@ class LinkedInJobFinder:
         job_ids = data.get("job_ids", {})
         composite_hashes = data.get("composite_hashes", {})
 
-        # 0. Check SQLite persistent database for completed applications
+        # 0. Check SQLite persistent database for completed applications (exact ID & company+role)
         try:
             from src.storage.database import ApplicationDatabase
 
-            if ApplicationDatabase().is_job_applied(job_id):
+            db = ApplicationDatabase()
+            if db.is_job_applied(job_id) or db.is_company_role_applied(company, title):
                 return True
         except Exception:
             pass
@@ -467,6 +468,7 @@ class LinkedInJobFinder:
         max_rec_pages = discovery_config.get("max_recommended_pages", 5)
         enable_rec = discovery_config.get("enable_recommended_feed", True)
         enable_posts = discovery_config.get("enable_recruiter_posts", True)
+        is_headless = bool(discovery_config.get("headless", False))
 
         all_jobs = []
 
@@ -476,9 +478,9 @@ class LinkedInJobFinder:
             context = None
             try:
                 print("\n" + "=" * 60)
-                print("🚀 LAUNCHING 10X MULTI-CHANNEL JOB DISCOVERY ENGINE")
+                print(f"🚀 LAUNCHING 10X MULTI-CHANNEL JOB DISCOVERY ENGINE (Headless: {is_headless})")
                 print("=" * 60)
-                context, page = await launch_persistent_browser(p)
+                context, page = await launch_persistent_browser(p, headless=is_headless)
             except Exception as e1:
                 print(f"⚠️ Persistent browser launch failed: {e1}, trying CDP fallback...")
                 try:

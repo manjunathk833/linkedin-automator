@@ -90,10 +90,10 @@ graph TD
 * **Files:** [`main.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/main.py), [`src/pipeline/runner.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/pipeline/runner.py)
 * **Design Pattern:** `argparse.add_subparsers()` decoupled into a `JobSearchPipelineRunner` controller.
 * **Capabilities:**
-  * `python main.py run` (`pipeline`): One-shot automated workflow (`sync` $\rightarrow$ `search` $\rightarrow$ `filter` $\rightarrow$ `dashboard`).
-  * `python main.py search`: Runs multi-channel discovery and resume tailoring.
+  * `python main.py run` (`pipeline`) `[--source all|linkedin|ats]` `[--headless]`: One-shot automated workflow (`sync` $\rightarrow$ unified `search` across all sources $\rightarrow$ `filter` $\rightarrow$ `dashboard`).
+  * `python main.py search [--source all|linkedin|ats] [--headless]`: Unified multi-source job discovery across Direct ATS boards (Greenhouse, Lever, Ashby) and LinkedIn multi-channel stealth search with AI resume tailoring and cross-source deduplication.
   * `python main.py sync`: Syncs natural language markdown notes to the master knowledge bank.
-  * `python main.py filter`: Evaluates experience threshold on raw scraped jobs.
+  * `python main.py filter`: Evaluates experience threshold on raw scraped jobs across all sources.
   * `python main.py dashboard`: Launches FastAPI web dashboard.
   * `python main.py apply [--no-dry-run]`: Executes Easy Apply automation on approved jobs.
   * `python main.py login`: Launches persistent headful Chrome for manual session authentication.
@@ -321,8 +321,9 @@ All features are covered by dedicated, standalone verification scripts in `verif
 | `verify/60_test_manual_takeover_fallback.py` | Human-in-the-Loop Manual Takeover Fallback | Validates graceful manual apply fallback, headful browser takeover, candidate cheat sheet injection, and submission confirmation detection |
 | `verify/61_test_application_tracking_and_auto_purge.py` | Application Tracking, Database Indexing & Auto-Purge | Validates SQLite status and applied_at indexing (<1ms lookups), mark-applied endpoints, auto-purge of pending queues, and live dashboard tracking |
 | `verify/62_test_user_driven_applied_and_approved_purge.py` | User-Driven Applied Trigger & Approved Queue Temp Purge | Validates browser launch isolation from applied status, repeat-click safety, explicit user confirmation gate, complete temp PDF/JSON purge from approved queue, and resume archiving |
+| `verify/63_test_unified_job_search.py` | Unified Job Search & Cross-Source Reseed Defense | Validates cross-source deduplication, ATS pre-ingestion guard, multi-source retention in filter, and unified runner orchestration across ATS and LinkedIn |
 
-* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 129 project files).
+* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 130 project files).
 
 ---
 

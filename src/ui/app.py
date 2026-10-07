@@ -5,7 +5,7 @@ import os
 import re
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -1108,3 +1108,38 @@ async def delete_approved_job(job_id: str):
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found in approved queue")
 
     return {"status": "success", "message": f"Job {job_id} removed from approved queue."}
+
+
+@app.post("/api/discovery/run")
+async def trigger_unified_discovery(
+    source: str = "all",
+    background_tasks: BackgroundTasks = None,
+):
+    """
+    Triggers unified job search across ATS boards (Greenhouse, Lever, Ashby) and LinkedIn.
+    Supports asynchronous execution from UI or CI/CD pipelines.
+    """
+    from main import load_config
+    from src.pipeline.runner import JobSearchPipelineRunner
+
+    config = load_config()
+
+    async def _execute_discovery():
+        runner = JobSearchPipelineRunner(config)
+        await runner.run_search_stage(source=source)
+        runner.run_filter_stage()
+
+    if background_tasks:
+        background_tasks.add_task(_execute_discovery)
+        return {
+            "status": "started",
+            "message": f"Unified job discovery ({source}) initiated in background.",
+            "source": source,
+        }
+    else:
+        await _execute_discovery()
+        return {
+            "status": "success",
+            "message": f"Unified job discovery ({source}) completed successfully.",
+            "source": source,
+        }

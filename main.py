@@ -176,7 +176,7 @@ def main():
     parser_run = subparsers.add_parser(
         "run",
         aliases=["pipeline"],
-        help="One-shot automated execution (sync notes -> search -> filter -> launch dashboard)",
+        help="One-shot automated execution (sync notes -> unified search -> filter -> launch dashboard)",
     )
     parser_run.add_argument(
         "--skip-sync", action="store_true", help="Skip translating candidate notes to knowledge bank"
@@ -184,9 +184,35 @@ def main():
     parser_run.add_argument(
         "--no-dashboard", action="store_false", dest="launch_ui", help="Do not auto-launch web dashboard server"
     )
+    parser_run.add_argument(
+        "--source",
+        choices=["all", "linkedin", "ats"],
+        default="all",
+        help="Job discovery source: 'all' (Direct ATS + LinkedIn), 'linkedin', or 'ats' (default: all)",
+    )
+    parser_run.add_argument(
+        "--headless",
+        action="store_true",
+        default=False,
+        help="Run browser in headless mode (ideal for CI/CD and daily scheduled runs)",
+    )
 
     # 2. search
-    subparsers.add_parser("search", help="Discover jobs across 4 channels & tailor resumes")
+    parser_search = subparsers.add_parser(
+        "search", help="Discover jobs across all sources (Direct ATS + LinkedIn) & tailor resumes"
+    )
+    parser_search.add_argument(
+        "--source",
+        choices=["all", "linkedin", "ats"],
+        default="all",
+        help="Job discovery source: 'all' (Direct ATS + LinkedIn), 'linkedin', or 'ats' (default: all)",
+    )
+    parser_search.add_argument(
+        "--headless",
+        action="store_true",
+        default=False,
+        help="Run browser in headless mode (ideal for CI/CD and daily scheduled runs)",
+    )
 
     # 3. sync / sync-knowledge
     subparsers.add_parser(
@@ -230,9 +256,16 @@ def main():
 
     cmd = args.command
     if cmd in ["run", "pipeline"]:
-        asyncio.run(runner.run_full_pipeline(skip_sync=args.skip_sync, launch_ui=args.launch_ui))
+        asyncio.run(
+            runner.run_full_pipeline(
+                skip_sync=args.skip_sync,
+                launch_ui=args.launch_ui,
+                source=args.source,
+                headless=args.headless,
+            )
+        )
     elif cmd == "search":
-        asyncio.run(runner.run_search_stage())
+        asyncio.run(runner.run_search_stage(source=args.source, headless=args.headless))
     elif cmd in ["sync", "sync-knowledge"]:
         runner.run_sync_stage()
     elif cmd in ["filter", "filterjobs"]:

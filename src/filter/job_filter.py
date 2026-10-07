@@ -7,12 +7,33 @@ from typing import Any
 
 
 class LinkedInJobFilter:
-    def __init__(self, queue_dir: str = "data/pending_queue", db_file: str = "data/processed_jobs.json"):
+    def __init__(
+        self,
+        queue_dir: str = "data/pending_queue",
+        db_file: str = "data/processed_jobs.json",
+        easy_apply_only: bool | None = None,
+    ):
         self.queue_dir = queue_dir
         self.db_file = db_file
         self.min_exp_years = 4
         self.max_exp_years = 10
         self.candidate_exp_years = 6.8  # Senior SDET candidate profile baseline
+        self.easy_apply_only = self._resolve_easy_apply_setting(easy_apply_only)
+
+    def _resolve_easy_apply_setting(self, override: bool | None) -> bool:
+        if override is not None:
+            return override
+        config_path = "config.yaml"
+        if os.path.exists(config_path):
+            try:
+                import yaml
+
+                with open(config_path, "r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f) or {}
+                return bool(cfg.get("discovery", {}).get("easy_apply_only", False))
+            except Exception:
+                pass
+        return False
 
     def parse_required_years(self, text: str) -> list[int]:
         """
@@ -115,9 +136,9 @@ class LinkedInJobFilter:
             if job_id in applied_ids:
                 rejection_reason = "Already marked as APPLIED in application database"
 
-            # 1. Easy Apply Filter
-            elif app_type != "EASY_APPLY":
-                rejection_reason = "Missing Easy Apply flag"
+            # 1. Easy Apply Filter (only applied if easy_apply_only is explicitly enabled)
+            elif self.easy_apply_only and app_type != "EASY_APPLY":
+                rejection_reason = "Missing Easy Apply flag (easy_apply_only filter active)"
 
             # 2. Role Title Keyword Alignment
             title_lower = title.lower()
