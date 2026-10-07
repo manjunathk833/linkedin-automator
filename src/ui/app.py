@@ -353,6 +353,81 @@ def extract_salary_estimate(job_details: dict) -> str:
     return "Competitive"
 
 
+def normalize_job_source_metadata(payload: dict[str, Any]) -> tuple[str, str]:
+    """
+    Infers and normalizes the authentic source and application_type for a job payload.
+    Provides retro-compatibility for historical files lacking explicit 'source' tags.
+    Returns:
+        (source, application_type)
+        e.g. ("linkedin", "EASY_APPLY"), ("linkedin", "LINKEDIN_EXTERNAL"),
+             ("greenhouse", "ATS_GREENHOUSE"), ("lever", "ATS_LEVER"),
+             ("ashby", "ATS_ASHBY"), ("workday", "ATS_WORKDAY").
+    """
+    if not isinstance(payload, dict):
+        return ("ats", "ATS")
+
+    raw_source = str(payload.get("source") or "").strip().lower()
+    app_type = str(payload.get("application_type") or "").strip().upper()
+    job_id = str(payload.get("job_id") or payload.get("id") or "").strip().lower()
+    url = str(payload.get("url") or payload.get("job_url") or "").strip().lower()
+
+    # 1. Infer platform source
+    if raw_source in ("greenhouse", "lever", "ashby", "workday"):
+        source = raw_source
+    elif raw_source == "linkedin":
+        source = "linkedin"
+    elif (
+        "greenhouse" in raw_source
+        or job_id.startswith("greenhouse_")
+        or "greenhouse.io" in url
+        or app_type == "ATS_GREENHOUSE"
+    ):
+        source = "greenhouse"
+    elif "lever" in raw_source or job_id.startswith("lever_") or "lever.co" in url or app_type == "ATS_LEVER":
+        source = "lever"
+    elif "ashby" in raw_source or job_id.startswith("ashby_") or "ashbyhq.com" in url or app_type == "ATS_ASHBY":
+        source = "ashby"
+    elif (
+        "workday" in raw_source
+        or job_id.startswith("workday_")
+        or "myworkdayjobs.com" in url
+        or "workday" in url
+        or app_type == "ATS_WORKDAY"
+    ):
+        source = "workday"
+    elif (
+        "linkedin" in raw_source
+        or job_id.startswith("p1_job_")
+        or job_id.isdigit()
+        or "linkedin.com" in url
+        or app_type in ("EASY_APPLY", "LINKEDIN_EXTERNAL")
+    ):
+        source = "linkedin"
+    else:
+        source = raw_source if raw_source and raw_source not in ("ats", "manual", "manual_takeover") else "ats"
+
+    # 2. Infer & normalize application_type
+    if source == "linkedin":
+        if app_type not in ("EASY_APPLY", "LINKEDIN_EXTERNAL"):
+            app_type = "EASY_APPLY"
+    elif source == "greenhouse":
+        if not app_type or app_type in ("ATS", "UNKNOWN"):
+            app_type = "ATS_GREENHOUSE"
+    elif source == "lever":
+        if not app_type or app_type in ("ATS", "UNKNOWN"):
+            app_type = "ATS_LEVER"
+    elif source == "ashby":
+        if not app_type or app_type in ("ATS", "UNKNOWN"):
+            app_type = "ATS_ASHBY"
+    elif source == "workday":
+        if not app_type or app_type in ("ATS", "UNKNOWN"):
+            app_type = "ATS_WORKDAY"
+    elif not app_type:
+        app_type = "ATS"
+
+    return (source, app_type)
+
+
 def compute_resume_diff(payload: dict, master_profile: dict) -> dict:
     """Injects is_tailored diff flags into payload experience history achievements."""
     master_exp_map = {}
@@ -476,7 +551,12 @@ async def get_pending_jobs():
                     )
                     diff_payload["salary_estimate"] = extract_salary_estimate(jd)
                     diff_payload["direct_link"] = raw_payload.get("url") or raw_payload.get("job_url") or ""
-                    diff_payload["source_platform"] = raw_payload.get("source", "ATS").upper()
+                    norm_source, norm_app_type = normalize_job_source_metadata(raw_payload)
+                    raw_payload["source"] = norm_source
+                    raw_payload["application_type"] = norm_app_type
+                    diff_payload["source"] = norm_source
+                    diff_payload["application_type"] = norm_app_type
+                    diff_payload["source_platform"] = norm_source.upper()
                     diff_payload["standard_resume"] = master_profile
                     diff_payload["standard_pdf_url"] = "/api/pdf/standard"
                     diff_payload["preview_pdf_url"] = f"/api/pdf/preview/{raw_payload.get('job_id')}"
@@ -680,9 +760,10 @@ async def autofill_job(job_id: str):
     if result.get("status") in ("ready_for_review", "applied", "success", "manual_takeover_activated"):
         db = ApplicationDatabase()
         job_details = job_data.get("job_details", {})
+        norm_source, _ = normalize_job_source_metadata(job_data)
         db.record_application(
             job_id=job_id,
-            source=job_data.get("source", "linkedin"),
+            source=norm_source,
             company_name=job_details.get("company", "Unknown"),
             job_title=job_details.get("title", "Unknown"),
             job_url=job_url,
@@ -743,10 +824,11 @@ async def manual_apply_job(job_id: str):
         job_title=job_title,
     )
 
+    norm_source, _ = normalize_job_source_metadata(job_data)
     db = ApplicationDatabase()
     db.record_application(
         job_id=job_id,
-        source=job_data.get("source", "linkedin"),
+        source=norm_source,
         company_name=company_name or "Unknown",
         job_title=job_title or "Unknown",
         job_url=target_url,
@@ -839,10 +921,11 @@ async def mark_job_applied(job_id: str):
         if os.path.exists(archived_pdf_path):
             pdf_path = archived_pdf_path
 
+    norm_source, _ = normalize_job_source_metadata(job_data) if job_data else ("manual", "ATS")
     db = ApplicationDatabase()
     db.record_application(
         job_id=job_id,
-        source=job_data.get("source", "manual"),
+        source=norm_source,
         company_name=company_name,
         job_title=job_title,
         job_url=job_url,
@@ -903,6 +986,14 @@ async def get_applied_tracking(limit: int = 200, status: str | None = None):
 
     db = ApplicationDatabase()
     applications = db.get_all_applications(limit=limit, status_filter=status)
+    for app_item in applications:
+        curr_src = app_item.get("source")
+        if not curr_src or curr_src in ("manual", "manual_takeover", "ATS", "ats"):
+            inferred_src, inferred_app_type = normalize_job_source_metadata(app_item)
+            if inferred_src and inferred_src != "ats":
+                app_item["source"] = inferred_src
+                app_item["application_type"] = inferred_app_type
+
     stats = db.get_application_stats()
     return {
         "status": "success",
@@ -970,14 +1061,16 @@ async def get_approved_jobs():
                 jd = payload.get("job_details", {})
                 pdf_path, pdf_filename = resolve_job_pdf_path(job_id, payload)
 
+                norm_source, norm_app_type = normalize_job_source_metadata(payload)
+
                 approved_jobs.append(
                     {
                         "job_id": job_id,
                         "company": jd.get("company", "Unknown Company"),
                         "title": jd.get("title", "Unknown Role"),
                         "location": jd.get("location", "Not specified"),
-                        "source": payload.get("source", "ATS"),
-                        "application_type": payload.get("application_type", "ATS"),
+                        "source": norm_source,
+                        "application_type": norm_app_type,
                         "job_url": payload.get("url") or payload.get("job_url", ""),
                         "matched_keywords": payload.get("matched_keywords", []),
                         "has_pdf": os.path.exists(pdf_path),

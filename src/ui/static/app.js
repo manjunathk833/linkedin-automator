@@ -86,6 +86,61 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-reject').addEventListener('click', rejectJob);
 });
 
+// --- Source Badge Formatting Helper ---
+function formatSourceBadge(source, appType) {
+    const s = String(source || '').toLowerCase();
+    const a = String(appType || '').toUpperCase();
+
+    if (s.includes('linkedin') || a.includes('EASY_APPLY') || a.includes('LINKEDIN')) {
+        if (a === 'LINKEDIN_EXTERNAL' || a.includes('EXTERNAL')) {
+            return {
+                label: '🌐 LinkedIn External',
+                cssClass: 'badge-linkedin-ext',
+                icon: '🌐'
+            };
+        }
+        return {
+            label: '⚡ LinkedIn Easy Apply',
+            cssClass: 'badge-linkedin-easy',
+            icon: '⚡'
+        };
+    }
+    if (s.includes('greenhouse') || a.includes('GREENHOUSE')) {
+        return {
+            label: '🟢 Greenhouse ATS',
+            cssClass: 'badge-greenhouse',
+            icon: '🟢'
+        };
+    }
+    if (s.includes('lever') || a.includes('LEVER')) {
+        return {
+            label: '🐬 Lever ATS',
+            cssClass: 'badge-lever',
+            icon: '🐬'
+        };
+    }
+    if (s.includes('ashby') || a.includes('ASHBY')) {
+        return {
+            label: '🟣 Ashby ATS',
+            cssClass: 'badge-ashby',
+            icon: '🟣'
+        };
+    }
+    if (s.includes('workday') || a.includes('WORKDAY')) {
+        return {
+            label: '🟠 Workday ATS',
+            cssClass: 'badge-workday',
+            icon: '🟠'
+        };
+    }
+    const fallbackText = (source || 'ATS').toUpperCase();
+    return {
+        label: `💼 ${fallbackText} ATS`,
+        cssClass: 'badge-generic-ats',
+        icon: '💼'
+    };
+}
+
 // --- Tab 1: Pending Jobs Logic ---
 async function fetchJobs() {
     try {
@@ -126,10 +181,11 @@ function renderJob(index) {
     document.getElementById('job-company').innerText = jd.company || 'Unknown';
 
     // Source platform badge
-    const src = (job.source_platform || job.source || 'ATS').toUpperCase();
+    const badgeInfo = formatSourceBadge(job.source_platform || job.source, job.application_type);
     const sourceEl = document.getElementById('job-source-badge');
     if (sourceEl) {
-        sourceEl.innerText = `${src} APPLICATION`;
+        sourceEl.innerText = badgeInfo.label;
+        sourceEl.className = `section-badge ${badgeInfo.cssClass}`;
     }
 
     // Dynamic Location Pill with US / Non-India Warning
@@ -489,12 +545,7 @@ function renderApprovedGrid(jobs) {
         card.className = 'approved-card';
         card.id = `approved-card-${job.job_id}`;
 
-        const source = (job.source || 'ATS').toLowerCase();
-        let pillClass = 'source-pill ';
-        if (source.includes('greenhouse')) pillClass += 'greenhouse';
-        else if (source.includes('lever')) pillClass += 'lever';
-        else if (source.includes('ashby')) pillClass += 'ashby';
-        else pillClass += 'linkedin';
+        const badgeInfo = formatSourceBadge(job.source, job.application_type);
 
         const keywordsHtml = (job.matched_keywords || []).slice(0, 4)
             .map(k => `<span class="keyword-tag">${k}</span>`).join('');
@@ -506,7 +557,7 @@ function renderApprovedGrid(jobs) {
                         <h3>${job.company}</h3>
                         <p>${job.title}</p>
                     </div>
-                    <span class="${pillClass}">${job.source.toUpperCase()}</span>
+                    <span class="source-pill ${badgeInfo.cssClass}">${badgeInfo.label}</span>
                 </div>
                 <div class="card-meta">
                     <span>📍 ${job.location || 'Remote'}</span>
@@ -550,7 +601,8 @@ function filterApprovedJobs() {
         const companyMatch = (job.company || '').toLowerCase().includes(query);
         const titleMatch = (job.title || '').toLowerCase().includes(query);
         const kwMatch = (job.matched_keywords || []).some(k => k.toLowerCase().includes(query));
-        const sourceMatch = (job.source || '').toLowerCase().includes(query);
+        const badgeInfo = formatSourceBadge(job.source, job.application_type);
+        const sourceMatch = (job.source || '').toLowerCase().includes(query) || badgeInfo.label.toLowerCase().includes(query);
         return companyMatch || titleMatch || kwMatch || sourceMatch;
     });
     renderApprovedGrid(filtered);
@@ -840,12 +892,7 @@ function renderTrackingGrid(apps) {
         card.className = 'tracking-card';
         card.id = `tracking-card-${app.job_id}`;
 
-        const source = (app.source || 'ATS').toLowerCase();
-        let pillClass = 'source-pill ';
-        if (source.includes('greenhouse')) pillClass += 'greenhouse';
-        else if (source.includes('lever')) pillClass += 'lever';
-        else if (source.includes('ashby')) pillClass += 'ashby';
-        else pillClass += 'linkedin';
+        const badgeInfo = formatSourceBadge(app.source, app.application_type);
 
         // Format applied timestamp
         let formattedDate = 'Recently';
@@ -881,7 +928,7 @@ function renderTrackingGrid(apps) {
                         <p>${app.job_title || 'Software Engineer'}</p>
                     </div>
                     <div class="tracking-badge-group">
-                        <span class="${pillClass}">${(app.source || 'ATS').toUpperCase()}</span>
+                        <span class="source-pill ${badgeInfo.cssClass}">${badgeInfo.label}</span>
                         <span class="status-pill ${statusClass}">${statusDisplay}</span>
                     </div>
                 </div>
@@ -917,7 +964,8 @@ function filterTrackingJobs() {
     const filtered = trackedApplications.filter(app => {
         const comp = (app.company_name || '').toLowerCase().includes(query);
         const title = (app.job_title || '').toLowerCase().includes(query);
-        const src = (app.source || '').toLowerCase().includes(query);
+        const badgeInfo = formatSourceBadge(app.source, app.application_type);
+        const src = (app.source || '').toLowerCase().includes(query) || badgeInfo.label.toLowerCase().includes(query);
         const status = (app.status || '').toLowerCase().includes(query);
         const jobId = (app.job_id || '').toLowerCase().includes(query);
         return comp || title || src || status || jobId;

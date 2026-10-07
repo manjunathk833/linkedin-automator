@@ -241,6 +241,25 @@
     - Updated `config.yaml` with unified `discovery.source: "all"` and `discovery.headless: false`.
     - Created and executed Verification Gate 63 (`verify/63_test_unified_job_search.py`), passing 100% across SQLite checks, ATS pre-ingestion guard, cross-platform deduplication, multi-source retention, runner orchestration, and API response.
     - Codebase linted cleanly via `python main.py lint` (0 errors across 130 files).
+  - Source Badge Attribution, Metadata Normalization & Cross-Platform Dashboard Precision (Gate 64):
+    - Diagnosed source display bug: `job_finder.py` omitted `"source": "linkedin"`, causing LinkedIn listings to fall back to generic `"ATS"` in `src/ui/app.py` and display flat `"ATS APPLICATION"` badges in the UI.
+    - Updated `LinkedInJobFinder` (`src/scraper/job_finder.py`) to explicitly set `"source": "linkedin"` across recruiter posts and standard card extraction.
+    - Implemented `normalize_job_source_metadata()` in `src/ui/app.py`: retro-normalizes authentic platform source and application type across older and newly discovered jobs on disk (`linkedin`, `greenhouse`, `lever`, `ashby`, `workday`).
+    - Integrated `normalize_job_source_metadata` across `/api/pending-jobs`, `/api/approved-jobs`, `/api/tracking/applied`, `autofill_job`, `launch_manual_takeover`, and `mark_job_applied`.
+    - Upgraded SQLite tracking database `data/app_database.db`: migrated 14 historical records previously tagged as generic `manual`/`manual_takeover` to authentic platform tags (`linkedin: 20`, `greenhouse: 18`, `workday: 1`, `lever: 1`, `ashby: 1`).
+    - Implemented `formatSourceBadge(source, appType)` helper in `src/ui/static/app.js`:
+      * ⚡ `LinkedIn Easy Apply` (Royal Blue `.badge-linkedin-easy`)
+      * 🌐 `LinkedIn External` (Electric Indigo `.badge-linkedin-ext`)
+      * 🟢 `Greenhouse ATS` (Emerald Green `.badge-greenhouse`)
+      * 🐬 `Lever ATS` (Purple `.badge-lever`)
+      * 🟣 `Ashby ATS` (Cyan `.badge-ashby`)
+      * 🟠 `Workday ATS` (Amber Orange `.badge-workday`)
+      * 💼 `Direct ATS` (Slate Gray `.badge-generic-ats`)
+    - Upgraded badge rendering across all 3 tabs: Tab 1 Staging Review (`#job-source-badge`), Tab 2 Ready to Apply cards, and Tab 3 Applied Tracking rows + real-time search filtering.
+    - Created and executed Verification Gate 64 (`verify/64_test_source_badge_accuracy.py`), passing 100% across normalizer heuristics, API attribution, SQLite migration, and front-end CSS/JS contracts.
+    - Regression verified across Gates 61, 62, 63, and 64 (100% pass).
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 131 files).
+
 
 
 

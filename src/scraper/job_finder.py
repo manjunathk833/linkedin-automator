@@ -287,6 +287,7 @@ class LinkedInJobFinder:
 
                     raw_job = {
                         "job_id": job_id,
+                        "source": "linkedin",
                         "application_type": "EASY_APPLY",
                         "job_details": {
                             "title": f"Hiring Post by {author.strip()}",
@@ -434,6 +435,7 @@ class LinkedInJobFinder:
             job_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
             raw_job = {
                 "job_id": job_id,
+                "source": "linkedin",
                 "url": job_url,
                 "job_url": job_url,
                 "application_type": application_type,
