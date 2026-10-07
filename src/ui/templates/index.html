@@ -20,6 +20,9 @@
                     <button id="tab-approved" class="tab-btn" onclick="switchTab('approved')">
                         🚀 Ready to Apply <span id="approved-count" class="badge badge-success">0</span>
                     </button>
+                    <button id="tab-tracking" class="tab-btn" onclick="switchTab('tracking')">
+                        📊 Applied Tracking <span id="tracking-count" class="badge badge-info">0</span>
+                    </button>
                 </nav>
             </div>
             <div id="budget-banner" class="budget-badge" title="Daily Safety Rate Governor (Prevents Bot Flagging)">
@@ -118,6 +121,7 @@
                     <div class="action-bar">
                         <button id="btn-reject" class="btn btn-secondary">Reject & Skip</button>
                         <button id="btn-manual-staging" class="btn btn-warning" onclick="manualApplyCurrentStagingJob()" title="Launch Headful Chrome with Candidate Cheat Sheet for Manual Apply">🖐️ Manual Apply</button>
+                        <button id="btn-mark-applied-staging" class="btn btn-success" onclick="markCurrentJobApplied()" title="Mark this job as submitted and move to tracking">✅ Mark as Applied</button>
                         <button id="btn-approve" class="btn btn-primary">Approve with Tailored Resume</button>
                     </div>
                 </div>
@@ -160,6 +164,64 @@
                     <p>Review jobs in the Staging tab and click "Approve" to compile their custom ATS PDFs and stage them here.</p>
                     <button class="btn btn-secondary" onclick="switchTab('pending')" style="margin-top: 1.25rem;">
                         ⬅️ Go to Staging Review
+                    </button>
+                </div>
+            </section>
+
+            <!-- TAB 3: APPLIED TRACKING DASHBOARD -->
+            <section id="tracking-section" class="hidden">
+                <!-- KPI Stat Cards -->
+                <div class="tracking-stats-row">
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon">🎯</div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="kpi-total-applied">0</span>
+                            <span class="kpi-label">Total Applied</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon">⚡</div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="kpi-today-applied">0</span>
+                            <span class="kpi-label">Applied Today</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon">🏢</div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="kpi-platforms-count">0</span>
+                            <span class="kpi-label">Active Portals</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tracking Toolbar -->
+                <div class="approved-toolbar">
+                    <div class="search-box">
+                        <input type="text" id="tracking-search" placeholder="🔍 Search applied jobs by company, role, or platform..." oninput="filterTrackingJobs()">
+                    </div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-secondary-sm" onclick="loadAppliedTracking()">
+                            🔄 Refresh Tracking
+                        </button>
+                    </div>
+                </div>
+
+                <div id="tracking-loading" class="spinner-container hidden">
+                    <div class="spinner"></div>
+                    <p>Loading application audit trail from database...</p>
+                </div>
+
+                <div id="tracking-jobs-list" class="tracking-grid">
+                    <!-- Tracked application cards rendered dynamically -->
+                </div>
+
+                <div id="tracking-empty-state" class="hidden empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <h3>No Applied Jobs Tracked Yet</h3>
+                    <p>Applications submitted via Copilot or marked as applied will appear here with full timestamps, tailored PDFs, and portal links.</p>
+                    <button class="btn btn-primary" onclick="switchTab('approved')" style="margin-top: 1.25rem;">
+                        👉 View Ready to Apply Queue
                     </button>
                 </div>
             </section>

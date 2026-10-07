@@ -187,6 +187,80 @@
     - Created and executed Verification Gate 60 (`verify/60_test_manual_takeover_fallback.py`): verified stuck threshold trigger, cheat-sheet DOM injection, background submission detector, and FastAPI endpoint passing 100%.
     - Full regression suite verified: Gates 57, 58, 59, and 60 passing 100%.
     - Codebase linted cleanly via `python main.py lint` (0 errors across 127 files).
+  - High-Performance Application Tracking, Multi-Stage Auto-Purge Defense & Tab 3 Dashboard (Gate 61):
+    - Added high-performance indexing in SQLite `app_database.db`: `idx_job_applications_status` and `idx_job_applications_applied_at` for ultra-fast (<0.15ms) lookups.
+    - Extended `ApplicationDatabase` (`src/storage/database.py`) with `is_job_applied(job_id)`, `get_applied_job_ids()`, `get_all_applications(limit, status)`, `get_application_stats()`, and `delete_application(job_id)`.
+    - Added multi-layer auto-purge defense:
+      * When retrieving jobs from `/api/jobs` or `/api/pending-jobs` and `/api/approved-jobs` (`src/ui/app.py`), checks `ApplicationDatabase().get_applied_job_ids()`; if any listing on disk was already applied, automatically unlinks/purges the JSON file from the filesystem.
+      * In `LinkedInJobFinder.is_duplicate()` (`src/scraper/job_finder.py`): cross-checks `is_job_applied(job_id)` to prevent re-scraping or re-pooling applied jobs.
+      * In `LinkedInJobFilter.filter_pending_queue()` (`src/filter/job_filter.py`): discards any staged listing present in `get_applied_job_ids()`.
+    - Implemented tracking REST endpoints in `src/ui/app.py`:
+      * `POST /api/tracking/mark-applied/{job_id}`: records application to SQLite with status `applied`, purges job from `pending_queue/` and `approved_queue/`, and updates `processed_jobs.json`.
+      * `GET /api/tracking/applied`: returns tracked applications in reverse chronological order and aggregated KPIs.
+      * `DELETE /api/tracking/{job_id}`: archives/removes application record.
+    - Upgraded Command Center UI (`src/ui/templates/index.html`, `src/ui/static/app.js`, `src/ui/static/styles.css`):
+      * Added Tab 3 `📊 Applied Tracking` with live count badge synced across tabs.
+      * Added `✅ Mark as Applied` button to Staging Review action bar.
+      * Added `✅ Applied` quick button to every Ready to Apply card.
+      * Built glassmorphic Tab 3 UI featuring KPI stat cards (Total Applied, Applied Today, Active Portals), client-side search/filter bar, applied cards grid, view tailored PDF links, direct job posting links, and archive buttons.
+    - Created and executed Verification Gate 61 (`verify/61_test_application_tracking_and_auto_purge.py`), passing 100% across SQLite schema/indexes, auto-purge on retrieval, mark-applied endpoints, tracking view, and scraper defense.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 127 files).
+  - User-Driven Applied Trigger Isolation & Complete Approved Queue Temp Purge (Gate 62):
+    - Disentangled browser launching from application completion in SQLite:
+      * Restricted `ApplicationDatabase.is_job_applied()` and `get_applied_job_ids()` (`src/storage/database.py`) strictly to `status = 'applied'`.
+      * Browser launches (`/api/autofill/{job_id}` and `/api/autofill/manual/{job_id}`) record `copilot_launched` and `manual_takeover_opened` audit entries without setting `applied` or triggering auto-purge.
+      * Repeated clicks on Copilot or Manual Apply no longer prematurely purge jobs from `data/approved_queue/`.
+    - User-Driven Confirmation Gate in Command Center UI:
+      * `markApprovedJobApplied()` and `markCurrentJobApplied()` in `src/ui/static/app.js` require explicit confirmation dialog (`"Confirm Submission: Have you submitted your application for <Role> @ <Company>?"`) before firing `POST /api/tracking/mark-applied/{job_id}`.
+    - Complete Approved Queue Temp Data Purge & PDF Archiving:
+      * When a job is marked applied, the compiled ATS PDF is safely copied/archived into `data/resumes/{pdf_filename}`, updating the DB record.
+      * All temp files (`{job_id}.json` and any matching `{job_id}*.pdf` or `token*.pdf`) are completely unlinked from `data/approved_queue/`.
+      * Updated `resolve_job_pdf_path()` to search both `data/approved_queue/` and `data/resumes/`, ensuring `/api/pdf/{job_id}` in the Applied Tracking view serves the archived resume without 404 errors.
+      * Added `clean_approved_queue_temp_data()` and `POST /api/approved/cleanup` to sweep any orphaned files from `data/approved_queue/`.
+    - Created and executed Verification Gate 62 (`verify/62_test_user_driven_applied_and_approved_purge.py`), passing 100% across browser launch isolation, repeat click safety, user confirmation trigger, temp file purge, and resume archiving.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 129 files).
+  - Unified Job Search Architecture & Cross-Source Applied Reseed Defense (Gate 63):
+    - Confirmed and hardened cross-source applied defense in SQLite `ApplicationDatabase` (`src/storage/database.py`):
+      * Added `is_company_role_applied(company_name, job_title)` providing normalized, case-insensitive, whitespace-trimmed duplicate protection.
+      * Added `get_applied_composite_hashes()` returning md5 hashes for all applied roles.
+    - Upgraded `ATSDiscoveryCoordinator` (`src/ingestion/ats_discovery.py`):
+      * Integrated pre-ingestion duplicate and reseed checks (`is_duplicate`) querying SQLite (`is_job_applied`, `is_company_role_applied`), `processed_jobs.json`, and physical queues.
+      * Integrated AI resume tailoring directly into ATS ingestion via `ResumeTailorer(use_ai=self.use_ai)`.
+      * Automatically registers newly discovered enterprise jobs into `processed_jobs.json` with composite hashes.
+    - Enhanced `LinkedInJobFinder.is_duplicate()` (`src/scraper/job_finder.py`):
+      * Checks `ApplicationDatabase().is_company_role_applied(company, title)` so LinkedIn never reseeds a role already applied via Greenhouse/Lever/Ashby.
+      * Added `--headless` support via `discovery_config.get("headless", False)`.
+    - Hardened `LinkedInJobFilter` (`src/filter/job_filter.py`):
+      * Dynamically resolves `easy_apply_only` setting from `config.yaml` (defaulting to False).
+      * Successfully retains `LINKEDIN_EXTERNAL` and `ATS_*` (`ATS_GREENHOUSE`, `ATS_LEVER`, `ATS_ASHBY`) listings in pending queue.
+    - Unified Orchestration in `JobSearchPipelineRunner.run_search_stage()` (`src/pipeline/runner.py`):
+      * Multi-track discovery coordinating Track 1 (Direct Keyless ATS REST) and Track 2 (LinkedIn Multi-Channel Stealth) in a single unified execution.
+      * Supports source selection (`all`, `linkedin`, `ats`) and headless execution for CI/CD / daily scheduled runs.
+    - Added CLI flags in `main.py`: `python main.py search [--source all|linkedin|ats] [--headless]` and `python main.py run [--source all|linkedin|ats] [--headless]`.
+    - Added REST endpoint `POST /api/discovery/run` in `src/ui/app.py` for one-click background execution from web dashboard or CI pipelines.
+    - Updated `config.yaml` with unified `discovery.source: "all"` and `discovery.headless: false`.
+    - Created and executed Verification Gate 63 (`verify/63_test_unified_job_search.py`), passing 100% across SQLite checks, ATS pre-ingestion guard, cross-platform deduplication, multi-source retention, runner orchestration, and API response.
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 130 files).
+  - Source Badge Attribution, Metadata Normalization & Cross-Platform Dashboard Precision (Gate 64):
+    - Diagnosed source display bug: `job_finder.py` omitted `"source": "linkedin"`, causing LinkedIn listings to fall back to generic `"ATS"` in `src/ui/app.py` and display flat `"ATS APPLICATION"` badges in the UI.
+    - Updated `LinkedInJobFinder` (`src/scraper/job_finder.py`) to explicitly set `"source": "linkedin"` across recruiter posts and standard card extraction.
+    - Implemented `normalize_job_source_metadata()` in `src/ui/app.py`: retro-normalizes authentic platform source and application type across older and newly discovered jobs on disk (`linkedin`, `greenhouse`, `lever`, `ashby`, `workday`).
+    - Integrated `normalize_job_source_metadata` across `/api/pending-jobs`, `/api/approved-jobs`, `/api/tracking/applied`, `autofill_job`, `launch_manual_takeover`, and `mark_job_applied`.
+    - Upgraded SQLite tracking database `data/app_database.db`: migrated 14 historical records previously tagged as generic `manual`/`manual_takeover` to authentic platform tags (`linkedin: 20`, `greenhouse: 18`, `workday: 1`, `lever: 1`, `ashby: 1`).
+    - Implemented `formatSourceBadge(source, appType)` helper in `src/ui/static/app.js`:
+      * ⚡ `LinkedIn Easy Apply` (Royal Blue `.badge-linkedin-easy`)
+      * 🌐 `LinkedIn External` (Electric Indigo `.badge-linkedin-ext`)
+      * 🟢 `Greenhouse ATS` (Emerald Green `.badge-greenhouse`)
+      * 🐬 `Lever ATS` (Purple `.badge-lever`)
+      * 🟣 `Ashby ATS` (Cyan `.badge-ashby`)
+      * 🟠 `Workday ATS` (Amber Orange `.badge-workday`)
+      * 💼 `Direct ATS` (Slate Gray `.badge-generic-ats`)
+    - Upgraded badge rendering across all 3 tabs: Tab 1 Staging Review (`#job-source-badge`), Tab 2 Ready to Apply cards, and Tab 3 Applied Tracking rows + real-time search filtering.
+    - Created and executed Verification Gate 64 (`verify/64_test_source_badge_accuracy.py`), passing 100% across normalizer heuristics, API attribution, SQLite migration, and front-end CSS/JS contracts.
+    - Regression verified across Gates 61, 62, 63, and 64 (100% pass).
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 131 files).
+
+
 
 
 

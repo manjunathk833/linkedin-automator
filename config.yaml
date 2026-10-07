@@ -1,6 +1,8 @@
 # config.yaml — Job Search & Application Configuration (Scaled 10x Discovery)
 
 discovery:
+  source: "all"                # Unified discovery: "all" (Direct ATS + LinkedIn), "linkedin", or "ats"
+  headless: false              # Set to true for headless CI/CD and daily scheduled runs
   max_pages_per_search: 3      # Search query pages (start=0, 25, 50)
   max_recommended_pages: 5     # Recommended feed pages (start=0, 25, 50, 75, 100)
   enable_recommended_feed: true

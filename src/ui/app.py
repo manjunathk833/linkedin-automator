@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 import os
 import re
+from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -155,24 +156,34 @@ def resolve_job_pdf_path(job_id: str, payload: dict | None = None) -> tuple[str,
         except Exception:
             pass
 
-    # 3. Check for modern candidate-named resume file in APPROVED_DIR
+    search_dirs = [APPROVED_DIR, RESUMES_DIR]
     target_filename = generate_professional_resume_filename(job_id, payload)
-    target_path = os.path.join(APPROVED_DIR, target_filename)
-    if os.path.exists(target_path):
-        return target_path, target_filename
 
-    # 4. Check for pattern match in APPROVED_DIR using the job token
+    # 3. Check for modern candidate-named resume file in search directories
+    for sdir in search_dirs:
+        if os.path.exists(sdir):
+            target_path = os.path.join(sdir, target_filename)
+            if os.path.exists(target_path):
+                return target_path, target_filename
+
+    # 4. Check for pattern match in search directories using the job token
     token = extract_job_token(job_id)
-    if os.path.exists(APPROVED_DIR):
-        for fname in os.listdir(APPROVED_DIR):
-            if fname.endswith(".pdf") and token in fname:
-                found_path = os.path.join(APPROVED_DIR, fname)
-                return found_path, fname
+    for sdir in search_dirs:
+        if os.path.exists(sdir):
+            for fname in os.listdir(sdir):
+                if fname.endswith(".pdf") and (token in fname or job_id in fname):
+                    found_path = os.path.join(sdir, fname)
+                    return found_path, fname
 
     # 5. Fallback to legacy path for backward compatibility
     legacy_filename = f"{job_id}_resume.pdf"
-    legacy_path = os.path.join(APPROVED_DIR, legacy_filename)
-    return legacy_path, legacy_filename
+    for sdir in search_dirs:
+        if os.path.exists(sdir):
+            legacy_path = os.path.join(sdir, legacy_filename)
+            if os.path.exists(legacy_path):
+                return legacy_path, legacy_filename
+
+    return os.path.join(APPROVED_DIR, legacy_filename), legacy_filename
 
 
 def extract_job_experience(text: str) -> str:
@@ -342,6 +353,81 @@ def extract_salary_estimate(job_details: dict) -> str:
     return "Competitive"
 
 
+def normalize_job_source_metadata(payload: dict[str, Any]) -> tuple[str, str]:
+    """
+    Infers and normalizes the authentic source and application_type for a job payload.
+    Provides retro-compatibility for historical files lacking explicit 'source' tags.
+    Returns:
+        (source, application_type)
+        e.g. ("linkedin", "EASY_APPLY"), ("linkedin", "LINKEDIN_EXTERNAL"),
+             ("greenhouse", "ATS_GREENHOUSE"), ("lever", "ATS_LEVER"),
+             ("ashby", "ATS_ASHBY"), ("workday", "ATS_WORKDAY").
+    """
+    if not isinstance(payload, dict):
+        return ("ats", "ATS")
+
+    raw_source = str(payload.get("source") or "").strip().lower()
+    app_type = str(payload.get("application_type") or "").strip().upper()
+    job_id = str(payload.get("job_id") or payload.get("id") or "").strip().lower()
+    url = str(payload.get("url") or payload.get("job_url") or "").strip().lower()
+
+    # 1. Infer platform source
+    if raw_source in ("greenhouse", "lever", "ashby", "workday"):
+        source = raw_source
+    elif raw_source == "linkedin":
+        source = "linkedin"
+    elif (
+        "greenhouse" in raw_source
+        or job_id.startswith("greenhouse_")
+        or "greenhouse.io" in url
+        or app_type == "ATS_GREENHOUSE"
+    ):
+        source = "greenhouse"
+    elif "lever" in raw_source or job_id.startswith("lever_") or "lever.co" in url or app_type == "ATS_LEVER":
+        source = "lever"
+    elif "ashby" in raw_source or job_id.startswith("ashby_") or "ashbyhq.com" in url or app_type == "ATS_ASHBY":
+        source = "ashby"
+    elif (
+        "workday" in raw_source
+        or job_id.startswith("workday_")
+        or "myworkdayjobs.com" in url
+        or "workday" in url
+        or app_type == "ATS_WORKDAY"
+    ):
+        source = "workday"
+    elif (
+        "linkedin" in raw_source
+        or job_id.startswith("p1_job_")
+        or job_id.isdigit()
+        or "linkedin.com" in url
+        or app_type in ("EASY_APPLY", "LINKEDIN_EXTERNAL")
+    ):
+        source = "linkedin"
+    else:
+        source = raw_source if raw_source and raw_source not in ("ats", "manual", "manual_takeover") else "ats"
+
+    # 2. Infer & normalize application_type
+    if source == "linkedin":
+        if app_type not in ("EASY_APPLY", "LINKEDIN_EXTERNAL"):
+            app_type = "EASY_APPLY"
+    elif source == "greenhouse":
+        if not app_type or app_type in ("ATS", "UNKNOWN"):
+            app_type = "ATS_GREENHOUSE"
+    elif source == "lever":
+        if not app_type or app_type in ("ATS", "UNKNOWN"):
+            app_type = "ATS_LEVER"
+    elif source == "ashby":
+        if not app_type or app_type in ("ATS", "UNKNOWN"):
+            app_type = "ATS_ASHBY"
+    elif source == "workday":
+        if not app_type or app_type in ("ATS", "UNKNOWN"):
+            app_type = "ATS_WORKDAY"
+    elif not app_type:
+        app_type = "ATS"
+
+    return (source, app_type)
+
+
 def compute_resume_diff(payload: dict, master_profile: dict) -> dict:
     """Injects is_tailored diff flags into payload experience history achievements."""
     master_exp_map = {}
@@ -397,14 +483,39 @@ async def get_pending_jobs():
             _tailorer = ResumeTailorer(use_ai=False)
         return _tailorer
 
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    applied_job_ids = db.get_applied_job_ids()
+
     jobs = []
     if os.path.exists(PENDING_DIR):
         for filename in os.listdir(PENDING_DIR):
             if filename.endswith(".json"):
+                job_id_from_name = filename.replace(".json", "")
                 file_path = os.path.join(PENDING_DIR, filename)
+
+                # Check if job was already applied in the database; if so, purge and skip!
+                if job_id_from_name in applied_job_ids:
+                    print(f"🧹 Purging already applied job {job_id_from_name} from pending queue...")
+                    try:
+                        os.remove(file_path)
+                    except Exception:
+                        pass
+                    continue
+
                 try:
                     with open(file_path, "r") as f:
                         raw_payload = json.load(f)
+
+                    payload_job_id = raw_payload.get("job_id") or job_id_from_name
+                    if payload_job_id in applied_job_ids:
+                        print(f"🧹 Purging already applied job {payload_job_id} from pending queue...")
+                        try:
+                            os.remove(file_path)
+                        except Exception:
+                            pass
+                        continue
 
                     # On-demand tailoring fallback: if tailored_resume is missing, tailor now
                     if "tailored_resume" not in raw_payload:
@@ -440,7 +551,12 @@ async def get_pending_jobs():
                     )
                     diff_payload["salary_estimate"] = extract_salary_estimate(jd)
                     diff_payload["direct_link"] = raw_payload.get("url") or raw_payload.get("job_url") or ""
-                    diff_payload["source_platform"] = raw_payload.get("source", "ATS").upper()
+                    norm_source, norm_app_type = normalize_job_source_metadata(raw_payload)
+                    raw_payload["source"] = norm_source
+                    raw_payload["application_type"] = norm_app_type
+                    diff_payload["source"] = norm_source
+                    diff_payload["application_type"] = norm_app_type
+                    diff_payload["source_platform"] = norm_source.upper()
                     diff_payload["standard_resume"] = master_profile
                     diff_payload["standard_pdf_url"] = "/api/pdf/standard"
                     diff_payload["preview_pdf_url"] = f"/api/pdf/preview/{raw_payload.get('job_id')}"
@@ -644,15 +760,16 @@ async def autofill_job(job_id: str):
     if result.get("status") in ("ready_for_review", "applied", "success", "manual_takeover_activated"):
         db = ApplicationDatabase()
         job_details = job_data.get("job_details", {})
+        norm_source, _ = normalize_job_source_metadata(job_data)
         db.record_application(
             job_id=job_id,
-            source=job_data.get("source", "linkedin"),
+            source=norm_source,
             company_name=job_details.get("company", "Unknown"),
             job_title=job_details.get("title", "Unknown"),
             job_url=job_url,
             resume_path=pdf_path or "",
             tailored_data=job_data.get("tailored_resume", {}),
-            status="assisted_autofilled",
+            status="copilot_launched",
         )
 
     fields_n = result.get("fields_filled", 0)
@@ -707,10 +824,11 @@ async def manual_apply_job(job_id: str):
         job_title=job_title,
     )
 
+    norm_source, _ = normalize_job_source_metadata(job_data)
     db = ApplicationDatabase()
     db.record_application(
         job_id=job_id,
-        source=job_data.get("source", "linkedin"),
+        source=norm_source,
         company_name=company_name or "Unknown",
         job_title=job_title or "Unknown",
         job_url=target_url,
@@ -727,9 +845,183 @@ async def manual_apply_job(job_id: str):
     }
 
 
+def clean_approved_queue_temp_data():
+    """
+    Removes all temp files from data/approved_queue/ for jobs that are already marked applied,
+    or orphaned PDFs whose JSON payload is missing.
+    """
+    if not os.path.exists(APPROVED_DIR):
+        return
+    from src.storage.database import ApplicationDatabase
+
+    applied_ids = ApplicationDatabase().get_applied_job_ids()
+
+    for fname in os.listdir(APPROVED_DIR):
+        if fname == ".gitkeep":
+            continue
+        fpath = os.path.join(APPROVED_DIR, fname)
+        if fname.endswith(".json"):
+            jid = fname.replace(".json", "")
+            if jid in applied_ids:
+                try:
+                    os.remove(fpath)
+                except Exception:
+                    pass
+        elif fname.endswith(".pdf"):
+            active_json_ids = {f.replace(".json", "") for f in os.listdir(APPROVED_DIR) if f.endswith(".json")}
+            is_active = any(aid in fname for aid in active_json_ids)
+            if not is_active:
+                try:
+                    os.remove(fpath)
+                except Exception:
+                    pass
+
+
+@app.post("/api/approved/cleanup")
+async def cleanup_approved_queue():
+    """Manual trigger to clean up all orphaned temp files in data/approved_queue/."""
+    clean_approved_queue_temp_data()
+    return {"status": "success", "message": "Approved queue temporary data cleaned."}
+
+
+@app.post("/api/tracking/mark-applied/{job_id}")
+async def mark_job_applied(job_id: str):
+    """Marks a job as APPLIED in SQLite database, archives PDF to resumes dir, and purges all temp data."""
+    import shutil
+
+    from src.storage.database import ApplicationDatabase
+
+    pending_file = os.path.join(PENDING_DIR, f"{job_id}.json")
+    approved_file = os.path.join(APPROVED_DIR, f"{job_id}.json")
+    target_file = pending_file if os.path.exists(pending_file) else approved_file
+
+    job_data: dict[str, Any] = {}
+    if os.path.exists(target_file):
+        try:
+            with open(target_file, "r", encoding="utf-8") as f:
+                job_data = json.load(f)
+        except Exception:
+            pass
+
+    job_details = job_data.get("job_details", {})
+    company_name = job_details.get("company", "Unknown")
+    job_title = job_details.get("title", "Senior SDET")
+    job_url = job_data.get("url") or job_data.get("job_url") or f"https://www.linkedin.com/jobs/view/{job_id}/"
+    pdf_path, pdf_filename = resolve_job_pdf_path(job_id, job_data) if job_data else ("", "")
+
+    # Archive PDF into data/resumes/ so temp data in data/approved_queue/ can be purged completely
+    os.makedirs(RESUMES_DIR, exist_ok=True)
+    if pdf_path and os.path.exists(pdf_path):
+        archived_pdf_path = os.path.join(RESUMES_DIR, pdf_filename)
+        if os.path.abspath(pdf_path) != os.path.abspath(archived_pdf_path):
+            try:
+                shutil.copy2(pdf_path, archived_pdf_path)
+            except Exception as e:
+                print(f"Error copying PDF to resumes archive: {e}")
+        if os.path.exists(archived_pdf_path):
+            pdf_path = archived_pdf_path
+
+    norm_source, _ = normalize_job_source_metadata(job_data) if job_data else ("manual", "ATS")
+    db = ApplicationDatabase()
+    db.record_application(
+        job_id=job_id,
+        source=norm_source,
+        company_name=company_name,
+        job_title=job_title,
+        job_url=job_url,
+        resume_path=pdf_path or "",
+        tailored_data=job_data.get("tailored_resume", {}),
+        status="applied",
+    )
+
+    # Purge file from pending queue
+    if os.path.exists(pending_file):
+        try:
+            os.remove(pending_file)
+        except Exception:
+            pass
+
+    # Purge file from approved queue
+    if os.path.exists(approved_file):
+        try:
+            os.remove(approved_file)
+        except Exception:
+            pass
+
+    # Purge any temp PDFs in approved_queue matching this job
+    token = extract_job_token(job_id)
+    if os.path.exists(APPROVED_DIR):
+        for fname in os.listdir(APPROVED_DIR):
+            if fname.endswith(".pdf") and (token in fname or job_id in fname):
+                try:
+                    os.remove(os.path.join(APPROVED_DIR, fname))
+                except Exception:
+                    pass
+
+    # Run general cleanup for any orphaned temp data in approved queue
+    clean_approved_queue_temp_data()
+
+    # Record into processed_jobs deduplication ledger
+    try:
+        from src.scraper.job_finder import LinkedInJobFinder
+
+        finder = LinkedInJobFinder()
+        finder.mark_job_processed(job_id=job_id, company=company_name, title=job_title, status="APPLIED")
+    except Exception:
+        pass
+
+    stats = db.get_application_stats()
+    return {
+        "status": "success",
+        "message": f"Job {job_id} ({company_name}) marked as applied and moved to tracking.",
+        "job_id": job_id,
+        "stats": stats,
+    }
+
+
+@app.get("/api/tracking/applied")
+async def get_applied_tracking(limit: int = 200, status: str | None = None):
+    """Retrieves all tracked applications and summary KPIs from SQLite database."""
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    applications = db.get_all_applications(limit=limit, status_filter=status)
+    for app_item in applications:
+        curr_src = app_item.get("source")
+        if not curr_src or curr_src in ("manual", "manual_takeover", "ATS", "ats"):
+            inferred_src, inferred_app_type = normalize_job_source_metadata(app_item)
+            if inferred_src and inferred_src != "ats":
+                app_item["source"] = inferred_src
+                app_item["application_type"] = inferred_app_type
+
+    stats = db.get_application_stats()
+    return {
+        "status": "success",
+        "total": len(applications),
+        "applications": applications,
+        "stats": stats,
+    }
+
+
+@app.delete("/api/tracking/{job_id}")
+async def delete_tracked_job(job_id: str):
+    """Deletes an application record from the tracking repository."""
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    deleted = db.delete_application(job_id)
+    return {"status": "success" if deleted else "not_found", "job_id": job_id}
+
+
 @app.get("/api/approved-jobs")
 async def get_approved_jobs():
     from src.autofill.governor import ApplicationGovernor
+    from src.storage.database import ApplicationDatabase
+
+    clean_approved_queue_temp_data()
+
+    db = ApplicationDatabase()
+    applied_job_ids = db.get_applied_job_ids()
 
     governor = ApplicationGovernor()
     budget = governor.check_budget()
@@ -743,13 +1035,33 @@ async def get_approved_jobs():
 
         for filename in files:
             file_path = os.path.join(APPROVED_DIR, filename)
+            job_id_from_name = filename.replace(".json", "")
+
+            # Auto-purge if already marked as applied!
+            if job_id_from_name in applied_job_ids:
+                print(f"🧹 Purging already applied job {job_id_from_name} from approved queue...")
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                continue
+
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     payload = json.load(f)
 
-                job_id = payload.get("job_id", filename.replace(".json", ""))
+                job_id = payload.get("job_id", job_id_from_name)
+                if job_id in applied_job_ids:
+                    print(f"🧹 Purging already applied job {job_id} from approved queue...")
+                    try:
+                        os.remove(file_path)
+                    except Exception:
+                        pass
+                    continue
                 jd = payload.get("job_details", {})
                 pdf_path, pdf_filename = resolve_job_pdf_path(job_id, payload)
+
+                norm_source, norm_app_type = normalize_job_source_metadata(payload)
 
                 approved_jobs.append(
                     {
@@ -757,8 +1069,8 @@ async def get_approved_jobs():
                         "company": jd.get("company", "Unknown Company"),
                         "title": jd.get("title", "Unknown Role"),
                         "location": jd.get("location", "Not specified"),
-                        "source": payload.get("source", "ATS"),
-                        "application_type": payload.get("application_type", "ATS"),
+                        "source": norm_source,
+                        "application_type": norm_app_type,
                         "job_url": payload.get("url") or payload.get("job_url", ""),
                         "matched_keywords": payload.get("matched_keywords", []),
                         "has_pdf": os.path.exists(pdf_path),
@@ -889,3 +1201,38 @@ async def delete_approved_job(job_id: str):
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found in approved queue")
 
     return {"status": "success", "message": f"Job {job_id} removed from approved queue."}
+
+
+@app.post("/api/discovery/run")
+async def trigger_unified_discovery(
+    source: str = "all",
+    background_tasks: BackgroundTasks = None,
+):
+    """
+    Triggers unified job search across ATS boards (Greenhouse, Lever, Ashby) and LinkedIn.
+    Supports asynchronous execution from UI or CI/CD pipelines.
+    """
+    from main import load_config
+    from src.pipeline.runner import JobSearchPipelineRunner
+
+    config = load_config()
+
+    async def _execute_discovery():
+        runner = JobSearchPipelineRunner(config)
+        await runner.run_search_stage(source=source)
+        runner.run_filter_stage()
+
+    if background_tasks:
+        background_tasks.add_task(_execute_discovery)
+        return {
+            "status": "started",
+            "message": f"Unified job discovery ({source}) initiated in background.",
+            "source": source,
+        }
+    else:
+        await _execute_discovery()
+        return {
+            "status": "success",
+            "message": f"Unified job discovery ({source}) completed successfully.",
+            "source": source,
+        }

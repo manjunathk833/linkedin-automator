@@ -85,26 +85,43 @@ Most job search tools only scrape LinkedIn. This system has two separate discove
 
 ## 3. How to Use the System (Your Daily Workflow)
 
-You only need three simple commands:
+### Unified Daily Workflow: One Command for All Sources
+The job search is completely unified. Running a search now automatically coordinates across **all sources** (Direct Enterprise ATS boards + LinkedIn Multi-Channel) and pools all tailored listings together into your review queue:
 
-### Morning Workflow: One-Shot Discovery & Review
 ```bash
 # 1. Activate your Python environment
 source venv/bin/activate
 
-# 2. Ingest fresh jobs directly from 37+ tech ATS boards into your review queue
-python scripts/run_ingestion.py --queue
+# 2. Run Unified Search across ALL sources (Direct ATS + LinkedIn):
+python main.py search
 
-# 3. Launch your approval dashboard
-python main.py dashboard
-```
-Open **`http://localhost:8000`** in your browser. Review the staged jobs, inspect the tailored bullets, and click **`🚀 Open & Autofill Copilot`** on the roles you want to apply to!
-
-### Full Pipeline Workflow (Including LinkedIn Search):
-```bash
-# Runs everything sequentially: Syncs notes -> Searches LinkedIn -> Filters experience -> Opens dashboard
+# Or run one-shot full pipeline (Sync notes -> Unified search -> Filter -> Launch dashboard):
 python main.py run
 ```
+
+### Flexible Source Control & CI/CD Scheduled Runs:
+```bash
+# Search only direct enterprise ATS boards (Greenhouse, Lever, Ashby in ~3 seconds):
+python main.py search --source ats
+
+# Search only LinkedIn (4-channel stealth scraper):
+python main.py search --source linkedin
+
+# Headless mode (ideal for daily cron jobs, CI/CD pipelines, or background runs):
+python main.py search --headless
+python main.py run --headless --no-dashboard
+```
+
+### Web Command Center & One-Click Trigger:
+Launch the approval dashboard anytime:
+```bash
+python main.py dashboard
+```
+Open **`http://localhost:8000`** in your browser:
+* **📋 Staging Review:** Review fresh jobs from all sources side-by-side with your tailored STAR resume bullets.
+* **🚀 Ready to Apply:** Inspect custom PDFs and trigger `🚀 Open & Autofill Copilot` or `🖐️ Manual Apply`.
+* **📊 Applied Tracking:** View all submitted applications across LinkedIn, Greenhouse, Lever, and Ashby in one centralized tracking ledger.
+* **🛡️ Permanent Reseed Defense:** Once a job is marked applied (or submitted), it is locked in SQLite and composite hashes. It will **never** re-appear or re-seed into your queue, regardless of whether it is discovered again on LinkedIn, Greenhouse, Lever, or Ashby!
 
 ---
 

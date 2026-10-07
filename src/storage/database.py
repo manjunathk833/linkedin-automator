@@ -7,6 +7,7 @@ while enforcing daily quota governance (≤15 applications/24 hours).
 from __future__ import annotations
 
 import datetime
+import hashlib
 import json
 import os
 import sqlite3
@@ -48,6 +49,9 @@ class ApplicationDatabase:
                     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     status TEXT NOT NULL
                 );
+
+                CREATE INDEX IF NOT EXISTS idx_job_applications_status ON job_applications(status);
+                CREATE INDEX IF NOT EXISTS idx_job_applications_applied_at ON job_applications(applied_at DESC);
 
                 CREATE TABLE IF NOT EXISTS daily_submission_limits (
                     date_bucket TEXT PRIMARY KEY,
@@ -97,13 +101,14 @@ class ApplicationDatabase:
         company_name: str,
         job_title: str,
         job_url: str,
-        resume_path: str,
-        tailored_data: dict[str, Any] | str,
+        resume_path: str = "",
+        tailored_data: dict[str, Any] | str | None = None,
         screening_qa: dict[str, Any] | str | None = None,
         status: str = "applied",
     ) -> None:
         """Records an application event into the audit trail and updates daily submission counter."""
-        tailored_json = tailored_data if isinstance(tailored_data, str) else json.dumps(tailored_data)
+        tailored_payload = tailored_data if tailored_data is not None else {}
+        tailored_json = tailored_payload if isinstance(tailored_payload, str) else json.dumps(tailored_payload)
         qa_json = screening_qa if isinstance(screening_qa, str) or screening_qa is None else json.dumps(screening_qa)
 
         with self._get_connection() as conn:
@@ -144,3 +149,112 @@ class ApplicationDatabase:
             if not row:
                 return None
             return dict(row)
+
+    def is_job_applied(self, job_id: str) -> bool:
+        """Returns True if job_id has been explicitly marked as applied in the database."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT 1 FROM job_applications WHERE id = ? AND status = 'applied' LIMIT 1;",
+                (job_id,),
+            )
+            return cursor.fetchone() is not None
+
+    def is_company_role_applied(self, company_name: str, job_title: str) -> bool:
+        """
+        Returns True if a job for the given company and title has already been applied.
+        Normalizes company and title case-insensitively and whitespace-trimmed to prevent cross-source reseeding.
+        """
+        if not company_name or not job_title:
+            return False
+        clean_company = company_name.strip().lower()
+        clean_title = job_title.strip().lower()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT 1 FROM job_applications
+                WHERE LOWER(TRIM(company_name)) = ?
+                  AND LOWER(TRIM(job_title)) = ?
+                  AND status = 'applied'
+                LIMIT 1;
+                """,
+                (clean_company, clean_title),
+            )
+            return cursor.fetchone() is not None
+
+    def get_applied_composite_hashes(self) -> set[str]:
+        """Returns set of md5(company_title) composite hashes for all applied jobs."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT company_name, job_title FROM job_applications WHERE status = 'applied';")
+            hashes = set()
+            for row in cursor.fetchall():
+                comp = (row["company_name"] or "").strip().lower()
+                tit = (row["job_title"] or "").strip().lower()
+                if comp and tit:
+                    norm = f"{comp}_{tit}"
+                    hashes.add(hashlib.md5(norm.encode("utf-8")).hexdigest())
+            return hashes
+
+    def get_applied_job_ids(self) -> set[str]:
+        """Returns the set of all job IDs that have been explicitly marked as applied."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM job_applications WHERE status = 'applied';")
+            return {row["id"] for row in cursor.fetchall()}
+
+    def get_all_applications(self, limit: int = 200, status_filter: str | None = None) -> list[dict[str, Any]]:
+        """Retrieves all application records ordered by applied_at DESC for tracking."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if status_filter:
+                cursor.execute(
+                    "SELECT * FROM job_applications WHERE status = ? ORDER BY applied_at DESC LIMIT ?",
+                    (status_filter, limit),
+                )
+            else:
+                cursor.execute(
+                    "SELECT * FROM job_applications ORDER BY applied_at DESC LIMIT ?",
+                    (limit,),
+                )
+            rows = cursor.fetchall()
+            applications = []
+            for row in rows:
+                item = dict(row)
+                item["job_id"] = item.get("id")
+                applications.append(item)
+            return applications
+
+    def get_application_stats(self) -> dict[str, Any]:
+        """Returns summary statistics for the tracking dashboard."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) AS total FROM job_applications;")
+            total = cursor.fetchone()["total"]
+
+            today_count = self.get_today_submission_count()
+
+            cursor.execute("SELECT source, COUNT(*) AS cnt FROM job_applications GROUP BY source ORDER BY cnt DESC;")
+            sources = {row["source"]: row["cnt"] for row in cursor.fetchall()}
+
+            cursor.execute("SELECT status, COUNT(*) AS cnt FROM job_applications GROUP BY status ORDER BY cnt DESC;")
+            statuses = {row["status"]: row["cnt"] for row in cursor.fetchall()}
+
+            return {
+                "total_applied": total,
+                "today_applied": today_count,
+                "applied_today": today_count,
+                "sources": sources,
+                "source_breakdown": sources,
+                "statuses": statuses,
+                "status_breakdown": statuses,
+            }
+
+    def delete_application(self, job_id: str) -> bool:
+        """Deletes an application record by job_id."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM job_applications WHERE id = ?", (job_id,))
+            conn.commit()
+            return cursor.rowcount > 0

@@ -7,9 +7,12 @@ normalizes payloads, and queues them for tailoring and human-in-the-loop review.
 from __future__ import annotations
 
 import asyncio
+import datetime
+import hashlib
 import json
 import os
 import re
+from typing import Any
 
 from src.ingestion.ashby import AshbyCollector
 from src.ingestion.greenhouse import GreenhouseCollector
@@ -19,6 +22,7 @@ from src.storage.models import JobListing, TargetCompany
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_CONFIG_PATH = os.path.join(PROJECT_ROOT, "data", "config", "target_companies.json")
 DEFAULT_QUEUE_DIR = os.path.join(PROJECT_ROOT, "data", "pending_queue")
+DEFAULT_DB_FILE = os.path.join(PROJECT_ROOT, "data", "processed_jobs.json")
 
 
 class ATSDiscoveryCoordinator:
@@ -29,14 +33,94 @@ class ATSDiscoveryCoordinator:
         config_path: str = DEFAULT_CONFIG_PATH,
         queue_dir: str = DEFAULT_QUEUE_DIR,
         max_concurrency: int = 10,
+        db_file: str = DEFAULT_DB_FILE,
+        use_ai: bool = True,
     ):
         self.config_path = config_path
         self.queue_dir = queue_dir
+        self.db_file = db_file
+        self.use_ai = use_ai
         self.semaphore = asyncio.Semaphore(max_concurrency)
 
         self.greenhouse = GreenhouseCollector()
         self.lever = LeverCollector()
         self.ashby = AshbyCollector()
+
+    def load_processed_jobs(self) -> dict[str, Any]:
+        """Loads master deduplication index from data/processed_jobs.json."""
+        os.makedirs(os.path.dirname(self.db_file), exist_ok=True)
+        if not os.path.exists(self.db_file):
+            return {"job_ids": {}, "composite_hashes": {}}
+        try:
+            with open(self.db_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {"job_ids": {}, "composite_hashes": {}}
+
+    def save_processed_jobs(self, data: dict[str, Any]):
+        """Saves master deduplication index back to disk."""
+        os.makedirs(os.path.dirname(self.db_file), exist_ok=True)
+        with open(self.db_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+    def generate_composite_hash(self, company: str, title: str) -> str:
+        """Generates a composite hash md5(company_title) for cross-platform duplicate detection."""
+        norm = f"{company.strip().lower()}_{title.strip().lower()}"
+        return hashlib.md5(norm.encode("utf-8")).hexdigest()
+
+    def is_duplicate(self, job_id: str, company: str, title: str) -> bool:
+        """
+        Checks if a job_id or (company + title) has already been applied or processed across
+        SQLite persistent database, processed_jobs.json, and physical file queues.
+        """
+        # 0. Check SQLite persistent database for completed applications (exact ID & company+role)
+        try:
+            from src.storage.database import ApplicationDatabase
+
+            db = ApplicationDatabase()
+            if db.is_job_applied(job_id) or db.is_company_role_applied(company, title):
+                return True
+        except Exception:
+            pass
+
+        data = self.load_processed_jobs()
+        job_ids = data.get("job_ids", {})
+        composite_hashes = data.get("composite_hashes", {})
+
+        # 1. Check primary job_id
+        if job_id in job_ids:
+            return True
+
+        # 2. Check composite hash (cross-source duplicate protection)
+        c_hash = self.generate_composite_hash(company, title)
+        if c_hash in composite_hashes:
+            return True
+
+        # 3. Check physical file queues
+        for qdir in [
+            self.queue_dir,
+            os.path.join(PROJECT_ROOT, "data", "approved_queue"),
+            os.path.join(PROJECT_ROOT, "data", "applied_queue"),
+        ]:
+            if os.path.exists(qdir) and f"{job_id}.json" in os.listdir(qdir):
+                return True
+
+        return False
+
+    def mark_job_processed(self, job_id: str, company: str, title: str, status: str = "PENDING"):
+        """Registers an ATS job into the master deduplication index."""
+        data = self.load_processed_jobs()
+        now = datetime.datetime.utcnow().isoformat() + "Z"
+        c_hash = self.generate_composite_hash(company, title)
+
+        data.setdefault("job_ids", {})[job_id] = {
+            "title": title,
+            "company": company,
+            "first_seen": now,
+            "status": status,
+        }
+        data.setdefault("composite_hashes", {})[c_hash] = {"job_id": job_id, "first_seen": now}
+        self.save_processed_jobs(data)
 
     def load_target_companies(self) -> list[TargetCompany]:
         """Loads and parses configured target companies."""
@@ -99,15 +183,30 @@ class ATSDiscoveryCoordinator:
             clean = clean[:2000] + "..."
         return clean
 
-    def save_listings_to_queue(self, listings: list[JobListing]) -> list[str]:
+    def save_listings_to_queue(self, listings: list[JobListing], tailor: bool = True) -> list[str]:
         """
-        Saves JobListing objects to data/pending_queue/{job_id}.json
-        compatible with the approval gate dashboard and filter engine.
+        Deduplicates, optionally tailors, and saves JobListing objects to data/pending_queue/{job_id}.json.
+        Registers newly discovered jobs into the master deduplication ledger (processed_jobs.json).
         """
         os.makedirs(self.queue_dir, exist_ok=True)
         saved_paths: list[str] = []
+        skipped_count = 0
+
+        tailorer = None
+        if tailor:
+            try:
+                from src.tailor.resume_tailorer import ResumeTailorer
+
+                tailorer = ResumeTailorer(use_ai=self.use_ai)
+            except Exception as e:
+                print(f"⚠️ Could not initialize ResumeTailorer for ATS ingestion: {e}")
 
         for item in listings:
+            # Cross-platform and applied reseed guard
+            if self.is_duplicate(item.id, item.company_name, item.job_title):
+                skipped_count += 1
+                continue
+
             filepath = os.path.join(self.queue_dir, f"{item.id}.json")
             requirements_text = self._extract_requirements_text(
                 item.job_description_clean or item.job_description_raw or ""
@@ -131,8 +230,19 @@ class ATSDiscoveryCoordinator:
                 "discovered_at": item.discovered_at.isoformat(),
             }
 
+            if tailorer:
+                try:
+                    payload = tailorer.tailor_job_payload(payload)
+                except Exception as e:
+                    print(f"⚠️ Tailoring failed for {item.job_title} @ {item.company_name}: {e}")
+
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2)
+
+            self.mark_job_processed(item.id, item.company_name, item.job_title, status="PENDING")
             saved_paths.append(filepath)
 
+        print(
+            f"💾 Queued {len(saved_paths)} new ATS job(s) into data/pending_queue/ (skipped {skipped_count} duplicate/applied role(s))."
+        )
         return saved_paths

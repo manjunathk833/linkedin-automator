@@ -129,6 +129,17 @@ h1 {
     color: #ffffff !important;
 }
 
+.badge-info {
+    background: rgba(14, 165, 233, 0.2) !important;
+    color: #38bdf8 !important;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.tab-btn.active .badge-info {
+    background: #0ea5e9 !important;
+    color: #ffffff !important;
+}
+
 /* Budget Badge */
 .budget-badge {
     font-weight: 600;
@@ -550,28 +561,51 @@ h1 {
     border-radius: 6px;
 }
 
-.source-pill.greenhouse {
-    background: rgba(16, 185, 129, 0.15);
+.source-pill.greenhouse,
+.badge-greenhouse {
+    background: rgba(16, 185, 129, 0.18);
     color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
-.source-pill.lever {
-    background: rgba(168, 85, 247, 0.15);
+.source-pill.lever,
+.badge-lever {
+    background: rgba(168, 85, 247, 0.18);
     color: #c084fc;
-    border: 1px solid rgba(168, 85, 247, 0.3);
+    border: 1px solid rgba(168, 85, 247, 0.35);
 }
 
-.source-pill.ashby {
-    background: rgba(6, 182, 212, 0.15);
+.source-pill.ashby,
+.badge-ashby {
+    background: rgba(6, 182, 212, 0.18);
     color: #22d3ee;
-    border: 1px solid rgba(6, 182, 212, 0.3);
+    border: 1px solid rgba(6, 182, 212, 0.35);
 }
 
-.source-pill.linkedin {
-    background: rgba(59, 130, 246, 0.15);
+.source-pill.workday,
+.badge-workday {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.source-pill.linkedin,
+.badge-linkedin-easy {
+    background: rgba(59, 130, 246, 0.18);
     color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.badge-linkedin-ext {
+    background: rgba(99, 102, 241, 0.18);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.35);
+}
+
+.badge-generic-ats {
+    background: rgba(148, 163, 184, 0.15);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
 .card-meta {
@@ -685,6 +719,46 @@ h1 {
 .btn-warning:hover {
     background: linear-gradient(135deg, #d97706, #b45309);
     box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    border: none;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+}
+
+.btn-mark-applied {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 9px;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: var(--font-heading);
+}
+
+.btn-mark-applied:hover:not(:disabled) {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    border-color: transparent;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.btn-mark-applied:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .btn-discard {
@@ -1097,11 +1171,179 @@ h1 {
     background: rgba(255, 255, 255, 0.1);
 }
 
+/* ==========================================================================
+   Applied Tracking Dashboard & KPI Analytics (Tab 3)
+   ========================================================================== */
+
+.tracking-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    padding: 1.25rem 1.5rem;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+.kpi-icon {
+    font-size: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.75rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kpi-data {
+    display: flex;
+    flex-direction: column;
+}
+
+.kpi-value {
+    font-size: 1.85rem;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    color: var(--text-main);
+    line-height: 1.1;
+}
+
+.kpi-label {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 0.3rem;
+}
+
+.tracking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 1.25rem;
+}
+
+.tracking-card {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    padding: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.tracking-card:hover {
+    border-color: rgba(59, 130, 246, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+}
+
+.tracking-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.tracking-company-title h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-family: var(--font-heading);
+    color: var(--text-main);
+}
+
+.tracking-company-title p {
+    margin: 0.25rem 0 0;
+    font-size: 0.9rem;
+    color: #60a5fa;
+    font-weight: 500;
+}
+
+.tracking-badge-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+}
+
+.status-pill {
+    padding: 3px 9px;
+    border-radius: 99px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.status-pill.applied {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-pill.submitted {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.status-pill.interview {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.tracking-meta {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin: 0.75rem 0;
+}
+
+.tracking-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    margin-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tracking-footer-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 @media (max-width: 900px) {
     .job-split {
         grid-template-columns: 1fr;
     }
     .approved-grid {
+        grid-template-columns: 1fr;
+    }
+    .tracking-grid {
         grid-template-columns: 1fr;
     }
     .header-left {
