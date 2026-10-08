@@ -80,3 +80,7 @@ scratch/
 temp/
 tmp/
 *.tmp
+
+# Career Transition & Sprint Execution Plans
+docs/sprints/
+docs/CAREER_TRANSITION_ROADMAP.MD

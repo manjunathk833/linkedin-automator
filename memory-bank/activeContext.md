@@ -259,6 +259,18 @@
     - Created and executed Verification Gate 64 (`verify/64_test_source_badge_accuracy.py`), passing 100% across normalizer heuristics, API attribution, SQLite migration, and front-end CSS/JS contracts.
     - Regression verified across Gates 61, 62, 63, and 64 (100% pass).
     - Codebase linted cleanly via `python main.py lint` (0 errors across 131 files).
+  - Career Transition Architecture & Sprint 1 Stack Realignment (Gate 65):
+    - Added `docs/sprints/` and `docs/CAREER_TRANSITION_ROADMAP.MD` to `.gitignore`.
+    - Created detailed execution plans: `docs/sprints/sprint_1_plan.md`, `sprint_2_plan.md`, `sprint_3_plan.md`, `sprint_4_plan.md`.
+    - Enhanced Agent Architecture (`vision.md`, `critic_architect.md`, `02-agent-review-protocol.md`) to support modern product stack, tiered dual-funnel routing, and project-boundary governance.
+    - Expanded `data/profile/allowed_tools_whitelist.json`: whitelisted `playwright`, `typescript`, `docker`, `kubernetes`, `k8s`, `kafka`, `wiremock`, `pact` while preserving boundaries against unverified tools (`cypress`, `golang`, etc.).
+    - Added dedicated `## Technical Projects (Independent Architecture)` section in `data/candidate_notes.md` documenting independent test framework achievements without conflating them with Value Labs.
+    - Updated `scripts/regenerate_profile_and_knowledge.py` and `KnowledgeBankTranslator` (`src/tailor/knowledge_translator.py`); regenerated `data/resume_profile.json` and `data/master_knowledge_bank.json` (15 STAR achievements cleanly partitioned).
+    - Built daily Naukri Resdex visibility automation engine `scripts/naukri_pinger.py` using persistent Chrome context (`.browser_data/`).
+    - Created and executed Verification Gate 65 (`verify/65_test_sprint1_stack_and_inbound.py`), passing 100%.
+    - Full regression passing (Gates 63, 64, 65).
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 133 files).
+
 
 
 

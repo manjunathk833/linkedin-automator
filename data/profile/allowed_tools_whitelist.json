@@ -60,17 +60,20 @@
     "gemini",
     "copilot",
     "agentic ai",
-    "ollama"
-  ],
-  "disallowed_hallucinations": [
+    "ollama",
     "playwright",
-    "cypress",
+    "typescript",
     "kubernetes",
     "k8s",
+    "kafka",
+    "wiremock",
+    "pact"
+  ],
+  "disallowed_hallucinations": [
+    "cypress",
     "golang",
     "go",
     "rust",
-    "kafka",
     "terraform",
     "ansible"
   ]
