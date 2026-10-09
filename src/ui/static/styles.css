@@ -608,6 +608,38 @@ h1 {
     border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
+.badge-cluster {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.dream-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.65rem;
+    border-radius: 99px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35));
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.6);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+    animation: dream-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes dream-glow {
+    0% {
+        box-shadow: 0 0 6px rgba(245, 158, 11, 0.2);
+    }
+    100% {
+        box-shadow: 0 0 16px rgba(245, 158, 11, 0.45);
+    }
+}
+
 .card-meta {
     display: flex;
     gap: 1rem;

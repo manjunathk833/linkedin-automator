@@ -17,6 +17,7 @@ from typing import Any
 from src.ingestion.ashby import AshbyCollector
 from src.ingestion.greenhouse import GreenhouseCollector
 from src.ingestion.lever import LeverCollector
+from src.ingestion.workday import WorkdayCollector
 from src.storage.models import JobListing, TargetCompany
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -45,6 +46,7 @@ class ATSDiscoveryCoordinator:
         self.greenhouse = GreenhouseCollector()
         self.lever = LeverCollector()
         self.ashby = AshbyCollector()
+        self.workday = WorkdayCollector()
 
     def load_processed_jobs(self) -> dict[str, Any]:
         """Loads master deduplication index from data/processed_jobs.json."""
@@ -134,14 +136,24 @@ class ATSDiscoveryCoordinator:
         """Fetches jobs for a single target company using its respective ATS collector."""
         async with self.semaphore:
             provider = company.ats_provider.lower()
+            listings: list[JobListing] = []
             if provider == "greenhouse":
-                return await self.greenhouse.fetch_board_jobs(company.name, company.slug)
+                listings = await self.greenhouse.fetch_board_jobs(company.name, company.slug)
             elif provider == "lever":
-                return await self.lever.fetch_board_jobs(company.name, company.slug)
+                listings = await self.lever.fetch_board_jobs(company.name, company.slug)
             elif provider == "ashby":
-                return await self.ashby.fetch_board_jobs(company.name, company.slug)
-            else:
-                return []
+                listings = await self.ashby.fetch_board_jobs(company.name, company.slug)
+            elif provider == "workday":
+                listings = await self.workday.fetch_board_jobs(
+                    company_name=company.name,
+                    slug=company.slug,
+                    site=company.site or company.slug,
+                    datacenter=company.datacenter or "wd3",
+                    is_dream_org=company.is_dream_org,
+                )
+            for item in listings:
+                item.is_dream_org = company.is_dream_org
+            return listings
 
     async def ingest_all_sources(self, filter_sdet: bool = True) -> list[JobListing]:
         """
@@ -186,7 +198,8 @@ class ATSDiscoveryCoordinator:
     def save_listings_to_queue(self, listings: list[JobListing], tailor: bool = True) -> list[str]:
         """
         Deduplicates, optionally tailors, and saves JobListing objects to data/pending_queue/{job_id}.json.
-        Registers newly discovered jobs into the master deduplication ledger (processed_jobs.json).
+        Registers newly discovered jobs into the master deduplication ledger (processed_jobs.json)
+        and tracks them in SQLite with SHA-256 change detection.
         """
         os.makedirs(self.queue_dir, exist_ok=True)
         saved_paths: list[str] = []
@@ -215,6 +228,7 @@ class ATSDiscoveryCoordinator:
                 "job_id": item.id,
                 "source": item.source,
                 "application_type": f"ATS_{item.source.upper()}",
+                "is_dream_org": item.is_dream_org,
                 "job_details": {
                     "title": item.job_title,
                     "company": item.company_name,
@@ -224,6 +238,7 @@ class ATSDiscoveryCoordinator:
                     "requirements": requirements_text,
                     "is_remote": item.is_remote,
                     "salary_range": item.salary_range,
+                    "is_dream_org": item.is_dream_org,
                 },
                 "job_url": item.url,
                 "url": item.url,
@@ -240,6 +255,25 @@ class ATSDiscoveryCoordinator:
                 json.dump(payload, f, indent=2)
 
             self.mark_job_processed(item.id, item.company_name, item.job_title, status="PENDING")
+
+            # Requisition State Engine: Sync to SQLite with SHA-256 change detection
+            try:
+                from src.storage.database import ApplicationDatabase
+
+                db = ApplicationDatabase()
+                db.sync_requisition(
+                    requisition_id=item.id,
+                    company_slug=item.company_name.lower().replace(" ", "_"),
+                    ats_provider=item.source,
+                    job_title=item.job_title,
+                    location=item.location,
+                    job_url=item.url,
+                    description_clean=item.job_description_clean,
+                    is_dream_org=item.is_dream_org,
+                )
+            except Exception:
+                pass
+
             saved_paths.append(filepath)
 
         print(

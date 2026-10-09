@@ -188,6 +188,16 @@ function renderJob(index) {
         sourceEl.className = `section-badge ${badgeInfo.cssClass}`;
     }
 
+    // Dream Org priority badge
+    const dreamBadge = document.getElementById('job-dream-badge');
+    if (dreamBadge) {
+        if (job.is_dream_org) {
+            dreamBadge.classList.remove('hidden');
+        } else {
+            dreamBadge.classList.add('hidden');
+        }
+    }
+
     // Dynamic Location Pill with US / Non-India Warning
     const locInfo = job.location_info || {
         location_text: jd.location || 'Not specified',
@@ -546,6 +556,7 @@ function renderApprovedGrid(jobs) {
         card.id = `approved-card-${job.job_id}`;
 
         const badgeInfo = formatSourceBadge(job.source, job.application_type);
+        const dreamHtml = job.is_dream_org ? '<span class="dream-pill">⭐ Dream Org</span>' : '';
 
         const keywordsHtml = (job.matched_keywords || []).slice(0, 4)
             .map(k => `<span class="keyword-tag">${k}</span>`).join('');
@@ -557,7 +568,10 @@ function renderApprovedGrid(jobs) {
                         <h3>${job.company}</h3>
                         <p>${job.title}</p>
                     </div>
-                    <span class="source-pill ${badgeInfo.cssClass}">${badgeInfo.label}</span>
+                    <div class="badge-cluster">
+                        ${dreamHtml}
+                        <span class="source-pill ${badgeInfo.cssClass}">${badgeInfo.label}</span>
+                    </div>
                 </div>
                 <div class="card-meta">
                     <span>📍 ${job.location || 'Remote'}</span>
@@ -919,6 +933,7 @@ function renderTrackingGrid(apps) {
         const statusDisplay = (app.status || 'Applied').replace(/_/g, ' ').toUpperCase();
         const hasPdf = Boolean(app.resume_path);
         const jobUrl = app.job_url || '#';
+        const dreamHtml = app.is_dream_org ? '<span class="dream-pill">⭐ Dream Org</span>' : '';
 
         card.innerHTML = `
             <div>
@@ -928,6 +943,7 @@ function renderTrackingGrid(apps) {
                         <p>${app.job_title || 'Software Engineer'}</p>
                     </div>
                     <div class="tracking-badge-group">
+                        ${dreamHtml}
                         <span class="source-pill ${badgeInfo.cssClass}">${badgeInfo.label}</span>
                         <span class="status-pill ${statusClass}">${statusDisplay}</span>
                     </div>

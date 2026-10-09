@@ -557,6 +557,16 @@ async def get_pending_jobs():
                     diff_payload["source"] = norm_source
                     diff_payload["application_type"] = norm_app_type
                     diff_payload["source_platform"] = norm_source.upper()
+
+                    # Dream Org priority flag resolution
+                    is_dream = bool(raw_payload.get("is_dream_org") or jd.get("is_dream_org"))
+                    if not is_dream:
+                        comp_name = jd.get("company", "")
+                        if comp_name and db.is_dream_company(comp_name):
+                            is_dream = True
+                    raw_payload["is_dream_org"] = is_dream
+                    diff_payload["is_dream_org"] = is_dream
+
                     diff_payload["standard_resume"] = master_profile
                     diff_payload["standard_pdf_url"] = "/api/pdf/standard"
                     diff_payload["preview_pdf_url"] = f"/api/pdf/preview/{raw_payload.get('job_id')}"
@@ -1063,6 +1073,10 @@ async def get_approved_jobs():
 
                 norm_source, norm_app_type = normalize_job_source_metadata(payload)
 
+                is_dream = bool(payload.get("is_dream_org") or jd.get("is_dream_org"))
+                if not is_dream and jd.get("company"):
+                    is_dream = db.is_dream_company(jd.get("company"))
+
                 approved_jobs.append(
                     {
                         "job_id": job_id,
@@ -1071,6 +1085,7 @@ async def get_approved_jobs():
                         "location": jd.get("location", "Not specified"),
                         "source": norm_source,
                         "application_type": norm_app_type,
+                        "is_dream_org": is_dream,
                         "job_url": payload.get("url") or payload.get("job_url", ""),
                         "matched_keywords": payload.get("matched_keywords", []),
                         "has_pdf": os.path.exists(pdf_path),

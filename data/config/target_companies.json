@@ -4,258 +4,572 @@
     "ats_provider": "greenhouse",
     "slug": "postman",
     "domain": "postman.com",
-    "industry": "Developer Tools"
+    "active": true,
+    "industry": "Developer Tools",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "BrowserStack",
     "ats_provider": "greenhouse",
     "slug": "browserstack",
     "domain": "browserstack.com",
-    "industry": "Testing Infrastructure"
+    "active": true,
+    "industry": "Testing Infrastructure",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Razorpay",
     "ats_provider": "greenhouse",
     "slug": "razorpay",
     "domain": "razorpay.com",
-    "industry": "Fintech"
+    "active": true,
+    "industry": "Fintech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Cloudflare",
     "ats_provider": "greenhouse",
     "slug": "cloudflare",
     "domain": "cloudflare.com",
-    "industry": "Cloud Security"
+    "active": true,
+    "industry": "Cloud Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Databricks",
     "ats_provider": "greenhouse",
     "slug": "databricks",
     "domain": "databricks.com",
-    "industry": "Data & AI"
+    "active": true,
+    "industry": "Data & AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Stripe",
     "ats_provider": "greenhouse",
     "slug": "stripe",
     "domain": "stripe.com",
-    "industry": "Payments"
+    "active": true,
+    "industry": "Payments",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Figma",
     "ats_provider": "greenhouse",
     "slug": "figma",
     "domain": "figma.com",
-    "industry": "Design Tech"
+    "active": true,
+    "industry": "Design Tech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "GitLab",
     "ats_provider": "greenhouse",
     "slug": "gitlab",
     "domain": "gitlab.com",
-    "industry": "DevOps"
+    "active": true,
+    "industry": "DevOps",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Coinbase",
     "ats_provider": "greenhouse",
     "slug": "coinbase",
     "domain": "coinbase.com",
-    "industry": "Crypto / Fintech"
+    "active": true,
+    "industry": "Crypto / Fintech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Thoughtworks",
     "ats_provider": "greenhouse",
     "slug": "thoughtworks",
     "domain": "thoughtworks.com",
-    "industry": "Consulting & QA"
+    "active": true,
+    "industry": "Consulting & QA",
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Instacart",
     "ats_provider": "greenhouse",
     "slug": "instacart",
     "domain": "instacart.com",
-    "industry": "E-Commerce"
+    "active": true,
+    "industry": "E-Commerce",
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Okta",
     "ats_provider": "greenhouse",
     "slug": "okta",
     "domain": "okta.com",
-    "industry": "Identity & Security"
+    "active": true,
+    "industry": "Identity & Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Rubrik",
     "ats_provider": "greenhouse",
     "slug": "rubrik",
     "domain": "rubrik.com",
-    "industry": "Data Security"
+    "active": true,
+    "industry": "Data Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "DoorDash",
     "ats_provider": "greenhouse",
     "slug": "doordash",
     "domain": "doordash.com",
-    "industry": "Delivery / Logistics"
+    "active": true,
+    "industry": "Delivery / Logistics",
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Elastic",
     "ats_provider": "greenhouse",
     "slug": "elastic",
     "domain": "elastic.co",
-    "industry": "Search & Observability"
+    "active": true,
+    "industry": "Search & Observability",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Twilio",
     "ats_provider": "greenhouse",
     "slug": "twilio",
     "domain": "twilio.com",
-    "industry": "Communications API"
+    "active": true,
+    "industry": "Communications API",
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "HashiCorp",
     "ats_provider": "greenhouse",
     "slug": "hashicorp",
     "domain": "hashicorp.com",
-    "industry": "Infrastructure"
+    "active": true,
+    "industry": "Infrastructure",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "MongoDB",
     "ats_provider": "greenhouse",
     "slug": "mongodb",
     "domain": "mongodb.com",
-    "industry": "Database"
+    "active": true,
+    "industry": "Database",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Confluent",
     "ats_provider": "greenhouse",
     "slug": "confluent",
     "domain": "confluent.io",
-    "industry": "Event Streaming"
+    "active": true,
+    "industry": "Event Streaming",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Snowflake",
     "ats_provider": "greenhouse",
     "slug": "snowflake",
     "domain": "snowflake.com",
-    "industry": "Cloud Data Platform"
+    "active": true,
+    "industry": "Cloud Data Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Swiggy",
+    "ats_provider": "greenhouse",
+    "slug": "swiggy",
+    "domain": "swiggy.com",
+    "active": true,
+    "industry": "Consumer Tech / Food Delivery",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Cred",
+    "ats_provider": "greenhouse",
+    "slug": "cred",
+    "domain": "cred.club",
+    "active": true,
+    "industry": "Fintech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "InMobi",
+    "ats_provider": "greenhouse",
+    "slug": "inmobi",
+    "domain": "inmobi.com",
+    "active": true,
+    "industry": "AdTech & Media",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Atlassian",
+    "ats_provider": "greenhouse",
+    "slug": "atlassian",
+    "domain": "atlassian.com",
+    "active": true,
+    "industry": "Productivity & Collaboration",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Palo Alto Networks",
+    "ats_provider": "greenhouse",
+    "slug": "paloaltonetworks",
+    "domain": "paloaltonetworks.com",
+    "active": true,
+    "industry": "Cybersecurity",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Zscaler",
+    "ats_provider": "greenhouse",
+    "slug": "zscaler",
+    "domain": "zscaler.com",
+    "active": true,
+    "industry": "Cloud Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Docker",
     "ats_provider": "lever",
     "slug": "docker",
     "domain": "docker.com",
-    "industry": "Containers & Cloud"
+    "active": true,
+    "industry": "Containers & Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Canva",
     "ats_provider": "lever",
     "slug": "canva",
     "domain": "canva.com",
-    "industry": "Design"
+    "active": true,
+    "industry": "Design",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Plaid",
     "ats_provider": "lever",
     "slug": "plaid",
     "domain": "plaid.com",
-    "industry": "Fintech API"
+    "active": true,
+    "industry": "Fintech API",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Spotify",
     "ats_provider": "lever",
     "slug": "spotify",
     "domain": "spotify.com",
-    "industry": "Audio & Media"
+    "active": true,
+    "industry": "Audio & Media",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Hotstar",
     "ats_provider": "lever",
     "slug": "hotstar",
     "domain": "hotstar.com",
-    "industry": "Streaming Media"
+    "active": true,
+    "industry": "Streaming Media",
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Palantir",
     "ats_provider": "lever",
     "slug": "palantir",
     "domain": "palantir.com",
-    "industry": "Data Analytics"
+    "active": true,
+    "industry": "Data Analytics",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Deliveroo",
     "ats_provider": "lever",
     "slug": "deliveroo",
     "domain": "deliveroo.co.uk",
-    "industry": "Delivery"
+    "active": true,
+    "industry": "Delivery",
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Kite",
     "ats_provider": "lever",
     "slug": "kite",
     "domain": "kite.com",
-    "industry": "AI Developer Tools"
+    "active": true,
+    "industry": "AI Developer Tools",
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Grammarly",
     "ats_provider": "lever",
     "slug": "grammarly",
     "domain": "grammarly.com",
-    "industry": "AI Writing"
+    "active": true,
+    "industry": "AI Writing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Linear",
     "ats_provider": "ashby",
     "slug": "linear",
     "domain": "linear.app",
-    "industry": "Product Management"
+    "active": true,
+    "industry": "Product Management",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Ramp",
     "ats_provider": "ashby",
     "slug": "ramp",
     "domain": "ramp.com",
-    "industry": "Corporate Cards / Fintech"
+    "active": true,
+    "industry": "Corporate Cards / Fintech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Retool",
     "ats_provider": "ashby",
     "slug": "retool",
     "domain": "retool.com",
-    "industry": "Internal Tooling"
+    "active": true,
+    "industry": "Internal Tooling",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Vercel",
     "ats_provider": "ashby",
     "slug": "vercel",
     "domain": "vercel.com",
-    "industry": "Web Deployment"
+    "active": true,
+    "industry": "Web Deployment",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Scale AI",
     "ats_provider": "ashby",
     "slug": "scaleai",
     "domain": "scale.com",
-    "industry": "Data Infrastructure for AI"
+    "active": true,
+    "industry": "Data Infrastructure for AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Airtable",
     "ats_provider": "ashby",
     "slug": "airtable",
     "domain": "airtable.com",
-    "industry": "No-Code Database"
+    "active": true,
+    "industry": "No-Code Database",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Zapier",
     "ats_provider": "ashby",
     "slug": "zapier",
     "domain": "zapier.com",
-    "industry": "Automation Platform"
+    "active": true,
+    "industry": "Automation Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Notion",
     "ats_provider": "ashby",
     "slug": "notion",
     "domain": "notion.so",
-    "industry": "Workspace & Docs"
+    "active": true,
+    "industry": "Workspace & Docs",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Target India",
+    "ats_provider": "workday",
+    "slug": "target",
+    "domain": "target.com",
+    "active": true,
+    "industry": "Retail Tech GCC",
+    "is_dream_org": true,
+    "site": "targetcareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Adobe",
+    "ats_provider": "workday",
+    "slug": "adobe",
+    "domain": "adobe.com",
+    "active": true,
+    "industry": "Digital Media & Enterprise",
+    "is_dream_org": true,
+    "site": "external_experienced",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Nvidia",
+    "ats_provider": "workday",
+    "slug": "nvidia",
+    "domain": "nvidia.com",
+    "active": true,
+    "industry": "AI & Semiconductors",
+    "is_dream_org": true,
+    "site": "NVIDIAExternalCareerSite",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Salesforce",
+    "ats_provider": "workday",
+    "slug": "salesforce",
+    "domain": "salesforce.com",
+    "active": true,
+    "industry": "Cloud CRM & Platform",
+    "is_dream_org": true,
+    "site": "External_Career_Site",
+    "datacenter": "wd12"
+  },
+  {
+    "name": "Autodesk",
+    "ats_provider": "workday",
+    "slug": "autodesk",
+    "domain": "autodesk.com",
+    "active": true,
+    "industry": "3D Design & Engineering",
+    "is_dream_org": true,
+    "site": "Ext",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Walmart Global Tech",
+    "ats_provider": "workday",
+    "slug": "walmart",
+    "domain": "walmart.org",
+    "active": true,
+    "industry": "Retail Tech & Cloud",
+    "is_dream_org": true,
+    "site": "WalmartExternal",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "ServiceNow",
+    "ats_provider": "workday",
+    "slug": "servicenow",
+    "domain": "servicenow.com",
+    "active": true,
+    "industry": "Enterprise Workflow Cloud",
+    "is_dream_org": true,
+    "site": "ServiceNow",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Intuit",
+    "ats_provider": "workday",
+    "slug": "intuit",
+    "domain": "intuit.com",
+    "active": true,
+    "industry": "Fintech & Tax Software",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "CrowdStrike",
+    "ats_provider": "workday",
+    "slug": "crowdstrike",
+    "domain": "crowdstrike.com",
+    "active": true,
+    "industry": "Cybersecurity",
+    "is_dream_org": true,
+    "site": "crowdstrikecareers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Cisco",
+    "ats_provider": "workday",
+    "slug": "cisco",
+    "domain": "cisco.com",
+    "active": true,
+    "industry": "Networking & Security",
+    "is_dream_org": false,
+    "site": "CiscoCareers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Broadcom",
+    "ats_provider": "workday",
+    "slug": "broadcom",
+    "domain": "broadcom.com",
+    "active": true,
+    "industry": "Enterprise Infrastructure",
+    "is_dream_org": false,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Qualcomm",
+    "ats_provider": "workday",
+    "slug": "qualcomm",
+    "domain": "qualcomm.com",
+    "active": true,
+    "industry": "Wireless & Semiconductors",
+    "is_dream_org": false,
+    "site": "External",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "JioStar",
+    "ats_provider": "workday",
+    "slug": "jiostar",
+    "domain": "jiostar.com",
+    "active": true,
+    "industry": "Streaming & Media",
+    "is_dream_org": false,
+    "site": "external",
+    "datacenter": "wd3"
   }
 ]
