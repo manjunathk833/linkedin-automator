@@ -182,13 +182,15 @@ graph TD
 ---
 
 ### Module 7: Multi-Source Keyless ATS Ingestion Engine
-* **Files:** [`src/ingestion/greenhouse.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/greenhouse.py), [`src/ingestion/lever.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/lever.py), [`src/ingestion/ashby.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/ashby.py), [`src/ingestion/ats_discovery.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/ats_discovery.py), [`scripts/seed_companies.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/seed_companies.py), [`scripts/run_ingestion.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/run_ingestion.py)
+* **Files:** [`src/ingestion/greenhouse.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/greenhouse.py), [`src/ingestion/lever.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/lever.py), [`src/ingestion/ashby.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/ashby.py), [`src/ingestion/workday.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/workday.py), [`src/ingestion/filters.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/filters.py), [`src/ingestion/ats_discovery.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/ats_discovery.py), [`scripts/seed_companies.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/seed_companies.py), [`scripts/run_ingestion.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/run_ingestion.py)
 * **Architecture:** Zero-cost, unauthenticated REST ingestion directly querying public ATS endpoints:
   * Greenhouse: `https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true`
   * Lever: `https://api.lever.co/v0/postings/{slug}?mode=json`
   * Ashby: `https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true`
+  * Workday CXS: `POST https://{tenant}.{datacenter}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs` across targeted queries (`["SDET India", "QA India", "Software Engineer in Test India", "Automation India", "SDET"]`)
 * **Features:**
-  * **Enterprise Registry:** 37+ target tech companies in India / Remote maintained in `data/config/target_companies.json`.
+  * **Enterprise Registry:** 56 target tech companies (45 tagged `is_dream_org: true`, 13 configured on Workday) maintained in `data/config/target_companies.json`.
+  * **Centralized Filtering Engine (`src/ingestion/filters.py`):** Unified `is_sdet_title()` enforcing positive qualifications against explicit negative exclusions (Product Managers, Engineering Managers, IT Automation, Search Quality) and `is_india_or_remote_location()` validating Indian tech hubs (Bengaluru, Pune, IND, Hyderabad, Noida, Gurugram) and Global Remote while rejecting foreign-only jurisdictions.
   * **Async Concurrency:** Dispatches parallel non-blocking HTTP requests with semaphore rate-limiting (`asyncio.Semaphore(10)`).
   * **Unified Normalization:** Ingests raw job payloads into structured Pydantic `JobListing` models and formats them for queue inspection.
 

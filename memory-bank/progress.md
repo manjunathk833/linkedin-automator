@@ -11,6 +11,11 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 67: Enhanced Filtering & Workday Multi-Term Ingestion Precision**:
+  - Engineered centralized filtering engine (`src/ingestion/filters.py`) with `is_sdet_title()` enforcing positive qualifications against negative exclusions (`product manager`, `engineering manager`, `it automation`, `search quality`, `database automation`, etc.) and `is_india_or_remote_location()` validating Indian tech hubs (Bengaluru, Pune, IND, Noida, Hyderabad) and Global Remote while rejecting foreign-only locations.
+  - Upgraded `WorkdayCollector` (`src/ingestion/workday.py`) to execute targeted multi-term search queries (`["SDET India", "QA India", "Software Engineer in Test India", "Automation India", "SDET"]`), eliminating US result flooding and discovering authentic Indian enterprise roles (e.g. Software Quality Engineer 5 @ Adobe Noida).
+  - Resolved Greenhouse `NoneType` metadata/location bugs for Figma and Stripe.
+  - Verification Gate 67 (`verify/67_test_sprint2_enhanced_filtering_and_workday.py`) passing 100%. Lint clean with 0 errors across 138 files.
 - **Phase 56b: Workday SPA Hydration Barrier, State Machine & Live Portal Verification**:
   - Implemented `_wait_for_workday_ready()` polling barrier that waits for Workday client framework hydration before triggering actions.
   - Built state machine transitions with post-condition assertions and bounded retries (up to 3x with scrolling).
