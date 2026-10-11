@@ -123,6 +123,7 @@
 
                     <div class="action-bar">
                         <button id="btn-reject" class="btn btn-secondary">Reject & Skip</button>
+                        <button id="btn-referral-staging" class="btn btn-dream hidden" onclick="openReferralModalCurrentJob()" title="Generate targeted LinkedIn connection note & InMail for Tier-1 referral">🤝 Generate Referral Note</button>
                         <button id="btn-manual-staging" class="btn btn-warning" onclick="manualApplyCurrentStagingJob()" title="Launch Headful Chrome with Candidate Cheat Sheet for Manual Apply">🖐️ Manual Apply</button>
                         <button id="btn-mark-applied-staging" class="btn btn-success" onclick="markCurrentJobApplied()" title="Mark this job as submitted and move to tracking">✅ Mark as Applied</button>
                         <button id="btn-approve" class="btn btn-primary">Approve with Tailored Resume</button>
@@ -273,8 +274,106 @@
                 </div>
             </div>
         </div>
+
+        <!-- Referral Reconnaissance Modal -->
+        <div id="referral-modal" class="modal-overlay hidden" onclick="handleReferralModalOverlayClick(event)">
+            <div class="modal-content referral-modal-box glass-panel" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <div class="modal-title-box">
+                        <div class="modal-badge badge-dream-header">⭐ TIER-1 DUAL-FUNNEL RECONNAISSANCE</div>
+                        <h3 id="referral-modal-heading">Targeted Referral Outreach</h3>
+                        <div id="referral-job-subtitle" class="referral-subtitle">Company • Title • Req ID</div>
+                    </div>
+                    <button class="modal-close" onclick="closeReferralModal()" title="Close">✕</button>
+                </div>
+                <div class="modal-body referral-modal-body">
+                    <!-- LinkedIn Persona Fast Search Bar -->
+                    <div class="referral-search-section">
+                        <div class="referral-section-label">🎯 Targeted LinkedIn People Pivots</div>
+                        <div class="referral-links-grid">
+                            <a id="link-search-em" href="#" target="_blank" class="pivot-btn">
+                                👔 Engineering Managers ↗
+                            </a>
+                            <a id="link-search-qa" href="#" target="_blank" class="pivot-btn">
+                                🛡️ QA & SDET Leads ↗
+                            </a>
+                            <a id="link-search-alumni" href="#" target="_blank" class="pivot-btn">
+                                🎓 Alumni Network ↗
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Recipient Customization -->
+                    <div class="recipient-input-row">
+                        <label for="referral-recipient-input">Recipient's First Name (optional):</label>
+                        <input type="text" id="referral-recipient-input" placeholder="e.g. Alex, Priya..." oninput="updateReferralRecipient(this.value)">
+                    </div>
+
+                    <!-- Note Switcher Tabs -->
+                    <div class="referral-format-tabs">
+                        <button id="tab-format-conn" class="format-tab active" onclick="switchReferralFormat('connection')">
+                            💬 Connection Request (<span id="conn-char-count">0/300</span>)
+                        </button>
+                        <button id="tab-format-inmail" class="format-tab" onclick="switchReferralFormat('inmail')">
+                            ✉️ InMail / Message (<span id="inmail-char-count">0/1000</span>)
+                        </button>
+                    </div>
+
+                    <!-- Note Content Box -->
+                    <div class="referral-note-container">
+                        <textarea id="referral-note-text" class="referral-textarea" readonly rows="8"></textarea>
+                        <div class="char-limit-indicator" id="char-limit-indicator">
+                            Strict character limits enforced for LinkedIn delivery
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="referral-footer-status" id="referral-log-status">
+                        Status: Ready to copy
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" onclick="copyReferralNote()">
+                            📋 Copy to Clipboard
+                        </button>
+                        <button class="btn btn-success" onclick="logReferralOutreachToDb()">
+                            💾 Mark as Sent & Track
+                        </button>
+                        <button class="btn btn-secondary-sm" onclick="closeReferralModal()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dream Org Cold-Apply Advisory Modal -->
+        <div id="dream-advisory-modal" class="modal-overlay hidden" onclick="handleDreamAdvisoryOverlayClick(event)">
+            <div class="modal-content dream-advisory-box glass-panel" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <div class="modal-title-box">
+                        <div class="modal-badge badge-warning-header">⭐ TIER-1 DREAM ORGANIZATION DETECTED</div>
+                        <h3>High-ROI Referral Advisory</h3>
+                    </div>
+                    <button class="modal-close" onclick="closeDreamAdvisoryModal()">✕</button>
+                </div>
+                <div class="modal-body dream-advisory-body">
+                    <p class="advisory-highlight">
+                        <strong>Cold applying has a &lt;3% callback rate</strong> at top-tier product firms due to overwhelming applicant volume.
+                    </p>
+                    <p class="advisory-text">
+                        Reaching out to an Engineering Manager or peer engineer with a proof-of-work note citing the exact <strong>Requisition ID</strong> yields a <strong>35–40% interview conversion rate</strong>.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-dream" onclick="proceedToReferralFromAdvisory()">
+                        🤝 Generate Referral Note (Recommended)
+                    </button>
+                    <button class="btn btn-secondary" onclick="confirmColdApplyOverride()">
+                        ⚠️ Proceed with Cold Apply Anyway
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
     
-    <script src="/static/app.js?v=2.5"></script>
+    <script src="/static/app.js?v=2.6"></script>
 </body>
 </html>

@@ -11,6 +11,14 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 68: Sprint 3 Tiered Dual-Funnel Routing & 1-Click Referral Reconnaissance**:
+  - Implemented bifurcated Dual-Funnel routing separating high-velocity startup applications (Funnel 1) from Tier-1 Dream Organizations (Funnel 2).
+  - Built `ReferralNoteGenerator` (`src/tailor/referral_generator.py`) generating LinkedIn connection notes strictly $\le 300$ chars and InMail pitches strictly $\le 1000$ chars citing exact Requisition IDs (e.g. `R170647`, `8045905`), candidate architecture highlights (Playwright, TypeScript, Kafka event stream validation, Pact contract testing), and candidate portfolio (`https://manjunathhk.netlify.app/`).
+  - Added pre-scoped LinkedIn search links for target company Engineering Managers, QA Leads, and Alumni.
+  - Added `referral_outreach` table to SQLite (`src/storage/database.py`) with full lifecycle state transitions (`GENERATED` $\rightarrow$ `SENT` $\rightarrow$ `CONNECTED` $\rightarrow$ `REFERRED`).
+  - Added FastAPI endpoints (`/api/referral/generate/{job_id}`, `/api/referral/log`, `/api/referral/list`, `/api/referral/update-status`).
+  - Integrated amber/gold action buttons (`🤝 Generate Referral Note`), Glassmorphic Referral Modal with 1-click clipboard copy, and Cold-Apply Advisory Modal into Command Center UI.
+  - Created and executed Verification Gate 68 (`verify/68_test_sprint3_dual_funnel_and_referral_generator.py`): 100% passed across character boundaries, Requisition ID citation, STAR grounding, SQLite logging, and API endpoints. Lint clean: 0 errors across 140 files.
 - **Phase 67: Enhanced Filtering & Workday Multi-Term Ingestion Precision**:
   - Engineered centralized filtering engine (`src/ingestion/filters.py`) with `is_sdet_title()` enforcing positive qualifications against negative exclusions (`product manager`, `engineering manager`, `it automation`, `search quality`, `database automation`, etc.) and `is_india_or_remote_location()` validating Indian tech hubs (Bengaluru, Pune, IND, Noida, Hyderabad) and Global Remote while rejecting foreign-only locations.
   - Upgraded `WorkdayCollector` (`src/ingestion/workday.py`) to execute targeted multi-term search queries (`["SDET India", "QA India", "Software Engineer in Test India", "Automation India", "SDET"]`), eliminating US result flooding and discovering authentic Indian enterprise roles (e.g. Software Quality Engineer 5 @ Adobe Noida).

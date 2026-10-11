@@ -198,6 +198,16 @@ function renderJob(index) {
         }
     }
 
+    // Staging Referral Button for Dream Orgs
+    const referralStagingBtn = document.getElementById('btn-referral-staging');
+    if (referralStagingBtn) {
+        if (job.is_dream_org) {
+            referralStagingBtn.classList.remove('hidden');
+        } else {
+            referralStagingBtn.classList.add('hidden');
+        }
+    }
+
     // Dynamic Location Pill with US / Non-India Warning
     const locInfo = job.location_info || {
         location_text: jd.location || 'Not specified',
@@ -561,6 +571,10 @@ function renderApprovedGrid(jobs) {
         const keywordsHtml = (job.matched_keywords || []).slice(0, 4)
             .map(k => `<span class="keyword-tag">${k}</span>`).join('');
 
+        const referralBtnHtml = job.is_dream_org
+            ? `<button class="btn-referral" onclick="openReferralModal('${job.job_id}')" title="Generate targeted LinkedIn referral note for Engineering Manager">🤝 Referral Note</button>`
+            : '';
+
         card.innerHTML = `
             <div>
                 <div class="card-top">
@@ -586,6 +600,7 @@ function renderApprovedGrid(jobs) {
                     <a href="/api/pdf/${job.job_id}" target="_blank" class="btn-pdf">
                         📄 View PDF
                     </a>
+                    ${referralBtnHtml}
                     <button class="btn-copilot" onclick="autofillApprovedJob('${job.job_id}', this)">
                         🚀 Launch Copilot
                     </button>
@@ -623,6 +638,15 @@ function filterApprovedJobs() {
 }
 
 async function autofillApprovedJob(jobId, btnElement) {
+    const job = approvedJobs.find(j => j.job_id === jobId);
+    if (job && job.is_dream_org) {
+        showDreamAdvisoryModal(jobId, () => executeAutofillApprovedJob(jobId, btnElement));
+        return;
+    }
+    await executeAutofillApprovedJob(jobId, btnElement);
+}
+
+async function executeAutofillApprovedJob(jobId, btnElement) {
     const origText = btnElement.innerText;
     btnElement.innerText = '⏳ Launching...';
     btnElement.disabled = true;
@@ -1015,5 +1039,233 @@ async function deleteTrackedApplication(jobId, btnElement) {
         }
     } catch (e) {
         console.error('Error deleting tracked application:', e);
+    }
+}
+
+// --- SPRINT 3: Referral Reconnaissance & Dual-Funnel Routing ---
+let currentReferralPack = null;
+let currentReferralFormat = 'connection';
+let currentReferralJobId = null;
+let pendingColdApplyCallback = null;
+
+function openReferralModalCurrentJob() {
+    const job = currentJobs[currentJobIndex];
+    if (!job) return;
+    openReferralModal(job.job_id);
+}
+
+async function openReferralModal(jobId) {
+    currentReferralJobId = jobId;
+    currentReferralFormat = 'connection';
+    const modal = document.getElementById('referral-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    const statusEl = document.getElementById('referral-log-status');
+    const textarea = document.getElementById('referral-note-text');
+    const recipientInput = document.getElementById('referral-recipient-input');
+
+    if (recipientInput) recipientInput.value = '';
+    if (statusEl) statusEl.innerText = 'Fetching live reconnaissance pack...';
+    if (textarea) textarea.value = 'Generating tailored referral note...';
+
+    await fetchAndRenderReferralPack(jobId, 'there');
+}
+
+async function fetchAndRenderReferralPack(jobId, recipientName) {
+    try {
+        const response = await fetch(`/api/referral/generate/${jobId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recipient_name: recipientName })
+        });
+        const data = await response.json();
+        if (response.ok && data.referral_pack) {
+            currentReferralPack = data.referral_pack;
+            renderReferralModalData();
+        } else {
+            alert(`Referral Error: ${data.detail || 'Could not generate pack'}`);
+            closeReferralModal();
+        }
+    } catch (e) {
+        console.error('Error fetching referral pack:', e);
+        alert('Network error generating referral pack.');
+    }
+}
+
+function renderReferralModalData() {
+    if (!currentReferralPack) return;
+    const p = currentReferralPack;
+
+    const heading = document.getElementById('referral-modal-heading');
+    if (heading) heading.innerText = `Referral Pitch: ${p.company_name}`;
+
+    const subtitle = document.getElementById('referral-job-subtitle');
+    if (subtitle) subtitle.innerText = `${p.company_name} • ${p.job_title} (Req ID: ${p.requisition_id || 'N/A'})`;
+
+    // Populate search links
+    const urls = p.search_urls || {};
+    const linkEm = document.getElementById('link-search-em');
+    if (linkEm && urls.engineering_managers) linkEm.href = urls.engineering_managers;
+
+    const linkQa = document.getElementById('link-search-qa');
+    if (linkQa && urls.qa_leads) linkQa.href = urls.qa_leads;
+
+    const linkAlumni = document.getElementById('link-search-alumni');
+    if (linkAlumni && urls.alumni) linkAlumni.href = urls.alumni;
+
+    // Populate character count badges
+    const connCount = document.getElementById('conn-char-count');
+    if (connCount) connCount.innerText = `${p.connection_note_chars}/300`;
+
+    const inmailCount = document.getElementById('inmail-char-count');
+    if (inmailCount) inmailCount.innerText = `${p.inmail_pitch_chars}/1000`;
+
+    updateActiveReferralNoteText();
+    const statusEl = document.getElementById('referral-log-status');
+    if (statusEl) statusEl.innerText = 'Ready to copy and connect';
+}
+
+function switchReferralFormat(format) {
+    currentReferralFormat = format;
+    const tabConn = document.getElementById('tab-format-conn');
+    const tabInmail = document.getElementById('tab-format-inmail');
+
+    if (format === 'connection') {
+        if (tabConn) tabConn.classList.add('active');
+        if (tabInmail) tabInmail.classList.remove('active');
+    } else {
+        if (tabConn) tabConn.classList.remove('active');
+        if (tabInmail) tabInmail.classList.add('active');
+    }
+    updateActiveReferralNoteText();
+}
+
+function updateActiveReferralNoteText() {
+    if (!currentReferralPack) return;
+    const textarea = document.getElementById('referral-note-text');
+    const charIndicator = document.getElementById('char-limit-indicator');
+    if (!textarea) return;
+
+    if (currentReferralFormat === 'connection') {
+        textarea.value = currentReferralPack.connection_note;
+        if (charIndicator) {
+            charIndicator.innerText = `LinkedIn Connection Note: ${currentReferralPack.connection_note_chars} / 300 characters`;
+            charIndicator.style.color = currentReferralPack.connection_note_chars <= 300 ? '#34d399' : '#f87171';
+        }
+    } else {
+        textarea.value = currentReferralPack.inmail_pitch;
+        if (charIndicator) {
+            charIndicator.innerText = `LinkedIn InMail Message: ${currentReferralPack.inmail_pitch_chars} / 1000 characters`;
+            charIndicator.style.color = currentReferralPack.inmail_pitch_chars <= 1000 ? '#34d399' : '#f87171';
+        }
+    }
+}
+
+let recipientDebounceTimer = null;
+function updateReferralRecipient(val) {
+    clearTimeout(recipientDebounceTimer);
+    recipientDebounceTimer = setTimeout(() => {
+        if (currentReferralJobId) {
+            fetchAndRenderReferralPack(currentReferralJobId, val || 'there');
+        }
+    }, 350);
+}
+
+function copyReferralNote() {
+    const textarea = document.getElementById('referral-note-text');
+    if (!textarea || !textarea.value) return;
+    navigator.clipboard.writeText(textarea.value).then(() => {
+        showToast('Referral note copied to clipboard!');
+        const statusEl = document.getElementById('referral-log-status');
+        if (statusEl) statusEl.innerText = 'Copied to clipboard ✓';
+    }).catch(err => {
+        console.error('Clipboard copy failed:', err);
+        textarea.select();
+        document.execCommand('copy');
+        showToast('Copied to clipboard!');
+    });
+}
+
+async function logReferralOutreachToDb() {
+    if (!currentReferralPack || !currentReferralJobId) return;
+    const recipientInput = document.getElementById('referral-recipient-input');
+    const contactName = recipientInput ? recipientInput.value.trim() : '';
+
+    const payload = {
+        job_id: currentReferralJobId,
+        company_name: currentReferralPack.company_name,
+        job_title: currentReferralPack.job_title,
+        requisition_id: currentReferralPack.requisition_id,
+        outreach_type: currentReferralFormat === 'connection' ? 'connection_note' : 'inmail',
+        note_content: document.getElementById('referral-note-text').value,
+        contact_name: contactName || null,
+        status: 'SENT'
+    };
+
+    try {
+        const response = await fetch('/api/referral/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+            showToast('Outreach logged to SQLite tracking ledger ✓');
+            const statusEl = document.getElementById('referral-log-status');
+            if (statusEl) statusEl.innerText = 'Logged as SENT in SQLite ✓';
+        } else {
+            showToast('Failed to log outreach to database', 'reject');
+        }
+    } catch (e) {
+        console.error('Error logging referral outreach:', e);
+    }
+}
+
+function closeReferralModal() {
+    const modal = document.getElementById('referral-modal');
+    if (modal) modal.classList.add('hidden');
+    currentReferralPack = null;
+    currentReferralJobId = null;
+}
+
+function handleReferralModalOverlayClick(e) {
+    if (e.target.id === 'referral-modal') {
+        closeReferralModal();
+    }
+}
+
+// --- Dream Org Advisory Modal ---
+function showDreamAdvisoryModal(jobId, onOverride) {
+    pendingColdApplyCallback = onOverride;
+    currentReferralJobId = jobId;
+    const modal = document.getElementById('dream-advisory-modal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeDreamAdvisoryModal() {
+    const modal = document.getElementById('dream-advisory-modal');
+    if (modal) modal.classList.add('hidden');
+    pendingColdApplyCallback = null;
+}
+
+function handleDreamAdvisoryOverlayClick(e) {
+    if (e.target.id === 'dream-advisory-modal') {
+        closeDreamAdvisoryModal();
+    }
+}
+
+function proceedToReferralFromAdvisory() {
+    const jId = currentReferralJobId;
+    closeDreamAdvisoryModal();
+    if (jId) {
+        openReferralModal(jId);
+    }
+}
+
+function confirmColdApplyOverride() {
+    const cb = pendingColdApplyCallback;
+    closeDreamAdvisoryModal();
+    if (cb && typeof cb === 'function') {
+        cb();
     }
 }

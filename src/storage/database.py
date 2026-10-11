@@ -75,6 +75,26 @@ class ApplicationDatabase:
                 CREATE INDEX IF NOT EXISTS idx_tracked_req_company ON tracked_requisitions(company_slug);
                 CREATE INDEX IF NOT EXISTS idx_tracked_req_dream ON tracked_requisitions(is_dream_org);
                 CREATE INDEX IF NOT EXISTS idx_tracked_req_status ON tracked_requisitions(status);
+
+                CREATE TABLE IF NOT EXISTS referral_outreach (
+                    outreach_id TEXT PRIMARY KEY,
+                    job_id TEXT NOT NULL,
+                    company_name TEXT NOT NULL,
+                    job_title TEXT NOT NULL,
+                    requisition_id TEXT,
+                    contact_name TEXT,
+                    contact_title TEXT,
+                    contact_linkedin_url TEXT,
+                    outreach_type TEXT NOT NULL,
+                    note_content TEXT NOT NULL,
+                    status TEXT DEFAULT 'GENERATED',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_referral_outreach_job ON referral_outreach(job_id);
+                CREATE INDEX IF NOT EXISTS idx_referral_outreach_company ON referral_outreach(company_name);
+                CREATE INDEX IF NOT EXISTS idx_referral_outreach_status ON referral_outreach(status);
                 """
             )
 
@@ -435,3 +455,114 @@ class ApplicationDatabase:
             except Exception:
                 pass
         return False
+
+    def log_referral_outreach(
+        self,
+        job_id: str,
+        company_name: str,
+        job_title: str,
+        outreach_type: str,
+        note_content: str,
+        requisition_id: str | None = None,
+        contact_name: str | None = None,
+        contact_title: str | None = None,
+        contact_linkedin_url: str | None = None,
+        status: str = "GENERATED",
+    ) -> str:
+        """Logs a generated referral connection note or InMail into SQLite."""
+        outreach_id = (
+            f"ref_{job_id}_{hashlib.md5(f'{outreach_type}:{datetime.datetime.utcnow()}'.encode()).hexdigest()[:8]}"
+        )
+        now = datetime.datetime.utcnow().isoformat() + "Z"
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO referral_outreach (
+                    outreach_id, job_id, company_name, job_title, requisition_id,
+                    contact_name, contact_title, contact_linkedin_url, outreach_type,
+                    note_content, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    outreach_id,
+                    job_id,
+                    company_name,
+                    job_title,
+                    requisition_id,
+                    contact_name,
+                    contact_title,
+                    contact_linkedin_url,
+                    outreach_type,
+                    note_content,
+                    status,
+                    now,
+                    now,
+                ),
+            )
+            conn.commit()
+        return outreach_id
+
+    def get_referral_outreach(
+        self,
+        outreach_id: str | None = None,
+        job_id: str | None = None,
+        status: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Retrieves logged referral outreach records with optional filtering."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            query = "SELECT * FROM referral_outreach"
+            conditions = []
+            params: list[Any] = []
+
+            if outreach_id:
+                conditions.append("outreach_id = ?")
+                params.append(outreach_id)
+            if job_id:
+                conditions.append("job_id = ?")
+                params.append(job_id)
+            if status:
+                conditions.append("status = ?")
+                params.append(status)
+
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+
+            query += " ORDER BY created_at DESC LIMIT ?"
+            params.append(limit)
+
+            cursor.execute(query, tuple(params))
+            return [dict(r) for r in cursor.fetchall()]
+
+    def update_referral_status(
+        self,
+        outreach_id: str,
+        status: str,
+        contact_name: str | None = None,
+        contact_title: str | None = None,
+        contact_linkedin_url: str | None = None,
+    ) -> bool:
+        """Updates the status and optional contact metadata of an existing referral outreach."""
+        now = datetime.datetime.utcnow().isoformat() + "Z"
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            updates = ["status = ?", "updated_at = ?"]
+            params: list[Any] = [status, now]
+
+            if contact_name is not None:
+                updates.append("contact_name = ?")
+                params.append(contact_name)
+            if contact_title is not None:
+                updates.append("contact_title = ?")
+                params.append(contact_title)
+            if contact_linkedin_url is not None:
+                updates.append("contact_linkedin_url = ?")
+                params.append(contact_linkedin_url)
+
+            params.append(outreach_id)
+            query = f"UPDATE referral_outreach SET {', '.join(updates)} WHERE outreach_id = ?"
+            cursor.execute(query, tuple(params))
+            conn.commit()
+            return cursor.rowcount > 0

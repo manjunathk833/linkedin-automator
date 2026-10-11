@@ -227,6 +227,18 @@ graph TD
 
 ---
 
+### Module 11: Referral Reconnaissance & Tiered Dual-Funnel Architecture
+* **Files:** [`src/tailor/referral_generator.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/referral_generator.py), [`src/storage/database.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/storage/database.py), [`src/ui/app.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/app.py), [`src/ui/templates/index.html`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/templates/index.html), [`src/ui/static/app.js`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/static/app.js)
+* **Architecture:** Bifurcated routing separating growth startups (Funnel 1) from Tier-1 Dream Organizations (Funnel 2):
+  * **Dual-Funnel Routing Gate:** Detects `is_dream_org` across Staging and Ready-to-Apply views. Displays high-contrast amber/gold referral action buttons (`🤝 Generate Referral Note`) and intercepts cold autofill executions with an advisory modal emphasizing the 35–40% conversion rate of referrals vs <3% for cold ATS applications.
+  * **Referral Reconnaissance Engine (`ReferralNoteGenerator`):**
+    * Generates LinkedIn Connection Request Notes strictly capped at **$\le 300$ characters**, citing exact Requisition IDs (e.g. `R170647`, `8045905`), candidate core competencies (Playwright, TypeScript, API contract testing), and portfolio link (`manjunathhk.netlify.app`).
+    * Generates comprehensive InMail pitches strictly capped at **$\le 1,000$ characters**, detailing distributed architecture achievements (Playwright microservices, Kafka event streams, Pact contract testing) with low-friction referral asks.
+    * Generates pre-scoped LinkedIn People search URLs for Engineering Managers, QA Leads, and Alumni at the target enterprise.
+  * **SQLite Referral Outreach Ledger (`referral_outreach`):** Persists outreach records (id, job_id, company, title, requisition_id, contact, note_content, status, timestamps) with lifecycle transitions (`GENERATED` $\rightarrow$ `SENT` $\rightarrow$ `CONNECTED` $\rightarrow$ `REFERRED`).
+
+---
+
 ## 4. Data Architecture & Storage Schema
 
 ```
