@@ -11,7 +11,7 @@
 - Sprints 1–5 complete and verified across all modules (kinematics, CDP stealth, ATS ingestion, grounded tailoring, Typst compiler, assisted copilot, SQLite repository, rate governor).
 - Data reset completed: Runtime queues (`approved_queue/`, `resumes/`) and deduplication caches wiped; 30 fresh ATS jobs seeded into `pending_queue/` across target tech enterprises with upfront location warnings and rich metadata.
 - Resume profile & Master Knowledge Bank regenerated:
-  - `singlepageresume.json` sanitized: Playwright replaced with Selenium.
+  - `Manjunathhkstandardresume.json` established as canonical standard resume reference.
   - `data/resume_profile.json` regenerated: 100% compliant with Pydantic `ResumeProfile`.
   - `data/master_knowledge_bank.json` regenerated: 11 STAR achievements strictly grounded in candidate experience and notes, zero hallucinations.
   - Verification Gate 33 (`verify/33_test_resume_and_knowledge_regeneration.py`) and schema verification (`verify/02_test_resume_store.py`, `verify/06_audit_resume_accuracy.py`) passing 100%.
@@ -73,7 +73,7 @@
     - Average LLM request duration dropped to **1.77 seconds** with 0 rate limit pressure.
     - All 42 jobs loaded and ready on the local Command Center UI (`http://localhost:8000`).
   - Company Boundary Isolation & Cross-Company Contamination Defense (Gates 51 & 52):
-    - Audited `data/master_knowledge_bank.json` and `data/resume_profile.json`; confirmed pristine alignment with `singlepageresume.json`.
+    - Audited `data/master_knowledge_bank.json` and `data/resume_profile.json`; confirmed pristine alignment with `Manjunathhkstandardresume.json`.
     - Structured `data/candidate_notes.md` with explicit organization sections (`## Value Labs`, `## Dunzo`, `## Tata Elxsi`).
     - Implemented `COMPANY_EXCLUSIVE_MARKERS`, `check_company_contamination()`, and `validate_company_bullets()` in `src/tailor/fabrication_detector.py`.
     - Implemented `COMPANY_SCOPED_STAR_PROMPT` and `generate_company_tailored_bullets()` in `src/tailor/llm_provider.py`.

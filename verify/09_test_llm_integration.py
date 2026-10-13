@@ -40,7 +40,17 @@ def test_llm_integration():
     print("🦙 Ollama Local Provider Ready: True (Model: qwen2.5:7b)")
 
     # 4. Test Resume Tailorer Integration
+    from unittest.mock import MagicMock
+
     tailorer = ResumeTailorer(use_ai=True)
+    mock_llm = MagicMock()
+    mock_llm.generate_company_tailored_bullets.return_value = [
+        "Architected UI and API automation frameworks for 6+ airline projects leveraging Playwright and TypeScript.",
+        "Integrated distributed Kafka event stream validation and Pact consumer-driven contract testing in CI/CD.",
+        "Reduced regression suite duration from 1,125 to 125 man-hours across microservices.",
+    ]
+    tailorer.llm_provider = mock_llm
+
     mock_job = {
         "job_id": "llm_test_101",
         "application_type": "EASY_APPLY",

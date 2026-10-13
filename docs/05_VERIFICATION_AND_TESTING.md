@@ -13,7 +13,7 @@ Per project design rules, every browser interaction, DOM selector, LLM translati
 | `verify/03_test_approval_gate.py` | Dashboard Backend | Validates FastAPI state transitions, queue reading, and approval persistence | **PASSED** |
 | `verify/04_test_playwright_cdp.sh` | Chrome CDP | Tests remote debugging port 9222 connection and session navigation | **PASSED** |
 | `verify/05_test_pdf_engine.py` | PDF Engine | Generates sample ATS PDF from candidate profile using Playwright | **PASSED** |
-| `verify/06_audit_resume_accuracy.py` | Data Integrity | Audits exact text match between `singlepageresume.json` and `resume_profile.json` | **PASSED** |
+| `verify/06_audit_resume_accuracy.py` | Data Integrity | Audits exact text match between `Manjunathhkstandardresume.json` and `resume_profile.json` | **PASSED** |
 | `verify/07_test_easy_apply_flow.py` | Easy Apply Automation | Tests multi-step form traversal, text inputs, radio groups, and dry-run safety | **PASSED** |
 | `verify/08_test_job_finder_and_tailorer.py` | Discovery & Tailor | Tests search query construction, job card extraction, and initial keyword tailoring | **PASSED** |
 | `verify/09_test_llm_integration.py` | LLM Integration | Tests `HybridLLMProvider` initialization, structured Pydantic schemas, and Gemini/Ollama routing | **PASSED** |

@@ -97,7 +97,7 @@
   - Introduced `COMPANY_SCOPED_STAR_PROMPT` and `generate_company_tailored_bullets()` in `src/tailor/llm_provider.py` ensuring the LLM is only supplied achievements from that specific employer.
   - Partitioned `master_vault` by employer in `src/tailor/resume_tailorer.py` and validated every tailored achievement list with `validate_company_bullets()`.
   - Structured `data/candidate_notes.md` with explicit organization sections (`## Value Labs`, `## Dunzo`, `## Tata Elxsi`).
-  - Audited `data/master_knowledge_bank.json` and `data/resume_profile.json` against `singlepageresume.json` to verify base profile integrity.
+  - Audited `data/master_knowledge_bank.json` and `data/resume_profile.json` against `Manjunathhkstandardresume.json` to verify base profile integrity.
   - Purged all contaminated queues (`approved_queue/`, `pending_queue/`, `processed_jobs.json`).
   - Executed Verification Gate 51 (`verify/51_test_company_boundary_isolation.py`): 100% passed with zero contamination across synthetic and Media.net scenarios.
   - Reseeded 25 fresh jobs via `python main.py search` with 100% AI Grounded STAR tailoring.
@@ -248,7 +248,7 @@
   - Implemented `src/automation/easy_apply.py` with CDP attachment, role-based locators, humanized typing (`_human_type`), step pauses (`_human_delay`), PDF file attachment, and dry-run safety lock.
   - Verified multi-step form traversal, text input population, radio group selection, PDF resume uploading, and non-submitting dry run halt via `verify/07_test_easy_apply_flow.py`.
 - **Phase 2d: Resume Accuracy Audit**:
-  - Script `verify/06_audit_resume_accuracy.py` confirmed 100% exact text match between `singlepageresume.json` and `data/resume_profile.json`.
+  - Script `verify/06_audit_resume_accuracy.py` confirmed 100% exact text match between `Manjunathhkstandardresume.json` and `data/resume_profile.json`.
 - **Phase 2c: PDF Generation Engine (Playwright Headless)**:
   - Built a local Python PDF engine (`src/pdf_engine/`) using Jinja2 and Playwright to avoid macOS C-library issues with WeasyPrint.
   - Successfully mapped the exhaustive `ResumeProfile` JSON schema to a clean, single-column ATS-friendly HTML template (`resume.html.j2`).

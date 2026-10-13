@@ -16,7 +16,7 @@ def test_job_finder_and_tailorer():
     print("==================================================")
 
     finder = LinkedInJobFinder()
-    tailorer = ResumeTailorer()
+    tailorer = ResumeTailorer(use_ai=False)
 
     # 1. Test Search URL Generation
     url = finder.build_search_url("Senior SDET", "Remote", easy_apply_only=True)

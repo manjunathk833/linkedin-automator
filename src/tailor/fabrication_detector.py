@@ -123,7 +123,7 @@ class FabricationDetector:
         bullet_lower = bullet.lower()
         violating_companies = []
         for other_comp, markers in self.COMPANY_EXCLUSIVE_MARKERS.items():
-            if other_comp.lower() not in company.lower():
+            if other_comp.lower().replace(" ", "") != company.lower().replace(" ", ""):
                 for marker in markers:
                     pattern = rf"\b{re.escape(marker)}\b"
                     if re.search(pattern, bullet_lower):
