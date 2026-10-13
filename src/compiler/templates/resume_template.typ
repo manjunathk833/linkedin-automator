@@ -21,13 +21,13 @@
 #SUMMARY_TEXT
 
 #v(6pt)
+// Technical Skills
+#text(size: 11pt, weight: "bold", fill: rgb("#0f172a"))[CORE TECHNICAL SKILLS]
+#v(2pt)
+#SKILLS_BLOCK
+
+#v(6pt)
 // Experience
 #text(size: 11pt, weight: "bold", fill: rgb("#0f172a"))[EXPERIENCE]
 #v(2pt)
 #EXPERIENCE_BLOCKS
-
-#v(6pt)
-// Education & Skills
-#text(size: 11pt, weight: "bold", fill: rgb("#0f172a"))[CORE TECHNICAL SKILLS]
-#v(2pt)
-#SKILLS_BLOCK

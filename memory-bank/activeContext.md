@@ -291,8 +291,13 @@
       * Adjusted rate pacer tolerance to 3.8s in `verify/50` and moved it to Tier 3 Live.
     - Added CLI command `python main.py test [--tier core|autofill|all] [--live]`.
     - Added Rule 8 to `.agents/rules/00-core-instructions.md` and updated Critic Architect lens in `.agents/rules/02-agent-review-protocol.md`.
-    - Executed `python main.py test --tier core`: **48/48 PASSED (100% SUCCESS)** in 43.19s.
+    - Executed `python main.py test --tier core`: **48/48 PASSED (100% SUCCESS)**.
     - Executed `python main.py lint`: **0 errors across 148 files**.
+  - Senior SDET Resume Section Ordering & PDF Engine Optimization:
+    - Reordered resume sections in `src/pdf_engine/templates/resume.html.j2` and `src/compiler/templates/resume_template.typ` to match industry 7+ YOE recruiter scanning standards and `Manjunathhkstandardresume.json`: `Professional Summary` -> `Core Technical Skills` (top-fold) -> `Experience` -> `Projects` -> `Certifications & Awards` -> `Education` (bottom).
+    - Updated `verify/05_test_pdf_generation.py` with programmatic sequential index assertions.
+    - Tier 1 core regression suite (`python main.py test --tier core`): **48/48 PASSED (100% SUCCESS)** in 41.80s.
+    - `python main.py lint`: **0 errors across 148 files**.
 
 
 

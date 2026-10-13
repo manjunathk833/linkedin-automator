@@ -26,6 +26,22 @@
     <p class="summary-text">{{ profile.personal_details.summary }}</p>
     {% endif %}
 
+    {% if profile.skills_matrix %}
+    <div class="section-title">Core Technical Skills</div>
+    <div class="skills-container">
+        {% for category, skills_list in profile.skills_matrix.items() %}
+        {% if skills_list is iterable and skills_list is not string and skills_list is not mapping %}
+        <div style="margin-bottom: 3pt; font-size: 9.5pt;">
+            <strong>{{ category }}:</strong> {{ skills_list | join(', ') }}
+        </div>
+        {% else %}
+        <span class="skill-item">{{ category }}</span>
+        {% if not loop.last %}<span class="skill-separator">•</span>{% endif %}
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
     {% if profile.experience_history %}
     <div class="section-title">Experience</div>
     {% for exp in profile.experience_history %}
@@ -75,6 +91,18 @@
     {% endfor %}
     {% endif %}
 
+    {% if profile.certifications or profile.awards %}
+    <div class="section-title">Certifications & Awards</div>
+    <ul>
+        {% for cert in profile.certifications %}
+        <li><strong>{{ cert.name }}</strong> ({{ cert.issuer }}){% if cert.issue_date %} - {{ cert.issue_date.strftime('%Y') }}{% endif %}</li>
+        {% endfor %}
+        {% for award in profile.awards %}
+        <li><strong>{{ award.title }}</strong> by {{ award.awarder }}{% if award.award_date %} - {{ award.award_date.strftime('%Y') }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
     {% if profile.education %}
     <div class="section-title">Education</div>
     {% for edu in profile.education %}
@@ -92,34 +120,6 @@
         {% if edu.gpa %}<div style="font-size: 9pt;">{{ edu.gpa }}</div>{% endif %}
     </div>
     {% endfor %}
-    {% endif %}
-
-    {% if profile.skills_matrix %}
-    <div class="section-title">Skills</div>
-    <div class="skills-container">
-        {% for category, skills_list in profile.skills_matrix.items() %}
-        {% if skills_list is iterable and skills_list is not string and skills_list is not mapping %}
-        <div style="margin-bottom: 3pt; font-size: 9.5pt;">
-            <strong>{{ category }}:</strong> {{ skills_list | join(', ') }}
-        </div>
-        {% else %}
-        <span class="skill-item">{{ category }}</span>
-        {% if not loop.last %}<span class="skill-separator">•</span>{% endif %}
-        {% endif %}
-        {% endfor %}
-    </div>
-    {% endif %}
-    
-    {% if profile.certifications or profile.awards %}
-    <div class="section-title">Certifications & Awards</div>
-    <ul>
-        {% for cert in profile.certifications %}
-        <li><strong>{{ cert.name }}</strong> ({{ cert.issuer }}){% if cert.issue_date %} - {{ cert.issue_date.strftime('%Y') }}{% endif %}</li>
-        {% endfor %}
-        {% for award in profile.awards %}
-        <li><strong>{{ award.title }}</strong> by {{ award.awarder }}{% if award.award_date %} - {{ award.award_date.strftime('%Y') }}{% endif %}</li>
-        {% endfor %}
-    </ul>
     {% endif %}
 </body>
 </html>
