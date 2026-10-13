@@ -11,6 +11,18 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 69: Sprint 4 Global Remote Pipeline, Tax Architecture & Interview Loops**:
+  - Implemented global remote sourcing heuristics (`Worldwide`, `Remote (Global)`, `Remote - APAC`) and strict jurisdiction exclusion heuristics (`has_jurisdiction_restriction` eliminating US-citizenship-only, security clearance, and North America-only roles) in `src/ingestion/filters.py` and `src/filter/job_filter.py`.
+  - Built comprehensive independent contractor legal and tax compliance guides (`docs/tax_and_compliance/`):
+    * `section_44ada_guide.md`: Section 44ADA 50% presumptive taxation for IT professionals up to ₹75,00,000 gross receipts under ITR-4, with March 15 single advance tax installment and 0% quarterly penalty.
+    * `gst_lut_rfd11_guide.md`: Form GST RFD-11 Letter of Undertaking for 0% export GST on IT services without 18% IGST upfront under IGST Act Section 2(6) and Rule 96A.
+    * `form_w8ben_guide.md`: US Form W-8BEN treaty benefits under DTAA Article 12 / 15 eliminating 30% IRS backup withholding.
+    * `fira_wise_checklist.md`: Wise virtual US account corridor, RBI Purpose Code P0802, and digital e-FIRA archival.
+  - Built Senior SDET interview preparation blueprints (`docs/interview_prep/`):
+    * `system_design_for_testability.md`: Microservice contract testing (Pact), asynchronous Kafka event stream validation, Docker/K8s test sharding, and synthetic WireMock stubs.
+    * `senior_sdet_coding_patterns.md` & `code_patterns.py`: Concurrency-safe token bucket rate limiters, LRU cache with TTL, exponential backoff with full jitter, and recursive JSON contract schema diffing.
+  - Created and executed Verification Gate 69 (`verify/69_test_sprint4_global_remote_and_compliance.py`): 100% passed across location filters, compliance guides, and algorithmic pattern execution.
+  - Lint clean: 0 errors across 146 files.
 - **Phase 68: Sprint 3 Tiered Dual-Funnel Routing & 1-Click Referral Reconnaissance**:
   - Implemented bifurcated Dual-Funnel routing separating high-velocity startup applications (Funnel 1) from Tier-1 Dream Organizations (Funnel 2).
   - Built `ReferralNoteGenerator` (`src/tailor/referral_generator.py`) generating LinkedIn connection notes strictly $\le 300$ chars and InMail pitches strictly $\le 1000$ chars citing exact Requisition IDs (e.g. `R170647`, `8045905`), candidate architecture highlights (Playwright, TypeScript, Kafka event stream validation, Pact contract testing), and candidate portfolio (`https://manjunathhk.netlify.app/`).

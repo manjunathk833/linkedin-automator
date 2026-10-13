@@ -239,6 +239,21 @@ graph TD
 
 ---
 
+### Module 12: Global Remote Pipeline, Tax Architecture & Interview Loops (Sprint 4)
+* **Files:** [`src/ingestion/filters.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/filters.py), [`src/filter/job_filter.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/filter/job_filter.py), `docs/tax_and_compliance/`, `docs/interview_prep/`, [`verify/69_test_sprint4_global_remote_and_compliance.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/verify/69_test_sprint4_global_remote_and_compliance.py)
+* **Architecture:** International remote sourcing, independent contractor compliance, and distributed QA interview architectures:
+  * **Global Remote & Jurisdiction Exclusion Filters:** Sourcing heuristics recognizing 'Worldwide', 'Remote (Global)', 'Remote - APAC', and rejecting US-citizenship-only, security clearance, or North American resident-only postings.
+  * **Independent Contractor Tax Framework:**
+    * **Section 44ADA Guide:** 50% presumptive taxation for IT professionals up to ₹75,00,000 gross receipts under ITR-4, 100% advance tax payable on March 15th with 0% quarterly penalties.
+    * **GST LUT Form RFD-11 Guide:** Zero-rated export of services without paying 18% IGST upfront under IGST Act Section 2(6) & Rule 96A.
+    * **US Form W-8BEN Guide:** DTAA Article 12 / 15 claim of 0% US withholding for non-resident alien independent contractors.
+    * **FIRA & Wise Remittance Checklist:** Remittance via Wise virtual US account with RBI Purpose Code P0802 and digital e-FIRA archival.
+  * **Senior SDET Technical Interview Loops:**
+    * **System Design for Testability:** Microservice contract testing (Pact), asynchronous Kafka event stream validation, Docker/K8s test sharding, and synthetic data mocking.
+    * **Executable Coding Patterns:** Concurrency-safe token bucket rate limiters, LRU cache with TTL, exponential backoff with full jitter, and recursive JSON contract diffing.
+
+---
+
 ## 4. Data Architecture & Storage Schema
 
 ```
@@ -339,8 +354,11 @@ All features are covered by dedicated, standalone verification scripts in `verif
 | `verify/64_test_source_badge_accuracy.py` | Source Badge Attribution & Metadata Accuracy | Validates normalize_job_source_metadata across 6 platforms, API response attribution, SQLite retro-migration, and glassmorphic badge UI styling |
 | `verify/65_test_sprint1_stack_and_inbound.py` | Sprint 1 Stack Realignment & Inbound Traps | Validates modern tool whitelist expansion, anti-fabrication grounding, independent project boundary isolation, and daily Naukri pinger contract |
 | `verify/66_test_sprint2_workday_cxs_and_dream_orgs.py` | Sprint 2 Workday CXS & Dream Org Tracker | Validates 56 enterprise registry scale, Workday keyless CXS JSON parsing & pagination loop termination, SQLite SHA-256 change detection, and Dream Org priority UI badges |
+| `verify/67_test_sprint2_filters_and_workday_search.py` | Sprint 2 Title/Location Filter & Multi-Term Search | Validates negative title exclusions, foreign location rejection, and Workday multi-term query distribution |
+| `verify/68_test_sprint3_dual_funnel_and_referral_generator.py` | Sprint 3 Dual-Funnel Routing & 1-Click Referral Generator | Validates <=300 char connection notes, <=1000 char InMail pitches, requisition ID extraction, and SQLite referral tracking |
+| `verify/69_test_sprint4_global_remote_and_compliance.py` | Sprint 4 Global Remote Pipeline & Compliance Hub | Validates global remote sourcing heuristics, US jurisdiction exclusion, Section 44ADA, GST LUT, W-8BEN, FIRA, and interview prep algorithms |
 
-* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 135 project files).
+* **Linter Standard:** 100% compliant with Ruff (`python main.py lint` passes with 0 errors across 146 project files).
 
 ---
 

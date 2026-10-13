@@ -173,10 +173,53 @@ GLOBAL_REMOTE_REGEX = re.compile(
     r"global remote|"
     r"work from anywhere|"
     r"remote - global|"
+    r"remote - apac|"
+    r"remote - emea/apac|"
     r"all locations"
     r")\b",
     re.IGNORECASE,
 )
+
+# Strict legal, citizenship, security clearance, or geographic exclusivity restrictions
+JURISDICTION_RESTRICTIONS_REGEX = re.compile(
+    r"\b("
+    r"us citizens? only|"
+    r"u\.s\. citizens? only|"
+    r"security clearance|"
+    r"ts/sci|"
+    r"polygraph|"
+    r"us or canada only|"
+    r"must be located in the us|"
+    r"must be based in the us|"
+    r"must reside in the united states|"
+    r"us resident only|"
+    r"us residency required|"
+    r"authorized to work in the us without sponsorship|"
+    r"authorized to work in the us only|"
+    r"w2 only|"
+    r"c2c not allowed|"
+    r"must be based in north america|"
+    r"north america only|"
+    r"latin america only|"
+    r"latam only|"
+    r"must be based in the uk|"
+    r"uk residents? only|"
+    r"eu residents? only|"
+    r"european union only"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def has_jurisdiction_restriction(text: str | None) -> bool:
+    """
+    Evaluates whether job requirements or descriptions contain legal or geographic
+    exclusivity clauses (e.g. US citizenship, security clearance, or North America only)
+    that render international remote candidates ineligible.
+    """
+    if not text or not text.strip():
+        return False
+    return bool(JURISDICTION_RESTRICTIONS_REGEX.search(text))
 
 
 def is_sdet_title(title: str | None) -> bool:
@@ -217,3 +260,21 @@ def is_india_or_remote_location(location_str: str | None, allow_unspecified: boo
 
     # Priority 4: Generic Remote without foreign territory
     return bool(re.search(r"\bremote\b", loc, re.IGNORECASE))
+
+
+def is_global_remote_eligible(
+    location_str: str | None,
+    text_snippet: str | None = None,
+    allow_unspecified: bool = False,
+) -> bool:
+    """
+    Determines whether a requisition is eligible for an international remote contractor
+    based in India ($50k-$65k USD band).
+    Checks both location string viability and filters out explicit legal/residency restrictions.
+    """
+    # 1. Reject if requirements or description contain hard jurisdiction locks
+    if text_snippet and has_jurisdiction_restriction(text_snippet):
+        return False
+
+    # 2. Evaluate location viability
+    return is_india_or_remote_location(location_str, allow_unspecified=allow_unspecified)
