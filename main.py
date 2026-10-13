@@ -6,6 +6,7 @@ import datetime
 import json
 import os
 import subprocess
+import sys
 from typing import Any
 
 import yaml
@@ -120,6 +121,19 @@ def handle_lint():
     print("=" * 50 + "\n")
     script = os.path.join(os.path.dirname(__file__), "verify", "autofix_lint.sh")
     subprocess.run(["bash", script])
+
+
+def handle_test(tier: str = "core", live: bool = False):
+    """Runs the standardized regression test suite across specified tiers."""
+    script = os.path.join(os.path.dirname(__file__), "verify", "run_regressions.py")
+    python_bin = os.path.join(os.path.dirname(__file__), "venv", "bin", "python")
+    if not os.path.exists(python_bin):
+        python_bin = sys.executable
+    cmd = [python_bin, script, "--tier", tier]
+    if live:
+        cmd.append("--live")
+    ret = subprocess.run(cmd)
+    sys.exit(ret.returncode)
 
 
 def handle_autofill_audit():
@@ -250,6 +264,20 @@ def main():
         "--audit", action="store_true", default=True, help="Display recent events and banked lessons"
     )
 
+    # 10. test (standardized regression test suite)
+    parser_test = subparsers.add_parser("test", help="Run standardized regression test runner")
+    parser_test.add_argument(
+        "--tier",
+        choices=["core", "autofill", "all"],
+        default="core",
+        help="Test tier to execute: core (fast ~5-10s), autofill (~30s), or all",
+    )
+    parser_test.add_argument(
+        "--live",
+        action="store_true",
+        help="Run live browser and remote career portal tests",
+    )
+
     args = parser.parse_args()
     config = load_config(args.config)
     runner = JobSearchPipelineRunner(config)
@@ -280,6 +308,8 @@ def main():
         handle_lint()
     elif cmd == "autofill":
         handle_autofill_audit()
+    elif cmd == "test":
+        handle_test(tier=args.tier, live=args.live)
     else:
         parser.print_help()
 

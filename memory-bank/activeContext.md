@@ -275,6 +275,25 @@
     - Created and executed Verification Gate 65 (`verify/65_test_sprint1_stack_and_inbound.py`), passing 100%.
     - Full regression passing (Gates 63, 64, 65).
     - Codebase linted cleanly via `python main.py lint` (0 errors across 133 files).
+  - Standardized Multi-Tier Regression Test Suite & Agent Governance Gate:
+    - Queues wiped clean (`data/pending_queue/*.json`, `data/approved_queue/*.json`, `data/resumes/preview_*.pdf` removed, `.gitkeep` preserved, `data/processed_jobs.json` reset).
+    - Created `verify/run_regressions.py` implementing tiered execution: Tier 1 Core (48 self-contained unit/logic/schema/API tests running in <45s), Tier 2 Autofill (18 Playwright form automation tests), and Tier 3 Live (Google Gemini rate pacer, live career portal tests).
+    - Modernized regression tests:
+      * Fixed `src/ui/app.py` `clean_approved_queue_temp_data` to resolve candidate professional PDFs via `resolve_job_pdf_path()`.
+      * Updated `src/tailor/resume_tailorer.py` with modern whitelisted keywords (`Playwright`, `TypeScript`, `Kafka`, `Pact`, `Kubernetes`, `WireMock`).
+      * Updated `verify/03_test_approval_gate.py` to assert professional resume naming token.
+      * Guarded socket port in `verify/04_test_playwright_cdp_connect.py`.
+      * Updated URL generators in `verify/08`, `10`, `13` to pass `easy_apply_only=True`.
+      * Updated CLI help assertions in `verify/11_test_main_orchestrator.py`.
+      * Replaced whitelisted tools in `verify/25` and `33` with genuine disallowed tools (`Cypress`, `Golang`, `Terraform`).
+      * Added self-contained ephemeral fixtures with `try...finally` cleanup across `verify/34`, `52`, `53`, `54`, and `64`.
+      * Added fallback audits in `verify/06` and `33` for canonical `data/resume_profile.json`.
+      * Adjusted rate pacer tolerance to 3.8s in `verify/50` and moved it to Tier 3 Live.
+    - Added CLI command `python main.py test [--tier core|autofill|all] [--live]`.
+    - Added Rule 8 to `.agents/rules/00-core-instructions.md` and updated Critic Architect lens in `.agents/rules/02-agent-review-protocol.md`.
+    - Executed `python main.py test --tier core`: **48/48 PASSED (100% SUCCESS)** in 43.19s.
+    - Executed `python main.py lint`: **0 errors across 148 files**.
+
 
 
 

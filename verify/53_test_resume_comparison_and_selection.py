@@ -42,7 +42,28 @@ def test_resume_comparison_and_selection():
 
     # 2. Pick a job from pending queue to test preview endpoints
     pending_files = glob.glob(os.path.join(PROJECT_ROOT, "data", "pending_queue", "*.json"))
-    assert len(pending_files) > 0, "No pending jobs found to test preview"
+    is_ephemeral = False
+    ephemeral_file = None
+    if not pending_files:
+        is_ephemeral = True
+        ephemeral_file = os.path.join(PROJECT_ROOT, "data", "pending_queue", "test_ephemeral_gate53_123.json")
+        with open(os.path.join(PROJECT_ROOT, "data", "resume_profile.json")) as rfp:
+            mock_resume = json.load(rfp)
+        mock_payload = {
+            "job_id": "test_ephemeral_gate53_123",
+            "job_details": {
+                "company": "TestCorp",
+                "title": "SDET",
+                "location": "Bengaluru",
+                "requirements": "Python",
+            },
+            "application_type": "EASY_APPLY",
+            "tailored_resume": mock_resume,
+        }
+        with open(ephemeral_file, "w", encoding="utf-8") as fp:
+            json.dump(mock_payload, fp, indent=2)
+        pending_files = [ephemeral_file]
+
     sample_file = pending_files[0]
     with open(sample_file, "r", encoding="utf-8") as f:
         job_data = json.load(f)
@@ -110,6 +131,11 @@ def test_resume_comparison_and_selection():
 
     # Clean up synthetic job
     client.delete(f"/api/approved/{synth_tailored_id}")
+    if is_ephemeral and ephemeral_file and os.path.exists(ephemeral_file):
+        try:
+            os.remove(ephemeral_file)
+        except OSError:
+            pass
 
     print("\n" + "=" * 60)
     print("🎉 ALL GATE 53 ASSERTIONS PASSED (100% SUCCESS)!")

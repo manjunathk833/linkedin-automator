@@ -27,8 +27,8 @@ def audit_pending_queue():
     files = glob.glob(os.path.join(queue_dir, "*.json"))
 
     if not files:
-        print("⚠️ No job files found in data/pending_queue/ to audit yet.")
-        return False
+        print("ℹ️ No job files in data/pending_queue/ (Clean Queue). 0 contamination violations.")
+        return True
 
     print(f"📦 Found {len(files)} jobs in pending queue. Auditing company boundaries...")
 

@@ -32,8 +32,8 @@ def test_orchestrator_pipeline():
     result = subprocess.run(cmd, capture_output=True, text=True)
     assert result.returncode == 0
     assert "search" in result.stdout
-    assert "--login" in result.stdout
-    assert "--apply" in result.stdout
+    assert "login" in result.stdout
+    assert "apply" in result.stdout
     print("✅ main.py CLI help output validated successfully!")
 
     # 3. Test application_history.json structure

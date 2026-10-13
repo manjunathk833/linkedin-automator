@@ -33,12 +33,12 @@ def test_fabrication_detector():
     assert res_valid["is_valid"] is True
     print("✅ Grounded bullet verified PASS!")
 
-    # 3. Test Fabricated Playwright & Cypress Bullet
-    fabricated_bullet = "Spearheaded web UI automation using Playwright and Cypress with Jenkins CI/CD integration; designed parallel cross-browser execution pipelines."
+    # 3. Test Fabricated Cypress & Puppeteer Bullet
+    fabricated_bullet = "Spearheaded web UI automation using Cypress and Puppeteer with Jenkins CI/CD integration; designed parallel cross-browser execution pipelines."
     res_fab = detector.check_bullet(fabricated_bullet)
     assert res_fab["is_valid"] is False
-    assert "Playwright" in res_fab["fabricated_tools"]
     assert "Cypress" in res_fab["fabricated_tools"]
+    assert "Puppeteer" in res_fab["fabricated_tools"]
     print(f"✅ Fabricated bullet successfully FLAGGED & REJECTED! Detected tools: {res_fab['fabricated_tools']}")
 
     # 4. Test validate_all_bullets filtering
@@ -50,25 +50,25 @@ def test_fabrication_detector():
 
     # 5. Verify Master Knowledge Bank data clean-up
     vault = bank_data.get("master_achievements_vault", [])
-    playwright_entries = [item for item in vault if "playwright" in str(item).lower()]
-    assert len(playwright_entries) == 0
-    print("✅ Master Knowledge Bank verified CLEAN! Zero Playwright fabrications found in vault.")
+    cypress_entries = [item for item in vault if "cypress" in str(item).lower()]
+    assert len(cypress_entries) == 0
+    print("✅ Master Knowledge Bank verified CLEAN! Zero Cypress fabrications found in vault.")
 
-    # 6. Test full ResumeTailorer integration against a JD asking for Playwright
+    # 6. Test full ResumeTailorer integration against a JD asking for Cypress & Puppeteer
     tailorer = ResumeTailorer(use_ai=False)
     mock_job = {
         "job_id": "test_999",
         "job_details": {
-            "title": "Senior Playwright QA Engineer",
-            "requirements": "Must have extensive experience in Playwright, Cypress, Python, and REST Assured.",
+            "title": "Senior Automation Engineer",
+            "requirements": "Must have extensive experience in Cypress, Puppeteer, Python, and REST Assured.",
         },
     }
     tailored = tailorer.tailor_job_payload(mock_job)
     achievements = tailored["tailored_resume"]["experience_history"][0]["achievements"]
 
     for b in achievements:
-        assert "Playwright" not in b
         assert "Cypress" not in b
+        assert "Puppeteer" not in b
     print("✅ ResumeTailorer pipeline integration verified! Generated payload is 100% grounded.")
 
     print("\n" + "=" * 50)

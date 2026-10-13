@@ -26,6 +26,7 @@ def test_job_finder_optimization():
         work_types=["remote", "hybrid"],
         experience_levels=["mid_senior"],
         time_posted="past_week",
+        easy_apply_only=True,
     )
 
     print(f"🌐 Generated Search URL:\n   {url}")

@@ -19,7 +19,7 @@ Before modifying code or running commands, audit technical soundness:
 - [ ] **Tool Whitelist & Boundary Governance:** Whitelisted tools (`playwright`, `typescript`, `docker`, `kubernetes`, `kafka`, `wiremock`, `pact`) must be grounded in candidate notes; unverified tools (`cypress`, `golang`, etc.) remain blocked.
 - [ ] **Employment Boundary Isolation:** Independent architecture bullets must be scoped strictly to `Technical Projects` without leaking into Value Labs, Dunzo, or Tata Elxsi.
 - [ ] **Decoupled State Management:** Metadata extraction must occur before page navigation to prevent stale handles.
-- [ ] **Verification Gate:** Verification script in `verify/` must validate browser/parser logic.
+- [ ] **Verification Gate & Regression Suite:** Verification script in `verify/` must validate browser/parser logic, and the full core regression suite must pass 100% (`python main.py test --tier core`).
 - [ ] **Clean Code & Linting:** Code must pass `python main.py lint` with 0 linter errors.
 - [ ] **ATS Vendor Schema Banking:** Discovered custom or org-branded URLs during debugging must be cataloged in `src/autofill/vendor_schemas.py` and classified on navigation.
 - [ ] **Documentation Sync:** Architecture changes, endpoints, and verification tests must be synced to `docs/` and `SYSTEM_ARCHITECTURE.md`.

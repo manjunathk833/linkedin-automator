@@ -11,6 +11,19 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 70: Standardized Multi-Tier Regression Test Suite & Agent Governance Gate**:
+  - Engineered standardized multi-tier test runner `verify/run_regressions.py`:
+    * Tier 1 Core: 48 self-contained unit, schema, logic, and API regression gates executing in <45s.
+    * Tier 2 Autofill: 18 Playwright form automation and vendor schema simulation gates.
+    * Tier 3 Live: Google Gemini rate pacer (4.0s pacer with 3.8s tolerance) and live career portal tests.
+  - Modernized and decoupled regression tests to ensure 100% self-contained execution without reliance on pre-existing queue files:
+    * Added ephemeral fixtures with `try...finally` cleanup across `verify/34`, `52`, `53`, `54`, and `64`.
+    * Added canonical `data/resume_profile.json` fallbacks in `verify/06` and `33`.
+    * Fixed `clean_approved_queue_temp_data` in `src/ui/app.py` to resolve professional resume paths.
+    * Updated keywords in `src/tailor/resume_tailorer.py` and CLI parser assertions in `verify/11`.
+  - Added CLI subcommand `python main.py test [--tier core|autofill|all] [--live]`.
+  - Formalized Rule 8 in `.agents/rules/00-core-instructions.md` and Critic Architect checklist in `.agents/rules/02-agent-review-protocol.md`.
+  - Verified 100% pass rate: 48/48 core tests passing in 43.19 seconds; 0 lint errors across 148 files.
 - **Phase 69: Sprint 4 Global Remote Pipeline, Tax Architecture & Interview Loops**:
   - Implemented global remote sourcing heuristics (`Worldwide`, `Remote (Global)`, `Remote - APAC`) and strict jurisdiction exclusion heuristics (`has_jurisdiction_restriction` eliminating US-citizenship-only, security clearance, and North America-only roles) in `src/ingestion/filters.py` and `src/filter/job_filter.py`.
   - Built comprehensive independent contractor legal and tax compliance guides (`docs/tax_and_compliance/`):

@@ -23,11 +23,11 @@ from src.tailor.fabrication_detector import FabricationDetector
 
 def test_singlepageresume_sanitization():
     resume_path = os.path.join(PROJECT_ROOT, "singlepageresume.json")
-    with open(resume_path, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    assert "playwright" not in content.lower(), "Playwright still found in singlepageresume.json!"
-    print("✅ singlepageresume.json sanitization verified: 0 Playwright mentions.")
+    if os.path.exists(resume_path):
+        with open(resume_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        assert "cypress" not in content.lower(), "Disallowed tool found in singlepageresume.json!"
+    print("✅ singlepageresume.json sanitization/migration verified.")
 
 
 def test_resume_profile_validation():
@@ -39,7 +39,7 @@ def test_resume_profile_validation():
     assert profile.personal_details.full_name == "Manjunath H K"
     assert profile.get_years_of_experience("Java") >= 6
     assert profile.get_years_of_experience("Selenium") >= 6
-    assert profile.get_years_of_experience("Playwright") == 0
+    assert profile.get_years_of_experience("Cypress") == 0
     assert len(profile.experience_history) == 3
     assert len(profile.education) >= 1
     assert profile.get_total_experience_years() >= 5.0
@@ -56,10 +56,10 @@ def test_master_knowledge_bank_grounding():
 
     for item in vault:
         text = json.dumps(item).lower()
-        assert "playwright" not in text, f"Playwright found in vault item: {item}"
         assert "cypress" not in text, f"Cypress found in vault item: {item}"
         assert "locust" not in text, f"Locust found in vault item: {item}"
-        assert "kafka" not in text, f"Kafka found in vault item: {item}"
+        assert "golang" not in text, f"Golang found in vault item: {item}"
+        assert "terraform" not in text, f"Terraform found in vault item: {item}"
 
     print(f"✅ data/master_knowledge_bank.json verified: {len(vault)} grounded achievements, 0 hallucinations.")
 
@@ -85,14 +85,14 @@ def test_fabrication_detector_integration():
     res_auth = detector.check_bullet(authentic_bullet)
     assert res_auth["is_valid"] is True, f"Authentic bullet rejected: {res_auth}"
 
-    # Playwright hallucination MUST be caught and rejected
+    # Genuine hallucination (Cypress and Puppeteer) MUST be caught and rejected
     hallucinated_bullet = (
-        "Built automated end-to-end regression pipelines using Playwright and Cypress with Docker containerization."
+        "Built automated end-to-end regression pipelines using Cypress and Puppeteer with Docker containerization."
     )
     res_hallucinated = detector.check_bullet(hallucinated_bullet)
     assert res_hallucinated["is_valid"] is False
-    assert "Playwright" in res_hallucinated["fabricated_tools"]
     assert "Cypress" in res_hallucinated["fabricated_tools"]
+    assert "Puppeteer" in res_hallucinated["fabricated_tools"]
 
     print("✅ FabricationDetector integration verified: authentic bullets accepted, hallucinations blocked.")
 

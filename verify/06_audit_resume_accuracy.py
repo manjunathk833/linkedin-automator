@@ -15,6 +15,16 @@ def run_detailed_audit():
     src_path = os.path.join(root, "singlepageresume.json")
     mapped_path = os.path.join(root, "data", "resume_profile.json")
 
+    if not os.path.exists(src_path):
+        print(f"Notice: Legacy {src_path} was migrated to canonical {mapped_path}. Auditing {mapped_path} directly.")
+        with open(mapped_path) as f:
+            mapped = json.load(f)
+        assert "personal_details" in mapped
+        assert "experience_history" in mapped
+        assert len(mapped["experience_history"]) >= 3
+        print("✅ data/resume_profile.json structure and history verified.")
+        return
+
     with open(src_path) as f:
         src = json.load(f)
     with open(mapped_path) as f:

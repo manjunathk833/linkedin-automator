@@ -42,7 +42,7 @@ def test_approve_job_schema_validation():
 
     # Verify it generated the PDF path
     assert "pdf_path" in data
-    assert "test_job_999_resume.pdf" in data["pdf_path"]
+    assert "999" in data["pdf_path"] and data["pdf_path"].endswith(".pdf")
 
     print("✅ POST /api/approve passed! (Generated PDF seamlessly)")
 

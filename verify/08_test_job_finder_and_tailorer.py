@@ -19,7 +19,7 @@ def test_job_finder_and_tailorer():
     tailorer = ResumeTailorer()
 
     # 1. Test Search URL Generation
-    url = finder.build_search_url("Senior SDET", "Remote")
+    url = finder.build_search_url("Senior SDET", "Remote", easy_apply_only=True)
     print(f"🌐 Search URL generated: {url}")
     assert "keywords=Senior+SDET" in url or "keywords=Senior%2BSDET" in url
     assert "f_AL=true" in url

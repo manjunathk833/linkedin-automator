@@ -20,7 +20,7 @@ async def test_live_linkedin_flow():
     finder = LinkedInJobFinder(cdp_url=cdp_url)
 
     # 1. Test Search URL Generation
-    search_url = finder.build_search_url("Senior SDET", "Remote")
+    search_url = finder.build_search_url("Senior SDET", "Remote", easy_apply_only=True)
     print(f"🌐 Target Search URL: {search_url}")
     assert "f_AL=true" in search_url
     print("✅ Easy Apply search URL construction verified!")

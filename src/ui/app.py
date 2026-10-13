@@ -866,6 +866,7 @@ def clean_approved_queue_temp_data():
 
     applied_ids = ApplicationDatabase().get_applied_job_ids()
 
+    active_pdf_names = set()
     for fname in os.listdir(APPROVED_DIR):
         if fname == ".gitkeep":
             continue
@@ -877,14 +878,24 @@ def clean_approved_queue_temp_data():
                     os.remove(fpath)
                 except Exception:
                     pass
-        elif fname.endswith(".pdf"):
-            active_json_ids = {f.replace(".json", "") for f in os.listdir(APPROVED_DIR) if f.endswith(".json")}
-            is_active = any(aid in fname for aid in active_json_ids)
-            if not is_active:
+            else:
                 try:
-                    os.remove(fpath)
+                    with open(fpath, "r", encoding="utf-8") as fp:
+                        jp = json.load(fp)
+                    _, p_name = resolve_job_pdf_path(jid, jp)
+                    active_pdf_names.add(p_name)
+                    active_pdf_names.add(f"{jid}_resume.pdf")
                 except Exception:
                     pass
+
+    for fname in os.listdir(APPROVED_DIR):
+        if fname == ".gitkeep":
+            continue
+        if fname.endswith(".pdf") and fname not in active_pdf_names:
+            try:
+                os.remove(os.path.join(APPROVED_DIR, fname))
+            except Exception:
+                pass
 
 
 @app.post("/api/approved/cleanup")

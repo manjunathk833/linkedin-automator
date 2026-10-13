@@ -9,3 +9,4 @@ trigger: always_on
 5. **Zero Cost:** Never implement solutions requiring paid third-party APIs.
 6. **Continuous Documentation Synchronization:** ALWAYS update `docs/`, `SYSTEM_ARCHITECTURE.md`, and `memory-bank/` to reflect any new architectural features, verification scripts, or behavior fixes before completing any task.
 7. **Vendor Pattern Discovery & Classification:** When discovering an organization URL during debugging/testing that differs from standard vendor boards, ALWAYS bank its fingerprint, pattern detector, and DOM selectors into `src/autofill/vendor_schemas.py`. During page navigation, the system MUST explicitly classify and identify which vendor pattern the page matches.
+8. **Mandatory Standardized Regression Gate:** ALWAYS execute and pass the standardized Tier 1 regression suite (`python main.py test --tier core`, 48 tests, 100% pass rate) and linter (`python main.py lint`, 0 errors) prior to completing any task or committing changes.

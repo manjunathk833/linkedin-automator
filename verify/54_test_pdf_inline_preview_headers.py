@@ -40,30 +40,59 @@ def test_pdf_inline_headers():
 
     # 2. Test /api/pdf/preview/{job_id}?version=tailored
     pending_files = glob.glob(os.path.join(PROJECT_ROOT, "data", "pending_queue", "*.json"))
-    assert len(pending_files) > 0, "No pending jobs found to test preview"
-    with open(pending_files[0], "r", encoding="utf-8") as f:
-        job_data = json.load(f)
-    job_id = str(job_data["job_id"])
+    is_ephemeral = False
+    ephemeral_file = None
+    if not pending_files:
+        is_ephemeral = True
+        ephemeral_file = os.path.join(PROJECT_ROOT, "data", "pending_queue", "test_ephemeral_gate54_123.json")
+        with open(os.path.join(PROJECT_ROOT, "data", "resume_profile.json")) as rfp:
+            mock_resume = json.load(rfp)
+        mock_payload = {
+            "job_id": "test_ephemeral_gate54_123",
+            "job_details": {
+                "company": "TestCorp",
+                "title": "SDET",
+                "location": "Bengaluru",
+                "requirements": "Python",
+            },
+            "application_type": "EASY_APPLY",
+            "tailored_resume": mock_resume,
+        }
+        with open(ephemeral_file, "w", encoding="utf-8") as fp:
+            json.dump(mock_payload, fp, indent=2)
+        pending_files = [ephemeral_file]
 
-    print(f"\n🔍 Step 2: Testing /api/pdf/preview/{job_id}?version=tailored Content-Disposition...")
-    resp_prev = client.get(f"/api/pdf/preview/{job_id}?version=tailored")
-    assert resp_prev.status_code == 200, f"Expected 200, got {resp_prev.status_code}"
-    cd_prev = resp_prev.headers.get("content-disposition", "")
-    print(f"   /api/pdf/preview/{job_id} Content-Disposition: '{cd_prev}'")
-    assert cd_prev.startswith("inline;"), f"Expected inline disposition, got '{cd_prev}'"
-    assert "attachment" not in cd_prev, f"Found unintended attachment in '{cd_prev}'"
-    assert "no-cache" in resp_prev.headers.get("cache-control", ""), "Expected no-cache header"
-    print("✅ /api/pdf/preview has valid inline disposition!")
+    try:
+        sample_file = pending_files[0]
+        with open(sample_file, "r", encoding="utf-8") as f:
+            job_data = json.load(f)
+        job_id = str(job_data["job_id"])
 
-    # 3. Test /api/pdf/preview/{job_id}?version=standard
-    print(f"\n🔍 Step 3: Testing /api/pdf/preview/{job_id}?version=standard Content-Disposition...")
-    resp_prev_std = client.get(f"/api/pdf/preview/{job_id}?version=standard")
-    assert resp_prev_std.status_code == 200
-    cd_prev_std = resp_prev_std.headers.get("content-disposition", "")
-    print(f"   /api/pdf/preview standard version Content-Disposition: '{cd_prev_std}'")
-    assert cd_prev_std.startswith("inline;")
-    assert "attachment" not in cd_prev_std
-    print("✅ /api/pdf/preview?version=standard has valid inline disposition!")
+        print(f"\n🔍 Step 2: Testing /api/pdf/preview/{job_id}?version=tailored Content-Disposition...")
+        resp_prev = client.get(f"/api/pdf/preview/{job_id}?version=tailored")
+        assert resp_prev.status_code == 200, f"Expected 200, got {resp_prev.status_code}"
+        cd_prev = resp_prev.headers.get("content-disposition", "")
+        print(f"   /api/pdf/preview/{job_id} Content-Disposition: '{cd_prev}'")
+        assert cd_prev.startswith("inline;"), f"Expected inline disposition, got '{cd_prev}'"
+        assert "attachment" not in cd_prev, f"Found unintended attachment in '{cd_prev}'"
+        assert "no-cache" in resp_prev.headers.get("cache-control", ""), "Expected no-cache header"
+        print("✅ /api/pdf/preview has valid inline disposition!")
+
+        # 3. Test /api/pdf/preview/{job_id}?version=standard
+        print(f"\n🔍 Step 3: Testing /api/pdf/preview/{job_id}?version=standard Content-Disposition...")
+        resp_prev_std = client.get(f"/api/pdf/preview/{job_id}?version=standard")
+        assert resp_prev_std.status_code == 200
+        cd_prev_std = resp_prev_std.headers.get("content-disposition", "")
+        print(f"   /api/pdf/preview standard version Content-Disposition: '{cd_prev_std}'")
+        assert cd_prev_std.startswith("inline;")
+        assert "attachment" not in cd_prev_std
+        print("✅ /api/pdf/preview?version=standard has valid inline disposition!")
+    finally:
+        if is_ephemeral and ephemeral_file and os.path.exists(ephemeral_file):
+            try:
+                os.remove(ephemeral_file)
+            except OSError:
+                pass
 
     print("\n" + "=" * 60)
     print("🎉 ALL GATE 54 ASSERTIONS PASSED (100% SUCCESS)!")
