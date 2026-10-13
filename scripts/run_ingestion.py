@@ -27,17 +27,63 @@ async def run_ingestion_cli():
         default=False,
         help="Queue discovered jobs into data/pending_queue for dashboard review",
     )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        default=None,
+        choices=["greenhouse", "lever", "ashby", "workday", "all"],
+        help="Filter ingestion to specific ATS provider (default: all)",
+    )
+    parser.add_argument(
+        "--dream-only",
+        action="store_true",
+        default=False,
+        help="Filter ingestion exclusively to tagged Tier-1 Dream Organizations",
+    )
+    parser.add_argument(
+        "--company",
+        type=str,
+        default=None,
+        help="Filter ingestion to a specific company name or slug",
+    )
     args = parser.parse_args()
 
     coordinator = ATSDiscoveryCoordinator()
-    listings = await coordinator.ingest_all_sources(filter_sdet=True)
+    all_targets = coordinator.load_target_companies()
+
+    # Apply filters
+    filtered_targets = []
+    for c in all_targets:
+        if args.provider and args.provider != "all" and c.ats_provider.lower() != args.provider.lower():
+            continue
+        if args.dream_only and not c.is_dream_org:
+            continue
+        if args.company and args.company.lower() not in (c.slug.lower(), c.name.lower()):
+            continue
+        filtered_targets.append(c)
+
+    print("\n" + "=" * 60)
+    print(f"  TARGETING {len(filtered_targets)} OF {len(all_targets)} ENTERPRISES (Dream-Only: {args.dream_only})")
+    print("=" * 60)
+
+    # Ingest across filtered targets
+    tasks = [coordinator._fetch_company_jobs(c) for c in filtered_targets]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    listings = []
+    for res in results:
+        if isinstance(res, list):
+            listings.extend(res)
+        elif isinstance(res, Exception):
+            print(f"⚠️ Ingestion error: {res}")
 
     print("\n" + "=" * 60)
     print(f"  DISCOVERED {len(listings)} RELEVANT ROLES ACROSS TARGET ENTERPRISES")
     print("=" * 60)
 
     for idx, item in enumerate(listings[:15], 1):
-        print(f"[{idx}] {item.job_title} @ {item.company_name} ({item.location})")
+        dream_tag = "⭐ [DREAM ORG] " if item.is_dream_org else ""
+        print(f"[{idx}] {dream_tag}{item.job_title} @ {item.company_name} ({item.location})")
         print(f"    Source: {item.source.upper()} | URL: {item.url}")
 
     if len(listings) > 15:

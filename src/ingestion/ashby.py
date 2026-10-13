@@ -5,21 +5,13 @@ Directly ingests unauthenticated job postings from api.ashbyhq.com.
 
 from __future__ import annotations
 
-import re
-
 import httpx
 
+from src.ingestion.filters import (
+    is_india_or_remote_location,
+    is_sdet_title,
+)
 from src.storage.models import JobListing
-
-SDET_TITLE_REGEX = re.compile(
-    r"\b(sdet|qa|quality|test|automation|software engineer in test)\b",
-    re.IGNORECASE,
-)
-
-INDIA_LOCATION_REGEX = re.compile(
-    r"\b(bengaluru|bangalore|india|remote|hybrid|anywhere)\b",
-    re.IGNORECASE,
-)
 
 
 class AshbyCollector:
@@ -52,15 +44,20 @@ class AshbyCollector:
             jobs = data.get("jobs", [])
             for job in jobs:
                 title = job.get("title", "")
-                location_name = job.get("locationName", "") or job.get("location", "")
-                is_remote = job.get("isRemote", False)
+                location_name = str(job.get("locationName", "") or job.get("location", ""))
+                is_remote = bool(job.get("isRemote", False))
+                combined_loc = location_name
+                if is_remote and not combined_loc:
+                    combined_loc = "Remote"
+                elif is_remote and "remote" not in combined_loc.lower():
+                    combined_loc = f"{combined_loc} (Remote)"
 
                 # Filtering for SDET / QA profile
-                if filter_sdet and not SDET_TITLE_REGEX.search(title):
+                if filter_sdet and not is_sdet_title(title):
                     continue
 
                 # Filtering location for India or Remote
-                if filter_sdet and not is_remote and not INDIA_LOCATION_REGEX.search(location_name):
+                if filter_sdet and not is_india_or_remote_location(combined_loc):
                     continue
 
                 job_id = str(job.get("id"))

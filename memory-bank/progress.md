@@ -11,6 +11,44 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 70: Standardized Multi-Tier Regression Test Suite & Agent Governance Gate**:
+  - Engineered standardized multi-tier test runner `verify/run_regressions.py`:
+    * Tier 1 Core: 48 self-contained unit, schema, logic, and API regression gates executing in <45s.
+    * Tier 2 Autofill: 18 Playwright form automation and vendor schema simulation gates.
+    * Tier 3 Live: Google Gemini rate pacer (4.0s pacer with 3.8s tolerance) and live career portal tests.
+  - Modernized and decoupled regression tests to ensure 100% self-contained execution without reliance on pre-existing queue files:
+    * Added ephemeral fixtures with `try...finally` cleanup across `verify/34`, `52`, `53`, `54`, and `64`.
+    * Added canonical `data/resume_profile.json` fallbacks in `verify/06` and `33`.
+    * Fixed `clean_approved_queue_temp_data` in `src/ui/app.py` to resolve professional resume paths.
+    * Updated keywords in `src/tailor/resume_tailorer.py` and CLI parser assertions in `verify/11`.
+  - Added CLI subcommand `python main.py test [--tier core|autofill|all] [--live]`.
+  - Formalized Rule 8 in `.agents/rules/00-core-instructions.md` and Critic Architect checklist in `.agents/rules/02-agent-review-protocol.md`.
+  - Verified 100% pass rate: 48/48 core tests passing in 43.19 seconds; 0 lint errors across 148 files.
+- **Phase 69: Sprint 4 Global Remote Pipeline, Tax Architecture & Interview Loops**:
+  - Implemented global remote sourcing heuristics (`Worldwide`, `Remote (Global)`, `Remote - APAC`) and strict jurisdiction exclusion heuristics (`has_jurisdiction_restriction` eliminating US-citizenship-only, security clearance, and North America-only roles) in `src/ingestion/filters.py` and `src/filter/job_filter.py`.
+  - Built comprehensive independent contractor legal and tax compliance guides (`docs/tax_and_compliance/`):
+    * `section_44ada_guide.md`: Section 44ADA 50% presumptive taxation for IT professionals up to ₹75,00,000 gross receipts under ITR-4, with March 15 single advance tax installment and 0% quarterly penalty.
+    * `gst_lut_rfd11_guide.md`: Form GST RFD-11 Letter of Undertaking for 0% export GST on IT services without 18% IGST upfront under IGST Act Section 2(6) and Rule 96A.
+    * `form_w8ben_guide.md`: US Form W-8BEN treaty benefits under DTAA Article 12 / 15 eliminating 30% IRS backup withholding.
+    * `fira_wise_checklist.md`: Wise virtual US account corridor, RBI Purpose Code P0802, and digital e-FIRA archival.
+  - Built Senior SDET interview preparation blueprints (`docs/interview_prep/`):
+    * `system_design_for_testability.md`: Microservice contract testing (Pact), asynchronous Kafka event stream validation, Docker/K8s test sharding, and synthetic WireMock stubs.
+    * `senior_sdet_coding_patterns.md` & `code_patterns.py`: Concurrency-safe token bucket rate limiters, LRU cache with TTL, exponential backoff with full jitter, and recursive JSON contract schema diffing.
+  - Created and executed Verification Gate 69 (`verify/69_test_sprint4_global_remote_and_compliance.py`): 100% passed across location filters, compliance guides, and algorithmic pattern execution.
+  - Lint clean: 0 errors across 146 files.
+- **Phase 68: Sprint 3 Tiered Dual-Funnel Routing & 1-Click Referral Reconnaissance**:
+  - Implemented bifurcated Dual-Funnel routing separating high-velocity startup applications (Funnel 1) from Tier-1 Dream Organizations (Funnel 2).
+  - Built `ReferralNoteGenerator` (`src/tailor/referral_generator.py`) generating LinkedIn connection notes strictly $\le 300$ chars and InMail pitches strictly $\le 1000$ chars citing exact Requisition IDs (e.g. `R170647`, `8045905`), candidate architecture highlights (Playwright, TypeScript, Kafka event stream validation, Pact contract testing), and candidate portfolio (`https://manjunathhk.netlify.app/`).
+  - Added pre-scoped LinkedIn search links for target company Engineering Managers, QA Leads, and Alumni.
+  - Added `referral_outreach` table to SQLite (`src/storage/database.py`) with full lifecycle state transitions (`GENERATED` $\rightarrow$ `SENT` $\rightarrow$ `CONNECTED` $\rightarrow$ `REFERRED`).
+  - Added FastAPI endpoints (`/api/referral/generate/{job_id}`, `/api/referral/log`, `/api/referral/list`, `/api/referral/update-status`).
+  - Integrated amber/gold action buttons (`🤝 Generate Referral Note`), Glassmorphic Referral Modal with 1-click clipboard copy, and Cold-Apply Advisory Modal into Command Center UI.
+  - Created and executed Verification Gate 68 (`verify/68_test_sprint3_dual_funnel_and_referral_generator.py`): 100% passed across character boundaries, Requisition ID citation, STAR grounding, SQLite logging, and API endpoints. Lint clean: 0 errors across 140 files.
+- **Phase 67: Enhanced Filtering & Workday Multi-Term Ingestion Precision**:
+  - Engineered centralized filtering engine (`src/ingestion/filters.py`) with `is_sdet_title()` enforcing positive qualifications against negative exclusions (`product manager`, `engineering manager`, `it automation`, `search quality`, `database automation`, etc.) and `is_india_or_remote_location()` validating Indian tech hubs (Bengaluru, Pune, IND, Noida, Hyderabad) and Global Remote while rejecting foreign-only locations.
+  - Upgraded `WorkdayCollector` (`src/ingestion/workday.py`) to execute targeted multi-term search queries (`["SDET India", "QA India", "Software Engineer in Test India", "Automation India", "SDET"]`), eliminating US result flooding and discovering authentic Indian enterprise roles (e.g. Software Quality Engineer 5 @ Adobe Noida).
+  - Resolved Greenhouse `NoneType` metadata/location bugs for Figma and Stripe.
+  - Verification Gate 67 (`verify/67_test_sprint2_enhanced_filtering_and_workday.py`) passing 100%. Lint clean with 0 errors across 138 files.
 - **Phase 56b: Workday SPA Hydration Barrier, State Machine & Live Portal Verification**:
   - Implemented `_wait_for_workday_ready()` polling barrier that waits for Workday client framework hydration before triggering actions.
   - Built state machine transitions with post-condition assertions and bounded retries (up to 3x with scrolling).

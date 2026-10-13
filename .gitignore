@@ -12,6 +12,8 @@ __pycache__/
 
 # Candidate Personal Information, Profile & Private Notes
 singlepageresume.json
+Manjunathhkstandardresume.json
+*standardresume*.json
 data/resume_profile.json
 data/master_knowledge_bank.json
 data/candidate_notes.md
@@ -80,3 +82,7 @@ scratch/
 temp/
 tmp/
 *.tmp
+
+# Career Transition & Sprint Execution Plans
+docs/sprints/
+docs/CAREER_TRANSITION_ROADMAP.MD

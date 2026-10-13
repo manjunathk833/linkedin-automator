@@ -557,6 +557,16 @@ async def get_pending_jobs():
                     diff_payload["source"] = norm_source
                     diff_payload["application_type"] = norm_app_type
                     diff_payload["source_platform"] = norm_source.upper()
+
+                    # Dream Org priority flag resolution
+                    is_dream = bool(raw_payload.get("is_dream_org") or jd.get("is_dream_org"))
+                    if not is_dream:
+                        comp_name = jd.get("company", "")
+                        if comp_name and db.is_dream_company(comp_name):
+                            is_dream = True
+                    raw_payload["is_dream_org"] = is_dream
+                    diff_payload["is_dream_org"] = is_dream
+
                     diff_payload["standard_resume"] = master_profile
                     diff_payload["standard_pdf_url"] = "/api/pdf/standard"
                     diff_payload["preview_pdf_url"] = f"/api/pdf/preview/{raw_payload.get('job_id')}"
@@ -856,6 +866,7 @@ def clean_approved_queue_temp_data():
 
     applied_ids = ApplicationDatabase().get_applied_job_ids()
 
+    active_pdf_names = set()
     for fname in os.listdir(APPROVED_DIR):
         if fname == ".gitkeep":
             continue
@@ -867,14 +878,24 @@ def clean_approved_queue_temp_data():
                     os.remove(fpath)
                 except Exception:
                     pass
-        elif fname.endswith(".pdf"):
-            active_json_ids = {f.replace(".json", "") for f in os.listdir(APPROVED_DIR) if f.endswith(".json")}
-            is_active = any(aid in fname for aid in active_json_ids)
-            if not is_active:
+            else:
                 try:
-                    os.remove(fpath)
+                    with open(fpath, "r", encoding="utf-8") as fp:
+                        jp = json.load(fp)
+                    _, p_name = resolve_job_pdf_path(jid, jp)
+                    active_pdf_names.add(p_name)
+                    active_pdf_names.add(f"{jid}_resume.pdf")
                 except Exception:
                     pass
+
+    for fname in os.listdir(APPROVED_DIR):
+        if fname == ".gitkeep":
+            continue
+        if fname.endswith(".pdf") and fname not in active_pdf_names:
+            try:
+                os.remove(os.path.join(APPROVED_DIR, fname))
+            except Exception:
+                pass
 
 
 @app.post("/api/approved/cleanup")
@@ -1063,6 +1084,10 @@ async def get_approved_jobs():
 
                 norm_source, norm_app_type = normalize_job_source_metadata(payload)
 
+                is_dream = bool(payload.get("is_dream_org") or jd.get("is_dream_org"))
+                if not is_dream and jd.get("company"):
+                    is_dream = db.is_dream_company(jd.get("company"))
+
                 approved_jobs.append(
                     {
                         "job_id": job_id,
@@ -1071,6 +1096,7 @@ async def get_approved_jobs():
                         "location": jd.get("location", "Not specified"),
                         "source": norm_source,
                         "application_type": norm_app_type,
+                        "is_dream_org": is_dream,
                         "job_url": payload.get("url") or payload.get("job_url", ""),
                         "matched_keywords": payload.get("matched_keywords", []),
                         "has_pdf": os.path.exists(pdf_path),
@@ -1236,3 +1262,127 @@ async def trigger_unified_discovery(
             "message": f"Unified job discovery ({source}) completed successfully.",
             "source": source,
         }
+
+
+@app.post("/api/referral/generate/{job_id}")
+async def generate_referral_pack_endpoint(job_id: str, request: Request = None):
+    """
+    Generates a tailored referral reconnaissance pack (Connection note <300 chars,
+    InMail <1000 chars, and targeted LinkedIn search URLs) citing exact Requisition ID.
+    """
+    from src.tailor.referral_generator import ReferralNoteGenerator
+
+    recipient_name = "there"
+    if request:
+        try:
+            body = await request.json()
+            if isinstance(body, dict) and body.get("recipient_name"):
+                recipient_name = body["recipient_name"].strip()
+        except Exception:
+            pass
+
+    # Find job payload in pending or approved queues
+    payload = None
+    for qdir in [PENDING_DIR, APPROVED_DIR]:
+        path = os.path.join(qdir, f"{job_id}.json")
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    payload = json.load(f)
+                break
+            except Exception:
+                pass
+
+    if not payload:
+        # Check tracked_requisitions in SQLite
+        from src.storage.database import ApplicationDatabase
+
+        db = ApplicationDatabase()
+        reqs = db.get_tracked_requisitions(limit=500)
+        for r in reqs:
+            if r.get("requisition_id") == job_id or job_id in (r.get("job_url") or ""):
+                payload = {
+                    "job_id": job_id,
+                    "company_name": r.get("company_slug", "").capitalize(),
+                    "job_title": r.get("job_title", ""),
+                    "location": r.get("location", ""),
+                    "url": r.get("job_url", ""),
+                    "requisition_id": r.get("requisition_id", ""),
+                }
+                break
+
+    if not payload:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found in queues or tracked requisitions.")
+
+    pack = ReferralNoteGenerator.generate_referral_pack(payload, recipient_name=recipient_name)
+    pack["job_id"] = job_id
+    pack["is_dream_org"] = bool(payload.get("is_dream_org", True))
+    return {"status": "success", "referral_pack": pack}
+
+
+@app.post("/api/referral/log")
+async def log_referral_endpoint(request: Request):
+    """Logs a generated or sent referral outreach attempt into SQLite."""
+    from src.storage.database import ApplicationDatabase
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    job_id = body.get("job_id")
+    if not job_id:
+        raise HTTPException(status_code=400, detail="job_id is required")
+
+    db = ApplicationDatabase()
+    outreach_id = db.log_referral_outreach(
+        job_id=job_id,
+        company_name=body.get("company_name", ""),
+        job_title=body.get("job_title", ""),
+        outreach_type=body.get("outreach_type", "connection_note"),
+        note_content=body.get("note_content", ""),
+        requisition_id=body.get("requisition_id"),
+        contact_name=body.get("contact_name"),
+        contact_title=body.get("contact_title"),
+        contact_linkedin_url=body.get("contact_linkedin_url"),
+        status=body.get("status", "SENT"),
+    )
+    return {"status": "success", "outreach_id": outreach_id}
+
+
+@app.get("/api/referral/list")
+async def list_referral_outreach_endpoint(status: str | None = None, limit: int = 100):
+    """Retrieves all tracked referral outreach records from SQLite."""
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    records = db.get_referral_outreach(status=status, limit=limit)
+    return {"status": "success", "records": records, "count": len(records)}
+
+
+@app.post("/api/referral/update-status")
+async def update_referral_status_endpoint(request: Request):
+    """Updates the status and contact metadata of an existing referral outreach."""
+    from src.storage.database import ApplicationDatabase
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    outreach_id = body.get("outreach_id")
+    status = body.get("status")
+    if not outreach_id or not status:
+        raise HTTPException(status_code=400, detail="outreach_id and status are required")
+
+    db = ApplicationDatabase()
+    updated = db.update_referral_status(
+        outreach_id=outreach_id,
+        status=status,
+        contact_name=body.get("contact_name"),
+        contact_title=body.get("contact_title"),
+        contact_linkedin_url=body.get("contact_linkedin_url"),
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"Outreach record {outreach_id} not found")
+    return {"status": "success", "outreach_id": outreach_id, "new_status": status}

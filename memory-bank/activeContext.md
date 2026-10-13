@@ -3,6 +3,11 @@
 **Constraint:** Zero running costs. No paid scraping APIs. 100% authentic candidate data.
 
 **Current Operational Status:**
+- **Career Transition Architecture (Product SDET Track: ₹25–35+ LPA band):**
+  - **Sprint 1 Complete & Verified (Gate 65):** Modern tool whitelist expansion (`playwright`, `typescript`, `docker`, `kubernetes`, `k8s`, `kafka`, `wiremock`, `pact`), independent project boundary isolation (`## Technical Projects` in candidate notes), master knowledge bank sync (15 STAR achievements), Pydantic ResumeProfile schema compliance, and live automated Naukri Resdex daily pinger (`scripts/naukri_pinger.py`).
+  - **Sprint 2 Complete & Verified (Gates 66 & 67):** Dream Org Tracker & Keyless Workday CXS Engine: expanded `target_companies.json` to 56 product enterprises with 45 tagged `is_dream_org` targets and 13 Workday career site configurations; built keyless Candidate Experience Service (CXS) REST collector (`src/ingestion/workday.py`) supporting unauthenticated JSON polling, SDET/QA filtering, and pagination loop termination; integrated Workday into `ATSDiscoveryCoordinator`; added `tracked_requisitions` table to SQLite (`src/storage/database.py`) with deterministic SHA-256 change detection (`NEW` -> `ACTIVE` -> `UPDATED`); enhanced FastAPI endpoints (`/api/pending-jobs`, `/api/approved-jobs`) with Dream Org resolution; updated Command Center UI with prominent animated `⭐ Dream Org` badges (`.dream-pill`); updated multi-ATS CLI runner (`scripts/run_ingestion.py`) with `--provider` and `--dream-only` flags. In Gate 67, engineered centralized filtering engine (`src/ingestion/filters.py`) with `is_sdet_title` (positive matching + negative exclusions for PMs, EMs, IT Automation, Search Quality) and `is_india_or_remote_location` (Indian tech hubs including Bengaluru, Pune, IND, Noida, Hyderabad + foreign-only jurisdiction rejection); upgraded `WorkdayCollector` to multi-term search (`["SDET India", "QA India", "Software Engineer in Test India", "Automation India", "SDET"]`), eliminating US-flooding and discovering authentic Indian enterprise roles (e.g. Software Quality Engineer 5 @ Adobe Noida). Verified 100% via Verification Gate 67.
+  - **Sprint 3 Complete & Verified (Gate 68):** Referral Reconnaissance & Tiered Dual-Funnel Architecture: built bifurcated routing separating high-velocity startup applications (Funnel 1: Copilot pausing at review step) from Tier-1 Dream Enterprises (Funnel 2: Cold-apply lock + referral outreach); engineered `ReferralNoteGenerator` (`src/tailor/referral_generator.py`) producing LinkedIn connection notes strictly $\le 300$ chars and InMail pitches strictly $\le 1000$ chars citing exact Requisition IDs (e.g. `R170647`, `8045905`), candidate architecture proof of work (Playwright microservices, Kafka event streams, Pact contracts), and portfolio link (`manjunathhk.netlify.app`); created pre-scoped LinkedIn People search links for Engineering Managers, QA Leads, and Alumni; added `referral_outreach` table to SQLite (`src/storage/database.py`) tracking outreach states (`GENERATED` -> `SENT` -> `CONNECTED` -> `REFERRED`); built FastAPI endpoints (`/api/referral/generate/{job_id}`, `/api/referral/log`, `/api/referral/list`, `/api/referral/update-status`); integrated amber/gold action buttons (`🤝 Generate Referral Note`), Glassmorphic Referral Modal with 1-click clipboard copy, and Cold-Apply Advisory Modal into Command Center UI (`src/ui/templates/index.html`, `src/ui/static/app.js`, `src/ui/static/styles.css`). Verified 100% via Verification Gate 68.
+  - **Sprint 4 Complete & Verified (Gate 69):** US Remote Pipeline, Tax Architecture & Interview Loops: enhanced `src/ingestion/filters.py` and `src/filter/job_filter.py` with global remote location heuristics (`Worldwide`, `Remote (Global)`, `Remote - APAC`) and strict jurisdiction exclusion heuristics (`has_jurisdiction_restriction` eliminating US-citizenship-only, security clearance, and North America-only roles); built comprehensive independent contractor legal and tax compliance guides (`docs/tax_and_compliance/`) covering Section 44ADA 50% presumptive taxation (up to ₹75L gross under ITR-4, March 15 advance tax schedule), GST Letter of Undertaking (LUT) Form RFD-11 for 0% export GST on IT services, US Form W-8BEN treaty benefits (Article 12 / 15 for 0% US withholding), and FIRA/Wise inward remittance checklist with RBI Purpose Code P0802; established Senior SDET distributed architecture interview preparation blueprints (`docs/interview_prep/`) covering system design for testability (Pact consumer-driven contracts, Kafka event stream validation, Docker/K8s test sharding, WireMock stubs) and executable live coding patterns (`docs/interview_prep/code_patterns.py`) for concurrency-safe token bucket rate limiters, LRU cache with TTL, exponential backoff with full jitter, and JSON contract schema diffing. Verified 100% via Verification Gate 69 (`verify/69_test_sprint4_global_remote_and_compliance.py`).
 - Sprints 1–5 complete and verified across all modules (kinematics, CDP stealth, ATS ingestion, grounded tailoring, Typst compiler, assisted copilot, SQLite repository, rate governor).
 - Data reset completed: Runtime queues (`approved_queue/`, `resumes/`) and deduplication caches wiped; 30 fresh ATS jobs seeded into `pending_queue/` across target tech enterprises with upfront location warnings and rich metadata.
 - Resume profile & Master Knowledge Bank regenerated:
@@ -259,6 +264,37 @@
     - Created and executed Verification Gate 64 (`verify/64_test_source_badge_accuracy.py`), passing 100% across normalizer heuristics, API attribution, SQLite migration, and front-end CSS/JS contracts.
     - Regression verified across Gates 61, 62, 63, and 64 (100% pass).
     - Codebase linted cleanly via `python main.py lint` (0 errors across 131 files).
+  - Career Transition Architecture & Sprint 1 Stack Realignment (Gate 65):
+    - Added `docs/sprints/` and `docs/CAREER_TRANSITION_ROADMAP.MD` to `.gitignore`.
+    - Created detailed execution plans: `docs/sprints/sprint_1_plan.md`, `sprint_2_plan.md`, `sprint_3_plan.md`, `sprint_4_plan.md`.
+    - Enhanced Agent Architecture (`vision.md`, `critic_architect.md`, `02-agent-review-protocol.md`) to support modern product stack, tiered dual-funnel routing, and project-boundary governance.
+    - Expanded `data/profile/allowed_tools_whitelist.json`: whitelisted `playwright`, `typescript`, `docker`, `kubernetes`, `k8s`, `kafka`, `wiremock`, `pact` while preserving boundaries against unverified tools (`cypress`, `golang`, etc.).
+    - Added dedicated `## Technical Projects (Independent Architecture)` section in `data/candidate_notes.md` documenting independent test framework achievements without conflating them with Value Labs.
+    - Updated `scripts/regenerate_profile_and_knowledge.py` and `KnowledgeBankTranslator` (`src/tailor/knowledge_translator.py`); regenerated `data/resume_profile.json` and `data/master_knowledge_bank.json` (15 STAR achievements cleanly partitioned).
+    - Built daily Naukri Resdex visibility automation engine `scripts/naukri_pinger.py` using persistent Chrome context (`.browser_data/`).
+    - Created and executed Verification Gate 65 (`verify/65_test_sprint1_stack_and_inbound.py`), passing 100%.
+    - Full regression passing (Gates 63, 64, 65).
+    - Codebase linted cleanly via `python main.py lint` (0 errors across 133 files).
+  - Standardized Multi-Tier Regression Test Suite & Agent Governance Gate:
+    - Queues wiped clean (`data/pending_queue/*.json`, `data/approved_queue/*.json`, `data/resumes/preview_*.pdf` removed, `.gitkeep` preserved, `data/processed_jobs.json` reset).
+    - Created `verify/run_regressions.py` implementing tiered execution: Tier 1 Core (48 self-contained unit/logic/schema/API tests running in <45s), Tier 2 Autofill (18 Playwright form automation tests), and Tier 3 Live (Google Gemini rate pacer, live career portal tests).
+    - Modernized regression tests:
+      * Fixed `src/ui/app.py` `clean_approved_queue_temp_data` to resolve candidate professional PDFs via `resolve_job_pdf_path()`.
+      * Updated `src/tailor/resume_tailorer.py` with modern whitelisted keywords (`Playwright`, `TypeScript`, `Kafka`, `Pact`, `Kubernetes`, `WireMock`).
+      * Updated `verify/03_test_approval_gate.py` to assert professional resume naming token.
+      * Guarded socket port in `verify/04_test_playwright_cdp_connect.py`.
+      * Updated URL generators in `verify/08`, `10`, `13` to pass `easy_apply_only=True`.
+      * Updated CLI help assertions in `verify/11_test_main_orchestrator.py`.
+      * Replaced whitelisted tools in `verify/25` and `33` with genuine disallowed tools (`Cypress`, `Golang`, `Terraform`).
+      * Added self-contained ephemeral fixtures with `try...finally` cleanup across `verify/34`, `52`, `53`, `54`, and `64`.
+      * Added fallback audits in `verify/06` and `33` for canonical `data/resume_profile.json`.
+      * Adjusted rate pacer tolerance to 3.8s in `verify/50` and moved it to Tier 3 Live.
+    - Added CLI command `python main.py test [--tier core|autofill|all] [--live]`.
+    - Added Rule 8 to `.agents/rules/00-core-instructions.md` and updated Critic Architect lens in `.agents/rules/02-agent-review-protocol.md`.
+    - Executed `python main.py test --tier core`: **48/48 PASSED (100% SUCCESS)** in 43.19s.
+    - Executed `python main.py lint`: **0 errors across 148 files**.
+
+
 
 
 

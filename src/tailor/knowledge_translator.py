@@ -98,6 +98,11 @@ class KnowledgeBankTranslator:
                         "Locust",
                         "Kafka",
                         "Playwright",
+                        "TypeScript",
+                        "Docker",
+                        "Kubernetes",
+                        "WireMock",
+                        "Pact",
                     ]:
                         if kw.lower() in b.lower():
                             tools.append(kw)

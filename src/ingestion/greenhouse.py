@@ -10,17 +10,11 @@ import re
 
 import httpx
 
+from src.ingestion.filters import (
+    is_india_or_remote_location,
+    is_sdet_title,
+)
 from src.storage.models import JobListing
-
-SDET_TITLE_REGEX = re.compile(
-    r"\b(sdet|qa|quality|test|automation|software engineer in test)\b",
-    re.IGNORECASE,
-)
-
-INDIA_LOCATION_REGEX = re.compile(
-    r"\b(bengaluru|bangalore|india|remote|hybrid|anywhere)\b",
-    re.IGNORECASE,
-)
 
 
 def clean_html_description(raw_html: str) -> str:
@@ -63,19 +57,29 @@ class GreenhouseCollector:
             raw_jobs = data.get("jobs", [])
             for job in raw_jobs:
                 title = job.get("title", "")
-                location_name = job.get("location", {}).get("name", "")
+                loc_obj = job.get("location") or {}
+                location_name = loc_obj.get("name", "") if isinstance(loc_obj, dict) else str(loc_obj)
+                meta_list = job.get("metadata") or []
 
                 # Filtering for SDET / QA profile
-                if filter_sdet and not SDET_TITLE_REGEX.search(title):
+                if filter_sdet and not is_sdet_title(title):
                     continue
 
                 # Filtering location for India or Remote
-                if (
-                    filter_sdet
-                    and not INDIA_LOCATION_REGEX.search(location_name)
-                    and not any(INDIA_LOCATION_REGEX.search(str(m.get("value") or "")) for m in job.get("metadata", []))
-                ):
-                    continue
+                if filter_sdet:
+                    has_matching_loc = is_india_or_remote_location(location_name)
+                    if not has_matching_loc and isinstance(meta_list, list):
+                        has_matching_loc = any(
+                            is_india_or_remote_location(str(m.get("value") or ""))
+                            for m in meta_list
+                            if isinstance(m, dict)
+                            and any(
+                                k in str(m.get("name") or "").lower()
+                                for k in ["location", "country", "workplace", "region", "city"]
+                            )
+                        )
+                    if not has_matching_loc:
+                        continue
 
                 job_id = str(job.get("id"))
                 raw_content = job.get("content", "")

@@ -26,3 +26,7 @@ You are the **Critic Architect** for the LinkedIn Job Search Automation platform
 4. **CLI Subparser & Pipeline Modular Integrity:**
    - Enforce clean subcommand architecture (`argparse.add_subparsers()`) in `main.py`.
    - Ensure all pipeline stages exist as pure, decoupled Python modules in `src/` so they can be run either standalone via subcommands (`python main.py search`, `python main.py sync`) or chained sequentially inside `JobSearchPipelineRunner` (`python main.py run`).
+
+5. **Candidate Integrity & Boundary Isolation Governance:**
+   - Audit whitelist expansions to ensure candidate tools are legitimate and grounded in `data/candidate_notes.md`.
+   - Strictly guard company boundaries: modern independent test architecture bullets must reside in `Technical Projects` without cross-contaminating Value Labs, Dunzo, or Tata Elxsi.

@@ -16,3 +16,9 @@ Run `python main.py sync-knowledge` to automatically translate these notes into 
 - Designed a BDD automation framework using Python, Appium, and TestRail API; automated ~50% of sanity suite, saving ~5 man-days/month across Web and Mobile platforms.
 - Contributed to a ₹100Cr OTT app under Agile SDLC; directly improved iOS App Store rating from 1.9 to 3.5 through systematic API and stability testing.
 - Performed domain API, stability, and KPI testing for Web and iOS platforms using Charles Proxy, Postman, and Burp Suite with zero high-priority KPI degradations.
+
+## Technical Projects (Independent Architecture)
+- Designed and engineered a modular Playwright + TypeScript test automation framework featuring parallel test execution, multi-browser sharding, and containerized Docker runners for reproducible CI/CD execution.
+- Implemented API contract testing using Pact and WireMock service virtualization, enabling isolated microservice validation and consumer-driven contract verification across distributed endpoints.
+- Engineered asynchronous event-driven validation pipelines for Kafka message queues, validating schema integrity, event serialization, and processing latency under simulated loads.
+- Containerized and orchestrated test execution environments using Docker and Kubernetes, enabling ephemeral test runners in CI workflows with 75% faster feedback cycles.

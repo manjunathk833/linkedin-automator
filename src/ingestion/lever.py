@@ -9,17 +9,11 @@ import re
 
 import httpx
 
+from src.ingestion.filters import (
+    is_india_or_remote_location,
+    is_sdet_title,
+)
 from src.storage.models import JobListing
-
-SDET_TITLE_REGEX = re.compile(
-    r"\b(sdet|qa|quality|test|automation|software engineer in test)\b",
-    re.IGNORECASE,
-)
-
-INDIA_LOCATION_REGEX = re.compile(
-    r"\b(bengaluru|bangalore|india|remote|hybrid|anywhere)\b",
-    re.IGNORECASE,
-)
 
 
 class LeverCollector:
@@ -54,20 +48,17 @@ class LeverCollector:
 
             for post in postings:
                 title = post.get("text", "")
-                categories = post.get("categories", {})
+                categories = post.get("categories", {}) or {}
                 location_name = categories.get("location", "")
                 workplace_type = post.get("workplaceType", "")
+                combined_loc = f"{location_name} {workplace_type}".strip()
 
                 # Filtering for SDET / QA profile
-                if filter_sdet and not SDET_TITLE_REGEX.search(title):
+                if filter_sdet and not is_sdet_title(title):
                     continue
 
                 # Filtering location for India or Remote
-                if (
-                    filter_sdet
-                    and not INDIA_LOCATION_REGEX.search(location_name)
-                    and workplace_type.lower() != "remote"
-                ):
+                if filter_sdet and not is_india_or_remote_location(combined_loc):
                     continue
 
                 post_id = str(post.get("id"))

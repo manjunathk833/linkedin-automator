@@ -57,6 +57,44 @@ class ApplicationDatabase:
                     date_bucket TEXT PRIMARY KEY,
                     submission_count INTEGER DEFAULT 0
                 );
+
+                CREATE TABLE IF NOT EXISTS tracked_requisitions (
+                    requisition_id TEXT PRIMARY KEY,
+                    company_slug TEXT NOT NULL,
+                    ats_provider TEXT NOT NULL,
+                    job_title TEXT NOT NULL,
+                    location TEXT NOT NULL,
+                    job_url TEXT NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    is_dream_org INTEGER DEFAULT 0,
+                    status TEXT DEFAULT 'ACTIVE',
+                    first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_tracked_req_company ON tracked_requisitions(company_slug);
+                CREATE INDEX IF NOT EXISTS idx_tracked_req_dream ON tracked_requisitions(is_dream_org);
+                CREATE INDEX IF NOT EXISTS idx_tracked_req_status ON tracked_requisitions(status);
+
+                CREATE TABLE IF NOT EXISTS referral_outreach (
+                    outreach_id TEXT PRIMARY KEY,
+                    job_id TEXT NOT NULL,
+                    company_name TEXT NOT NULL,
+                    job_title TEXT NOT NULL,
+                    requisition_id TEXT,
+                    contact_name TEXT,
+                    contact_title TEXT,
+                    contact_linkedin_url TEXT,
+                    outreach_type TEXT NOT NULL,
+                    note_content TEXT NOT NULL,
+                    status TEXT DEFAULT 'GENERATED',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_referral_outreach_job ON referral_outreach(job_id);
+                CREATE INDEX IF NOT EXISTS idx_referral_outreach_company ON referral_outreach(company_name);
+                CREATE INDEX IF NOT EXISTS idx_referral_outreach_status ON referral_outreach(status);
                 """
             )
 
@@ -256,5 +294,275 @@ class ApplicationDatabase:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM job_applications WHERE id = ?", (job_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def compute_requisition_hash(job_title: str, location: str, description_clean: str) -> str:
+        """Computes deterministic SHA-256 hash for requisition change detection."""
+        norm_title = (job_title or "").strip().lower()
+        norm_loc = (location or "").strip().lower()
+        norm_desc = (description_clean or "").strip()
+        payload = f"{norm_title}|{norm_loc}|{norm_desc}"
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def sync_requisition(
+        self,
+        requisition_id: str,
+        company_slug: str,
+        ats_provider: str,
+        job_title: str,
+        location: str,
+        job_url: str,
+        description_clean: str,
+        is_dream_org: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Synchronizes a requisition into tracked_requisitions using SHA-256 change detection.
+        Returns state dict: status ('NEW' | 'ACTIVE' | 'UPDATED'), is_changed flag, and content_hash.
+        """
+        content_hash = self.compute_requisition_hash(job_title, location, description_clean)
+        now_ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        dream_flag = 1 if is_dream_org else 0
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT requisition_id, content_hash, status FROM tracked_requisitions WHERE requisition_id = ?",
+                (requisition_id,),
+            )
+            row = cursor.fetchone()
+
+            if not row:
+                # Newly published requisition
+                cursor.execute(
+                    """
+                    INSERT INTO tracked_requisitions (
+                        requisition_id, company_slug, ats_provider, job_title,
+                        location, job_url, content_hash, is_dream_org, status,
+                        first_seen_at, last_seen_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?)
+                    """,
+                    (
+                        requisition_id,
+                        company_slug,
+                        ats_provider,
+                        job_title,
+                        location,
+                        job_url,
+                        content_hash,
+                        dream_flag,
+                        now_ts,
+                        now_ts,
+                    ),
+                )
+                conn.commit()
+                return {
+                    "requisition_id": requisition_id,
+                    "status": "NEW",
+                    "is_changed": True,
+                    "content_hash": content_hash,
+                }
+
+            prev_hash = row["content_hash"]
+            if prev_hash == content_hash:
+                # Unchanged active requisition
+                cursor.execute(
+                    """
+                    UPDATE tracked_requisitions
+                    SET last_seen_at = ?, status = 'ACTIVE'
+                    WHERE requisition_id = ?
+                    """,
+                    (now_ts, requisition_id),
+                )
+                conn.commit()
+                return {
+                    "requisition_id": requisition_id,
+                    "status": "ACTIVE",
+                    "is_changed": False,
+                    "content_hash": content_hash,
+                }
+            else:
+                # Content changed (e.g. updated job description/requirements)
+                cursor.execute(
+                    """
+                    UPDATE tracked_requisitions
+                    SET content_hash = ?, last_seen_at = ?, status = 'UPDATED'
+                    WHERE requisition_id = ?
+                    """,
+                    (content_hash, now_ts, requisition_id),
+                )
+                conn.commit()
+                return {
+                    "requisition_id": requisition_id,
+                    "status": "UPDATED",
+                    "is_changed": True,
+                    "content_hash": content_hash,
+                }
+
+    def get_tracked_requisitions(
+        self,
+        is_dream_only: bool = False,
+        status_filter: str | None = None,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        """Retrieves tracked requisitions filtered by dream status or lifecycle state."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            query = "SELECT * FROM tracked_requisitions"
+            conditions = []
+            params: list[Any] = []
+
+            if is_dream_only:
+                conditions.append("is_dream_org = 1")
+            if status_filter:
+                conditions.append("status = ?")
+                params.append(status_filter)
+
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+
+            query += " ORDER BY last_seen_at DESC LIMIT ?"
+            params.append(limit)
+
+            cursor.execute(query, tuple(params))
+            return [dict(r) for r in cursor.fetchall()]
+
+    def is_dream_company(self, company_name_or_slug: str) -> bool:
+        """Checks if a company is categorized as an elite Dream Org."""
+        target = company_name_or_slug.strip().lower()
+        # 1. Check tracked_requisitions in SQLite
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT 1 FROM tracked_requisitions WHERE (LOWER(company_slug) = ? OR LOWER(job_title) LIKE ?) AND is_dream_org = 1 LIMIT 1",
+                (target, f"%{target}%"),
+            )
+            if cursor.fetchone():
+                return True
+
+        # 2. Check target_companies.json
+        cfg_path = os.path.join(PROJECT_ROOT, "data", "config", "target_companies.json")
+        if os.path.exists(cfg_path):
+            try:
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    companies = json.load(f)
+                for c in companies:
+                    if (c.get("slug", "").lower() == target or c.get("name", "").lower() == target) and c.get(
+                        "is_dream_org"
+                    ):
+                        return True
+            except Exception:
+                pass
+        return False
+
+    def log_referral_outreach(
+        self,
+        job_id: str,
+        company_name: str,
+        job_title: str,
+        outreach_type: str,
+        note_content: str,
+        requisition_id: str | None = None,
+        contact_name: str | None = None,
+        contact_title: str | None = None,
+        contact_linkedin_url: str | None = None,
+        status: str = "GENERATED",
+    ) -> str:
+        """Logs a generated referral connection note or InMail into SQLite."""
+        outreach_id = (
+            f"ref_{job_id}_{hashlib.md5(f'{outreach_type}:{datetime.datetime.utcnow()}'.encode()).hexdigest()[:8]}"
+        )
+        now = datetime.datetime.utcnow().isoformat() + "Z"
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO referral_outreach (
+                    outreach_id, job_id, company_name, job_title, requisition_id,
+                    contact_name, contact_title, contact_linkedin_url, outreach_type,
+                    note_content, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    outreach_id,
+                    job_id,
+                    company_name,
+                    job_title,
+                    requisition_id,
+                    contact_name,
+                    contact_title,
+                    contact_linkedin_url,
+                    outreach_type,
+                    note_content,
+                    status,
+                    now,
+                    now,
+                ),
+            )
+            conn.commit()
+        return outreach_id
+
+    def get_referral_outreach(
+        self,
+        outreach_id: str | None = None,
+        job_id: str | None = None,
+        status: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Retrieves logged referral outreach records with optional filtering."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            query = "SELECT * FROM referral_outreach"
+            conditions = []
+            params: list[Any] = []
+
+            if outreach_id:
+                conditions.append("outreach_id = ?")
+                params.append(outreach_id)
+            if job_id:
+                conditions.append("job_id = ?")
+                params.append(job_id)
+            if status:
+                conditions.append("status = ?")
+                params.append(status)
+
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+
+            query += " ORDER BY created_at DESC LIMIT ?"
+            params.append(limit)
+
+            cursor.execute(query, tuple(params))
+            return [dict(r) for r in cursor.fetchall()]
+
+    def update_referral_status(
+        self,
+        outreach_id: str,
+        status: str,
+        contact_name: str | None = None,
+        contact_title: str | None = None,
+        contact_linkedin_url: str | None = None,
+    ) -> bool:
+        """Updates the status and optional contact metadata of an existing referral outreach."""
+        now = datetime.datetime.utcnow().isoformat() + "Z"
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            updates = ["status = ?", "updated_at = ?"]
+            params: list[Any] = [status, now]
+
+            if contact_name is not None:
+                updates.append("contact_name = ?")
+                params.append(contact_name)
+            if contact_title is not None:
+                updates.append("contact_title = ?")
+                params.append(contact_title)
+            if contact_linkedin_url is not None:
+                updates.append("contact_linkedin_url = ?")
+                params.append(contact_linkedin_url)
+
+            params.append(outreach_id)
+            query = f"UPDATE referral_outreach SET {', '.join(updates)} WHERE outreach_id = ?"
+            cursor.execute(query, tuple(params))
             conn.commit()
             return cursor.rowcount > 0

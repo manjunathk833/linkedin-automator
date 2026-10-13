@@ -6,11 +6,24 @@ and verifies we can control it programmatically.
 
 import asyncio
 import os
+import socket
 
 from playwright.async_api import async_playwright
 
 
+def is_cdp_port_open(port: int = 9222) -> bool:
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+            return True
+    except OSError:
+        return False
+
+
 async def test_cdp_connection():
+    if not is_cdp_port_open(9222):
+        print("⚠️ Chrome is not running on CDP port 9222. Skipping live CDP connection test.")
+        return
+
     async with async_playwright() as p:
         print("🔗 Connecting to Chrome via CDP on localhost:9222...")
         browser = await p.chromium.connect_over_cdp("http://localhost:9222")

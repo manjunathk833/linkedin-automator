@@ -21,16 +21,36 @@ from src.resume_store.models import ResumeProfile
 from src.tailor.fabrication_detector import FabricationDetector
 from src.tailor.resume_tailorer import ResumeTailorer
 
+_IS_EPHEMERAL = False
+_EPHEMERAL_PATH = None
+
 
 def find_sample_queued_job() -> str | None:
-    """Returns path to first queued job JSON in pending_queue."""
+    """Returns path to first queued job JSON in pending_queue, or creates an ephemeral mock fixture."""
+    global _IS_EPHEMERAL, _EPHEMERAL_PATH
     queue_dir = os.path.join(PROJECT_ROOT, "data", "pending_queue")
-    if not os.path.exists(queue_dir):
-        return None
+    os.makedirs(queue_dir, exist_ok=True)
     for fname in os.listdir(queue_dir):
-        if fname.endswith(".json"):
+        if fname.endswith(".json") and not fname.startswith("test_ephemeral"):
             return os.path.join(queue_dir, fname)
-    return None
+
+    # Create ephemeral fixture if queue is clean
+    _IS_EPHEMERAL = True
+    _EPHEMERAL_PATH = os.path.join(queue_dir, "test_ephemeral_sample_gate34.json")
+    mock_data = {
+        "job_id": "test_ephemeral_gate34_001",
+        "job_details": {
+            "title": "Senior SDET",
+            "company": "Acme Corp",
+            "location": "Bengaluru, India",
+            "description": "Seeking Senior SDET with experience in Playwright, TypeScript, and API automation.",
+            "requirements": "5+ years experience in automated testing, CI/CD, and API contract testing.",
+        },
+        "application_type": "EASY_APPLY",
+    }
+    with open(_EPHEMERAL_PATH, "w", encoding="utf-8") as f:
+        json.dump(mock_data, f, indent=2)
+    return _EPHEMERAL_PATH
 
 
 def test_raw_queued_job_structure():
@@ -136,6 +156,12 @@ if __name__ == "__main__":
     sample_path, raw_data = test_raw_queued_job_structure()
     tailored_result = test_tailoring_injection(raw_data)
     test_fabrication_check(tailored_result)
+
+    if _IS_EPHEMERAL and _EPHEMERAL_PATH and os.path.exists(_EPHEMERAL_PATH):
+        try:
+            os.remove(_EPHEMERAL_PATH)
+        except OSError:
+            pass
 
     print("\n✅ ALL VERIFY GATE 34 CHECKS COMPLETED SUCCESSFULLY!")
     print("   Dashboard data flow: Ingestion → Tailoring → Display is verified.")
