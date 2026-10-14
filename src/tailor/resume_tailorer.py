@@ -85,7 +85,7 @@ class ResumeTailorer:
         vault_by_company: dict[str, list[dict]] = {}
         for item in master_vault:
             c_name = item.get("company", "").strip()
-            norm = "Value Labs" if "Value Labs" in c_name else c_name
+            norm = "Value Labs" if "value" in c_name.lower() else c_name
             vault_by_company.setdefault(norm, []).append(item)
 
         any_ai_applied = False
@@ -94,7 +94,7 @@ class ResumeTailorer:
         # Tailor each experience block strictly within its own company scope
         for exp in tailored_data.get("experience_history", []):
             comp_raw = exp.get("company", "").strip()
-            comp_norm = "Value Labs" if "Value Labs" in comp_raw else comp_raw
+            comp_norm = "Value Labs" if "value" in comp_raw.lower() else comp_raw
             comp_vault = vault_by_company.get(comp_norm, [])
             canonical_bullets = exp.get("achievements", [])
             tailored_bullets = []

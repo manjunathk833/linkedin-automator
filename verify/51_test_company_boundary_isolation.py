@@ -84,7 +84,7 @@ def test_company_boundary_isolation():
 
     # Check Value Labs (exp[0])
     vl_exp = tailored_exps[0]
-    assert vl_exp["company"] == "Value Labs"
+    assert vl_exp["company"] in ["Value Labs", "ValueLabs"]
     vl_bullets = vl_exp["achievements"]
     print(f"   Value Labs achievements count: {len(vl_bullets)}")
     for b in vl_bullets:

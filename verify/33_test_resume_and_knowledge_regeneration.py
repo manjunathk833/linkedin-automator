@@ -1,7 +1,7 @@
 """
 Verification Gate 33: Test Resume and Master Knowledge Bank Regeneration
 Ensures:
-1. singlepageresume.json is completely sanitized (0 Playwright mentions).
+1. Manjunathhkstandardresume.json is completely sanitized (0 Cypress/Golang mentions).
 2. data/resume_profile.json strictly complies with Pydantic ResumeProfile schema.
 3. data/master_knowledge_bank.json contains grounded STAR achievements with zero hallucinations.
 4. Full test suite compatibility with verify/02, verify/06, and verify/25.
@@ -21,13 +21,14 @@ from src.resume_store.models import ResumeProfile
 from src.tailor.fabrication_detector import FabricationDetector
 
 
-def test_singlepageresume_sanitization():
-    resume_path = os.path.join(PROJECT_ROOT, "singlepageresume.json")
-    if os.path.exists(resume_path):
-        with open(resume_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        assert "cypress" not in content.lower(), "Disallowed tool found in singlepageresume.json!"
-    print("✅ singlepageresume.json sanitization/migration verified.")
+def test_standard_resume_sanitization():
+    resume_path = os.path.join(PROJECT_ROOT, "Manjunathhkstandardresume.json")
+    assert os.path.exists(resume_path), "Manjunathhkstandardresume.json not found!"
+    with open(resume_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    assert "cypress" not in content.lower(), "Disallowed tool Cypress found in standard resume!"
+    assert "golang" not in content.lower(), "Disallowed tool Golang found in standard resume!"
+    print("✅ Manjunathhkstandardresume.json sanitization verified: 0 unverified tools.")
 
 
 def test_resume_profile_validation():
@@ -101,7 +102,7 @@ if __name__ == "__main__":
     print("\n=======================================================")
     print("   RUNNING VERIFY GATE 33: RESUME & KNOWLEDGE REGEN    ")
     print("=======================================================\n")
-    test_singlepageresume_sanitization()
+    test_standard_resume_sanitization()
     # Profile and bank tests will run once regenerated
     if os.path.exists("data/resume_profile.json") and os.path.exists("data/master_knowledge_bank.json"):
         test_resume_profile_validation()
