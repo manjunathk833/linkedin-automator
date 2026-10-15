@@ -12,6 +12,10 @@ def test_resume_profile():
     json_path = os.path.join(os.path.dirname(__file__), "..", "data", "resume_profile.json")
     print(f"Loading data from {json_path}...")
 
+    if not os.path.exists(json_path):
+        from verify.synthetic_mock_fixtures import deploy_mock_fixtures_if_missing
+
+        deploy_mock_fixtures_if_missing()
     with open(json_path, "r") as f:
         data = json.load(f)
 

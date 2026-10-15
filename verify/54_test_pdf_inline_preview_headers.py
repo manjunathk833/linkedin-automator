@@ -39,7 +39,11 @@ def test_pdf_inline_headers():
     print("✅ /api/pdf/standard has valid inline disposition!")
 
     # 2. Test /api/pdf/preview/{job_id}?version=tailored
-    pending_files = glob.glob(os.path.join(PROJECT_ROOT, "data", "pending_queue", "*.json"))
+    pending_files = [
+        f
+        for f in glob.glob(os.path.join(PROJECT_ROOT, "data", "pending_queue", "*.json"))
+        if not os.path.basename(f).startswith("test_ephemeral")
+    ]
     is_ephemeral = False
     ephemeral_file = None
     if not pending_files:

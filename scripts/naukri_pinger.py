@@ -179,7 +179,8 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Simulate execution without modifying live profile")
     args = parser.parse_args()
 
-    result = asyncio.run(run_naukri_pinger(headless=args.headless, dry_run=args.dry_run))
+    is_headless = args.headless or bool(os.getenv("CI"))
+    result = asyncio.run(run_naukri_pinger(headless=is_headless, dry_run=args.dry_run))
     if result.get("status") in ("SUCCESS", "dry_run"):
         print("\n🎉 Naukri daily visibility pinger completed successfully.")
         sys.exit(0)

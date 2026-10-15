@@ -163,22 +163,59 @@ def test_api_approved_jobs_attribution():
 
 def test_api_tracking_applied_attribution():
     print("--- 3. Testing /api/tracking/applied Attribution & SQLite ---")
-    res = asyncio.run(get_applied_tracking())
-    stats = res.get("stats", {})
-    sources = stats.get("sources", {})
+    from src.storage.database import ApplicationDatabase
 
-    print(f"  Tracked sources breakdown: {sources}")
-    assert "manual" not in sources or sources["manual"] == 0, (
-        f"Legacy 'manual' source detected in SQLite stats: {sources}"
-    )
-    assert sources.get("linkedin", 0) > 0, "LinkedIn applications must be explicitly attributed"
-    assert sources.get("greenhouse", 0) > 0, "Greenhouse applications must be explicitly attributed"
+    db = ApplicationDatabase()
+    seeded_ids = []
+    try:
+        # Seed test records if running on empty CI database
+        current_stats = db.get_application_stats()
+        if current_stats.get("total_applied", 0) == 0:
+            db.record_application(
+                job_id="fixture_linkedin_001",
+                source="linkedin",
+                company_name="Test LinkedIn Co",
+                job_title="Lead SDET",
+                job_url="https://linkedin.com/jobs/view/123",
+                resume_path="/dummy.pdf",
+                tailored_data={"summary": "Mock"},
+                status="applied",
+            )
+            seeded_ids.append("fixture_linkedin_001")
+            db.record_application(
+                job_id="fixture_greenhouse_001",
+                source="greenhouse",
+                company_name="Test Greenhouse Co",
+                job_title="Senior QA Engineer",
+                job_url="https://boards.greenhouse.io/test/jobs/456",
+                resume_path="/dummy.pdf",
+                tailored_data={"summary": "Mock"},
+                status="applied",
+            )
+            seeded_ids.append("fixture_greenhouse_001")
 
-    for app in res.get("applications", []):
-        src = app.get("source")
-        assert src != "manual", f"Application {app.get('id')} has unmigrated 'manual' source"
+        res = asyncio.run(get_applied_tracking())
+        stats = res.get("stats", {})
+        sources = stats.get("sources", {})
 
-    print("✅ Tracking applied attribution & SQLite migration verified.\n")
+        print(f"  Tracked sources breakdown: {sources}")
+        assert "manual" not in sources or sources["manual"] == 0, (
+            f"Legacy 'manual' source detected in SQLite stats: {sources}"
+        )
+        assert sources.get("linkedin", 0) > 0, "LinkedIn applications must be explicitly attributed"
+        assert sources.get("greenhouse", 0) > 0, "Greenhouse applications must be explicitly attributed"
+
+        for app in res.get("applications", []):
+            src = app.get("source")
+            assert src != "manual", f"Application {app.get('id')} has unmigrated 'manual' source"
+
+        print("✅ Tracking applied attribution & SQLite migration verified.\n")
+    finally:
+        for sid in seeded_ids:
+            try:
+                db.delete_application(sid)
+            except Exception:
+                pass
 
 
 def test_css_and_js_badge_contracts():

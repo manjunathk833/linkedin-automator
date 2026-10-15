@@ -15,6 +15,20 @@ def run_detailed_audit():
     src_path = os.path.join(root, "Manjunathhkstandardresume.json")
     mapped_path = os.path.join(root, "data", "resume_profile.json")
 
+    if not os.path.exists(src_path):
+        print(f"ℹ️ Private source resume not found at {src_path} (CI/clean clone environment).")
+        print("   Validating data/resume_profile.json schema directly...")
+        if not os.path.exists(mapped_path):
+            from verify.synthetic_mock_fixtures import deploy_mock_fixtures_if_missing
+
+            deploy_mock_fixtures_if_missing()
+        with open(mapped_path, "r", encoding="utf-8") as f:
+            mapped = json.load(f)
+        assert "personal_details" in mapped
+        assert "experience_history" in mapped
+        print("✅ Schema valid for CI environment. Skipping private candidate 1:1 comparison.")
+        return
+
     with open(src_path) as f:
         src = json.load(f)
     with open(mapped_path) as f:

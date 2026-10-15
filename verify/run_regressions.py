@@ -23,6 +23,27 @@ import time
 from typing import NamedTuple
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+
+def ensure_regression_test_fixtures():
+    """
+    Ensures baseline fixtures exist for CI/headless environments where
+    private candidate data is gitignored. Uses programmatic zero-secret generator.
+    """
+    from verify.synthetic_mock_fixtures import deploy_mock_fixtures_if_missing
+
+    deploy_mock_fixtures_if_missing()
+
+    # Initialize SQLite app_database.db schema
+    try:
+        from src.storage.database import ApplicationDatabase
+
+        ApplicationDatabase()
+    except Exception as e:
+        print(f"   ⚠️ Database initialization warning: {e}")
+
 
 # Test Classification Mapping
 TIER_1_CORE = [
@@ -162,6 +183,7 @@ def main():
         help="Per-test timeout in seconds (default: 25.0s)",
     )
     args = parser.parse_args()
+    ensure_regression_test_fixtures()
 
     tests_to_run: list[str] = []
     if args.tier in ("core", "all"):

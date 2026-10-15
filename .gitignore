@@ -72,6 +72,7 @@ Thumbs.db
 
 # Verification Scratch / Logs / Temp Media
 *.log
+cirunlog.md
 data/logs/*.log
 data/logs/*.jsonl
 data/logs/*.html

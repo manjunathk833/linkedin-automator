@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from enum import Enum
 
-from pydantic import BaseModel, EmailStr, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 # --- Enums ---
 
@@ -161,7 +161,7 @@ class ResumeProfile(BaseModel):
     skills_matrix: (
         dict[str, list[str]] | dict[str, int]
     )  # skill category -> List[str] OR skill name -> years of experience
-    easy_apply_answers: EasyApplyAnswers
+    easy_apply_answers: EasyApplyAnswers = Field(default_factory=EasyApplyAnswers)
 
     def get_years_of_experience(self, skill: str) -> int:
         """Look up years of experience for a given skill (case-insensitive)."""

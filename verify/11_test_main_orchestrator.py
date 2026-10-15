@@ -39,6 +39,9 @@ def test_orchestrator_pipeline():
     # 3. Test application_history.json structure
     print("\n🔍 Step 3: Testing data/application_history.json...")
     hist_path = os.path.join(os.path.dirname(__file__), "..", "data", "application_history.json")
+    if not os.path.exists(hist_path):
+        with open(hist_path, "w", encoding="utf-8") as f:
+            f.write("[]\n")
     assert os.path.exists(hist_path)
     with open(hist_path, "r") as f:
         hist_data = json.load(f)
