@@ -48,15 +48,46 @@ cp .env.example .env
 | `python main.py filter` | Scans `data/pending_queue/`, purges underqualified (<4 yrs) or overqualified (>10 yrs) listings, and updates `data/processed_jobs.json`. | None |
 | `python main.py apply` | Executes Easy Apply automation on approved jobs in `data/approved_queue/`. | `--dry-run`: (Default: True) Fills forms and halts.<br/>`--no-dry-run`: Live submission. |
 | `python main.py login` | Launches persistent headful Chrome to log into LinkedIn manually. Session cookies are automatically saved to `.browser_data/`. | None |
+| `python main.py session` | Inspects or exports portable Playwright storageState cookies (`storage_state.json`). | `status` (default): Checks auth.<br/>`export`: Exports storageState. |
+| `python main.py daily` | Runs automated morning workflow: regression checks $\rightarrow$ unified search $\rightarrow$ STAR tailoring $\rightarrow$ executive email $\rightarrow$ dashboard. | `run` (default): Executes morning pipeline.<br/>`audit`: Shows recent run telemetry.<br/>`diagnose`: Full environment, session, and daemon check.<br/>`--headless`: Headless browser.<br/>`--no-email`: Skip email.<br/>`--skip-tests`: Skip pre-run tests. |
+| `python main.py test` | Executes standardized regression gates across 49+ tests. | `--tier core` (default): Fast unit/schema/API tests.<br/>`--tier autofill`: Playwright form tests.<br/>`--tier all`: Core + Autofill.<br/>`--live`: Live external tests. |
+| `python main.py autofill` | Audits ATS autofill events, selector collisions, and learning vault rules. | `audit`: Displays recent events and rules. |
 | `python main.py lint` | Runs Ruff auto-fix linter and code formatter across all workspace files in <1 second. | None |
+
+---
+
+## 2.1 Automated Daily Production Workflow (`launchd` + Worktree)
+
+To avoid LinkedIn datacenter IP blocking (HTTP 999) on cloud runners and prevent file locks while developing on `develop`:
+
+1. **One-Time Daemon Setup:**
+   ```bash
+   bash scripts/setup_daily_runner.sh
+   ```
+   This script:
+   - Spawns a dedicated production worktree at `../linkedinjobsearchautomation-prod` on `main`.
+   - Symlinks `prod/data -> dev/data` and `prod/.browser_data -> dev/.browser_data`.
+   - Registers macOS LaunchAgent `~/Library/LaunchAgents/com.linkedin.automator.daily.plist` scheduled for 8:00 AM IST daily.
+
+2. **In-Session Diagnostics & PR Workflow:**
+   - In your active Antigravity session on `develop`, run:
+     ```bash
+     python main.py daily audit      # View recent runs, job counts, and durations
+     python main.py daily diagnose   # Check LinkedIn cookies, .env, and launchd status
+     ```
+   - When a production issue is diagnosed:
+     * Reproduce and patch on `develop`.
+     * Pass tests: `python main.py test --tier core` & `python main.py lint`.
+     * Create PR: `develop -> main`.
+     * Merge PR: The production worktree runs `git pull origin main` automatically every morning!
 
 ### Direct ATS Scripts (`scripts/`)
 
 ```bash
-# Seed or refresh the target company registry (37+ enterprises)
+# Seed or refresh the target company registry (56+ enterprises)
 python scripts/seed_companies.py
 
-# Ingest fresh jobs from public Greenhouse, Lever, and Ashby boards
+# Ingest fresh jobs from public Greenhouse, Lever, Ashby, and Workday boards
 python scripts/run_ingestion.py
 
 # Ingest and automatically queue jobs into data/pending_queue for dashboard review

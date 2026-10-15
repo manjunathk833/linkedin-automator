@@ -177,6 +177,147 @@ def handle_autofill_audit():
     print("\n" + "=" * 65 + "\n")
 
 
+def handle_session(action: str = "status", output: str | None = None):
+    """Manages portable Playwright storageState sessions."""
+    from src.browser.session_manager import SessionManager
+
+    mgr = SessionManager()
+    if action == "export":
+        print("\n" + "=" * 50)
+        print("  EXPORTING PLAYWRIGHT SESSION STORAGE STATE")
+        print("=" * 50)
+        asyncio.run(mgr.export_storage_state(output_path=output))
+    else:
+        print("\n" + "=" * 50)
+        print("  LINKEDIN SESSION AUTHENTICATION STATUS")
+        print("=" * 50)
+        status = mgr.get_session_status()
+        print(f"📁 State Path:    {status['path']}")
+        print(f"🔑 Authenticated: {status['is_authenticated']}")
+        print(f"🍪 Cookie Count:  {status.get('cookie_count', 0)}")
+        print(f"⏳ li_at Expiry:  {status.get('li_at_expires', 'N/A')}")
+        print(f"💬 Message:       {status['message']}")
+        print("=" * 50 + "\n")
+
+
+def handle_daily(
+    config: dict[str, Any],
+    headless: bool = True,
+    send_email: bool = True,
+    skip_tests: bool = False,
+    launch_dashboard: bool = True,
+):
+    """Executes the automated morning daily run."""
+    from src.pipeline.daily_runner import DailyPipelineRunner
+
+    runner = DailyPipelineRunner(config)
+    asyncio.run(
+        runner.execute_daily_run(
+            headless=headless,
+            send_email=send_email,
+            skip_tests=skip_tests,
+            launch_dashboard=launch_dashboard,
+        )
+    )
+
+
+def handle_daily_audit(limit: int = 5):
+    """Prints diagnostic logs of recent daily runs."""
+    from src.notifier.daily_logger import DailyRunLogger
+
+    logger = DailyRunLogger()
+    runs = logger.get_recent_runs(limit=limit)
+
+    print("\n" + "=" * 65)
+    print(f"  AUTOMATED DAILY RUNS AUDIT LOG (Last {len(runs)} events)")
+    print("=" * 65)
+
+    if not runs:
+        print("  (No daily runs logged yet in data/logs/daily_runs.jsonl)")
+    else:
+        for r in runs:
+            ts = r.get("timestamp", "")[:19]
+            ev = r.get("event", "UNKNOWN")
+            st = r.get("status", "N/A")
+            rid = r.get("run_id", "N/A")
+            staged = r.get("staged_count", 0)
+            dream = r.get("dream_org_count", 0)
+            reg = "PASS" if r.get("regression_passed") else "FAIL"
+            em = "SENT" if r.get("email_sent") else "NO"
+            dur = r.get("duration_sec", 0.0)
+            err = r.get("error_message")
+
+            print(f"  [{ts}] [{ev}] [{st}] RunID: {rid}")
+            if ev == "RUN_COMPLETED":
+                print(f"     • Jobs Staged: {staged} ({dream} Dream Orgs)")
+                print(f"     • Regressions: {reg} | Email: {em} | Duration: {dur}s")
+            if err:
+                print(f"     • Error: {err}")
+            print()
+
+    print("=" * 65 + "\n")
+
+
+def handle_daily_diagnose():
+    """Runs end-to-end system and environment diagnostics."""
+    from src.notifier.daily_logger import DailyRunLogger
+
+    logger = DailyRunLogger()
+    diag = logger.diagnose_system()
+
+    print("\n" + "=" * 65)
+    print("  AUTOMATED DAILY PIPELINE SYSTEM DIAGNOSTICS")
+    print("=" * 65)
+
+    # 1. Session Health
+    sess = diag.get("session", {})
+    sess_auth = "AUTHENTICATED ✅" if sess.get("is_authenticated") else "NOT AUTHENTICATED ❌"
+    print("\n🔑 1. Playwright StorageState & Session Health:")
+    print(f"   • Status: {sess_auth}")
+    print(f"   • Path: {sess.get('path')}")
+    print(
+        f"   • Cookies: {sess.get('cookie_count', 0)} total (li_at: {sess.get('has_li_at')}, JSESSIONID: {sess.get('has_jsessionid')})"
+    )
+    if not sess.get("is_authenticated"):
+        print("   👉 TIP: Run `python main.py login` or `python main.py session export` to refresh cookies.")
+
+    # 2. Environment Credentials
+    env = diag.get("environment", {})
+    print("\n📬 2. Zero-Cost Email & API Environment (.env):")
+    for k, v in env.items():
+        icon = "CONFIGURED ✅" if v else "MISSING ⚠️ (Will use offline archive)"
+        print(f"   • {k}: {icon}")
+
+    # 3. macOS launchd Daemon
+    ld = diag.get("launchd", {})
+    ld_icon = "ACTIVE & REGISTERED ✅" if ld.get("active") else "NOT REGISTERED ⚠️"
+    print("\n⏰ 3. macOS launchd Scheduled Service:")
+    print(f"   • Status: {ld_icon}")
+    print(f"   • Details: {ld.get('info')}")
+    if not ld.get("active"):
+        print("   👉 TIP: Run `bash scripts/setup_daily_runner.sh` to register 8:00 AM daily job.")
+
+    # 4. Latest Run Status
+    last = diag.get("last_run")
+    print("\n📊 4. Most Recent Pipeline Execution:")
+    if not last:
+        print("   • No past runs recorded.")
+    else:
+        print(f"   • Run ID: {last.get('run_id')} ({last.get('timestamp', '')[:19]})")
+        print(f"   • Status: {last.get('status')} | Git: {last.get('git_commit')}")
+        if last.get("error_message"):
+            print(f"   • Error: {last.get('error_message')}")
+
+    # 5. Diagnostic Log Paths
+    paths = diag.get("log_paths", {})
+    print("\n📂 5. Diagnostic Log Artifact Paths:")
+    for name, p in paths.items():
+        exists = "Exists" if os.path.exists(p) else "Pending"
+        print(f"   • {name}: {p} [{exists}]")
+
+    print("\n" + "=" * 65 + "\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="LinkedIn Job Search & Application Automation Orchestrator",
@@ -278,6 +419,60 @@ def main():
         help="Run live browser and remote career portal tests",
     )
 
+    # 11. session (portable Playwright storageState)
+    parser_session = subparsers.add_parser(
+        "session", help="Manage portable Playwright storageState sessions without SingletonLock"
+    )
+    parser_session.add_argument(
+        "action",
+        choices=["status", "export"],
+        nargs="?",
+        default="status",
+        help="Session action: 'status' (default) or 'export'",
+    )
+    parser_session.add_argument("--output", help="Optional output path for exported storage_state.json")
+
+    # 12. daily (automated morning workflow + email briefing)
+    parser_daily = subparsers.add_parser(
+        "daily", help="Run automated morning workflow (regressions -> search -> email -> dashboard)"
+    )
+    parser_daily.add_argument(
+        "action",
+        choices=["run", "audit", "diagnose"],
+        nargs="?",
+        default="run",
+        help="Action: 'run' (default), 'audit' (view history), or 'diagnose' (system health)",
+    )
+    parser_daily.add_argument(
+        "--headless",
+        action="store_true",
+        default=True,
+        help="Run browser in headless mode (default: True)",
+    )
+    parser_daily.add_argument(
+        "--no-email",
+        action="store_false",
+        dest="send_email",
+        help="Skip sending executive email briefing",
+    )
+    parser_daily.add_argument(
+        "--skip-tests",
+        action="store_true",
+        help="Skip pre-run regression health checks",
+    )
+    parser_daily.add_argument(
+        "--no-dashboard",
+        action="store_false",
+        dest="launch_dashboard",
+        help="Do not auto-ensure dashboard on port 8000",
+    )
+    parser_daily.add_argument(
+        "--limit",
+        type=int,
+        default=5,
+        help="Limit number of runs to show in audit (default: 5)",
+    )
+
     args = parser.parse_args()
     config = load_config(args.config)
     runner = JobSearchPipelineRunner(config)
@@ -310,6 +505,21 @@ def main():
         handle_autofill_audit()
     elif cmd == "test":
         handle_test(tier=args.tier, live=args.live)
+    elif cmd == "session":
+        handle_session(action=args.action, output=getattr(args, "output", None))
+    elif cmd == "daily":
+        if args.action == "audit":
+            handle_daily_audit(limit=args.limit)
+        elif args.action == "diagnose":
+            handle_daily_diagnose()
+        else:
+            handle_daily(
+                config,
+                headless=args.headless,
+                send_email=args.send_email,
+                skip_tests=args.skip_tests,
+                launch_dashboard=args.launch_dashboard,
+            )
     else:
         parser.print_help()
 

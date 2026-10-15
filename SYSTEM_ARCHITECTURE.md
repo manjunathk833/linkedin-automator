@@ -256,6 +256,20 @@ graph TD
 
 ---
 
+### Module 13: Daily Pipeline Automation, Zero-Cost Email Briefing & In-Session Diagnostics (Gate 70)
+* **Files:** [`src/notifier/email_reporter.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/notifier/email_reporter.py), [`src/notifier/daily_logger.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/notifier/daily_logger.py), [`src/browser/session_manager.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/session_manager.py), [`src/pipeline/daily_runner.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/pipeline/daily_runner.py), [`scripts/run_daily_prod.sh`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/run_daily_prod.sh), [`scripts/setup_daily_runner.sh`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/setup_daily_runner.sh), [`.github/workflows/ci.yml`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/.github/workflows/ci.yml)
+* **Architecture:** Zero-cost local background automation with dual-branch Git worktree isolation:
+  * **Resident Daemon Architecture (`launchd`):** Bypasses cloud runner datacenter IP blocking (HTTP 999) by running locally on macOS via `com.linkedin.automator.daily.plist` scheduled for 8:00 AM IST daily.
+  * **Dual-Branch Worktree Isolation:** Executes daily runs inside a dedicated production worktree (`../linkedinjobsearchautomation-prod`) on `main` that automatically syncs via `git pull origin main`, isolating runs from ongoing feature development on `develop`.
+  * **Shared State via Symlinks:** Symlinks `prod/data -> dev/data` and `prod/.browser_data -> dev/.browser_data` so all SQLite records, staged jobs, and diagnostic logs appear live inside the active Antigravity session.
+  * **Portable Session State (`SessionManager`):** Exports authenticated Playwright cookies (`li_at`, `JSESSIONID`) to `.browser_data/storage_state.json` allowing ephemeral headless contexts without `SingletonLock` collisions.
+  * **Zero-Cost Executive Briefing (`EmailReporter`):** Generates responsive Glassmorphic HTML morning briefings via free Gmail SMTP SSL (`smtp.gmail.com:465`) featuring KPI pills (Total Staged, Dream Orgs, Direct ATS vs LinkedIn), top 10 role tables with direct URLs, and a 1-click CTA button to `http://localhost:8000`, with offline fallback archival (`data/logs/daily_report_YYYY-MM-DD.html`).
+  * **Granular Telemetry & Traceback Capture (`DailyRunLogger`):** Records structured JSONL logs (`daily_runs.jsonl`), human-readable diagnostic text (`daily_runs.log`), phase-level telemetry (`HEALTH_CHECK`, `DISCOVERY_AND_TAILORING`, `EMAIL_BRIEFING`, `DASHBOARD_READINESS`), and complete tracebacks on unhandled errors.
+  * **In-Session Diagnostics & PR Workflow:** Provides CLI commands `python main.py daily audit` and `python main.py daily diagnose` for instant inspection inside Antigravity, enabling a clean bug-fix cycle: diagnose in Antigravity $\rightarrow$ reproduce in `verify/` $\rightarrow$ patch in `src/` on `develop` $\rightarrow$ pass Tier 1 regressions and lint $\rightarrow$ PR to `main` $\rightarrow$ auto-update production worktree.
+
+---
+
+
 ## 4. Data Architecture & Storage Schema
 
 ```
