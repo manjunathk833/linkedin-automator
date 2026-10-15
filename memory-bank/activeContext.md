@@ -311,6 +311,9 @@
     - Created Verification Gate 70 (`verify/70_test_session_and_email_reporter.py`) and registered in `TIER_1_CORE` in `verify/run_regressions.py` (expanding core suite to 49 tests).
     - Standardized Tier 1 core regression suite (`python main.py test --tier core`): **49/49 PASSED (100% SUCCESS)** in 47.97s.
     - Codebase linted cleanly via `python main.py lint`: **0 errors across 153 files**.
+    - Created plain-English user operational cheatsheet in `docs/PRODUCTION_OPERATIONS_GUIDE.md` detailing daily monitoring, telemetry auditing, SQLite inspection, and the `develop -> PR -> main` automated sync cycle.
+    - Production worktree deployed to `../linkedinjobsearchautomation-prod` on `main`, shared symlinks active, and `launchd` daemon active (`com.linkedin.automator.daily`).
+
 
 
 

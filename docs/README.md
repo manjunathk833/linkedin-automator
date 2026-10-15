@@ -13,10 +13,12 @@ The documentation is organized into clear functional layers:
 | Document | Category | Purpose | Target Audience |
 | :--- | :--- | :--- | :--- |
 | **[01_USER_GUIDE.md](01_USER_GUIDE.md)** | **Special: "To the User"** | Intuitive, plain-English walkthrough of the entire end-to-end lifecycle. Explains how the system works without dense jargon, how to use it daily, and exactly how to critique/customize it for your personal career preferences. | Candidate / End User |
+| **[PRODUCTION_OPERATIONS_GUIDE.md](PRODUCTION_OPERATIONS_GUIDE.md)** | **Daily Operations** | Plain-English daily cheatsheet for monitoring the 8:00 AM daemon, auditing telemetry, using the Command Center, inspecting SQLite, and deploying PR fixes. | Candidate / Daily Operator |
 | **[02_CONCEPTUAL_ARCHITECTURE.md](02_CONCEPTUAL_ARCHITECTURE.md)** | **Conceptual** | The foundational philosophy: Zero-cost economics, Dual-track ingestion (Public ATS + Stealth LinkedIn), Deterministic anti-fabrication grounding, and anti-detection threat modeling. | System Designers & Architects |
 | **[03_TECHNICAL_SPECIFICATION.md](03_TECHNICAL_SPECIFICATION.md)** | **Architectural** | Deep technical breakdown of all 10 core modules, Pydantic schemas, SQLite relational database schema, Bézier kinematics formulas, and DOM locators. | Core Engineers & SDET Leads |
 | **[04_USAGE_AND_OPERATIONS.md](04_USAGE_AND_OPERATIONS.md)** | **Operations & Usage** | Comprehensive CLI command reference (`main.py`, `run_ingestion.py`), configuration guide (`config.yaml`, `target_companies.json`), and daily workflow execution playbooks. | Operators & Daily Users |
 | **[05_VERIFICATION_AND_TESTING.md](05_VERIFICATION_AND_TESTING.md)** | **Quality Assurance** | Catalog of all 32 standalone verification scripts in `verify/`, test assertions, and Ruff linter formatting standards. | QA Architects & Contributors |
+
 
 ---
 
