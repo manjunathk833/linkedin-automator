@@ -1,6 +1,8 @@
 # To the User: The Plain-English System Guide & Copilot Manual
 
 > **Welcome!** If you want to understand how this system works, how to use it every day, and how to customize or critique it without getting buried in technical jargon, this document was written specifically for you.
+>
+> 🚀 **Quick Reference:** For day-to-day commands, daemon checks, and troubleshooting, see the [Production Operations & Daily Workflow Guide](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/docs/PRODUCTION_OPERATIONS_GUIDE.md).
 
 ---
 

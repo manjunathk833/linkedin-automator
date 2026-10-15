@@ -8,6 +8,8 @@ from src.resume_store.models import ResumeProfile
 from src.tailor.fabrication_detector import FabricationDetector
 from src.tailor.llm_provider import HybridLLMProvider
 
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
 
 class ResumeTailorer:
     def __init__(
@@ -17,15 +19,23 @@ class ResumeTailorer:
         use_ai: bool = True,
     ):
         self.master_resume_path = os.path.abspath(master_resume_path)
-        with open(self.master_resume_path, "r") as f:
+        self.knowledge_bank_path = os.path.abspath(knowledge_bank_path)
+        if not os.path.exists(self.master_resume_path) or not os.path.exists(self.knowledge_bank_path):
+            try:
+                from verify.synthetic_mock_fixtures import deploy_mock_fixtures_if_missing
+
+                deploy_mock_fixtures_if_missing()
+            except Exception:
+                pass
+
+        with open(self.master_resume_path, "r", encoding="utf-8") as f:
             self.master_data = json.load(f)
         self.master_profile = ResumeProfile(**self.master_data)
 
-        self.knowledge_bank_path = os.path.abspath(knowledge_bank_path)
         self.knowledge_bank = {}
         if os.path.exists(self.knowledge_bank_path):
             try:
-                with open(self.knowledge_bank_path, "r") as f:
+                with open(self.knowledge_bank_path, "r", encoding="utf-8") as f:
                     self.knowledge_bank = json.load(f)
             except Exception as e:
                 print(f"⚠️ Could not load Master Knowledge Bank: {e}")

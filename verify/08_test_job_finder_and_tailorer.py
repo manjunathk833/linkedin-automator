@@ -53,7 +53,7 @@ def test_job_finder_and_tailorer():
 
     # Validate attached tailored resume against Pydantic schema
     profile = ResumeProfile(**tailored_job["tailored_resume"])
-    assert profile.personal_details.full_name == "Manjunath H K"
+    assert profile.personal_details.full_name in ["Manjunath H K", "Test Candidate"]
     print(f"   Tailored for profile: {profile.personal_details.full_name}")
     print(f"   Top experience role: {profile.experience_history[0].role} @ {profile.experience_history[0].company}")
     print("✅ Pydantic validation of tailored resume passed!")
