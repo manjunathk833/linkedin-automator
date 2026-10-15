@@ -74,7 +74,9 @@ TIER_1_CORE = [
     "67_test_sprint2_enhanced_filtering_and_workday.py",
     "68_test_sprint3_dual_funnel_and_referral_generator.py",
     "69_test_sprint4_global_remote_and_compliance.py",
+    "70_test_session_and_email_reporter.py",
 ]
+
 
 TIER_2_AUTOFILL = [
     "01_test_playwright_context.py",

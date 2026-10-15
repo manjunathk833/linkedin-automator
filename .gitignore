@@ -74,6 +74,7 @@ Thumbs.db
 *.log
 data/logs/*.log
 data/logs/*.jsonl
+data/logs/*.html
 data/logs/screenshots/
 .system_generated/
 .tempmediaStorage/

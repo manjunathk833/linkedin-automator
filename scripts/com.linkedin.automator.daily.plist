@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.linkedin.automator.daily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/run_daily_prod.sh</string>
+    </array>
+
+    <!-- Schedule to trigger every morning at 8:00 AM IST -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>8</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/yeshwinmanjunath/development/linkedinjobsearchautomation</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/yeshwinmanjunath/development/linkedinjobsearchautomation/data/logs/launchd_stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/yeshwinmanjunath/development/linkedinjobsearchautomation/data/logs/launchd_stderr.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin</string>
+    </dict>
+</dict>
+</plist>
