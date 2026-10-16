@@ -29,9 +29,27 @@ echo "================================================================" >> "${RU
 echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Launching Scheduled Daily Pipeline" >> "${RUN_LOG}"
 echo "Execution Directory: ${TARGET_DIR}" >> "${RUN_LOG}"
 
-# 2. Synchronize latest production code from origin/main
-if [[ -d "${PROD_WORKTREE_DIR}" ]] && [[ "${TARGET_DIR}" == "${PROD_WORKTREE_DIR}" ]]; then
+# 2. Check and wait for network connectivity (up to 30s) if machine just woke up
+echo "Checking network connectivity..." >> "${RUN_LOG}"
+NET_READY=false
+for i in {1..6}; do
+    if curl -s -m 5 https://github.com >/dev/null 2>&1 || ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+        echo "✅ Network connectivity confirmed." >> "${RUN_LOG}"
+        NET_READY=true
+        break
+    fi
+    echo "Waiting for network connectivity (attempt ${i}/6)..." >> "${RUN_LOG}"
+    sleep 5
+done
+
+if [[ "${NET_READY}" != "true" ]]; then
+    echo "⚠️ Warning: Network connectivity not established within 30s. Proceeding with best effort..." >> "${RUN_LOG}"
+fi
+
+# 3. Synchronize latest production code from origin/main
+if [[ -d "${PROD_WORKTREE_DIR}" ]] && [[ "${TARGET_DIR}" == "${PROD_WORKTREE_DIR}" ]] && [[ "${NET_READY}" == "true" ]]; then
     echo "Updating production worktree to latest origin/main..." >> "${RUN_LOG}"
+    git checkout -- data/config data/logs data/profile 2>/dev/null || true
     git pull origin main >> "${RUN_LOG}" 2>&1 || true
 fi
 

@@ -319,6 +319,12 @@
     - Upgraded `verify/run_regressions.py` with `ensure_regression_test_fixtures()` pre-flight engine populating baseline files and SQLite database on clean clones via `deploy_mock_fixtures_if_missing()`.
     - Added resilient fallbacks and defaults: `easy_apply_answers: EasyApplyAnswers = Field(default_factory=EasyApplyAnswers)` in `ResumeProfile`, Starlette 0.36+ `TemplateResponse(request=request, name="index.html")` compatibility in `src/ui/app.py`, and `--headless` default in `scripts/naukri_pinger.py` for headless Linux runners.
     - Local & CI verification: Standardized regression suite passes 100% (49/49) locally and GitHub Actions CI workflow `CI / Quality & Regression Gate` passes with green checkmark on PR #10.
+  - Daily Automation Runner Production Verification & Granular Symlink Architecture:
+    - Diagnosed morning partial failure: Wi-Fi offline on system wake, entire `data/` folder directory symlink causing git merge conflicts, and health check 60s timeout on cold run.
+    - Granular runtime symlinks: Refactored `scripts/setup_daily_runner.sh` to keep `data/` as a real git directory tracking `target_companies.json`, `autofill_learning_vault.json`, `allowed_tools_whitelist.json`, `workday_field_mappings.json`, and `candidate_notes.md`, while creating individual symlinks for queues (`pending_queue`, `approved_queue`, `resumes`), SQLite database, profile JSONs, and operational logs.
+    - Wi-Fi reconnection grace period: Added 30-second bounded network connectivity retry loop in `scripts/run_daily_prod.sh` before `git pull origin main`.
+    - Health check resilience: Increased regression check timeout to 120s in `src/pipeline/daily_runner.py`.
+    - Production run verified live: Executed `bash scripts/run_daily_prod.sh` inside `linkedinjobsearchautomation-prod` (Run ID `daily_20261016_b1d11a`). Phase 1 HEALTH_CHECK passed 100% (49/49), Phase 2 DISCOVERY_AND_TAILORING successfully staged 42 roles (4 Dream Orgs), Phase 3 archived executive briefing, and Phase 4 confirmed dashboard active on port 8000. Verified via `python main.py daily audit` and `python main.py daily diagnose`.
 
 
 

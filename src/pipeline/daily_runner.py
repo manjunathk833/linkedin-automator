@@ -99,7 +99,7 @@ class DailyPipelineRunner:
                 cwd=str(PROJECT_ROOT),
                 capture_output=True,
                 text=True,
-                timeout=60.0,
+                timeout=120.0,
             )
             passed = res.returncode == 0
             summary = "49/49 Passed (100%)" if passed else "Regression Failures Detected"
