@@ -35,8 +35,110 @@ from src.ui.app import app
 APPROVED_DIR = os.path.join(PROJECT_ROOT, "data", "approved_queue")
 
 
+def ensure_approved_fixtures():
+    """Ensures at least 7 approved job fixtures exist for CI/isolated runners."""
+    os.makedirs(APPROVED_DIR, exist_ok=True)
+    existing = [f for f in os.listdir(APPROVED_DIR) if f.endswith(".json")]
+    if len(existing) >= 7:
+        return
+
+    sample_fixtures = [
+        {
+            "job_id": "greenhouse_okta_8236753",
+            "source": "greenhouse",
+            "is_dream_org": True,
+            "job_details": {
+                "title": "Senior Software Engineer in Test (SET) — Access Essentials",
+                "company": "Okta",
+                "location": "Bengaluru, India",
+            },
+            "job_url": "https://www.okta.com/company/careers/opportunity/8236753?gh_jid=8236753",
+            "url": "https://www.okta.com/company/careers/opportunity/8236753?gh_jid=8236753",
+        },
+        {
+            "job_id": "greenhouse_okta_8239048",
+            "source": "greenhouse",
+            "is_dream_org": True,
+            "job_details": {
+                "title": "Senior Software Engineer in Test (SET) — Identity Governance",
+                "company": "Okta",
+                "location": "Bengaluru, India",
+            },
+            "job_url": "https://www.okta.com/company/careers/opportunity/8239048?gh_jid=8239048",
+            "url": "https://www.okta.com/company/careers/opportunity/8239048?gh_jid=8239048",
+        },
+        {
+            "job_id": "workday_crowdstrike_r28268",
+            "source": "workday",
+            "is_dream_org": True,
+            "job_details": {
+                "title": "Engineer III – Cloud SDET",
+                "company": "CrowdStrike",
+                "location": "India - Bangalore",
+            },
+            "job_url": "https://crowdstrike.wd5.myworkdayjobs.com/crowdstrikecareers/job/India---Bangalore/Engineer-III---Cloud-SDET_R28268",
+            "url": "https://crowdstrike.wd5.myworkdayjobs.com/crowdstrikecareers/job/India---Bangalore/Engineer-III---Cloud-SDET_R28268",
+        },
+        {
+            "job_id": "4462037180",
+            "source": "linkedin",
+            "is_dream_org": False,
+            "job_details": {
+                "title": "Senior SDET",
+                "company": "GE HealthCare",
+                "location": "Bengaluru, Karnataka, India (On-site)",
+            },
+            "job_url": "https://www.linkedin.com/jobs/view/4462037180/",
+            "url": "https://www.linkedin.com/jobs/view/4462037180/",
+        },
+        {
+            "job_id": "4305570106",
+            "source": "linkedin",
+            "is_dream_org": False,
+            "job_details": {
+                "title": "Senior SDET - Hadoop Observability",
+                "company": "Acceldata",
+                "location": "Bengaluru, Karnataka, India (On-site)",
+            },
+            "job_url": "https://www.linkedin.com/jobs/view/4305570106/",
+            "url": "https://www.linkedin.com/jobs/view/4305570106/",
+        },
+        {
+            "job_id": "4470900213",
+            "source": "linkedin",
+            "is_dream_org": False,
+            "job_details": {
+                "title": "Senior Software Development Engineer in Test (SDET)",
+                "company": "Akamai Technologies",
+                "location": "Bengaluru, Karnataka, India (On-site)",
+            },
+            "job_url": "https://www.linkedin.com/jobs/view/4470900213/",
+            "url": "https://www.linkedin.com/jobs/view/4470900213/",
+        },
+        {
+            "job_id": "4471929554",
+            "source": "linkedin",
+            "is_dream_org": False,
+            "job_details": {
+                "title": "Senior Software Engineer I, Quality",
+                "company": "SurveyMonkey",
+                "location": "Bengaluru, Karnataka, India (On-site)",
+            },
+            "job_url": "https://www.linkedin.com/jobs/view/4471929554/",
+            "url": "https://www.linkedin.com/jobs/view/4471929554/",
+        },
+    ]
+
+    for fix in sample_fixtures:
+        path = os.path.join(APPROVED_DIR, f"{fix['job_id']}.json")
+        if not os.path.exists(path):
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(fix, f, indent=2)
+
+
 def test_approved_queue_jobs_referral_pack():
     print("\n--- 1. Testing Referral Packs Across All Approved Queue Jobs ---")
+    ensure_approved_fixtures()
 
     approved_files = [f for f in os.listdir(APPROVED_DIR) if f.endswith(".json")]
     assert len(approved_files) >= 7, f"Expected at least 7 approved jobs, found {len(approved_files)}"
