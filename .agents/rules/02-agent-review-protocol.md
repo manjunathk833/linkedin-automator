@@ -1,9 +1,9 @@
 ---
 trigger: always_on
 ---
-# Mandatory Tri-Agent Auto-Invocation Protocol (Critic Architect, Vision & ATS Debugger)
+# Mandatory Quad-Agent Auto-Invocation Protocol (Critic Architect, Vision, ATS Debugger & Dry Run Agent)
 
-For EVERY user prompt and proposed code modification, the agent MUST automatically evaluate the request through three mandatory quality lenses:
+For EVERY user prompt and proposed code modification, the agent MUST automatically evaluate the request through four mandatory quality lenses:
 
 ## 1. Vision Alignment Lens (`vision`)
 Before planning or executing changes, verify alignment against our core North Star:
@@ -31,4 +31,12 @@ When debugging, fixing, or adding ATS vendor autofill logic, enforce precision s
 - [ ] **Dial Code (+91) Prioritization:** Ensure phone country selectors prioritize exact dial code matches over partial string matches to prevent territory collisions (e.g. +246).
 - [ ] **Synthetic Event Dispatch:** Ensure text inputs dispatch `input`, `change`, and `blur` events so React/form state registers them and clears red validation outlines.
 - [ ] **Live Zero-Contamination Assertions:** Ensure verification scripts assert exact values for every individual field and combobox control text without cross-field contamination.
+
+## 4. Autonomous Dry Run & Live Browser Validation Lens (`dry_run_agent`)
+After code changes or bug fixes are applied, evaluate against the dry run mandate:
+- [ ] **Persistent Browser Session Readiness:** Ensure stored session state (`.browser_data/`, `SessionManager`) and local FastAPI server (`http://127.0.0.1:8000`) are verified.
+- [ ] **Human-in-the-Loop Takeover (Zero Premature Exit):** If authentication, 2FA, or CAPTCHA is encountered, execution must NEVER terminate prematurely. Prompt the user, pause interactively, refresh session, and seamlessly resume.
+- [ ] **Live Browser Traversal & Dynamic Reactivity:** Verify staging review, version toggling, referral reconnaissance, dynamic note reactivity, character limits, and assisted copilot flows in real browser execution.
+- [ ] **Autonomous Self-Healing Loop:** If regressions, broken selectors, or overflow issues are found, diagnose via `autofill_learning_vault.json`, immediately patch in `src/`, and re-verify.
+- [ ] **Implementation Report Emitted:** Deliver a structured health report upon completion before raising a Pull Request to `main`.
 
