@@ -1264,6 +1264,7 @@ async def trigger_unified_discovery(
         }
 
 
+@app.get("/api/referral/generate/{job_id}")
 @app.post("/api/referral/generate/{job_id}")
 async def generate_referral_pack_endpoint(job_id: str, request: Request = None):
     """
@@ -1303,7 +1304,7 @@ async def generate_referral_pack_endpoint(job_id: str, request: Request = None):
             if r.get("requisition_id") == job_id or job_id in (r.get("job_url") or ""):
                 payload = {
                     "job_id": job_id,
-                    "company_name": r.get("company_slug", "").capitalize(),
+                    "company_name": r.get("company_slug", "").replace("-", " ").replace("_", " ").title(),
                     "job_title": r.get("job_title", ""),
                     "location": r.get("location", ""),
                     "url": r.get("job_url", ""),

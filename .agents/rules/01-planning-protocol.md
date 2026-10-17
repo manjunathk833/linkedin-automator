@@ -12,3 +12,5 @@ trigger: always_on
 4. **Approval Gate:** Every plan MUST terminate with:
    *"Please review this plan. Reply 'PROCEED' to execute these edits, or provide feedback."*
    Only modify files after receiving explicit user confirmation ("PROCEED" / "APPROVED").
+5. **Absolute Prohibition on Direct Merges/Pushes to `main` (HARD NO):**
+   Any plan that involves pushing code MUST explicitly target `develop` and state that a GitHub Pull Request will be raised for user review. Proposing, executing, or attempting a merge or push to `main` is an immediate protocol violation. The USER alone reviews and merges PRs to `main` on GitHub.

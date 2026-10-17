@@ -319,6 +319,15 @@
     - Upgraded `verify/run_regressions.py` with `ensure_regression_test_fixtures()` pre-flight engine populating baseline files and SQLite database on clean clones via `deploy_mock_fixtures_if_missing()`.
     - Added resilient fallbacks and defaults: `easy_apply_answers: EasyApplyAnswers = Field(default_factory=EasyApplyAnswers)` in `ResumeProfile`, Starlette 0.36+ `TemplateResponse(request=request, name="index.html")` compatibility in `src/ui/app.py`, and `--headless` default in `scripts/naukri_pinger.py` for headless Linux runners.
     - Local & CI verification: Standardized regression suite passes 100% (49/49) locally and GitHub Actions CI workflow `CI / Quality & Regression Gate` passes with green checkmark on PR #10.
+  - Referral Reconnaissance URL Parameterization, Direct Job Links & Live Dashboard Simulation (Gate 71):
+    - Diagnosed broken LinkedIn search URLs: `ReferralNoteGenerator` relied on top-level keys (`company_name`, `job_title`, `location`) whereas approved and pending queue JSON payloads store attributes nested under `job_details`. Missing company name led to empty quotes `%22%22` (`keywords=Quality%20Engineering%20Manager%20%22%22&origin=GLOBAL_SEARCH_HEADER`).
+    - Engineered schema extraction helpers: `extract_company_name()`, `extract_job_title()`, `extract_location()`, and `extract_job_url()` resolving unified attributes across all schema permutations.
+    - Parameterized LinkedIn search URLs: Pre-scopes queries for Engineering Managers, QA Leads, Staff SDETs, and Value Labs Alumni quoting exact target enterprises (e.g. `"Okta"`, `"CrowdStrike"`, `"GE HealthCare"`) and Indian tech hubs (`%20India`), completely eliminating empty `%22%22` quotes.
+    - Integrated clean job URLs into connection notes: Weaves direct job posting link (`clean_job_url`) into connection request notes and InMail pitches. Implemented dynamic length governor balancing candidate proof-of-work metrics, portfolio link (`manjunathhk.netlify.app`), requisition IDs, and direct URLs—guaranteeing $\le 300$ chars under all conditions.
+    - Live Dashboard Simulation: Probed `http://localhost:8000` using browser subagent; verified modal title, subtitle, search pivot links, dynamic greeting updates (`Hi Priya`), InMail tab, and live LinkedIn search navigation.
+    - Created Verification Gate 71 (`verify/71_test_referral_reconnaissance_pivot_and_job_links.py`) testing across all 7 approved queue jobs. Registered in `TIER_1_CORE` in `verify/run_regressions.py` (expanding core suite to 50 tests).
+    - Standardized Tier 1 core regression suite (`python main.py test --tier core`): **50/50 PASSED (100% SUCCESS)**.
+    - Codebase linted cleanly via `python main.py lint`: **0 errors across 156 files**.
 
 
 

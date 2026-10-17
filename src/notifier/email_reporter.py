@@ -27,9 +27,15 @@ class EmailReporter:
         app_password: str | None = None,
         recipient_email: str | None = None,
     ):
-        self.sender = sender_email or os.environ.get("GMAIL_USER") or os.environ.get("GMAIL_SENDER")
-        self.password = app_password or os.environ.get("GMAIL_APP_PASSWORD")
-        self.recipient = recipient_email or os.environ.get("REPORT_RECIPIENT") or self.sender
+        self.sender = (
+            sender_email
+            if sender_email is not None
+            else (os.environ.get("GMAIL_USER") or os.environ.get("GMAIL_SENDER"))
+        )
+        self.password = app_password if app_password is not None else os.environ.get("GMAIL_APP_PASSWORD")
+        self.recipient = (
+            recipient_email if recipient_email is not None else (os.environ.get("REPORT_RECIPIENT") or self.sender)
+        )
         self.log_dir = PROJECT_ROOT / "data" / "logs"
         self.log_dir.mkdir(parents=True, exist_ok=True)
 

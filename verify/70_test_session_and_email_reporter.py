@@ -77,16 +77,26 @@ def test_session_and_email_reporter():
     today_slug = datetime.date.today().strftime("%Y-%m-%d")
     archive_file = test_log_dir / f"daily_report_{today_slug}.html"
 
-    # Send report in fallback mode (without credentials)
+    # Send report and verify archive generation
     res = reporter.send_report(
         staged_jobs=sample_jobs,
         regression_passed=True,
         regression_summary="48/48 Passed (100%)",
         execution_duration_sec=14.5,
     )
-    assert archive_file.exists(), "Expected fallback archive HTML file to exist"
-    assert res is False, "Expected False without SMTP credentials in test environment"
-    print(f"   ✅ Offline archive verified: {archive_file} ({archive_file.stat().st_size} bytes)")
+    assert archive_file.exists(), "Expected archive HTML file to exist"
+    assert isinstance(res, bool), "Expected boolean dispatch status from send_report"
+
+    # Explicitly test offline fallback mode (without credentials)
+    offline_reporter = EmailReporter(sender_email="", app_password="")
+    offline_res = offline_reporter.send_report(
+        staged_jobs=sample_jobs,
+        regression_passed=True,
+        regression_summary="48/48 Passed (100%)",
+        execution_duration_sec=14.5,
+    )
+    assert offline_res is False, "Expected False when SMTP credentials are blank"
+    print(f"   ✅ Archive & offline fallback verified: {archive_file} ({archive_file.stat().st_size} bytes)")
 
     # -------------------------------------------------------------
     # 2. Test SessionManager

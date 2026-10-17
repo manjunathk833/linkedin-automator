@@ -36,17 +36,84 @@ else
     echo "✅ Production worktree already exists at: ${PROD_DIR}"
 fi
 
-# 3. Create shared data & credential symlinks
-echo "Configuring shared data symlinks..."
-mkdir -p "${REPO_DIR}/data" "${REPO_DIR}/.browser_data"
+# 3. Create shared runtime data & credential symlinks (granular to preserve tracked Git files)
+echo "Configuring granular shared data symlinks..."
+mkdir -p "${REPO_DIR}/data" "${REPO_DIR}/data/logs" "${REPO_DIR}/data/profile" "${REPO_DIR}/.browser_data"
 
 if [[ -d "${PROD_DIR}" ]]; then
-    # Link data/ directory
-    if [[ ! -L "${PROD_DIR}/data" ]]; then
-        rm -rf "${PROD_DIR}/data"
-        ln -s "${REPO_DIR}/data" "${PROD_DIR}/data"
-        echo "   • Symlinked ${PROD_DIR}/data -> ${REPO_DIR}/data"
+    # If prod/data is a directory symlink, remove it and restore git-tracked files
+    if [[ -L "${PROD_DIR}/data" ]]; then
+        echo "   • Removing legacy directory symlink ${PROD_DIR}/data..."
+        rm "${PROD_DIR}/data"
+        git -C "${PROD_DIR}" checkout -- data/
     fi
+
+    # Ensure prod directories exist
+    mkdir -p "${PROD_DIR}/data" "${PROD_DIR}/data/profile" "${PROD_DIR}/data/logs"
+
+    # Symlink runtime queue directories
+    for queue_dir in "pending_queue" "approved_queue" "resumes"; do
+        mkdir -p "${REPO_DIR}/data/${queue_dir}"
+        if [[ ! -L "${PROD_DIR}/data/${queue_dir}" ]]; then
+            rm -rf "${PROD_DIR}/data/${queue_dir}"
+            ln -s "${REPO_DIR}/data/${queue_dir}" "${PROD_DIR}/data/${queue_dir}"
+            echo "   • Symlinked data/${queue_dir} -> ${REPO_DIR}/data/${queue_dir}"
+        fi
+    done
+
+    # Symlink screenshots directory inside logs
+    mkdir -p "${REPO_DIR}/data/logs/screenshots"
+    if [[ ! -L "${PROD_DIR}/data/logs/screenshots" ]]; then
+        rm -rf "${PROD_DIR}/data/logs/screenshots"
+        ln -s "${REPO_DIR}/data/logs/screenshots" "${PROD_DIR}/data/logs/screenshots"
+        echo "   • Symlinked data/logs/screenshots -> ${REPO_DIR}/data/logs/screenshots"
+    fi
+
+    # Symlink shared database and runtime data files
+    shared_files=(
+        "data/app_database.db"
+        "data/resume_profile.json"
+        "data/master_knowledge_bank.json"
+        "data/profile/candidate_master_data.json"
+        "data/application_history.json"
+        "data/processed_jobs.json"
+    )
+
+    for rel_file in "${shared_files[@]}"; do
+        src_path="${REPO_DIR}/${rel_file}"
+        dest_path="${PROD_DIR}/${rel_file}"
+        if [[ -f "${src_path}" ]]; then
+            if [[ ! -L "${dest_path}" ]]; then
+                rm -f "${dest_path}"
+                ln -s "${src_path}" "${dest_path}"
+                echo "   • Symlinked ${rel_file} -> ${src_path}"
+            fi
+        fi
+    done
+
+    # Symlink log files so prod outputs appear in dev session
+    log_files=(
+        "data/logs/daily_runs.log"
+        "data/logs/daily_runs.jsonl"
+        "data/logs/launchd_stdout.log"
+        "data/logs/launchd_stderr.log"
+        "data/logs/dashboard.log"
+        "data/logs/autofill_events.jsonl"
+        "data/logs/autofill_diagnostics.log"
+        "data/logs/naukri_pinger.log"
+        "data/logs/llm_requests.log"
+    )
+
+    for log_file in "${log_files[@]}"; do
+        src_log="${REPO_DIR}/${log_file}"
+        dest_log="${PROD_DIR}/${log_file}"
+        touch "${src_log}"
+        if [[ ! -L "${dest_log}" ]]; then
+            rm -f "${dest_log}"
+            ln -s "${src_log}" "${dest_log}"
+            echo "   • Symlinked ${log_file} -> ${src_log}"
+        fi
+    done
 
     # Link .browser_data/ directory
     if [[ ! -L "${PROD_DIR}/.browser_data" ]]; then

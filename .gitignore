@@ -32,6 +32,7 @@ data/app_database.db
 data/application_history.json
 data/processed_jobs.json
 data/optimization_runs.json
+data/*.pid
 
 # Data Queues & Generated Resumes (Local Runtime Artifacts)
 data/pending_queue/
