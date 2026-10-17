@@ -142,7 +142,7 @@ Check the detailed operational logs:
 ### Step 3: Run the Regression Gate & Linter
 Before committing, ensure 100% pass rate:
 ```bash
-python main.py test --tier core    # Must pass 49/49 (100%)
+python main.py test --tier core    # Must pass 50/50 (100%)
 python main.py lint                # Must show 0 errors
 ```
 
@@ -154,14 +154,15 @@ git push origin develop
 ```
 
 ### Step 5: Merge PR on GitHub
-1. Open a Pull Request from `develop` into `main` on GitHub.
-2. **GitHub Actions CI** automatically runs the 49-test regression suite and Ruff linter.
-3. Click **Merge pull request**.
+> 🔒 **Hard Constraint:** AI agents are strictly forbidden from committing or pushing directly to `main`. Every code change is pushed to `develop`, followed by opening a GitHub Pull Request via `gh pr create`.
+1. The agent or developer opens a Pull Request from `develop` into `main` on GitHub.
+2. **GitHub Actions CI** automatically runs the 50-test regression suite and Ruff linter.
+3. The **USER** reviews the PR diff and clicks **Merge pull request** directly on GitHub.
 
 ### Step 6: Does the prod worktree get the changes automatically?
 **YES!** You do not need to run anything.
 Next morning at 8:00 AM IST, `scripts/run_daily_prod.sh` executes `git pull origin main` inside the prod worktree before running the daily search.
-*(If you want to sync prod immediately, simply run `git -C ../linkedinjobsearchautomation-prod pull origin main`)*.
+*(If you want to sync prod immediately after merging on GitHub, simply run `git -C ../linkedinjobsearchautomation-prod pull origin main`)*.
 
 ---
 
