@@ -234,9 +234,10 @@ graph TD
 * **Architecture:** Bifurcated routing separating growth startups (Funnel 1) from Tier-1 Dream Organizations (Funnel 2):
   * **Dual-Funnel Routing Gate:** Detects `is_dream_org` across Staging and Ready-to-Apply views. Displays high-contrast amber/gold referral action buttons (`🤝 Generate Referral Note`) and intercepts cold autofill executions with an advisory modal emphasizing the 35–40% conversion rate of referrals vs <3% for cold ATS applications.
   * **Referral Reconnaissance Engine (`ReferralNoteGenerator`):**
-    * Generates LinkedIn Connection Request Notes strictly capped at **$\le 300$ characters**, citing exact Requisition IDs (e.g. `R170647`, `8045905`), candidate core competencies (Playwright, TypeScript, API contract testing), and portfolio link (`manjunathhk.netlify.app`).
-    * Generates comprehensive InMail pitches strictly capped at **$\le 1,000$ characters**, detailing distributed architecture achievements (Playwright microservices, Kafka event streams, Pact contract testing) with low-friction referral asks.
-    * Generates pre-scoped LinkedIn People search URLs for Engineering Managers, QA Leads, and Alumni at the target enterprise.
+    * **Parameterized Search Scoping:** Eliminates empty query quotes (`%22%22`) by utilizing centralized schema extractors (`extract_company_name`, `extract_job_title`, `extract_location`). Automatically builds pre-scoped LinkedIn People search queries for Engineering Managers, QA Leads, Staff SDETs, and Value Labs Alumni quoting exact target enterprises (e.g. `"Okta"`, `"CrowdStrike"`, `"GE HealthCare"`) and Indian tech hubs (`%20India`).
+    * **Direct Job Link Integration:** Cleans tracking parameters via `clean_job_url()` and weaves direct requisition links into connection request notes and InMail pitches.
+    * **Dynamic $\le 300$ Character Governor:** Intelligently balances candidate metrics (`~6.8 YOE`, Playwright & API testing), requisition IDs, direct job URLs, and candidate portfolio links (`manjunathhk.netlify.app`), applying dynamic title and phrasing compression for long Workday URLs (100+ chars) to mathematically guarantee the connection note never exceeds 300 characters.
+    * **InMail Pitch Capped at $\le 1,000$ Characters:** Details distributed architecture achievements (Playwright microservices, Kafka event streams, Pact contract testing) alongside direct requisition links and portfolio links.
   * **SQLite Referral Outreach Ledger (`referral_outreach`):** Persists outreach records (id, job_id, company, title, requisition_id, contact, note_content, status, timestamps) with lifecycle transitions (`GENERATED` $\rightarrow$ `SENT` $\rightarrow$ `CONNECTED` $\rightarrow$ `REFERRED`).
 
 ---

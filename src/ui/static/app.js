@@ -1101,7 +1101,10 @@ function renderReferralModalData() {
     if (heading) heading.innerText = `Referral Pitch: ${p.company_name}`;
 
     const subtitle = document.getElementById('referral-job-subtitle');
-    if (subtitle) subtitle.innerText = `${p.company_name} • ${p.job_title} (Req ID: ${p.requisition_id || 'N/A'})`;
+    if (subtitle) {
+        const jobUrlHtml = p.job_url ? ` • <a href="${p.job_url}" target="_blank" style="color:#60a5fa;text-decoration:underline;">View Job ↗</a>` : '';
+        subtitle.innerHTML = `${p.company_name} • ${p.job_title} (Req ID: ${p.requisition_id || 'N/A'})${jobUrlHtml}`;
+    }
 
     // Populate search links
     const urls = p.search_urls || {};
