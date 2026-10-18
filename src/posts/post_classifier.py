@@ -7,6 +7,7 @@ eliminates job-seeker/commercial noise; and computes quality scores.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -152,6 +153,14 @@ NON_COMPANY_WORDS = {
     "new",
     "open",
     "right",
+    "two great startup roles",
+    "startup roles",
+    "great startup roles",
+    "great roles",
+    "multiple positions",
+    "exciting opportunities",
+    "multiple openings",
+    "various roles",
 }
 
 # Strict word-boundary affirmative team hiring regex (prevents 'your team' matching 'our team')
@@ -202,6 +211,37 @@ CONDITIONAL_SEEKER_PHRASES = [
     "a referral would mean a lot",
     "a repost would also help",
     "a repost would help",
+]
+
+# Explicit disclaimer markers in reposts where author states they cannot refer or hire
+DISCLAIMER_EXCLUSION_MARKERS = [
+    "neither i nor",
+    "neither me nor",
+    "not able to refer",
+    "cannot refer",
+    "not involved in the hiring",
+    "not involved in hiring",
+    "unable to refer",
+    "do not contact me",
+    "cannot support applicants",
+    "not able to support applicants",
+    "unable to support applicants",
+    "not able to support/refer",
+    "unable to support/refer",
+]
+
+# Non-SDET Civil/Mechanical/BIM CAD tools to avoid software tool / company collisions (e.g. Autodesk Revit)
+NON_SDET_CAD_TOOLS = [
+    "revit",
+    "bim",
+    "autocad",
+    "civil 3d",
+    "solidworks",
+    "catia",
+    "microstation",
+    "tekla",
+    "mep modeler",
+    "bim technician",
 ]
 
 # First-person job seeker phrases in post text (author asking for a job or referral for themselves)
@@ -560,6 +600,18 @@ class PostClassifier:
             if cond in text_lower and not has_affirmative_hiring:
                 return False, f"Job seeker conditional inquiry detected: '{cond}'"
 
+        # 1d. Reject if post explicitly has disclaimer stating author cannot refer or is not hiring
+        for discl in DISCLAIMER_EXCLUSION_MARKERS:
+            if discl in text_lower:
+                return False, f"Author posted a disclaimer that they cannot refer or hire: '{discl}'"
+
+        # 1e. Reject non-software CAD/BIM/Civil modeling roles
+        if any(cad in text_lower for cad in NON_SDET_CAD_TOOLS) and not any(
+            sw in text_lower
+            for sw in ["playwright", "selenium", "rest assured", "api test", "automation framework", "qa automation"]
+        ):
+            return False, "Non-software CAD/BIM/Civil modeling role detected."
+
         # 2. Reject EdTech Commercial Spam
         for marker in COMMERCIAL_SPAM_MARKERS:
             if marker in combined:
@@ -656,6 +708,12 @@ class PostClassifier:
                 "multiple roles",
                 "open opportunities",
                 "job openings",
+                "startup roles",
+                "great roles",
+                "great startup",
+                "open positions",
+                "multiple openings",
+                "various roles",
             ]
         ):
             return None
@@ -693,17 +751,12 @@ class PostClassifier:
                     is_dream = cand.lower() in self.dream_companies
                     return cand.title(), is_dream
 
-        # 3. Contextual Dream Org Mention (Only when preceded by explicit hiring/referral verbs)
+        # 3. Contextual Dream Org Mention (Requires explicit employment/hiring markers)
         for dream in self.dream_companies:
-            if dream in TECH_TOOL_KEYWORDS:
-                # Require explicit employment marker for dual-purpose names (e.g. Postman, Docker)
-                pat = rf"\b(?:at|@|referrals? for|join|hiring for)\s+{re.escape(dream)}\b"
-                if re.search(pat, headline, re.IGNORECASE) or re.search(pat, text, re.IGNORECASE):
-                    return dream.title(), True
-            else:
-                pat = rf"\b{re.escape(dream)}\b"
-                if re.search(pat, headline, re.IGNORECASE) or re.search(pat, text, re.IGNORECASE):
-                    return dream.title(), True
+            # Require explicit preposition or hiring clause to prevent software product name collisions (e.g. Revit)
+            pat = rf"\b(?:at|@|referrals?\s+for|join|hiring\s+for|work\s+at|opening\s+at)\s+{re.escape(dream)}\b|\b{re.escape(dream)}\s+(?:is\s+hiring|team\s+is\s+hiring)\b"
+            if re.search(pat, headline, re.IGNORECASE) or re.search(pat, text, re.IGNORECASE):
+                return dream.title(), True
 
         return "Tech Enterprise", False
 
@@ -715,6 +768,7 @@ class PostClassifier:
         job_codes: list[str],
         posted_at_relative: str,
         role_category: str,
+        post_text: str = "",
     ) -> int:
         """
         Calculates a 0-100 quality score for prioritising the lead.
@@ -738,6 +792,11 @@ class PostClassifier:
         # Role authority bonus (Leads & Peers offering direct team referrals have high conversion)
         if role_category in ["LEADER", "ENGINEER"] or role_category == "RECRUITER":
             score += 5
+
+        # Staffing / C2C / WhatsApp / Third-party agency penalty (-20)
+        t_low = (post_text or "").lower()
+        if any(sm in t_low for sm in ["c2c", "corp to corp", "contractual", "whatsapp", "staffing agency"]):
+            score = max(10, score - 20)
 
         return min(score, 100)
 
@@ -764,19 +823,21 @@ class PostClassifier:
         role_category = self.classify_author_role(author_headline, post_text)
         company_name, is_dream_org = self.extract_company_name(author_headline, post_text)
         quality_score = self.compute_quality_score(
-            is_dream_org, emails, links, job_codes, posted_at_relative, role_category
+            is_dream_org, emails, links, job_codes, posted_at_relative, role_category, post_text=post_text
         )
 
         post_id = raw_post.get("post_id")
         if not post_id:
-            import hashlib
-
             post_id = (
                 f"post_{hashlib.md5((post_url or (author_name + post_text[:100])).encode('utf-8')).hexdigest()[:12]}"
             )
 
+        norm_text = re.sub(r"\s+", " ", post_text.lower()).strip()
+        content_hash = hashlib.sha256(norm_text.encode("utf-8")).hexdigest()[:16]
+
         return {
             "post_id": post_id,
+            "content_hash": content_hash,
             "author_name": author_name,
             "author_headline": author_headline,
             "author_profile_url": author_profile_url,

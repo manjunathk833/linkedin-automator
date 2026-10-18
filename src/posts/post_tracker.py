@@ -24,10 +24,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 STORAGE_STATE = PROJECT_ROOT / ".browser_data" / "storage_state.json"
 
 DEFAULT_SEARCH_QUERIES = [
-    "SDET hiring",
-    "QA automation hiring",
-    "SDET referral",
-    "Lead SDET hiring",
+    '("SDET" OR "Software Engineer in Test") hiring (Bangalore OR Bengaluru OR India OR Remote)',
+    '("Staff SDET" OR "Principal SDET" OR "Lead SDET") hiring',
+    '("SDET" OR "QA Automation") referral (Bangalore OR Bengaluru OR India OR Remote)',
+    '("Test Automation Architect" OR "Automation Lead") hiring',
+    '"SDET" referral',
 ]
 
 
@@ -390,8 +391,8 @@ class LinkedInPostTracker:
     async def discover_posts(
         self,
         queries: list[str] | None = None,
-        date_filter: str = "past-24h",
-        max_scrolls: int = 4,
+        date_filter: str = "past-week",
+        max_scrolls: int = 12,
         headless: bool = False,
     ) -> list[dict[str, Any]]:
         """
@@ -418,10 +419,10 @@ class LinkedInPostTracker:
                         await page.goto(url, wait_until="domcontentloaded", timeout=35000)
                         await asyncio.sleep(3.0)
 
-                        # Progressive smooth scrolls to hydrate feed updates
+                        # Progressive smooth scrolls to hydrate feed updates deep into the feed
                         for s in range(max_scrolls):
-                            await page.evaluate("window.scrollBy(0, 900)")
-                            await asyncio.sleep(1.8)
+                            await page.evaluate("window.scrollBy(0, 1000)")
+                            await asyncio.sleep(1.5)
 
                         # Match modern card locators
                         cards_loc = page.locator(
@@ -438,8 +439,9 @@ class LinkedInPostTracker:
                             post_lead = await self._extract_post_from_card(card, page)
                             if post_lead:
                                 post_id = post_lead["post_id"]
-                                if not self.db.is_hiring_post_saved(post_id):
-                                    self.db.save_hiring_post(post_lead)
+                                if not self.db.is_hiring_post_saved(
+                                    post_id, content_hash=post_lead.get("content_hash")
+                                ) and self.db.save_hiring_post(post_lead):
                                     discovered_leads.append(post_lead)
                                     author = post_lead["author_name"]
                                     company = post_lead["company_name"]

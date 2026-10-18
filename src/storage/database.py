@@ -25,7 +25,9 @@ class ApplicationDatabase:
 
     def __init__(self, db_path: str = DEFAULT_DB_PATH):
         self.db_path = db_path
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
         self._init_schema()
 
     def _get_connection(self) -> sqlite3.Connection:
@@ -99,6 +101,7 @@ class ApplicationDatabase:
 
                 CREATE TABLE IF NOT EXISTS hiring_posts (
                     post_id TEXT PRIMARY KEY,
+                    content_hash TEXT,
                     author_name TEXT NOT NULL,
                     author_headline TEXT,
                     author_profile_url TEXT,
@@ -125,6 +128,14 @@ class ApplicationDatabase:
                 CREATE INDEX IF NOT EXISTS idx_hiring_posts_dream ON hiring_posts(is_dream_org);
                 """
             )
+            try:
+                conn.execute("ALTER TABLE hiring_posts ADD COLUMN content_hash TEXT;")
+            except Exception:
+                pass
+            try:
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_hiring_posts_content_hash ON hiring_posts(content_hash);")
+            except Exception:
+                pass
             self.repair_invalid_post_urls(conn=conn)
             self.repair_posts_metadata_and_links(conn=conn)
 
@@ -598,10 +609,15 @@ class ApplicationDatabase:
             return cursor.rowcount > 0
 
     def save_hiring_post(self, post_data: dict[str, Any]) -> bool:
-        """Saves or updates a discovered hiring / referral post."""
+        """Saves or updates a discovered hiring / referral post with content deduplication."""
         post_id = post_data.get("post_id")
         if not post_id:
             return False
+
+        content_hash = post_data.get("content_hash") or ""
+        if not content_hash:
+            norm_text = re.sub(r"\s+", " ", (post_data.get("post_text") or "").lower()).strip()
+            content_hash = hashlib.sha256(norm_text.encode("utf-8")).hexdigest()[:16]
 
         emails = json.dumps(post_data.get("extracted_emails", []))
         links = json.dumps(post_data.get("extracted_links", []))
@@ -609,16 +625,26 @@ class ApplicationDatabase:
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            # If a post with identical content_hash already exists under a different post_id, skip saving
+            if content_hash:
+                cursor.execute(
+                    "SELECT 1 FROM hiring_posts WHERE content_hash = ? AND post_id != ? LIMIT 1",
+                    (content_hash, post_id),
+                )
+                if cursor.fetchone():
+                    return False
+
             cursor.execute(
                 """
                 INSERT INTO hiring_posts (
-                    post_id, author_name, author_headline, author_profile_url,
+                    post_id, content_hash, author_name, author_headline, author_profile_url,
                     company_name, is_dream_org, post_url, post_text,
                     posted_at_relative, extracted_emails, extracted_links,
                     extracted_job_codes, quality_score, author_role_category,
                     outreach_status, custom_dm_draft, custom_inmail_draft, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(post_id) DO UPDATE SET
+                    content_hash = excluded.content_hash,
                     author_headline = excluded.author_headline,
                     company_name = excluded.company_name,
                     is_dream_org = excluded.is_dream_org,
@@ -634,6 +660,7 @@ class ApplicationDatabase:
                 """,
                 (
                     post_id,
+                    content_hash,
                     post_data.get("author_name", "Unknown"),
                     post_data.get("author_headline", ""),
                     post_data.get("author_profile_url", ""),
@@ -656,11 +683,17 @@ class ApplicationDatabase:
             conn.commit()
             return cursor.rowcount > 0
 
-    def is_hiring_post_saved(self, post_id: str) -> bool:
-        """Checks if a hiring post has already been discovered and saved."""
+    def is_hiring_post_saved(self, post_id: str, content_hash: str | None = None) -> bool:
+        """Checks if a hiring post has already been discovered and saved by post_id or content_hash."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT 1 FROM hiring_posts WHERE post_id = ? LIMIT 1", (post_id,))
+            if content_hash:
+                cursor.execute(
+                    "SELECT 1 FROM hiring_posts WHERE post_id = ? OR (content_hash = ? AND content_hash != '') LIMIT 1",
+                    (post_id, content_hash),
+                )
+            else:
+                cursor.execute("SELECT 1 FROM hiring_posts WHERE post_id = ? LIMIT 1", (post_id,))
             return cursor.fetchone() is not None
 
     def get_hiring_post(self, post_id: str) -> dict[str, Any] | None:
@@ -881,10 +914,20 @@ class ApplicationDatabase:
         composer = PostOutreachComposer()
 
         def _do_repair(active_conn: sqlite3.Connection) -> int:
+            # Ensure content_hash column exists
+            try:
+                active_conn.execute("ALTER TABLE hiring_posts ADD COLUMN content_hash TEXT;")
+                active_conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_hiring_posts_content_hash ON hiring_posts(content_hash);"
+                )
+            except Exception:
+                pass
+
             cursor = active_conn.cursor()
             cursor.execute("SELECT * FROM hiring_posts")
             rows = cursor.fetchall()
             updated_count = 0
+            seen_content_hashes: set[str] = set()
 
             def _safe_json_list(val: Any) -> list[str]:
                 if not val:
@@ -908,10 +951,20 @@ class ApplicationDatabase:
                 # Validate whether post is an authentic hiring/referral lead
                 is_valid, _reason = classifier.is_hiring_post(headline, clean_text)
                 if not is_valid:
-                    # Purge job seeker post that slipped in
+                    # Purge job seeker, non-SDET CAD, or disclaimer post that slipped in
                     cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
                     updated_count += 1
                     continue
+
+                norm_text = re.sub(r"\s+", " ", clean_text.lower()).strip()
+                c_hash = hashlib.sha256(norm_text.encode("utf-8")).hexdigest()[:16]
+
+                if c_hash in seen_content_hashes:
+                    # Duplicate post from syndicated agency bot account
+                    cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
+                    updated_count += 1
+                    continue
+                seen_content_hashes.add(c_hash)
 
                 # Clean links
                 clean_links = classifier.extract_links(clean_text, additional_links=raw_links)
@@ -923,7 +976,7 @@ class ApplicationDatabase:
                 posted_time = r["posted_at_relative"] or "recent"
 
                 score = classifier.compute_quality_score(
-                    is_dream, emails, clean_links, job_codes, posted_time, role_cat
+                    is_dream, emails, clean_links, job_codes, posted_time, role_cat, post_text=clean_text
                 )
 
                 post_data = {
@@ -938,6 +991,7 @@ class ApplicationDatabase:
                 cursor.execute(
                     """
                     UPDATE hiring_posts SET
+                        content_hash = ?,
                         post_text = ?,
                         company_name = ?,
                         is_dream_org = ?,
@@ -948,6 +1002,7 @@ class ApplicationDatabase:
                     WHERE post_id = ?
                     """,
                     (
+                        c_hash,
                         clean_text,
                         company,
                         1 if is_dream else 0,

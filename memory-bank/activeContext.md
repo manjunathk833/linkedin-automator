@@ -389,6 +389,23 @@
     - Registered in `TIER_1_CORE` in `verify/run_regressions.py` expanding suite to 54 tests.
     - Standardized Tier 1 core regression suite (`python main.py test --tier core`): **54/54 PASSED (100% SUCCESS)** in 45.66s.
     - Codebase linted cleanly via `python main.py lint`: **0 errors across 165 files**.
+    - Posts Scouting Optimization, Disclaimer Rejection & Syndicated Content Deduplication Complete & Verified (Gate 76):
+      - Pre-requisite Configured: Pinned Antigravity 1M token ceiling in `.vscode/settings.json`, added `context_window_token_limit: 1000000` to `config.yaml` under `llm:`, and integrated into `GeminiLLMProvider` and `HybridLLMProvider` in `src/tailor/llm_provider.py`.
+      - Comparative Dry Run Baseline: Executed manual browser subagent crawl across infinite scroll feed and compared against system discovery over `past-week` window.
+      - Discovered & Resolved Root Causes:
+        * Disclaimer Repost Exclusion: Added `DISCLAIMER_EXCLUSION_MARKERS` to reject reposts where author disclaims ability to refer/hire (e.g. `neither I nor the company... are able to support/refer applicants`).
+        * Non-SDET CAD Tool Disambiguation: Added `NON_SDET_CAD_TOOLS` (`revit`, `bim`, `autocad`, `civil 3d`, etc.) to reject civil/structural modeler roles from falsely claiming Autodesk SDET positions.
+        * Conversational Phrase Filtering: Filtered phrases like `"two great startup roles"` from false company name attribution.
+        * Syndicated Agency Content Deduplication: Implemented normalized SHA-256 content hashing (`content_hash`) in `PostClassifier` and `ApplicationDatabase`, preventing duplicate spam posts from multi-bot agency syndicates.
+        * Quality Scoring Calibration: +25 bonus for verified Product Companies in `target_companies.json`, -20 penalty for agency/staffing markers (`c2c`, `corp to corp`, `contractual`, `whatsapp`).
+        * Scaled Discovery: Scaled default scroll depth from 4 to 12 scrolls, expanded `DEFAULT_SEARCH_QUERIES` with location and senior role scoping (`Bangalore OR Bengaluru OR India OR Remote`), and updated default date filter to `past-week`.
+      - Database Self-Healing Migration: Purged false positives (`Struvek`, `Neill McCarthy`), healed conversational company names, and deduplicated existing records in SQLite `hiring_posts`.
+      - Hardened Agent Guidelines: Codified Rule 10 across `.agents/rules/00-core-instructions.md`, `.agents/rules/02-agent-review-protocol.md`, and `.agents/agents/dry_run_agent.md` mandating live, headful dry run execution after every single implementation cycle.
+      - Authored Verification Gate 76 (`verify/76_test_posts_optimization_and_deduplication.py`): testing disclaimer rejection, CAD tool disambiguation, phrase rejection, content hash deduplication, and expanded queries.
+      - Registered in `TIER_1_CORE` in `verify/run_regressions.py` expanding suite to 55 tests.
+      - Standardized Tier 1 core regression suite (`python main.py test --tier core`): **55/55 PASSED (100% SUCCESS)** in 46.99s.
+      - Codebase linted cleanly via `python main.py lint`: **0 errors across 166 files**.
+      - Post-Implementation Dry Run Executed: Ran `python main.py posts discover` live with headful Playwright; discovered 3 fresh leads with 0 false positives and 0 duplicate agency posts.
 
 
 

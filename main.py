@@ -541,8 +541,8 @@ def main():
     parser_posts.add_argument(
         "--date-filter",
         choices=["past-24h", "past-week"],
-        default="past-24h",
-        help="Date filter for LinkedIn content search: 'past-24h' (default) or 'past-week'",
+        default="past-week",
+        help="Date filter for LinkedIn content search: 'past-week' (default) or 'past-24h'",
     )
     parser_posts.add_argument(
         "--limit",

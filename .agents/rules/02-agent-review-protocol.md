@@ -43,6 +43,7 @@ After code changes or bug fixes are applied, evaluate against the universal dry 
 - [ ] **Persistent Browser Session Readiness:** Ensure stored session state (`.browser_data/`, `SessionManager`) and local FastAPI server (`http://127.0.0.1:8000`) are active and verified.
 - [ ] **Human-in-the-Loop Takeover (Zero Premature Exit):** If authentication, 2FA, or CAPTCHA is encountered, execution must NEVER terminate prematurely. Prompt the user, pause interactively, refresh session, and seamlessly resume.
 - [ ] **Autonomous Self-Healing Loop:** If regressions, broken selectors, or overflow issues are found, diagnose via `autofill_learning_vault.json`, immediately patch in `src/`, and re-verify.
+- [ ] **Mandatory Post-Implementation Dry Run Execution:** An exhaustive live, headful dry run is strictly mandatory after EVERY implementation cycle. No task or PR may be completed without running the active system flow live, observing real output seeds, validating database state, and confirming that the UI reflects the updates.
 - [ ] **Implementation Report Emitted:** Deliver a structured health report upon completion before raising a Pull Request to `main`.
 
 
