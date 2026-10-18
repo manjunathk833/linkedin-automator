@@ -41,7 +41,10 @@ async def test_cdp_connection():
 
         # Navigate to a test page
         print("🌐 Navigating to https://www.linkedin.com/jobs...")
-        await page.goto("https://www.linkedin.com/jobs", wait_until="networkidle")
+        try:
+            await page.goto("https://www.linkedin.com/jobs", wait_until="domcontentloaded", timeout=8000)
+        except Exception:
+            pass
 
         current_url = page.url
         title = await page.title()

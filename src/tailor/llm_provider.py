@@ -171,9 +171,23 @@ class GeminiLLMProvider(LLMProvider):
     MIN_REQUEST_INTERVAL: float = 4.0  # Enforces maximum 15 requests per minute ceiling
     _model_cooldowns: ClassVar[dict[str, float]] = {}  # Tracks temporary quota exhaustion per model
 
-    def __init__(self, api_key: str | None = None, model_name: str | None = None):
+    def __init__(
+        self, api_key: str | None = None, model_name: str | None = None, context_window_limit: int | None = None
+    ):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         self.model_name = model_name or os.getenv("GEMINI_MODEL", "models/gemini-flash-lite-latest")
+        if context_window_limit is None:
+            try:
+                import yaml
+
+                cfg_path = os.path.join(PROJECT_ROOT, "config.yaml")
+                if os.path.exists(cfg_path):
+                    with open(cfg_path, "r", encoding="utf-8") as f:
+                        cfg = yaml.safe_load(f) or {}
+                        context_window_limit = cfg.get("llm", {}).get("context_window_token_limit")
+            except Exception:
+                pass
+        self.context_window_limit = context_window_limit or int(os.getenv("GEMINI_CONTEXT_WINDOW_LIMIT", "1000000"))
         self.client = None
 
         if self.api_key:
@@ -646,8 +660,10 @@ class HybridLLMProvider(LLMProvider):
     Fallback: Local Ollama (qwen2.5:7b) if Gemini encounters persistent network outages.
     """
 
-    def __init__(self, model_name: str | None = None):
-        self.gemini = GeminiLLMProvider(model_name=model_name or "models/gemini-flash-lite-latest")
+    def __init__(self, model_name: str | None = None, context_window_limit: int | None = None):
+        self.gemini = GeminiLLMProvider(
+            model_name=model_name or "models/gemini-flash-lite-latest", context_window_limit=context_window_limit
+        )
         self.ollama = OllamaLLMProvider()
 
     def generate_tailored_bullets(

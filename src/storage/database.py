@@ -10,6 +10,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import sqlite3
 from typing import Any
 
@@ -24,7 +25,9 @@ class ApplicationDatabase:
 
     def __init__(self, db_path: str = DEFAULT_DB_PATH):
         self.db_path = db_path
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
         self._init_schema()
 
     def _get_connection(self) -> sqlite3.Connection:
@@ -95,8 +98,46 @@ class ApplicationDatabase:
                 CREATE INDEX IF NOT EXISTS idx_referral_outreach_job ON referral_outreach(job_id);
                 CREATE INDEX IF NOT EXISTS idx_referral_outreach_company ON referral_outreach(company_name);
                 CREATE INDEX IF NOT EXISTS idx_referral_outreach_status ON referral_outreach(status);
+
+                CREATE TABLE IF NOT EXISTS hiring_posts (
+                    post_id TEXT PRIMARY KEY,
+                    content_hash TEXT,
+                    author_name TEXT NOT NULL,
+                    author_headline TEXT,
+                    author_profile_url TEXT,
+                    company_name TEXT,
+                    is_dream_org INTEGER DEFAULT 0,
+                    post_url TEXT NOT NULL,
+                    post_text TEXT NOT NULL,
+                    posted_at_relative TEXT,
+                    discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    extracted_emails TEXT DEFAULT '[]',
+                    extracted_links TEXT DEFAULT '[]',
+                    extracted_job_codes TEXT DEFAULT '[]',
+                    quality_score INTEGER DEFAULT 0,
+                    author_role_category TEXT DEFAULT 'ENGINEER',
+                    outreach_status TEXT DEFAULT 'NEW',
+                    custom_dm_draft TEXT,
+                    custom_inmail_draft TEXT,
+                    notes TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_hiring_posts_company ON hiring_posts(company_name);
+                CREATE INDEX IF NOT EXISTS idx_hiring_posts_status ON hiring_posts(outreach_status);
+                CREATE INDEX IF NOT EXISTS idx_hiring_posts_discovered ON hiring_posts(discovered_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_hiring_posts_dream ON hiring_posts(is_dream_org);
                 """
             )
+            try:
+                conn.execute("ALTER TABLE hiring_posts ADD COLUMN content_hash TEXT;")
+            except Exception:
+                pass
+            try:
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_hiring_posts_content_hash ON hiring_posts(content_hash);")
+            except Exception:
+                pass
+            self.repair_invalid_post_urls(conn=conn)
+            self.repair_posts_metadata_and_links(conn=conn)
 
     def _get_today_bucket(self) -> str:
         """Returns date string bucket in YYYY-MM-DD format."""
@@ -566,3 +607,418 @@ class ApplicationDatabase:
             cursor.execute(query, tuple(params))
             conn.commit()
             return cursor.rowcount > 0
+
+    def save_hiring_post(self, post_data: dict[str, Any]) -> bool:
+        """Saves or updates a discovered hiring / referral post with content deduplication."""
+        post_id = post_data.get("post_id")
+        if not post_id:
+            return False
+
+        content_hash = post_data.get("content_hash") or ""
+        if not content_hash:
+            norm_text = re.sub(r"\s+", " ", (post_data.get("post_text") or "").lower()).strip()
+            content_hash = hashlib.sha256(norm_text.encode("utf-8")).hexdigest()[:16]
+
+        emails = json.dumps(post_data.get("extracted_emails", []))
+        links = json.dumps(post_data.get("extracted_links", []))
+        job_codes = json.dumps(post_data.get("extracted_job_codes", []))
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            # If a post with identical content_hash already exists under a different post_id, skip saving
+            if content_hash:
+                cursor.execute(
+                    "SELECT 1 FROM hiring_posts WHERE content_hash = ? AND post_id != ? LIMIT 1",
+                    (content_hash, post_id),
+                )
+                if cursor.fetchone():
+                    return False
+
+            cursor.execute(
+                """
+                INSERT INTO hiring_posts (
+                    post_id, content_hash, author_name, author_headline, author_profile_url,
+                    company_name, is_dream_org, post_url, post_text,
+                    posted_at_relative, extracted_emails, extracted_links,
+                    extracted_job_codes, quality_score, author_role_category,
+                    outreach_status, custom_dm_draft, custom_inmail_draft, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(post_id) DO UPDATE SET
+                    content_hash = excluded.content_hash,
+                    author_headline = excluded.author_headline,
+                    company_name = excluded.company_name,
+                    is_dream_org = excluded.is_dream_org,
+                    post_text = excluded.post_text,
+                    posted_at_relative = excluded.posted_at_relative,
+                    extracted_emails = excluded.extracted_emails,
+                    extracted_links = excluded.extracted_links,
+                    extracted_job_codes = excluded.extracted_job_codes,
+                    quality_score = excluded.quality_score,
+                    author_role_category = excluded.author_role_category,
+                    custom_dm_draft = COALESCE(excluded.custom_dm_draft, hiring_posts.custom_dm_draft),
+                    custom_inmail_draft = COALESCE(excluded.custom_inmail_draft, hiring_posts.custom_inmail_draft)
+                """,
+                (
+                    post_id,
+                    content_hash,
+                    post_data.get("author_name", "Unknown"),
+                    post_data.get("author_headline", ""),
+                    post_data.get("author_profile_url", ""),
+                    post_data.get("company_name", ""),
+                    1 if post_data.get("is_dream_org") else 0,
+                    post_data.get("post_url", ""),
+                    post_data.get("post_text", ""),
+                    post_data.get("posted_at_relative", ""),
+                    emails,
+                    links,
+                    job_codes,
+                    post_data.get("quality_score", 0),
+                    post_data.get("author_role_category", "ENGINEER"),
+                    post_data.get("outreach_status", "NEW"),
+                    post_data.get("custom_dm_draft", ""),
+                    post_data.get("custom_inmail_draft", ""),
+                    post_data.get("notes", ""),
+                ),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def is_hiring_post_saved(self, post_id: str, content_hash: str | None = None) -> bool:
+        """Checks if a hiring post has already been discovered and saved by post_id or content_hash."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if content_hash:
+                cursor.execute(
+                    "SELECT 1 FROM hiring_posts WHERE post_id = ? OR (content_hash = ? AND content_hash != '') LIMIT 1",
+                    (post_id, content_hash),
+                )
+            else:
+                cursor.execute("SELECT 1 FROM hiring_posts WHERE post_id = ? LIMIT 1", (post_id,))
+            return cursor.fetchone() is not None
+
+    def get_hiring_post(self, post_id: str) -> dict[str, Any] | None:
+        """Retrieves a single hiring post by its post_id."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM hiring_posts WHERE post_id = ? LIMIT 1", (post_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            d = dict(row)
+            d["is_dream_org"] = bool(d.get("is_dream_org"))
+            try:
+                d["extracted_emails"] = json.loads(d.get("extracted_emails") or "[]")
+            except Exception:
+                d["extracted_emails"] = []
+            try:
+                d["extracted_links"] = json.loads(d.get("extracted_links") or "[]")
+            except Exception:
+                d["extracted_links"] = []
+            try:
+                d["extracted_job_codes"] = json.loads(d.get("extracted_job_codes") or "[]")
+            except Exception:
+                d["extracted_job_codes"] = []
+            return d
+
+    def get_hiring_posts(
+        self,
+        limit: int = 50,
+        status: str | None = None,
+        dream_only: bool = False,
+        fresh_only: bool = False,
+        role_category: str | None = None,
+        search: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Retrieves hiring posts with rich multi-parameter filtering."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            query = "SELECT * FROM hiring_posts"
+            conditions: list[str] = []
+            params: list[Any] = []
+
+            if status:
+                conditions.append("outreach_status = ?")
+                params.append(status)
+            if dream_only:
+                conditions.append("is_dream_org = 1")
+            if fresh_only:
+                conditions.append(
+                    "(posted_at_relative LIKE '%h%' OR posted_at_relative LIKE '%1d%' OR posted_at_relative LIKE '%2d%' OR posted_at_relative LIKE '%m%')"
+                )
+            if role_category:
+                conditions.append("author_role_category = ?")
+                params.append(role_category)
+            if search:
+                pattern = f"%{search.strip()}%"
+                conditions.append(
+                    "(post_id LIKE ? OR author_name LIKE ? OR company_name LIKE ? OR author_headline LIKE ? OR post_text LIKE ?)"
+                )
+                params.extend([pattern, pattern, pattern, pattern, pattern])
+
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+
+            query += " ORDER BY is_dream_org DESC, quality_score DESC, discovered_at DESC LIMIT ?"
+            params.append(limit)
+
+            cursor.execute(query, tuple(params))
+            results = []
+            for row in cursor.fetchall():
+                d = dict(row)
+                d["is_dream_org"] = bool(d.get("is_dream_org"))
+                try:
+                    d["extracted_emails"] = json.loads(d.get("extracted_emails") or "[]")
+                except Exception:
+                    d["extracted_emails"] = []
+                try:
+                    d["extracted_links"] = json.loads(d.get("extracted_links") or "[]")
+                except Exception:
+                    d["extracted_links"] = []
+                try:
+                    d["extracted_job_codes"] = json.loads(d.get("extracted_job_codes") or "[]")
+                except Exception:
+                    d["extracted_job_codes"] = []
+                results.append(d)
+            return results
+
+    def update_hiring_post_status(self, post_id: str, status: str, notes: str | None = None) -> bool:
+        """Updates the outreach status of a post (e.g. DM_SENT, EMAIL_SENT, DISMISSED)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if notes is not None:
+                cursor.execute(
+                    "UPDATE hiring_posts SET outreach_status = ?, notes = ? WHERE post_id = ?",
+                    (status, notes, post_id),
+                )
+            else:
+                cursor.execute(
+                    "UPDATE hiring_posts SET outreach_status = ? WHERE post_id = ?",
+                    (status, post_id),
+                )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def get_hiring_posts_stats(self) -> dict[str, int]:
+        """Calculates KPI statistics across discovered hiring posts."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts")
+            total = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts WHERE is_dream_org = 1")
+            dream_orgs = cursor.fetchone()[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM hiring_posts WHERE (posted_at_relative LIKE '%h%' OR posted_at_relative LIKE '%1d%' OR posted_at_relative LIKE '%m%')"
+            )
+            fresh_24h = cursor.fetchone()[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM hiring_posts WHERE extracted_emails != '[]' AND extracted_emails IS NOT NULL"
+            )
+            has_email = cursor.fetchone()[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM hiring_posts WHERE outreach_status IN ('DM_SENT', 'EMAIL_SENT', 'REFERRED', 'CONTACTED')"
+            )
+            contacted = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts WHERE outreach_status = 'NEW'")
+            new_leads = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts WHERE author_role_category = 'ENGINEER'")
+            engineer_posts = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts WHERE author_role_category = 'RECRUITER'")
+            recruiter_posts = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts WHERE author_role_category = 'LEADER'")
+            leader_posts = cursor.fetchone()[0]
+
+            return {
+                "total_posts": total,
+                "dream_orgs": dream_orgs,
+                "fresh_24h": fresh_24h,
+                "has_email": has_email,
+                "contacted": contacted,
+                "new_leads": new_leads,
+                "engineer_posts": engineer_posts,
+                "recruiter_posts": recruiter_posts,
+                "leader_posts": leader_posts,
+            }
+
+    def delete_hiring_post(self, post_id: str) -> bool:
+        """Deletes a hiring post by ID."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def repair_invalid_post_urls(self, conn: sqlite3.Connection | None = None) -> int:
+        """
+        Repairs legacy hiring post URLs that were populated with synthetic MD5 update hashes
+        (e.g., https://www.linkedin.com/feed/update/{hash}), transforming them into authentic
+        author activity/post feeds that load with HTTP 200.
+        """
+
+        def _do_repair(active_conn: sqlite3.Connection) -> int:
+            cursor = active_conn.cursor()
+            cursor.execute(
+                "SELECT post_id, author_profile_url, post_url FROM hiring_posts "
+                "WHERE post_url LIKE 'https://www.linkedin.com/feed/update/%' "
+                "AND post_url NOT LIKE '%urn:li:activity%'"
+            )
+            rows = cursor.fetchall()
+            updated_count = 0
+            for r in rows:
+                post_id = r["post_id"]
+                author_url = (r["author_profile_url"] or "").strip().rstrip("/")
+                post_url = (r["post_url"] or "").strip()
+                # Check for 8-32 character hex hash
+                if re.search(r"/feed/update/[0-9a-fA-F]{8,32}/?$", post_url):
+                    if "/in/" in author_url:
+                        new_url = f"{author_url}/recent-activity/all/"
+                    elif "/company/" in author_url:
+                        new_url = f"{author_url}/posts/"
+                    elif author_url:
+                        new_url = author_url
+                    else:
+                        continue
+                    cursor.execute(
+                        "UPDATE hiring_posts SET post_url = ? WHERE post_id = ?",
+                        (new_url, post_id),
+                    )
+                    updated_count += 1
+            if updated_count > 0:
+                active_conn.commit()
+            return updated_count
+
+        if conn is not None:
+            return _do_repair(conn)
+        with self._get_connection() as active_conn:
+            return _do_repair(active_conn)
+
+    def repair_posts_metadata_and_links(self, conn: sqlite3.Connection | None = None) -> int:
+        """
+        Re-evaluates existing hiring posts in SQLite to:
+        1. Sanitize corrupted lnkd.in and external URLs (stripping trailing words/emojis).
+        2. Disambiguate technical skills from company names, removing false dream org flags.
+        3. Recalculate quality score and regenerate custom outreach drafts.
+        """
+        from src.posts.outreach_composer import PostOutreachComposer
+        from src.posts.post_classifier import PostClassifier
+        from src.posts.post_tracker import sanitize_post_text
+
+        classifier = PostClassifier()
+        composer = PostOutreachComposer()
+
+        def _do_repair(active_conn: sqlite3.Connection) -> int:
+            # Ensure content_hash column exists
+            try:
+                active_conn.execute("ALTER TABLE hiring_posts ADD COLUMN content_hash TEXT;")
+                active_conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_hiring_posts_content_hash ON hiring_posts(content_hash);"
+                )
+            except Exception:
+                pass
+
+            cursor = active_conn.cursor()
+            cursor.execute("SELECT * FROM hiring_posts")
+            rows = cursor.fetchall()
+            updated_count = 0
+            seen_content_hashes: set[str] = set()
+
+            def _safe_json_list(val: Any) -> list[str]:
+                if not val:
+                    return []
+                if isinstance(val, list):
+                    return val
+                try:
+                    loaded = json.loads(val)
+                    return loaded if isinstance(loaded, list) else []
+                except Exception:
+                    return []
+
+            for r in rows:
+                post_id = r["post_id"]
+                author_name = r["author_name"] or ""
+                headline = r["author_headline"] or ""
+                text = r["post_text"] or ""
+                clean_text = sanitize_post_text(text, author_name=author_name)
+                raw_links = _safe_json_list(r["extracted_links"])
+
+                # Validate whether post is an authentic hiring/referral lead
+                is_valid, _reason = classifier.is_hiring_post(headline, clean_text)
+                if not is_valid:
+                    # Purge job seeker, non-SDET CAD, or disclaimer post that slipped in
+                    cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
+                    updated_count += 1
+                    continue
+
+                norm_text = re.sub(r"\s+", " ", clean_text.lower()).strip()
+                c_hash = hashlib.sha256(norm_text.encode("utf-8")).hexdigest()[:16]
+
+                if c_hash in seen_content_hashes:
+                    # Duplicate post from syndicated agency bot account
+                    cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
+                    updated_count += 1
+                    continue
+                seen_content_hashes.add(c_hash)
+
+                # Clean links
+                clean_links = classifier.extract_links(clean_text, additional_links=raw_links)
+                # Re-extract company and dream flag
+                company, is_dream = classifier.extract_company_name(headline, clean_text)
+                role_cat = r["author_role_category"] or classifier.classify_author_role(headline, clean_text)
+                emails = _safe_json_list(r["extracted_emails"])
+                job_codes = _safe_json_list(r["extracted_job_codes"])
+                posted_time = r["posted_at_relative"] or "recent"
+
+                score = classifier.compute_quality_score(
+                    is_dream, emails, clean_links, job_codes, posted_time, role_cat, post_text=clean_text
+                )
+
+                post_data = {
+                    "author_name": author_name,
+                    "company_name": company,
+                    "author_role_category": role_cat,
+                    "extracted_job_codes": job_codes,
+                }
+                new_dm = composer.generate_connection_note(post_data)
+                new_inmail = composer.generate_inmail_pitch(post_data)
+
+                cursor.execute(
+                    """
+                    UPDATE hiring_posts SET
+                        content_hash = ?,
+                        post_text = ?,
+                        company_name = ?,
+                        is_dream_org = ?,
+                        extracted_links = ?,
+                        quality_score = ?,
+                        custom_dm_draft = ?,
+                        custom_inmail_draft = ?
+                    WHERE post_id = ?
+                    """,
+                    (
+                        c_hash,
+                        clean_text,
+                        company,
+                        1 if is_dream else 0,
+                        json.dumps(clean_links),
+                        score,
+                        new_dm,
+                        new_inmail,
+                        post_id,
+                    ),
+                )
+                updated_count += 1
+            if updated_count > 0:
+                active_conn.commit()
+            return updated_count
+
+        if conn is not None:
+            return _do_repair(conn)
+        with self._get_connection() as active_conn:
+            return _do_repair(active_conn)

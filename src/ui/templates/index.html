@@ -23,6 +23,9 @@
                     <button id="tab-tracking" class="tab-btn" onclick="switchTab('tracking')">
                         📊 Applied Tracking <span id="tracking-count" class="badge badge-info">0</span>
                     </button>
+                    <button id="tab-posts" class="tab-btn" onclick="switchTab('posts')">
+                        📢 Posts & Leads <span id="posts-count" class="badge badge-warning">0</span>
+                    </button>
                 </nav>
             </div>
             <div id="budget-banner" class="budget-badge" title="Daily Safety Rate Governor (Prevents Bot Flagging)">
@@ -229,6 +232,92 @@
                     </button>
                 </div>
             </section>
+
+            <!-- TAB 4: RECRUITER, LEAD & PEER HIRING POSTS VIEW -->
+            <section id="posts-section" class="hidden">
+                <!-- KPI Stat Cards -->
+                <div class="tracking-stats-row">
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon">📢</div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="kpi-total-posts">0</span>
+                            <span class="kpi-label">Total Leads</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon">⭐</div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="kpi-dream-posts">0</span>
+                            <span class="kpi-label">Dream Orgs</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon">🕒</div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="kpi-fresh-posts">0</span>
+                            <span class="kpi-label">Fresh &lt;24h</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon">✉️</div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="kpi-email-posts">0</span>
+                            <span class="kpi-label">Direct Emails</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon">💬</div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="kpi-contacted-posts">0</span>
+                            <span class="kpi-label">Contacted</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Posts Toolbar -->
+                <div class="posts-toolbar-container">
+                    <div class="posts-toolbar-row">
+                        <div class="search-box">
+                            <input type="text" id="posts-search" placeholder="🔍 Search posts by company, author, role, or keywords..." oninput="filterPosts()">
+                        </div>
+                        <div class="toolbar-actions">
+                            <button class="btn btn-accent-sm" onclick="triggerPostDiscovery()">
+                                ⚡ Discover Fresh Posts
+                            </button>
+                            <button class="btn btn-secondary-sm" onclick="loadHiringPosts()">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="filter-pills posts-filter-pills">
+                        <button id="filter-post-all" class="filter-pill active" onclick="setPostFilter('all')">All Leads</button>
+                        <button id="filter-post-fresh" class="filter-pill" onclick="setPostFilter('fresh')">🕒 &lt;24h Fresh</button>
+                        <button id="filter-post-dream" class="filter-pill" onclick="setPostFilter('dream')">⭐ Dream Orgs</button>
+                        <button id="filter-post-email" class="filter-pill" onclick="setPostFilter('email')">✉️ Has Email</button>
+                        <button id="filter-post-engineer" class="filter-pill" onclick="setPostFilter('engineer')">🛡️ Engineers</button>
+                        <button id="filter-post-leader" class="filter-pill" onclick="setPostFilter('leader')">👔 Leads & EMs</button>
+                        <button id="filter-post-recruiter" class="filter-pill" onclick="setPostFilter('recruiter')">🎯 Recruiters</button>
+                    </div>
+                </div>
+
+                <div id="posts-loading" class="spinner-container hidden">
+                    <div class="spinner"></div>
+                    <p>Loading discovered hiring posts and outreach leads...</p>
+                </div>
+
+                <div id="posts-grid" class="posts-grid">
+                    <!-- Dynamic Post Cards Rendered Here -->
+                </div>
+
+                <div id="posts-empty-state" class="hidden empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                    <h3>No Hiring Posts Discovered Yet</h3>
+                    <p>Click "Discover Fresh Posts" to scan LinkedIn content search and candidate activity for direct recruiter, engineering lead, and peer referrals.</p>
+                    <button class="btn btn-accent" onclick="triggerPostDiscovery()" style="margin-top: 1.25rem;">
+                        ⚡ Discover Fresh Posts Now
+                    </button>
+                </div>
+            </section>
         </main>
 
         <!-- Resume PDF Comparison & Inspection Modal -->
@@ -372,8 +461,84 @@
                 </div>
             </div>
         </div>
+
+        <!-- Inbound Post Outreach Modal -->
+        <div id="post-outreach-modal" class="modal-overlay hidden" onclick="handlePostModalOverlayClick(event)">
+            <div class="modal-content post-modal-box glass-panel" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <div class="modal-title-box">
+                        <div class="modal-badge badge-dream-header" id="post-modal-badge">📢 INBOUND POST OUTREACH</div>
+                        <h3 id="post-modal-heading">Personalized Outreach</h3>
+                        <div id="post-modal-subtitle" class="referral-subtitle">Author • Company</div>
+                    </div>
+                    <button id="post-modal-close" class="modal-close" onclick="closePostOutreachModal()" title="Close">✕</button>
+                </div>
+                <div class="modal-body referral-modal-body">
+                    <div class="referral-tabs">
+                        <button id="post-tab-dm" class="referral-tab active" onclick="switchPostModalTab('dm')">
+                            💬 Connection Request Note (≤300 chars)
+                        </button>
+                        <button id="post-tab-inmail" class="referral-tab" onclick="switchPostModalTab('inmail')">
+                            ✉️ InMail / Pitch (≤1000 chars)
+                        </button>
+                        <button id="post-tab-email" class="referral-tab hidden" onclick="switchPostModalTab('email')">
+                            📧 Direct Email Draft
+                        </button>
+                    </div>
+
+                    <!-- Connection Request Tab -->
+                    <div id="post-pane-dm" class="referral-pane">
+                        <div class="char-counter-row">
+                            <span class="note-type-badge">LinkedIn Connection Note</span>
+                            <span id="post-dm-counter" class="char-counter">0 / 300</span>
+                        </div>
+                        <textarea id="post-dm-text" class="referral-textarea" rows="4" oninput="updatePostDmCounter()"></textarea>
+                        <div class="referral-actions-bar">
+                            <button class="btn btn-accent-sm" onclick="copyPostDmNote()">📋 Copy Note</button>
+                            <a id="post-link-author" href="#" target="_blank" class="btn btn-secondary-sm">👤 Open Author Profile ↗</a>
+                            <a id="post-link-original" href="#" target="_blank" class="btn btn-secondary-sm">🔗 View Post on LinkedIn ↗</a>
+                        </div>
+                    </div>
+
+                    <!-- InMail Pitch Tab -->
+                    <div id="post-pane-inmail" class="referral-pane hidden">
+                        <div class="char-counter-row">
+                            <span class="note-type-badge">Direct InMail Pitch</span>
+                            <span id="post-inmail-counter" class="char-counter">0 / 1000</span>
+                        </div>
+                        <textarea id="post-inmail-text" class="referral-textarea" rows="8" oninput="updatePostInmailCounter()"></textarea>
+                        <div class="referral-actions-bar">
+                            <button class="btn btn-accent-sm" onclick="copyPostInmail()">📋 Copy InMail</button>
+                            <a id="post-link-inmail-author" href="#" target="_blank" class="btn btn-secondary-sm">👤 Open Author Profile ↗</a>
+                        </div>
+                    </div>
+
+                    <!-- Direct Email Draft Tab -->
+                    <div id="post-pane-email" class="referral-pane hidden">
+                        <div class="email-meta-box">
+                            <div><strong>To:</strong> <span id="post-email-to"></span></div>
+                            <div><strong>Subject:</strong> <span id="post-email-subject"></span></div>
+                        </div>
+                        <textarea id="post-email-text" class="referral-textarea" rows="8"></textarea>
+                        <div class="referral-actions-bar">
+                            <button class="btn btn-accent-sm" onclick="copyPostEmail()">📋 Copy Email Body</button>
+                            <a id="post-email-mailto" href="#" class="btn btn-secondary-sm">📧 Open in Email Client ↗</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="modal-status">
+                        Status: <strong id="post-modal-status-badge">NEW</strong>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-success-sm" onclick="markPostModalContacted()">✓ Mark as Contacted</button>
+                        <button class="btn btn-secondary-sm" onclick="closePostOutreachModal()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
-    <script src="/static/app.js?v=2.6"></script>
+    <script src="/static/app.js?v=2.7"></script>
 </body>
 </html>

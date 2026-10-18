@@ -193,6 +193,134 @@
       "root_cause": "Simulated collision test",
       "fix_rule": "Strictly target data-automation-id",
       "date_banked": "2026-10-15T08:05:00.863505+00:00"
+    },
+    {
+      "id": "LESSON-025",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T09:28:59.102088+00:00"
+    },
+    {
+      "id": "LESSON-026",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T10:27:12.386761+00:00"
+    },
+    {
+      "id": "LESSON-027",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T11:20:47.069989+00:00"
+    },
+    {
+      "id": "LESSON-028",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T11:45:28.475394+00:00"
+    },
+    {
+      "id": "LESSON-029",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T12:32:36.452986+00:00"
+    },
+    {
+      "id": "LESSON-030",
+      "vendor": "LINKEDIN_POSTS",
+      "symptom": "Clicking 'View LinkedIn Post' results in HTTP 404 / 'Page not found'",
+      "root_cause": "Content search cards lack data-urn on outer container, triggering fallback to synthetic MD5 hash URL in /feed/update/{hash} which LinkedIn 404s",
+      "fix_rule": "Use multi-tier extraction (canonical /posts/ links, data-urn regex, React Fiber SDUI props, anchor regex) and fallback strictly to authentic author activity feeds (/recent-activity/all/ or /posts/), completely eradicating synthetic MD5 hash URLs",
+      "date_banked": "2026-10-18T12:40:00.000000+00:00"
+    },
+    {
+      "id": "LESSON-031",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T13:32:05.120678+00:00"
+    },
+    {
+      "id": "LESSON-032",
+      "vendor": "LINKEDIN_POSTS",
+      "symptom": "Shortlinks (lnkd.in) broken with 404, and posts misclassified as Dream Orgs",
+      "root_cause": "1. In DOM text extraction, link anchors were followed by next words/emojis without whitespace (e.g. lnkd.in/xxxFollow), and regex greedily captured them. 2. Substring matching for dream companies across raw headlines matched technical skill keywords (e.g. Docker, Postman).",
+      "fix_rule": "1. Extract DOM anchor hrefs directly; strictly isolate 5-8 char tokens for lnkd.in shortlinks and strip trailing action words (Follow, Apply, Note, Post, Click, If) and emojis. 2. Disambiguate technical tool keywords from employer company names; require explicit employer prepositions (at, @) and match against verified target companies.",
+      "date_banked": "2026-10-18T13:35:00.000000+00:00"
+    },
+    {
+      "id": "LESSON-033",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T13:37:23.223556+00:00"
+    },
+    {
+      "id": "LESSON-034",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T14:02:24.360852+00:00"
+    },
+    {
+      "id": "LESSON-035",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T14:06:35.346226+00:00"
+    },
+    {
+      "id": "LESSON-036",
+      "vendor": "LINKEDIN_POSTS",
+      "symptom": "Job seeker posts slipping through filter and conversational fragments extracted as company names",
+      "root_cause": "Substring search for 'our team is hiring' matched 'if your team is hiring' (y-our team). Conversational prefixes ('if your team', 'several exciting') matched greedy regex.",
+      "fix_rule": "Enforce strict word boundaries (\\bour team is hiring\\b), translate unicode small caps (O\u1d18\u1d07\u0274 \u1d1b\u1d0f W\u1d0f\u0280\u1d0b), filter leading conversational stopwords, and run automatic SQLite repair migration.",
+      "date_banked": "2026-10-18T14:10:00.000000+00:00"
+    },
+    {
+      "id": "LESSON-037",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T15:22:18.749703+00:00"
+    },
+    {
+      "id": "LESSON-038",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T15:36:47.368028+00:00"
+    },
+    {
+      "id": "LESSON-039",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T17:28:59.581927+00:00"
+    },
+    {
+      "id": "LESSON-040",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T17:36:38.979471+00:00"
     }
   ]
 }
