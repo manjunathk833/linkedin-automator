@@ -33,7 +33,8 @@ When debugging, fixing, or adding ATS vendor autofill logic, enforce precision s
 - [ ] **Live Zero-Contamination Assertions:** Ensure verification scripts assert exact values for every individual field and combobox control text without cross-field contamination.
 
 ## 4. Autonomous Dry Run & Universal Flow Verification Lens (`dry_run_agent`)
-After code changes or bug fixes are applied, evaluate against the universal dry run verification mandate:
+Before proposing plans and after code changes or bug fixes are applied, evaluate against the universal dry run verification mandate:
+- [ ] **Mandatory Plan Phase Check:** Verify that the proposed implementation plan explicitly includes a dedicated phase for Post-Implementation Dry Run & System Flow Verification prior to requesting approval.
 - [ ] **Universal End-to-End Flow Verification (Zero Superficial Passes):** Dry runs must NEVER settle for superficial checks (such as merely checking if a function ran without throwing an error, checking if a list is non-empty, or counting saved rows). Whenever ANY code change, parser tweak, business logic update, database migration, or UI component is modified, the dry run MUST exhaustively verify the entire operational flow end-to-end across every stage:
   - **1. Input & Data Integrity:** Verify extracted or generated values (e.g., links, IDs, contact details, dates) are syntactically valid, free of concatenation artifacts or emoji pollution, and reachable/resolvable.
   - **2. Semantic & Classification Fidelity:** Rigorously audit tags, badges, statuses, and classifications against false positives, heuristic edge cases, and domain keyword collisions (e.g., tech skills colliding with company names).
@@ -44,6 +45,7 @@ After code changes or bug fixes are applied, evaluate against the universal dry 
 - [ ] **Human-in-the-Loop Takeover (Zero Premature Exit):** If authentication, 2FA, or CAPTCHA is encountered, execution must NEVER terminate prematurely. Prompt the user, pause interactively, refresh session, and seamlessly resume.
 - [ ] **Autonomous Self-Healing Loop:** If regressions, broken selectors, or overflow issues are found, diagnose via `autofill_learning_vault.json`, immediately patch in `src/`, and re-verify.
 - [ ] **Mandatory Post-Implementation Dry Run Execution:** An exhaustive live, headful dry run is strictly mandatory after EVERY implementation cycle. No task or PR may be completed without running the active system flow live, observing real output seeds, validating database state, and confirming that the UI reflects the updates.
+- [ ] **Standardized Regression & Lint Gate:** Core regression suite passes 100% (55+ tests) and linter reports 0 errors across all files.
 - [ ] **Implementation Report Emitted:** Deliver a structured health report upon completion before raising a Pull Request to `main`.
 
 

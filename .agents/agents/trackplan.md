@@ -10,3 +10,4 @@ Whenever code modifications, new features, or verification gates are implemented
 1. Mark completed tasks with `[x]` and log milestones.
 2. Ensure verification scripts (in `verify/`) are logged in `memory-bank/progress.md` and `docs/05_VERIFICATION_AND_TESTING.md`.
 3. Update architectural specifications in `docs/` and `SYSTEM_ARCHITECTURE.md` to prevent documentation drift.
+4. Ensure live post-implementation dry run execution results (including database seeds, data integrity, and UI inspection on `localhost:8000`) are thoroughly documented in `memory-bank/activeContext.md`.
