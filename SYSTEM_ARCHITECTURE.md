@@ -285,6 +285,19 @@ graph TD
 
 ---
 
+### Module 15: LinkedIn Posts & Inbound Outreach Lead Tracker (`HiringPostTracker` - Track 3)
+* **Files:** [`src/posts/post_tracker.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/posts/post_tracker.py), [`src/posts/post_classifier.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/posts/post_classifier.py), [`src/posts/outreach_composer.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/posts/outreach_composer.py), [`src/storage/database.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/storage/database.py), [`src/ui/app.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/app.py), [`src/ui/templates/index.html`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/templates/index.html), [`src/ui/static/app.js`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/static/app.js), [`src/ui/static/styles.css`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/static/styles.css), [`verify/72_test_hiring_posts_tracker_and_classifier.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/verify/72_test_hiring_posts_tracker_and_classifier.py)
+* **Architecture:** Dedicated Inbound Social Referral & Direct Hiring Lead Discovery (Track 3):
+  * **Dedicated Third Flow:** Separates social networking opportunities from automated ATS applications (Track 1) and standard job boards (Track 2). Treating social updates as inbound networking leads requiring DMs, InMails, emails, or referral requests.
+  * **Multi-Persona Inclusivity Mandate:** Scouting is explicitly broad and never restricted to recruiters. Fully embraces individual engineers (`SDET`, `SET`), engineering leaders (`QA Lead`, `EM`, `Director`), peers offering team referrals, and recruiters.
+  * **Two-Tier Classifier & Anti-Noise Governor:** Distinguishes genuine hirers from job seekers by isolating headline badges (`#OpenToWork`) and requiring first-person seeker statements to lack team hiring markers. Posts from engineers/leads stating "I am actively looking for an SDET" or "Anyone impacted by layoffs, my team is hiring" are protected from false-positive drops. Rejects EdTech bootcamps ("100% placement") and promotions.
+  * **Actionable Extraction & Scoring:** Regex extractors pull clean email addresses, external career links, and requisition/job codes (e.g. `REQ-9812`). Computes a 0–100 quality score factoring in Dream Orgs (+25), emails (+15), job codes/links (+10), and recency (+10).
+  * **Character-Governed Outreach Composer:** Persona-adapted connection notes (strictly $\le 300$ chars), InMail pitches (strictly $\le 1000$ chars), and structured direct email drafts referencing author, company, and portfolio (`manjunathhk.netlify.app/`).
+  * **Dashboard Command Center (Tab 4):** Integrated inside `http://localhost:8000` with KPI cards (Total, Dream, Fresh, Has Email, Contacted), multi-filter toolbar (`all`, `fresh`, `dream`, `email`, `engineer`, `leader`, `recruiter`), responsive cards, and an interactive outreach modal with live character counters and 1-click clipboard copy.
+  * **CLI & Regression Gate:** Operable via `python main.py posts [discover|list|stats]` and verified with 100% pass rate under Gate 72 (`verify/72_test_hiring_posts_tracker_and_classifier.py`).
+
+---
+
 ## 4. Data Architecture & Storage Schema
 
 ```

@@ -13,12 +13,14 @@ function switchTab(tab) {
     const tabPending = document.getElementById('tab-pending');
     const tabApproved = document.getElementById('tab-approved');
     const tabTracking = document.getElementById('tab-tracking');
+    const tabPosts = document.getElementById('tab-posts');
     const secPending = document.getElementById('pending-section');
     const secApproved = document.getElementById('approved-section');
     const secTracking = document.getElementById('tracking-section');
+    const secPosts = document.getElementById('posts-section');
 
-    [tabPending, tabApproved, tabTracking].forEach(t => t && t.classList.remove('active'));
-    [secPending, secApproved, secTracking].forEach(s => s && s.classList.add('hidden'));
+    [tabPending, tabApproved, tabTracking, tabPosts].forEach(t => t && t.classList.remove('active'));
+    [secPending, secApproved, secTracking, secPosts].forEach(s => s && s.classList.add('hidden'));
 
     if (tab === 'pending') {
         if (tabPending) tabPending.classList.add('active');
@@ -34,6 +36,10 @@ function switchTab(tab) {
         if (tabTracking) tabTracking.classList.add('active');
         if (secTracking) secTracking.classList.remove('hidden');
         loadAppliedTracking();
+    } else if (tab === 'posts') {
+        if (tabPosts) tabPosts.classList.add('active');
+        if (secPosts) secPosts.classList.remove('hidden');
+        loadHiringPosts();
     }
 }
 
@@ -43,6 +49,7 @@ async function updateQueueBadges() {
     const approvedCountEl = document.getElementById('approved-count');
     const emptyApprovedCountEl = document.getElementById('empty-approved-count');
     const trackingCountEl = document.getElementById('tracking-count');
+    const postsCountEl = document.getElementById('posts-count');
 
     if (queueCountEl) queueCountEl.innerText = currentJobs.length;
     if (approvedCountEl) approvedCountEl.innerText = approvedCount;
@@ -55,6 +62,19 @@ async function updateQueueBadges() {
                 const data = await resp.json();
                 const total = data.stats?.total_applied ?? (data.total || 0);
                 trackingCountEl.innerText = total;
+            }
+        } catch (e) {
+            // Silently ignore badge network failure
+        }
+    }
+
+    if (postsCountEl) {
+        try {
+            const resp = await fetch('/api/posts?limit=1');
+            if (resp.ok) {
+                const data = await resp.json();
+                const total = data.stats?.new_leads ?? (data.count || 0);
+                postsCountEl.innerText = total;
             }
         } catch (e) {
             // Silently ignore badge network failure
@@ -1272,3 +1292,431 @@ function confirmColdApplyOverride() {
         cb();
     }
 }
+
+// ==============================================================================
+// Track 3: Recruiter, Lead & Peer Hiring Posts UI Controller
+// ==============================================================================
+
+let currentPosts = [];
+let currentPostFilter = 'all';
+let currentActivePost = null;
+
+async function loadHiringPosts() {
+    const loadingEl = document.getElementById('posts-loading');
+    const gridEl = document.getElementById('posts-grid');
+    const emptyEl = document.getElementById('posts-empty-state');
+
+    if (loadingEl) loadingEl.classList.remove('hidden');
+    if (gridEl) gridEl.innerHTML = '';
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    try {
+        const resp = await fetch('/api/posts?limit=100');
+        if (!resp.ok) throw new Error(`HTTP error ${resp.status}`);
+        const data = await resp.json();
+
+        currentPosts = data.posts || [];
+        updatePostKpis(data.stats || {});
+        updateQueueBadges();
+
+        if (loadingEl) loadingEl.classList.add('hidden');
+
+        if (currentPosts.length === 0) {
+            if (emptyEl) emptyEl.classList.remove('hidden');
+        } else {
+            renderHiringPosts(currentPosts);
+        }
+    } catch (e) {
+        if (loadingEl) loadingEl.classList.add('hidden');
+        showToast(`Failed to load hiring posts: ${e.message}`, 'error');
+    }
+}
+
+function updatePostKpis(stats) {
+    const totalEl = document.getElementById('kpi-total-posts');
+    const dreamEl = document.getElementById('kpi-dream-posts');
+    const freshEl = document.getElementById('kpi-fresh-posts');
+    const emailEl = document.getElementById('kpi-email-posts');
+    const contactedEl = document.getElementById('kpi-contacted-posts');
+
+    if (totalEl) totalEl.innerText = stats.total_posts || 0;
+    if (dreamEl) dreamEl.innerText = stats.dream_orgs || 0;
+    if (freshEl) freshEl.innerText = stats.fresh_24h || 0;
+    if (emailEl) emailEl.innerText = stats.has_email || 0;
+    if (contactedEl) contactedEl.innerText = stats.contacted || 0;
+}
+
+function renderHiringPosts(posts) {
+    const gridEl = document.getElementById('posts-grid');
+    const emptyEl = document.getElementById('posts-empty-state');
+    if (!gridEl) return;
+
+    gridEl.innerHTML = '';
+
+    if (!posts || posts.length === 0) {
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        return;
+    }
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    posts.forEach(post => {
+        const card = createPostCardElement(post);
+        gridEl.appendChild(card);
+    });
+}
+
+function createPostCardElement(post) {
+    const card = document.createElement('div');
+    card.className = 'post-card glass-panel';
+    card.id = `post-card-${post.post_id}`;
+
+    // Role category badge configuration
+    let roleBadge = '🛡️ Engineer';
+    let roleClass = 'role-engineer';
+    if (post.author_role_category === 'RECRUITER') {
+        roleBadge = '🎯 Recruiter';
+        roleClass = 'role-recruiter';
+    } else if (post.author_role_category === 'LEADER') {
+        roleBadge = '👔 Lead / EM';
+        roleClass = 'role-leader';
+    } else if (post.author_role_category === 'PEER') {
+        roleBadge = '👥 Team Peer';
+        roleClass = 'role-peer';
+    }
+
+    const dreamPill = post.is_dream_org ? '<span class="dream-pill">⭐ Dream Org</span>' : '';
+    const statusPill = post.outreach_status === 'DM_SENT' || post.outreach_status === 'CONTACTED'
+        ? '<span class="badge badge-success">✓ Contacted</span>'
+        : post.outreach_status === 'DISMISSED'
+        ? '<span class="badge badge-secondary">Dismissed</span>'
+        : '<span class="badge badge-warning">⚡ New Lead</span>';
+
+    // Emails and Links pills
+    let actionPillsHtml = '';
+    if (post.extracted_emails && post.extracted_emails.length > 0) {
+        post.extracted_emails.forEach(email => {
+            actionPillsHtml += `<button class="pill-action pill-email" onclick="copyTextToClipboard('${email}', 'Email copied!')" title="Click to copy email">✉️ ${email}</button>`;
+        });
+    }
+
+    if (post.extracted_job_codes && post.extracted_job_codes.length > 0) {
+        post.extracted_job_codes.forEach(code => {
+            actionPillsHtml += `<span class="pill-action pill-code">🆔 ${code}</span>`;
+        });
+    }
+
+    if (post.extracted_links && post.extracted_links.length > 0) {
+        post.extracted_links.slice(0, 2).forEach(link => {
+            const domain = link.replace(/https?:\/\/(www\.)?/, '').split('/')[0];
+            actionPillsHtml += `<a href="${link}" target="_blank" class="pill-action pill-link" title="Open Link">🔗 ${domain} ↗</a>`;
+        });
+    }
+
+    // Snippet with see more toggle
+    const textSnippet = escapeHtml(post.post_text || '');
+    const cleanSnippet = textSnippet.length > 320
+        ? `${textSnippet.substring(0, 320)}... <span class="snippet-expand" onclick="togglePostSnippet('${post.post_id}')">Read more</span>`
+        : textSnippet;
+
+    card.innerHTML = `
+        <div class="post-card-header">
+            <div class="post-author-box">
+                <div class="author-avatar">${(post.author_name || 'U')[0].toUpperCase()}</div>
+                <div class="author-info">
+                    <div class="author-name-row">
+                        <span class="author-name">${escapeHtml(post.author_name || 'LinkedIn User')}</span>
+                        <span class="author-role-badge ${roleClass}">${roleBadge}</span>
+                        ${dreamPill}
+                    </div>
+                    <div class="author-headline">${escapeHtml(post.author_headline || '')}</div>
+                </div>
+            </div>
+            <div class="post-meta-badges">
+                <span class="post-age-badge">🕒 ${post.posted_at_relative || 'Recently'}</span>
+                ${statusPill}
+            </div>
+        </div>
+
+        ${actionPillsHtml ? `<div class="post-action-pills">${actionPillsHtml}</div>` : ''}
+
+        <div class="post-snippet-box" id="post-snippet-${post.post_id}">
+            <p class="post-text">${cleanSnippet}</p>
+            <p class="post-full-text hidden">${textSnippet} <span class="snippet-expand" onclick="togglePostSnippet('${post.post_id}')">Show less</span></p>
+        </div>
+
+        <div class="post-card-footer">
+            <div class="post-links-row">
+                ${post.post_url ? `<a href="${post.post_url}" target="_blank" class="post-external-link">🔗 View LinkedIn Post ↗</a>` : ''}
+                ${post.author_profile_url ? `<a href="${post.author_profile_url}" target="_blank" class="post-external-link">👤 Author Profile ↗</a>` : ''}
+            </div>
+            <div class="post-action-buttons">
+                <button class="btn btn-accent-sm" onclick="openPostOutreachModal('${post.post_id}')">
+                    💬 Draft Outreach
+                </button>
+                <button class="btn btn-secondary-sm" onclick="markPostContacted('${post.post_id}')" title="Mark as Contacted">
+                    ✓
+                </button>
+                <button class="btn btn-secondary-sm" onclick="dismissPost('${post.post_id}')" title="Dismiss Post">
+                    ✕
+                </button>
+            </div>
+        </div>
+    `;
+
+    return card;
+}
+
+function togglePostSnippet(postId) {
+    const box = document.getElementById(`post-snippet-${postId}`);
+    if (!box) return;
+    const shortText = box.querySelector('.post-text');
+    const fullText = box.querySelector('.post-full-text');
+    if (shortText && fullText) {
+        shortText.classList.toggle('hidden');
+        fullText.classList.toggle('hidden');
+    }
+}
+
+function setPostFilter(filterType) {
+    currentPostFilter = filterType;
+    const buttons = document.querySelectorAll('.filter-pills .filter-pill');
+    buttons.forEach(b => b.classList.remove('active'));
+
+    const activeBtn = document.getElementById(`filter-post-${filterType}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    filterPosts();
+}
+
+function filterPosts() {
+    const searchVal = (document.getElementById('posts-search')?.value || '').toLowerCase().trim();
+
+    let filtered = currentPosts.filter(p => {
+        // Filter pills logic
+        if (currentPostFilter === 'fresh') {
+            const rel = (p.posted_at_relative || '').toLowerCase();
+            if (!(rel.includes('h') || rel.includes('1d') || rel.includes('m'))) return false;
+        } else if (currentPostFilter === 'dream') {
+            if (!p.is_dream_org) return false;
+        } else if (currentPostFilter === 'email') {
+            if (!p.extracted_emails || p.extracted_emails.length === 0) return false;
+        } else if (currentPostFilter === 'engineer') {
+            if (p.author_role_category !== 'ENGINEER' && p.author_role_category !== 'PEER') return false;
+        } else if (currentPostFilter === 'leader') {
+            if (p.author_role_category !== 'LEADER') return false;
+        } else if (currentPostFilter === 'recruiter') {
+            if (p.author_role_category !== 'RECRUITER') return false;
+        }
+
+        // Search input logic
+        if (searchVal) {
+            const combined = `${p.author_name} ${p.company_name} ${p.author_headline} ${p.post_text}`.toLowerCase();
+            if (!combined.includes(searchVal)) return false;
+        }
+
+        return true;
+    });
+
+    renderHiringPosts(filtered);
+}
+
+async function triggerPostDiscovery() {
+    showToast('Starting background LinkedIn post discovery...', 'info');
+    try {
+        const resp = await fetch('/api/posts/discover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date_filter: 'past-24h', max_scrolls: 4, headless: true })
+        });
+        if (resp.ok) {
+            showToast('Post discovery running in background! It will scan fresh content search updates.', 'success');
+            setTimeout(loadHiringPosts, 6000);
+        } else {
+            showToast('Failed to trigger post discovery', 'error');
+        }
+    } catch (e) {
+        showToast(`Discovery error: ${e.message}`, 'error');
+    }
+}
+
+async function openPostOutreachModal(postId) {
+    const target = currentPosts.find(p => p.post_id === postId);
+    if (!target) return;
+    currentActivePost = target;
+
+    const modal = document.getElementById('post-outreach-modal');
+    const heading = document.getElementById('post-modal-heading');
+    const subtitle = document.getElementById('post-modal-subtitle');
+    const badge = document.getElementById('post-modal-badge');
+    const statusBadge = document.getElementById('post-modal-status-badge');
+
+    if (heading) heading.innerText = `Outreach: ${target.author_name}`;
+    if (subtitle) subtitle.innerText = `${target.company_name || 'Tech Enterprise'} • ${target.author_headline || ''}`;
+    if (statusBadge) statusBadge.innerText = target.outreach_status || 'NEW';
+
+    if (badge) {
+        badge.innerText = target.is_dream_org
+            ? '⭐ TIER-1 DREAM ORG INBOUND LEAD'
+            : target.author_role_category === 'ENGINEER'
+            ? '🛡️ ENGINEERING REFERRAL LEAD'
+            : '📢 INBOUND POST LEAD';
+    }
+
+    // Set links
+    const linkAuthor = document.getElementById('post-link-author');
+    const linkInmailAuthor = document.getElementById('post-link-inmail-author');
+    const linkOrig = document.getElementById('post-link-original');
+
+    if (linkAuthor) linkAuthor.href = target.author_profile_url || target.post_url || '#';
+    if (linkInmailAuthor) linkInmailAuthor.href = target.author_profile_url || target.post_url || '#';
+    if (linkOrig) linkOrig.href = target.post_url || '#';
+
+    // Populate DMs via server or fallback
+    try {
+        const resp = await fetch(`/api/posts/dm/${postId}`, { method: 'POST' });
+        if (resp.ok) {
+            const data = await resp.json();
+            document.getElementById('post-dm-text').value = data.connection_note || target.custom_dm_draft || '';
+            document.getElementById('post-inmail-text').value = data.inmail_pitch || target.custom_inmail_draft || '';
+
+            const tabEmail = document.getElementById('post-tab-email');
+            if (data.email_draft) {
+                if (tabEmail) tabEmail.classList.remove('hidden');
+                document.getElementById('post-email-to').innerText = data.email_draft.to;
+                document.getElementById('post-email-subject').innerText = data.email_draft.subject;
+                document.getElementById('post-email-text').value = data.email_draft.body;
+                document.getElementById('post-email-mailto').href = `mailto:${data.email_draft.to}?subject=${encodeURIComponent(data.email_draft.subject)}&body=${encodeURIComponent(data.email_draft.body)}`;
+            } else {
+                if (tabEmail) tabEmail.classList.add('hidden');
+            }
+        }
+    } catch (e) {
+        document.getElementById('post-dm-text').value = target.custom_dm_draft || '';
+        document.getElementById('post-inmail-text').value = target.custom_inmail_draft || '';
+    }
+
+    updatePostDmCounter();
+    updatePostInmailCounter();
+    switchPostModalTab('dm');
+
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closePostOutreachModal() {
+    const modal = document.getElementById('post-outreach-modal');
+    if (modal) modal.classList.add('hidden');
+    currentActivePost = null;
+}
+
+function handlePostModalOverlayClick(e) {
+    if (e.target.id === 'post-outreach-modal') {
+        closePostOutreachModal();
+    }
+}
+
+function switchPostModalTab(tab) {
+    const tabDm = document.getElementById('post-tab-dm');
+    const tabInmail = document.getElementById('post-tab-inmail');
+    const tabEmail = document.getElementById('post-tab-email');
+    const paneDm = document.getElementById('post-pane-dm');
+    const paneInmail = document.getElementById('post-pane-inmail');
+    const paneEmail = document.getElementById('post-pane-email');
+
+    [tabDm, tabInmail, tabEmail].forEach(t => t && t.classList.remove('active'));
+    [paneDm, paneInmail, paneEmail].forEach(p => p && p.classList.add('hidden'));
+
+    if (tab === 'dm') {
+        if (tabDm) tabDm.classList.add('active');
+        if (paneDm) paneDm.classList.remove('hidden');
+    } else if (tab === 'inmail') {
+        if (tabInmail) tabInmail.classList.add('active');
+        if (paneInmail) paneInmail.classList.remove('hidden');
+    } else if (tab === 'email') {
+        if (tabEmail) tabEmail.classList.add('active');
+        if (paneEmail) paneEmail.classList.remove('hidden');
+    }
+}
+
+function updatePostDmCounter() {
+    const textEl = document.getElementById('post-dm-text');
+    const counterEl = document.getElementById('post-dm-counter');
+    if (!textEl || !counterEl) return;
+    const len = textEl.value.length;
+    counterEl.innerText = `${len} / 300`;
+    if (len > 300) {
+        counterEl.classList.add('counter-exceeded');
+    } else {
+        counterEl.classList.remove('counter-exceeded');
+    }
+}
+
+function updatePostInmailCounter() {
+    const textEl = document.getElementById('post-inmail-text');
+    const counterEl = document.getElementById('post-inmail-counter');
+    if (!textEl || !counterEl) return;
+    const len = textEl.value.length;
+    counterEl.innerText = `${len} / 1000`;
+    if (len > 1000) {
+        counterEl.classList.add('counter-exceeded');
+    } else {
+        counterEl.classList.remove('counter-exceeded');
+    }
+}
+
+function copyPostDmNote() {
+    const textEl = document.getElementById('post-dm-text');
+    if (!textEl) return;
+    copyTextToClipboard(textEl.value, 'Connection request note copied to clipboard!');
+}
+
+function copyPostInmail() {
+    const textEl = document.getElementById('post-inmail-text');
+    if (!textEl) return;
+    copyTextToClipboard(textEl.value, 'InMail pitch copied to clipboard!');
+}
+
+function copyPostEmail() {
+    const textEl = document.getElementById('post-email-text');
+    if (!textEl) return;
+    copyTextToClipboard(textEl.value, 'Email body copied to clipboard!');
+}
+
+async function markPostModalContacted() {
+    if (!currentActivePost) return;
+    await markPostContacted(currentActivePost.post_id);
+    closePostOutreachModal();
+}
+
+async function markPostContacted(postId) {
+    try {
+        const resp = await fetch('/api/posts/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ post_id: postId, status: 'CONTACTED' })
+        });
+        if (resp.ok) {
+            showToast('Lead marked as contacted!', 'success');
+            const p = currentPosts.find(item => item.post_id === postId);
+            if (p) p.outreach_status = 'CONTACTED';
+            renderHiringPosts(currentPosts);
+            updateQueueBadges();
+        }
+    } catch (e) {
+        showToast(`Failed to update status: ${e.message}`, 'error');
+    }
+}
+
+async function dismissPost(postId) {
+    try {
+        const resp = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
+        if (resp.ok) {
+            showToast('Post dismissed', 'info');
+            currentPosts = currentPosts.filter(item => item.post_id !== postId);
+            renderHiringPosts(currentPosts);
+            updateQueueBadges();
+        }
+    } catch (e) {
+        showToast(`Failed to dismiss: ${e.message}`, 'error');
+    }
+}
+

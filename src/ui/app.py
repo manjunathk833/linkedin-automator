@@ -1387,3 +1387,127 @@ async def update_referral_status_endpoint(request: Request):
     if not updated:
         raise HTTPException(status_code=404, detail=f"Outreach record {outreach_id} not found")
     return {"status": "success", "outreach_id": outreach_id, "new_status": status}
+
+
+# ==============================================================================
+# Track 3: Recruiter, Lead & Peer Hiring Posts Endpoints
+# ==============================================================================
+
+
+@app.get("/api/posts")
+async def get_hiring_posts_endpoint(
+    limit: int = 50,
+    status: str | None = None,
+    dream_only: bool = False,
+    fresh_only: bool = False,
+    role_category: str | None = None,
+    search: str | None = None,
+):
+    """Retrieves discovered hiring posts and aggregate stats from SQLite."""
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    posts = db.get_hiring_posts(
+        limit=limit,
+        status=status,
+        dream_only=dream_only,
+        fresh_only=fresh_only,
+        role_category=role_category,
+        search=search,
+    )
+    stats = db.get_hiring_posts_stats()
+    return {"status": "success", "posts": posts, "count": len(posts), "stats": stats}
+
+
+@app.post("/api/posts/discover")
+async def trigger_post_discovery_endpoint(request: Request, background_tasks: BackgroundTasks):
+    """Triggers automated post discovery across LinkedIn content search in the background."""
+    from src.posts.post_tracker import LinkedInPostTracker
+
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+
+    date_filter = body.get("date_filter", "past-24h")
+    max_scrolls = int(body.get("max_scrolls", 4))
+    headless = bool(body.get("headless", True))
+
+    async def _run_post_discovery():
+        tracker = LinkedInPostTracker()
+        await tracker.discover_posts(date_filter=date_filter, max_scrolls=max_scrolls, headless=headless)
+
+    background_tasks.add_task(_run_post_discovery)
+    return {
+        "status": "started",
+        "message": f"Post discovery initiated in background (date_filter: {date_filter}).",
+    }
+
+
+@app.post("/api/posts/status")
+async def update_post_status_endpoint(request: Request):
+    """Updates outreach status of a discovered post (e.g. DM_SENT, EMAIL_SENT, DISMISSED)."""
+    from src.storage.database import ApplicationDatabase
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    post_id = body.get("post_id")
+    status = body.get("status")
+    notes = body.get("notes")
+    if not post_id or not status:
+        raise HTTPException(status_code=400, detail="post_id and status are required")
+
+    db = ApplicationDatabase()
+    updated = db.update_hiring_post_status(post_id=post_id, status=status, notes=notes)
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
+    return {"status": "success", "post_id": post_id, "new_status": status}
+
+
+@app.post("/api/posts/dm/{post_id}")
+async def generate_post_dm_endpoint(post_id: str):
+    """Regenerates or retrieves tailored DM note and InMail pitch for a post."""
+    from src.posts.outreach_composer import PostOutreachComposer
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    posts = db.get_hiring_posts(limit=1, search=post_id)
+    target = next((p for p in posts if p.get("post_id") == post_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
+
+    composer = PostOutreachComposer()
+    dm_note = composer.generate_connection_note(target)
+    inmail = composer.generate_inmail_pitch(target)
+
+    emails = target.get("extracted_emails", [])
+    email_draft = None
+    if emails:
+        email_draft = composer.generate_email_draft(target, emails[0])
+
+    return {
+        "status": "success",
+        "post_id": post_id,
+        "author_name": target.get("author_name"),
+        "company_name": target.get("company_name"),
+        "author_role_category": target.get("author_role_category"),
+        "connection_note": dm_note,
+        "inmail_pitch": inmail,
+        "email_draft": email_draft,
+    }
+
+
+@app.delete("/api/posts/{post_id}")
+async def delete_hiring_post_endpoint(post_id: str):
+    """Deletes / dismisses a hiring post."""
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    deleted = db.delete_hiring_post(post_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
+    return {"status": "success", "post_id": post_id, "message": "Post dismissed."}

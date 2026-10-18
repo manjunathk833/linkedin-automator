@@ -95,6 +95,33 @@ class ApplicationDatabase:
                 CREATE INDEX IF NOT EXISTS idx_referral_outreach_job ON referral_outreach(job_id);
                 CREATE INDEX IF NOT EXISTS idx_referral_outreach_company ON referral_outreach(company_name);
                 CREATE INDEX IF NOT EXISTS idx_referral_outreach_status ON referral_outreach(status);
+
+                CREATE TABLE IF NOT EXISTS hiring_posts (
+                    post_id TEXT PRIMARY KEY,
+                    author_name TEXT NOT NULL,
+                    author_headline TEXT,
+                    author_profile_url TEXT,
+                    company_name TEXT,
+                    is_dream_org INTEGER DEFAULT 0,
+                    post_url TEXT NOT NULL,
+                    post_text TEXT NOT NULL,
+                    posted_at_relative TEXT,
+                    discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    extracted_emails TEXT DEFAULT '[]',
+                    extracted_links TEXT DEFAULT '[]',
+                    extracted_job_codes TEXT DEFAULT '[]',
+                    quality_score INTEGER DEFAULT 0,
+                    author_role_category TEXT DEFAULT 'ENGINEER',
+                    outreach_status TEXT DEFAULT 'NEW',
+                    custom_dm_draft TEXT,
+                    custom_inmail_draft TEXT,
+                    notes TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_hiring_posts_company ON hiring_posts(company_name);
+                CREATE INDEX IF NOT EXISTS idx_hiring_posts_status ON hiring_posts(outreach_status);
+                CREATE INDEX IF NOT EXISTS idx_hiring_posts_discovered ON hiring_posts(discovered_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_hiring_posts_dream ON hiring_posts(is_dream_org);
                 """
             )
 
@@ -564,5 +591,206 @@ class ApplicationDatabase:
             params.append(outreach_id)
             query = f"UPDATE referral_outreach SET {', '.join(updates)} WHERE outreach_id = ?"
             cursor.execute(query, tuple(params))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def save_hiring_post(self, post_data: dict[str, Any]) -> bool:
+        """Saves or updates a discovered hiring / referral post."""
+        post_id = post_data.get("post_id")
+        if not post_id:
+            return False
+
+        emails = json.dumps(post_data.get("extracted_emails", []))
+        links = json.dumps(post_data.get("extracted_links", []))
+        job_codes = json.dumps(post_data.get("extracted_job_codes", []))
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO hiring_posts (
+                    post_id, author_name, author_headline, author_profile_url,
+                    company_name, is_dream_org, post_url, post_text,
+                    posted_at_relative, extracted_emails, extracted_links,
+                    extracted_job_codes, quality_score, author_role_category,
+                    outreach_status, custom_dm_draft, custom_inmail_draft, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(post_id) DO UPDATE SET
+                    author_headline = excluded.author_headline,
+                    company_name = excluded.company_name,
+                    is_dream_org = excluded.is_dream_org,
+                    post_text = excluded.post_text,
+                    posted_at_relative = excluded.posted_at_relative,
+                    extracted_emails = excluded.extracted_emails,
+                    extracted_links = excluded.extracted_links,
+                    extracted_job_codes = excluded.extracted_job_codes,
+                    quality_score = excluded.quality_score,
+                    author_role_category = excluded.author_role_category,
+                    custom_dm_draft = COALESCE(excluded.custom_dm_draft, hiring_posts.custom_dm_draft),
+                    custom_inmail_draft = COALESCE(excluded.custom_inmail_draft, hiring_posts.custom_inmail_draft)
+                """,
+                (
+                    post_id,
+                    post_data.get("author_name", "Unknown"),
+                    post_data.get("author_headline", ""),
+                    post_data.get("author_profile_url", ""),
+                    post_data.get("company_name", ""),
+                    1 if post_data.get("is_dream_org") else 0,
+                    post_data.get("post_url", ""),
+                    post_data.get("post_text", ""),
+                    post_data.get("posted_at_relative", ""),
+                    emails,
+                    links,
+                    job_codes,
+                    post_data.get("quality_score", 0),
+                    post_data.get("author_role_category", "ENGINEER"),
+                    post_data.get("outreach_status", "NEW"),
+                    post_data.get("custom_dm_draft", ""),
+                    post_data.get("custom_inmail_draft", ""),
+                    post_data.get("notes", ""),
+                ),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def is_hiring_post_saved(self, post_id: str) -> bool:
+        """Checks if a hiring post has already been discovered and saved."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM hiring_posts WHERE post_id = ? LIMIT 1", (post_id,))
+            return cursor.fetchone() is not None
+
+    def get_hiring_posts(
+        self,
+        limit: int = 50,
+        status: str | None = None,
+        dream_only: bool = False,
+        fresh_only: bool = False,
+        role_category: str | None = None,
+        search: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Retrieves hiring posts with rich multi-parameter filtering."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            query = "SELECT * FROM hiring_posts"
+            conditions: list[str] = []
+            params: list[Any] = []
+
+            if status:
+                conditions.append("outreach_status = ?")
+                params.append(status)
+            if dream_only:
+                conditions.append("is_dream_org = 1")
+            if fresh_only:
+                conditions.append(
+                    "(posted_at_relative LIKE '%h%' OR posted_at_relative LIKE '%1d%' OR posted_at_relative LIKE '%2d%' OR posted_at_relative LIKE '%m%')"
+                )
+            if role_category:
+                conditions.append("author_role_category = ?")
+                params.append(role_category)
+            if search:
+                pattern = f"%{search.strip()}%"
+                conditions.append(
+                    "(author_name LIKE ? OR company_name LIKE ? OR author_headline LIKE ? OR post_text LIKE ?)"
+                )
+                params.extend([pattern, pattern, pattern, pattern])
+
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+
+            query += " ORDER BY is_dream_org DESC, quality_score DESC, discovered_at DESC LIMIT ?"
+            params.append(limit)
+
+            cursor.execute(query, tuple(params))
+            results = []
+            for row in cursor.fetchall():
+                d = dict(row)
+                d["is_dream_org"] = bool(d.get("is_dream_org"))
+                try:
+                    d["extracted_emails"] = json.loads(d.get("extracted_emails") or "[]")
+                except Exception:
+                    d["extracted_emails"] = []
+                try:
+                    d["extracted_links"] = json.loads(d.get("extracted_links") or "[]")
+                except Exception:
+                    d["extracted_links"] = []
+                try:
+                    d["extracted_job_codes"] = json.loads(d.get("extracted_job_codes") or "[]")
+                except Exception:
+                    d["extracted_job_codes"] = []
+                results.append(d)
+            return results
+
+    def update_hiring_post_status(self, post_id: str, status: str, notes: str | None = None) -> bool:
+        """Updates the outreach status of a post (e.g. DM_SENT, EMAIL_SENT, DISMISSED)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if notes is not None:
+                cursor.execute(
+                    "UPDATE hiring_posts SET outreach_status = ?, notes = ? WHERE post_id = ?",
+                    (status, notes, post_id),
+                )
+            else:
+                cursor.execute(
+                    "UPDATE hiring_posts SET outreach_status = ? WHERE post_id = ?",
+                    (status, post_id),
+                )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def get_hiring_posts_stats(self) -> dict[str, int]:
+        """Calculates KPI statistics across discovered hiring posts."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts")
+            total = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts WHERE is_dream_org = 1")
+            dream_orgs = cursor.fetchone()[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM hiring_posts WHERE (posted_at_relative LIKE '%h%' OR posted_at_relative LIKE '%1d%' OR posted_at_relative LIKE '%m%')"
+            )
+            fresh_24h = cursor.fetchone()[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM hiring_posts WHERE extracted_emails != '[]' AND extracted_emails IS NOT NULL"
+            )
+            has_email = cursor.fetchone()[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM hiring_posts WHERE outreach_status IN ('DM_SENT', 'EMAIL_SENT', 'REFERRED', 'CONTACTED')"
+            )
+            contacted = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts WHERE outreach_status = 'NEW'")
+            new_leads = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts WHERE author_role_category = 'ENGINEER'")
+            engineer_posts = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts WHERE author_role_category = 'RECRUITER'")
+            recruiter_posts = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM hiring_posts WHERE author_role_category = 'LEADER'")
+            leader_posts = cursor.fetchone()[0]
+
+            return {
+                "total_posts": total,
+                "dream_orgs": dream_orgs,
+                "fresh_24h": fresh_24h,
+                "has_email": has_email,
+                "contacted": contacted,
+                "new_leads": new_leads,
+                "engineer_posts": engineer_posts,
+                "recruiter_posts": recruiter_posts,
+                "leader_posts": leader_posts,
+            }
+
+    def delete_hiring_post(self, post_id: str) -> bool:
+        """Deletes a hiring post by ID."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
             conn.commit()
             return cursor.rowcount > 0

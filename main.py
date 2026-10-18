@@ -315,7 +315,59 @@ def handle_daily_diagnose():
         exists = "Exists" if os.path.exists(p) else "Pending"
         print(f"   • {name}: {p} [{exists}]")
 
-    print("\n" + "=" * 65 + "\n")
+
+def handle_posts(
+    action: str = "list",
+    date_filter: str = "past-24h",
+    limit: int = 15,
+    headless: bool = True,
+):
+    """Handles LinkedIn Hiring Posts Tracker CLI subcommands."""
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+
+    if action == "discover":
+        from src.posts.post_tracker import LinkedInPostTracker
+
+        print("\n" + "=" * 65)
+        print("  LINKEDIN HIRING POSTS DISCOVERY ENGINE (Track 3)")
+        print(f"  Date Filter: {date_filter} | Headless: {headless}")
+        print("=" * 65 + "\n")
+        tracker = LinkedInPostTracker(db=db)
+        discovered = asyncio.run(tracker.discover_posts(date_filter=date_filter, headless=headless))
+        print(f"\n🎉 Finished! Discovered and banked {len(discovered)} new lead(s).")
+    elif action == "stats":
+        stats = db.get_hiring_posts_stats()
+        print("\n" + "=" * 60)
+        print("  LINKEDIN HIRING POSTS & INBOUND LEADS METRICS")
+        print("=" * 60)
+        for k, v in stats.items():
+            print(f"  • {k.replace('_', ' ').title():24s}: {v}")
+        print("=" * 60 + "\n")
+    else:  # list
+        posts = db.get_hiring_posts(limit=limit)
+        print("\n" + "=" * 75)
+        print(f"  SAVED HIRING POSTS & INBOUND OUTREACH LEADS (Top {len(posts)})")
+        print("=" * 75)
+        if not posts:
+            print("  No hiring posts saved yet. Run `python main.py posts discover` to fetch leads.")
+        for p in posts:
+            author = p.get("author_name", "Unknown")
+            role_cat = p.get("author_role_category", "PEER")
+            company = p.get("company_name", "Enterprise")
+            score = p.get("quality_score", 0)
+            status = p.get("outreach_status", "NEW")
+            rel_time = p.get("posted_at_relative", "")
+            emails = ", ".join(p.get("extracted_emails", [])) or "None"
+            dream_flag = "⭐ " if p.get("is_dream_org") else ""
+            print(f"  [{status}] {dream_flag}{author} ({role_cat}) @ {company}")
+            print(f"       Score: {score}/100 | Time: {rel_time} | Emails: {emails}")
+            post_url = p.get("post_url", "")
+            if post_url:
+                print(f"       Link: {post_url}")
+            print("-" * 75)
+        print("\n")
 
 
 def main():
@@ -473,6 +525,36 @@ def main():
         help="Limit number of runs to show in audit (default: 5)",
     )
 
+    # 13. posts (Track 3: Recruiter, Lead & Peer Hiring Posts Tracker)
+    parser_posts = subparsers.add_parser(
+        "posts", help="Track 3: Discover, classify, and track hiring posts from engineers, leads, and recruiters"
+    )
+    parser_posts.add_argument(
+        "action",
+        choices=["discover", "list", "stats"],
+        nargs="?",
+        default="list",
+        help="Action: 'list' (default), 'discover' (search LinkedIn feed/content), or 'stats'",
+    )
+    parser_posts.add_argument(
+        "--date-filter",
+        choices=["past-24h", "past-week"],
+        default="past-24h",
+        help="Date filter for LinkedIn content search: 'past-24h' (default) or 'past-week'",
+    )
+    parser_posts.add_argument(
+        "--limit",
+        type=int,
+        default=15,
+        help="Limit number of posts to list (default: 15)",
+    )
+    parser_posts.add_argument(
+        "--headless",
+        action="store_true",
+        default=True,
+        help="Run browser in headless mode (default: True)",
+    )
+
     args = parser.parse_args()
     config = load_config(args.config)
     runner = JobSearchPipelineRunner(config)
@@ -507,6 +589,13 @@ def main():
         handle_test(tier=args.tier, live=args.live)
     elif cmd == "session":
         handle_session(action=args.action, output=getattr(args, "output", None))
+    elif cmd == "posts":
+        handle_posts(
+            action=args.action,
+            date_filter=getattr(args, "date_filter", "past-24h"),
+            limit=getattr(args, "limit", 15),
+            headless=getattr(args, "headless", True),
+        )
     elif cmd == "daily":
         if args.action == "audit":
             handle_daily_audit(limit=args.limit)
