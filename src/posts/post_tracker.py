@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import re
 import urllib.parse
 from pathlib import Path
 from typing import Any
@@ -24,10 +25,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 STORAGE_STATE = PROJECT_ROOT / ".browser_data" / "storage_state.json"
 
 DEFAULT_SEARCH_QUERIES = [
-    '("hiring" OR "looking for") AND ("SDET" OR "QA" OR "Automation") AND ("India" OR "Bengaluru" OR "Bangalore" OR "Remote")',
-    '("my team is hiring" OR "we are hiring" OR "open roles") AND ("SDET" OR "Lead SDET" OR "QA Automation")',
-    '("referral" OR "referrals" OR "dm for referral" OR "openings") AND ("SDET" OR "QA" OR "SET") AND ("India" OR "Bengaluru")',
-    '("looking for SDET" OR "looking for QA" OR "hiring SDET") AND ("India" OR "Bengaluru" OR "Remote")',
+    "SDET hiring",
+    "QA automation hiring",
+    "SDET referral",
+    "Lead SDET hiring",
 ]
 
 
@@ -46,7 +47,7 @@ class LinkedInPostTracker:
         try:
             # 1. Expand '...see more' if present
             see_more = card.locator(
-                ".feed-shared-inline-show-more-text__see-more-less-toggle, button:has-text('see more')"
+                ".feed-shared-inline-show-more-text__see-more-less-toggle, button:has-text('see more'), button:has-text('...more')"
             ).first
             if await see_more.count() > 0 and await see_more.is_visible():
                 try:
@@ -56,32 +57,55 @@ class LinkedInPostTracker:
                     pass
 
             # 2. Extract Author details
-            author_name_loc = card.locator(
-                ".update-components-actor__name, .feed-shared-actor__name, a[data-field='actor_name']"
-            ).first
-            author_name = (
-                (await author_name_loc.text_content()).strip() if await author_name_loc.count() > 0 else "Unknown"
-            )
+            author_links = await card.locator("a[href*='/in/'], a[href*='/company/']").all()
+            author_name = "Unknown"
+            author_url = ""
+            for al in author_links:
+                ltxt = (await al.text_content() or "").strip()
+                clean_name = ltxt.split("•")[0].strip()
+                if clean_name and clean_name.lower() not in ["view profile", "follow", "connect", "feed post"]:
+                    author_name = clean_name
+                    author_url = (await al.get_attribute("href") or "").split("?")[0]
+                    break
+
+            if author_name == "Unknown":
+                author_name_loc = card.locator(
+                    ".update-components-actor__name, .feed-shared-actor__name, a[data-field='actor_name']"
+                ).first
+                if await author_name_loc.count() > 0:
+                    author_name = (await author_name_loc.text_content() or "").strip()
+
+            # 3. Extract Post text
+            raw_text = (await card.text_content() or "").strip()
+            if raw_text.startswith("Feed post"):
+                raw_text = raw_text[len("Feed post") :].strip()
 
             author_title_loc = card.locator(
-                ".update-components-actor__description, .feed-shared-actor__description, .update-components-actor__headline"
+                ".update-components-actor__description, .feed-shared-actor__description, .update-components-actor__headline, .entity-result__primary-subtitle, span[data-anonymize='headline']"
             ).first
             author_headline = (
                 (await author_title_loc.text_content()).strip() if await author_title_loc.count() > 0 else ""
             )
 
-            author_link_loc = card.locator("a[href*='/in/']").first
-            author_url = (
-                (await author_link_loc.get_attribute("href") or "").split("?")[0]
-                if await author_link_loc.count() > 0
-                else ""
-            )
+            if not author_headline or author_headline == author_name:
+                # Fallback: Extract from raw_text header pattern: <Author> • [degree] <Headline> <Time> • (Follow|Connect)
+                hl_match = re.search(
+                    re.escape(author_name)
+                    + r"\s*(?:•\s*(?:1st|2nd|3rd|\d+[a-z]+)?)?\s*(.*?)(?:\d+[hmdw]\s*•|\d+[hmdw]\b|Follow|Connect)",
+                    raw_text,
+                    re.DOTALL,
+                )
+                if hl_match:
+                    candidate_hl = hl_match.group(1).strip()
+                    if candidate_hl and len(candidate_hl) > 3:
+                        author_headline = candidate_hl
+                if not author_headline:
+                    author_headline = author_name
 
-            # 3. Extract Post text
             text_loc = card.locator(
                 ".feed-shared-update-v2__description, .feed-shared-text, .update-components-text"
             ).first
-            text_content = (await text_loc.text_content()).strip() if await text_loc.count() > 0 else ""
+            text_content = (await text_loc.text_content()).strip() if await text_loc.count() > 0 else raw_text
             if len(text_content) < 25:
                 return None
 
@@ -89,8 +113,12 @@ class LinkedInPostTracker:
             time_loc = card.locator(
                 ".update-components-actor__sub-description, .feed-shared-actor__sub-description, time"
             ).first
-            posted_time = (await time_loc.text_content()).strip() if await time_loc.count() > 0 else ""
-            relative_time = posted_time.split("•")[0].strip() if "•" in posted_time else posted_time
+            if await time_loc.count() > 0:
+                posted_time = (await time_loc.text_content()).strip()
+                relative_time = posted_time.split("•")[0].strip() if "•" in posted_time else posted_time
+            else:
+                time_match = re.search(r"\b(\d+[hmdw])\b", raw_text)
+                relative_time = time_match.group(1) if time_match else "recent"
 
             # 5. Extract Post permalink / URN
             post_urn = await card.get_attribute("data-urn") or ""
@@ -134,7 +162,7 @@ class LinkedInPostTracker:
         queries: list[str] | None = None,
         date_filter: str = "past-24h",
         max_scrolls: int = 4,
-        headless: bool = True,
+        headless: bool = False,
     ) -> list[dict[str, Any]]:
         """
         Executes search on LinkedIn /search/results/content/ and collects qualified posts.
@@ -167,6 +195,7 @@ class LinkedInPostTracker:
 
                         # Match modern card locators
                         cards_loc = page.locator(
+                            "div:has(> h2:has-text('Feed post')), div:has(> span:has-text('Feed post')), "
                             ".feed-shared-update-v2, .occludable-update, "
                             "div[data-view-name*='search-entity-result'], "
                             ".artdeco-card:has(.feed-shared-text, .update-components-text)"

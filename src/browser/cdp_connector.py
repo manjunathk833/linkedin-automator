@@ -69,15 +69,41 @@ async def launch_persistent_browser(
     """
     os.makedirs(profile_dir, exist_ok=True)
 
+    stealth_args = [
+        "--disable-blink-features=AutomationControlled",
+        "--start-maximized",
+        "--no-sandbox",
+        "--disable-infobars",
+    ]
+
+    desktop_ua = (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    )
+
     context = await playwright.chromium.launch_persistent_context(
         user_data_dir=profile_dir,
         channel="chrome",  # Use installed system Chrome
         headless=headless,
-        args=["--start-maximized"],
+        args=stealth_args,
+        ignore_default_args=["--enable-automation"],
+        user_agent=desktop_ua,
         no_viewport=True,
         accept_downloads=True,
     )
 
+    # Synchronize cookies from storage_state.json if available
+    state_file = os.path.join(profile_dir, "storage_state.json")
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, "r", encoding="utf-8") as f:
+                state_data = json.load(f)
+            cookies = state_data.get("cookies", [])
+            if cookies:
+                await context.add_cookies(cookies)
+        except Exception as e:
+            print(f"⚠️ Warning: Could not pre-sync storage_state cookies: {e}")
+
     page = context.pages[0] if context.pages else await context.new_page()
-    print(f"🔗 Playwright launched with persistent profile: {profile_dir}")
+    print(f"🔗 Playwright launched with hardened persistent profile: {profile_dir}")
     return context, page

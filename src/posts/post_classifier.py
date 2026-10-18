@@ -18,8 +18,48 @@ TARGET_COMPANIES_PATH = PROJECT_ROOT / "data" / "config" / "target_companies.jso
 EMAIL_REGEX = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", re.IGNORECASE)
 URL_REGEX = re.compile(r"https?://[^\s<>\"'()]+", re.IGNORECASE)
 JOB_CODE_REGEX = re.compile(
-    r"\b(?:Job\s*Code|Req(?:\s*ID)?|Requisition(?:\s*ID)?|Job\s*ID)[:\s#]*([A-Za-z0-9_-]{4,20})\b", re.IGNORECASE
+    r"\b(?:Job\s*(?:Code|ID|#)|Requisition\s*(?:ID|#)?|Req\s*(?:ID|#|Number|No\b))[:\s#]*([A-Za-z0-9_-]{3,20})\b",
+    re.IGNORECASE,
 )
+
+COMMON_FALSE_JOB_CODES = {
+    "required",
+    "requirements",
+    "responsibilities",
+    "qualifications",
+    "experience",
+    "skills",
+    "location",
+    "details",
+    "hybrid",
+    "remote",
+    "onsite",
+    "bangalore",
+    "bengaluru",
+    "gurgaon",
+    "noida",
+    "hyderabad",
+    "pune",
+    "mumbai",
+    "india",
+    "and",
+    "or",
+    "with",
+    "for",
+    "the",
+    "role",
+    "code",
+    "titles",
+    "overview",
+    "not",
+    "none",
+    "na",
+    "apply",
+    "dm",
+    "link",
+    "here",
+    "below",
+}
 
 # Author headline job seeker badges (strong signal that the author themselves is seeking work)
 HEADLINE_JOB_SEEKER_MARKERS = [
@@ -206,7 +246,12 @@ class PostClassifier:
         if not text:
             return []
         matches = JOB_CODE_REGEX.findall(text)
-        return list(dict.fromkeys(m.strip() for m in matches if len(m.strip()) >= 4))
+        cleaned = []
+        for m in matches:
+            code = m.strip()
+            if len(code) >= 3 and code.lower() not in COMMON_FALSE_JOB_CODES and code not in cleaned:
+                cleaned.append(code)
+        return cleaned
 
     def classify_author_role(self, author_headline: str, post_text: str) -> str:
         """
@@ -221,7 +266,7 @@ class PostClassifier:
         headline_lower = (author_headline or "").lower()
 
         # Recruiter check
-        if any(
+        if re.search(r"\bhr\b", headline_lower) or any(
             k in headline_lower
             for k in [
                 "recruiter",
@@ -236,6 +281,7 @@ class PostClassifier:
                 "technical recruiter",
                 "campus recruiter",
                 "hiring specialist",
+                "staffing",
             ]
         ):
             return "RECRUITER"
@@ -280,6 +326,9 @@ class PostClassifier:
                 "test engineer",
                 "qa engineer",
                 "quality engineer",
+                "quality engineering",
+                "qa specialist",
+                "quality assurance",
                 "qa automation",
                 "set",
                 "senior sdet",

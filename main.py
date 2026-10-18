@@ -46,8 +46,10 @@ async def handle_login(config: dict[str, Any]):
         print("\n⏳ Browser is open and waiting...")
         print("💡 Once you are logged in, press [ENTER] in this terminal to save session and close.")
         input(">>> Press ENTER when finished logging in: ")
+        state_file = os.path.join(profile_dir, "storage_state.json")
+        await context.storage_state(path=state_file)
         await context.close()
-        print("✅ LinkedIn session saved to .browser_data/ successfully!\n")
+        print(f"✅ LinkedIn session & cookies saved to {state_file} successfully!\n")
 
 
 async def handle_apply(config: dict[str, Any], dry_run: bool = True):
@@ -551,8 +553,8 @@ def main():
     parser_posts.add_argument(
         "--headless",
         action="store_true",
-        default=True,
-        help="Run browser in headless mode (default: True)",
+        default=False,
+        help="Run browser in headless mode (default: False, runs headful visible)",
     )
 
     args = parser.parse_args()
