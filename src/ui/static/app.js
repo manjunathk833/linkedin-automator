@@ -1448,8 +1448,16 @@ function createPostCardElement(post) {
 
     if (post.extracted_links && post.extracted_links.length > 0) {
         post.extracted_links.slice(0, 2).forEach(link => {
-            const domain = link.replace(/https?:\/\/(www\.)?/, '').split('/')[0];
-            actionPillsHtml += `<a href="${link}" target="_blank" class="pill-action pill-link" title="Open Link">🔗 ${domain} ↗</a>`;
+            if (!link) return;
+            let cleanLink = link.trim();
+            const lnkdMatch = cleanLink.match(/https?:\/\/(?:www\.)?lnkd\.in\/([a-zA-Z0-9_-]{5,12})/i);
+            if (lnkdMatch) {
+                cleanLink = `https://lnkd.in/${lnkdMatch[1]}`;
+            } else {
+                cleanLink = cleanLink.replace(/[^\x20-\x7E]+.*$/, '').replace(/[.,;:!?)]}+$/, '');
+            }
+            const domain = cleanLink.replace(/https?:\/\/(www\.)?/, '').split('/')[0];
+            actionPillsHtml += `<a href="${cleanLink}" target="_blank" class="pill-action pill-link" title="Open Link">🔗 ${domain} ↗</a>`;
         });
     }
 

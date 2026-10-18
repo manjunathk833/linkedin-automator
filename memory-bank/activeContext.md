@@ -350,6 +350,24 @@
     - Verified persistence in SQLite `hiring_posts` and real-time rendering on Dashboard Command Center Tab 4 (`http://127.0.0.1:8000/api/posts`).
     - Standardized Tier 1 core regression suite (`python main.py test --tier core`): **51/51 PASSED (100% SUCCESS)** in 43.24s.
     - Codebase linted cleanly via `python main.py lint`: **0 errors across 162 files**.
+  - Universal Post Links Sanitization, Tool Disambiguation & Dream Org Precision Complete & Verified (Gate 74):
+    - Root Cause Analysis (Broken `lnkd.in` Links): LinkedIn's DOM renders post text immediately following anchor tags (`<a>...</a>`) without whitespace separation (e.g. `<a>...</a>Follow for daily updates...`). Standard `text_content()` extraction merged shortlinks into corrupted strings like `https://lnkd.in/dfQ3eZphFollow`, causing HTTP 404s. Also, shortlinks frequently captured trailing emojis or punctuation.
+    - Root Cause Analysis (False Dream Job Classification): Tech enterprise names in `target_companies.json` (such as `Docker`, `Postman`, `GitLab`, `Kafka`, `Elastic`) frequently coincide with technical skills engineers list in their profile headlines (e.g. `... Cloud Testing | Docker | AWS`). The classifier previously performed a raw substring check across the author's headline, causing 100% of the 7 initial Dream Org tagged posts to be false positives where authors were simply listing their technical skills.
+    - Upgraded URL Extraction & Sanitization (`src/posts/post_classifier.py`):
+      - Implemented `clean_single_url()` with strict LinkedIn shortlink isolation (`https://lnkd.in/[token]`), truncating tokens to the standard 5-8 character format and stripping trailing English words (`Follow`, `Apply`, `Note`, `Post`, `Click`, `If`, etc.) and unicode emojis.
+      - Updated `src/posts/post_tracker.py` to extract genuine DOM anchor `href` attributes directly from post cards via Playwright before falling back to regex.
+      - Added defense-in-depth client-side sanitizer in `src/ui/static/app.js` for rendered link pills.
+    - Disambiguated Company & Dream Org Classifier (`src/posts/post_classifier.py`):
+      - Created `TECH_TOOL_KEYWORDS` whitelist (`docker`, `postman`, `gitlab`, `kafka`, `elastic`, `jenkins`, `kubernetes`, `terraform`, `ansible`) and `NON_COMPANY_WORDS`.
+      - Required explicit employment contexts (e.g. `at Postman`, `@ Postman`, `working at Postman`, `hiring for Postman`) when matching dual-purpose tool names.
+      - Filtered target company loading in `_load_target_companies()` to strictly consider firms marked with `is_dream_org == True`.
+    - Automated Self-Healing Database Migration (`src/storage/database.py`):
+      - Implemented `repair_posts_metadata_and_links()` in `ApplicationDatabase` called automatically on startup: cleanses existing URLs, re-evaluates companies, strips false Dream Org tags, and regenerates custom outreach notes. Healed 29 historical leads in SQLite.
+    - Upgraded Dry Run Agent to Universal End-to-End Flow Verification Guidelines:
+      - Updated `.agents/rules/02-agent-review-protocol.md` and `.agents/agents/dry_run_agent.md` to establish universal guidelines: dry runs are NEVER superficial passes or feature-specific spot checks, but exhaustive end-to-end verifications spanning ingestion, extraction, semantic classification, persistence, API fidelity, live dynamic UI rendering, and downstream actions.
+    - Authored Verification Gate 74 (`verify/74_test_posts_links_and_dream_org_precision.py`): testing clean URL extraction, token truncation, emoji stripping, tool disambiguation, and database migration. Registered in `TIER_1_CORE` in `verify/run_regressions.py` (expanding core suite to 53 tests).
+    - Standardized Tier 1 core regression suite (`python main.py test --tier core`): **53/53 PASSED (100% SUCCESS)**.
+    - Codebase linted cleanly via `python main.py lint`: **0 errors across 161 files**.
 
 
 

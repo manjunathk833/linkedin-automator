@@ -126,6 +126,7 @@ class ApplicationDatabase:
                 """
             )
             self.repair_invalid_post_urls(conn=conn)
+            self.repair_posts_metadata_and_links(conn=conn)
 
     def _get_today_bucket(self) -> str:
         """Returns date string bucket in YYYY-MM-DD format."""
@@ -856,6 +857,103 @@ class ApplicationDatabase:
                         (new_url, post_id),
                     )
                     updated_count += 1
+            if updated_count > 0:
+                active_conn.commit()
+            return updated_count
+
+        if conn is not None:
+            return _do_repair(conn)
+        with self._get_connection() as active_conn:
+            return _do_repair(active_conn)
+
+    def repair_posts_metadata_and_links(self, conn: sqlite3.Connection | None = None) -> int:
+        """
+        Re-evaluates existing hiring posts in SQLite to:
+        1. Sanitize corrupted lnkd.in and external URLs (stripping trailing words/emojis).
+        2. Disambiguate technical skills from company names, removing false dream org flags.
+        3. Recalculate quality score and regenerate custom outreach drafts.
+        """
+        from src.posts.outreach_composer import PostOutreachComposer
+        from src.posts.post_classifier import PostClassifier
+
+        classifier = PostClassifier()
+        composer = PostOutreachComposer()
+
+        def _do_repair(active_conn: sqlite3.Connection) -> int:
+            cursor = active_conn.cursor()
+            cursor.execute("SELECT * FROM hiring_posts")
+            rows = cursor.fetchall()
+            updated_count = 0
+
+            def _safe_json_list(val: Any) -> list[str]:
+                if not val:
+                    return []
+                if isinstance(val, list):
+                    return val
+                try:
+                    loaded = json.loads(val)
+                    return loaded if isinstance(loaded, list) else []
+                except Exception:
+                    return []
+
+            for r in rows:
+                post_id = r["post_id"]
+                headline = r["author_headline"] or ""
+                text = r["post_text"] or ""
+                raw_links = _safe_json_list(r["extracted_links"])
+
+                # Validate whether post is an authentic hiring/referral lead
+                is_valid, _reason = classifier.is_hiring_post(headline, text)
+                if not is_valid:
+                    # Purge job seeker post that slipped in
+                    cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
+                    updated_count += 1
+                    continue
+
+                # Clean links
+                clean_links = classifier.extract_links(text, additional_links=raw_links)
+                # Re-extract company and dream flag
+                company, is_dream = classifier.extract_company_name(headline, text)
+                role_cat = r["author_role_category"] or classifier.classify_author_role(headline, text)
+                emails = _safe_json_list(r["extracted_emails"])
+                job_codes = _safe_json_list(r["extracted_job_codes"])
+                posted_time = r["posted_at_relative"] or "recent"
+
+                score = classifier.compute_quality_score(
+                    is_dream, emails, clean_links, job_codes, posted_time, role_cat
+                )
+
+                post_data = {
+                    "author_name": r["author_name"],
+                    "company_name": company,
+                    "author_role_category": role_cat,
+                    "extracted_job_codes": job_codes,
+                }
+                new_dm = composer.generate_connection_note(post_data)
+                new_inmail = composer.generate_inmail_pitch(post_data)
+
+                cursor.execute(
+                    """
+                    UPDATE hiring_posts SET
+                        company_name = ?,
+                        is_dream_org = ?,
+                        extracted_links = ?,
+                        quality_score = ?,
+                        custom_dm_draft = ?,
+                        custom_inmail_draft = ?
+                    WHERE post_id = ?
+                    """,
+                    (
+                        company,
+                        1 if is_dream else 0,
+                        json.dumps(clean_links),
+                        score,
+                        new_dm,
+                        new_inmail,
+                        post_id,
+                    ),
+                )
+                updated_count += 1
             if updated_count > 0:
                 active_conn.commit()
             return updated_count

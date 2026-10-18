@@ -151,10 +151,11 @@ class LinkedInPostTracker:
             see_more = card.locator(
                 ".feed-shared-inline-show-more-text__see-more-less-toggle, button:has-text('see more'), button:has-text('...more')"
             ).first
-            if await see_more.count() > 0 and await see_more.is_visible():
+            if await see_more.count() > 0:
                 try:
-                    await see_more.click(timeout=1000)
-                    await asyncio.sleep(0.2)
+                    if await see_more.is_visible(timeout=500):
+                        await see_more.click(timeout=1000)
+                        await asyncio.sleep(0.1)
                 except Exception:
                     pass
 
@@ -163,7 +164,7 @@ class LinkedInPostTracker:
             author_name = "Unknown"
             author_url = ""
             for al in author_links:
-                ltxt = (await al.text_content() or "").strip()
+                ltxt = (await al.text_content(timeout=1000) or "").strip()
                 clean_name = ltxt.split("•")[0].strip()
                 if clean_name and clean_name.lower() not in ["view profile", "follow", "connect", "feed post"]:
                     author_name = clean_name
@@ -175,10 +176,10 @@ class LinkedInPostTracker:
                     ".update-components-actor__name, .feed-shared-actor__name, a[data-field='actor_name']"
                 ).first
                 if await author_name_loc.count() > 0:
-                    author_name = (await author_name_loc.text_content() or "").strip()
+                    author_name = (await author_name_loc.text_content(timeout=1000) or "").strip()
 
             # 3. Extract Post text
-            raw_text = (await card.text_content() or "").strip()
+            raw_text = (await card.text_content(timeout=2000) or "").strip()
             if raw_text.startswith("Feed post"):
                 raw_text = raw_text[len("Feed post") :].strip()
 
@@ -186,7 +187,9 @@ class LinkedInPostTracker:
                 ".update-components-actor__description, .feed-shared-actor__description, .update-components-actor__headline, .entity-result__primary-subtitle, span[data-anonymize='headline']"
             ).first
             author_headline = (
-                (await author_title_loc.text_content()).strip() if await author_title_loc.count() > 0 else ""
+                (await author_title_loc.text_content(timeout=1000)).strip()
+                if await author_title_loc.count() > 0
+                else ""
             )
 
             if not author_headline or author_headline == author_name:
@@ -207,7 +210,9 @@ class LinkedInPostTracker:
             text_loc = card.locator(
                 ".feed-shared-update-v2__description, .feed-shared-text, .update-components-text"
             ).first
-            text_content = (await text_loc.text_content()).strip() if await text_loc.count() > 0 else raw_text
+            text_content = (
+                (await text_loc.text_content(timeout=1500)).strip() if await text_loc.count() > 0 else raw_text
+            )
             if len(text_content) < 25:
                 return None
 
@@ -216,7 +221,7 @@ class LinkedInPostTracker:
                 ".update-components-actor__sub-description, .feed-shared-actor__sub-description, time"
             ).first
             if await time_loc.count() > 0:
-                posted_time = (await time_loc.text_content()).strip()
+                posted_time = (await time_loc.text_content(timeout=1000)).strip()
                 relative_time = posted_time.split("•")[0].strip() if "•" in posted_time else posted_time
             else:
                 time_match = re.search(r"\b(\d+[hmdw])\b", raw_text)
@@ -225,6 +230,19 @@ class LinkedInPostTracker:
             # 5. Extract Post permalink / URN with multi-tier resilience
             post_url = await self._extract_post_permalink(card, author_url, raw_text)
 
+            # 5b. Extract clean DOM anchor links
+            dom_links = []
+            try:
+                anchor_locs = await card.locator(
+                    ".feed-shared-update-v2__description a[href], .update-components-text a[href], .feed-shared-text a[href]"
+                ).all()
+                for al in anchor_locs:
+                    ahref = await al.get_attribute("href")
+                    if ahref and "linkedin.com/in/" not in ahref and "linkedin.com/company/" not in ahref:
+                        dom_links.append(ahref.strip())
+            except Exception:
+                pass
+
             raw_post = {
                 "author_name": author_name,
                 "author_headline": author_headline,
@@ -232,6 +250,7 @@ class LinkedInPostTracker:
                 "post_url": post_url,
                 "post_text": text_content,
                 "posted_at_relative": relative_time,
+                "dom_links": dom_links,
             }
 
             # 6. Classify and enrich

@@ -32,11 +32,17 @@ When debugging, fixing, or adding ATS vendor autofill logic, enforce precision s
 - [ ] **Synthetic Event Dispatch:** Ensure text inputs dispatch `input`, `change`, and `blur` events so React/form state registers them and clears red validation outlines.
 - [ ] **Live Zero-Contamination Assertions:** Ensure verification scripts assert exact values for every individual field and combobox control text without cross-field contamination.
 
-## 4. Autonomous Dry Run & Live Browser Validation Lens (`dry_run_agent`)
-After code changes or bug fixes are applied, evaluate against the dry run mandate:
-- [ ] **Persistent Browser Session Readiness:** Ensure stored session state (`.browser_data/`, `SessionManager`) and local FastAPI server (`http://127.0.0.1:8000`) are verified.
+## 4. Autonomous Dry Run & Universal Flow Verification Lens (`dry_run_agent`)
+After code changes or bug fixes are applied, evaluate against the universal dry run verification mandate:
+- [ ] **Universal End-to-End Flow Verification (Zero Superficial Passes):** Dry runs must NEVER settle for superficial checks (such as merely checking if a function ran without throwing an error, checking if a list is non-empty, or counting saved rows). Whenever ANY code change, parser tweak, business logic update, database migration, or UI component is modified, the dry run MUST exhaustively verify the entire operational flow end-to-end across every stage:
+  - **1. Input & Data Integrity:** Verify extracted or generated values (e.g., links, IDs, contact details, dates) are syntactically valid, free of concatenation artifacts or emoji pollution, and reachable/resolvable.
+  - **2. Semantic & Classification Fidelity:** Rigorously audit tags, badges, statuses, and classifications against false positives, heuristic edge cases, and domain keyword collisions (e.g., tech skills colliding with company names).
+  - **3. Downstream Persistence & API Fidelity:** Verify that changes correctly propagate into storage/database persistence and are accurately served by REST endpoints without schema drift.
+  - **4. Live Dynamic UI & Interaction Verification:** In the local Command Center UI (`http://127.0.0.1:8000`), verify complete visual rendering, interactive state transitions, modals, filters, tabs, and button actions.
+  - **5. Action Execution & Edge-Case Resilience:** Ensure downstream actions (e.g., opening links, copying notes, autofilling forms) perform seamlessly without breaking or hitting 404s.
+- [ ] **Persistent Browser Session Readiness:** Ensure stored session state (`.browser_data/`, `SessionManager`) and local FastAPI server (`http://127.0.0.1:8000`) are active and verified.
 - [ ] **Human-in-the-Loop Takeover (Zero Premature Exit):** If authentication, 2FA, or CAPTCHA is encountered, execution must NEVER terminate prematurely. Prompt the user, pause interactively, refresh session, and seamlessly resume.
-- [ ] **Live Browser Traversal & Dynamic Reactivity:** Verify staging review, version toggling, referral reconnaissance, dynamic note reactivity, character limits, and assisted copilot flows in real browser execution.
 - [ ] **Autonomous Self-Healing Loop:** If regressions, broken selectors, or overflow issues are found, diagnose via `autofill_learning_vault.json`, immediately patch in `src/`, and re-verify.
 - [ ] **Implementation Report Emitted:** Deliver a structured health report upon completion before raising a Pull Request to `main`.
+
 

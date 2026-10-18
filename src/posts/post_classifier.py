@@ -61,16 +61,139 @@ COMMON_FALSE_JOB_CODES = {
     "below",
 }
 
+TECH_TOOL_KEYWORDS = {
+    "docker",
+    "postman",
+    "gitlab",
+    "github",
+    "kafka",
+    "elastic",
+    "elasticsearch",
+    "jira",
+    "atlassian",
+    "selenium",
+    "playwright",
+    "cypress",
+    "kubernetes",
+    "k8s",
+    "aws",
+    "azure",
+    "gcp",
+    "python",
+    "java",
+    "typescript",
+    "javascript",
+    "sql",
+    "rest api",
+    "testng",
+    "pytest",
+    "robot framework",
+    "bdd",
+    "cucumber",
+    "appium",
+    "jenkins",
+    "ci/cd",
+    "linux",
+}
+
+NON_COMPANY_WORDS = {
+    "india",
+    "bengaluru",
+    "bangalore",
+    "remote",
+    "pune",
+    "hyderabad",
+    "delhi",
+    "gurgaon",
+    "noida",
+    "mumbai",
+    "chennai",
+    "us",
+    "usa",
+    "worldwide",
+    "global",
+    "confidential",
+    "stealth",
+    "various",
+    "multiple",
+    "urgent",
+    "immediate",
+    "hiring",
+    "openings",
+    "opportunities",
+    "referrals",
+    "jobs",
+    "team",
+    "client",
+    "product company",
+    "recruitment",
+    "career",
+    "careers",
+    "tech enterprise",
+    "exciting",
+    "excited",
+    "several",
+    "some",
+    "our",
+    "your",
+    "my",
+    "our team",
+    "your team",
+    "my team",
+    "if your team",
+    "new",
+    "open",
+    "right",
+}
+
+# Strict word-boundary affirmative team hiring regex (prevents 'your team' matching 'our team')
+AFFIRMATIVE_HIRING_REGEX = re.compile(
+    r"\b(?:we\s+are\s+hiring|we're\s+hiring|my\s+team\s+is\s+hiring|\bour\s+team\s+is\s+hiring|i\s+am\s+hiring|i'm\s+hiring|\bwe\s+at\b|\bjoin\s+our\s+team\b|for\s+my\s+team|for\s+our\s+team|dm\s+me\s+your\s+resume|dm\s+your\s+resume|send\s+your\s+resume|share\s+your\s+resume|share\s+your\s+cv|actively\s+looking\s+for\s+(?:an?\s+)?(?:senior\s+|lead\s+)?(?:sdet|qa|engineer|candidate))\b",
+    re.IGNORECASE,
+)
+
+# Small caps translation map for LinkedIn unicode stylings (e.g. Oᴘᴇɴ ᴛᴏ Wᴏʀᴋ)
+SMALL_CAPS_MAP = str.maketrans("ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘǫʀsᴛᴜᴠᴡxʏᴢ", "abcdefghijklmnopqrstuvwxyz")
+
 # Author headline job seeker badges (strong signal that the author themselves is seeking work)
 HEADLINE_JOB_SEEKER_MARKERS = [
     "#opentowork",
     "open to work",
+    "open for work",
     "looking for new opportunities",
     "looking for job",
     "seeking new role",
     "actively seeking opportunities",
     "immediate joiner seeking",
     "open for opportunities",
+]
+
+# Conditional job seeker phrases where the author is asking the reader / network for a job
+CONDITIONAL_SEEKER_PHRASES = [
+    "if your team is hiring",
+    "if you are hiring",
+    "if anyone is hiring",
+    "if someone is hiring",
+    "if your company is hiring",
+    "if you have openings",
+    "if you have an opening",
+    "if you have any openings",
+    "let me know if you are hiring",
+    "let me know if your team is hiring",
+    "i lost my job",
+    "i have lost my job",
+    "i'm looking for my next",
+    "i am looking for my next",
+    "looking for my next role",
+    "looking for my next opportunity",
+    "exploring new opportunities",
+    "exploring opportunities",
+    "refer me",
+    "can anyone refer me",
+    "can someone refer me",
+    "a referral would mean a lot",
+    "a repost would also help",
+    "a repost would help",
 ]
 
 # First-person job seeker phrases in post text (author asking for a job or referral for themselves)
@@ -92,6 +215,11 @@ FIRST_PERSON_SEEKER_MARKERS = [
     "i was recently laid off",
     "i have been laid off",
     "looking for an opportunity for myself",
+    "i have lost my job",
+    "i lost my job",
+    "looking for my next role",
+    "looking for my next opportunity",
+    "exploring new opportunities",
 ]
 
 # Explicit hiring & referral intent markers (author is hiring or offering team referrals)
@@ -204,9 +332,10 @@ class PostClassifier:
             with open(self.target_companies_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             for item in data:
-                name = item.get("name") or item.get("company")
-                if name:
-                    self.dream_companies.add(name.strip().lower())
+                if item.get("is_dream_org") is True:
+                    name = item.get("name") or item.get("company")
+                    if name:
+                        self.dream_companies.add(name.strip().lower())
         except Exception:
             pass
 
@@ -226,16 +355,58 @@ class PostClassifier:
                 cleaned.append(m_clean)
         return cleaned
 
-    def extract_links(self, text: str) -> list[str]:
-        """Extracts actionable external URLs (careers, forms, ATS links)."""
-        if not text:
-            return []
-        matches = URL_REGEX.findall(text)
+    def clean_single_url(self, raw_url: str) -> str:
+        """Sanitizes an individual URL by isolating tokens and stripping trailing artifacts."""
+        if not raw_url:
+            return ""
+        u = raw_url.strip(" \t\r\n<>\"'()[]{}")
+        if not u.startswith("http"):
+            return ""
+
+        # Strict lnkd.in shortlink isolation: https://lnkd.in/XXXXXXXX
+        lnkd_match = re.match(r"^(https?://(?:www\.)?lnkd\.in/)([a-zA-Z0-9_-]+)", u, re.IGNORECASE)
+        if lnkd_match:
+            base = lnkd_match.group(1)
+            token = lnkd_match.group(2)
+            # Strip common concatenated trailing words attached to links without spaces
+            token = re.sub(
+                r"(Follow|Apply|Note|Post|Click|If|Here|Link|Share)$",
+                "",
+                token,
+                flags=re.IGNORECASE,
+            )
+            if len(token) > 8:
+                token = token[:8]
+            return f"{base}{token}"
+
+        # Truncate at first non-ASCII character (emojis, unicode boxes, ellipses)
+        u = re.split(r"[^\x20-\x7E]", u)[0]
+        # Strip common trailing concatenated action buttons/words
+        u = re.sub(
+            r"(Follow|Apply|Note|Post|Click|If|Here|Link|Share)$",
+            "",
+            u,
+            flags=re.IGNORECASE,
+        )
+        u = u.rstrip(".,;:!?)]}\"'\\/-")
+        return u
+
+    def extract_links(self, text: str, additional_links: list[str] | None = None) -> list[str]:
+        """Extracts and sanitizes actionable external URLs (careers, forms, ATS links)."""
+        raw_candidates = list(additional_links or [])
+        if text:
+            raw_candidates.extend(URL_REGEX.findall(text))
+
         cleaned = []
-        for u in matches:
-            u_clean = u.strip(".,;:!?()[]{}")
-            # Filter out internal linkedin image/media links
-            if any(k in u_clean for k in ["licdn.com", "media.licdn", "static.licdn"]):
+        for raw in raw_candidates:
+            u_clean = self.clean_single_url(raw)
+            if not u_clean or len(u_clean) < 10:
+                continue
+            # Filter out internal linkedin image/media and author profile links
+            if any(
+                k in u_clean.lower()
+                for k in ["licdn.com", "media.licdn", "static.licdn", "linkedin.com/in/", "linkedin.com/company/"]
+            ):
                 continue
             if u_clean not in cleaned:
                 cleaned.append(u_clean)
@@ -347,8 +518,12 @@ class PostClassifier:
         are NOT accidentally dropped by generic job-seeker keywords.
         Returns: (is_valid, reason)
         """
+        import unicodedata
+
         headline_lower = (author_headline or "").lower()
-        text_lower = (post_text or "").lower()
+        # Normalize unicode fonts (e.g. mathematical bold/sans/small caps commonly used on LinkedIn)
+        raw_text_norm = unicodedata.normalize("NFKD", post_text or "").translate(SMALL_CAPS_MAP)
+        text_lower = raw_text_norm.lower()
         combined = f"{headline_lower} {text_lower}"
 
         # 1. Reject if author headline explicitly badges as job seeker
@@ -356,16 +531,44 @@ class PostClassifier:
             if marker in headline_lower:
                 return False, f"Author is a job seeker ({marker} in headline)"
 
+        has_affirmative_hiring = bool(AFFIRMATIVE_HIRING_REGEX.search(text_lower))
+
+        # 1b. Reject if post text explicitly has job seeker badges or hashtags (#opentowork)
+        # Distinguish from hirers stating "if you're open to work, DM me"
+        author_open_to_work = False
+        if (
+            "#opentowork" in text_lower
+            or "#openforwork" in text_lower
+            or ("open to work" in text_lower or "open for work" in text_lower)
+            and not re.search(r"\b(?:if\s+you(?:'re|\s+are)|anyone(?:\s+who\s+is)?)\s+open\s+to\s+work\b", text_lower)
+        ):
+            author_open_to_work = True
+
+        if author_open_to_work and not has_affirmative_hiring:
+            return False, "Author is seeking opportunities (#OpenToWork in post text)."
+
+        # 1c. Reject if post contains conditional inquiries ("if your team is hiring", "if you are hiring")
+        for cond in CONDITIONAL_SEEKER_PHRASES:
+            if cond in text_lower and not has_affirmative_hiring:
+                return False, f"Job seeker conditional inquiry detected: '{cond}'"
+
         # 2. Reject EdTech Commercial Spam
         for marker in COMMERCIAL_SPAM_MARKERS:
             if marker in combined:
                 return False, f"Commercial training/placement spam detected: '{marker}'"
 
         # 3. Check for Active Hiring / Referral Intent
-        has_hiring_intent = any(marker in combined for marker in HIRING_INTENT_MARKERS)
+        # Strip conditional phrases ("if your team is hiring") so bare "is hiring" won't falsely trigger
+        text_for_hiring = re.sub(
+            r"\bif\s+(?:your\s+team|you|anyone|someone|your\s+company)\s+is\s+hiring\b",
+            "",
+            combined,
+            flags=re.IGNORECASE,
+        )
+        text_for_hiring = re.sub(r"\byour\s+team\s+is\s+hiring\b", "", text_for_hiring, flags=re.IGNORECASE)
+        has_hiring_intent = any(marker in text_for_hiring for marker in HIRING_INTENT_MARKERS) or has_affirmative_hiring
 
         # 4. First-Person Job Seeker Filter (Author seeking employment for themselves)
-        # If someone explicitly writes "I am looking for a job" and has NO hiring intent
         if not has_hiring_intent:
             for marker in FIRST_PERSON_SEEKER_MARKERS:
                 if marker in text_lower:
@@ -373,10 +576,7 @@ class PostClassifier:
             return False, "No active hiring or referral intent detected."
 
         # If they have first-person seeker markers AND lack explicit team hiring ("we are hiring", "my team"), reject
-        if any(m in text_lower for m in FIRST_PERSON_SEEKER_MARKERS) and not any(
-            team_signal in text_lower
-            for team_signal in ["we are hiring", "we're hiring", "my team", "our team", "hiring for"]
-        ):
+        if any(m in text_lower for m in FIRST_PERSON_SEEKER_MARKERS) and not has_affirmative_hiring:
             return False, "Author is seeking a referral/job rather than offering one."
 
         # 5. Reject Pure Celebration / Promotion Announcements without Hiring Intent
@@ -393,46 +593,96 @@ class PostClassifier:
 
         return True, "Valid SDET/QA hiring or referral post."
 
+    def _sanitize_company_candidate(self, candidate: str) -> str | None:
+        """Cleans and validates a potential company name candidate."""
+        if not candidate:
+            return None
+        # Strip leading and trailing punctuation
+        c = re.sub(r"^[\s\-_|•\.,;:!?/]+", "", candidate).strip()
+        c = re.sub(r"[\s\-_|•\.,;:!?/]+$", "", c).strip()
+        c_lower = c.lower()
+        if len(c) < 2 or len(c) > 35:
+            return None
+
+        # Strip leading conversational words / prepositions / pronouns
+        c = re.sub(
+            r"^(?:if\s+your\s+team|if\s+you|if\s+|your\s+|our\s+|my\s+|the\s+|a\s+|an\s+|several\s+|multiple\s+|various\s+|some\s+|right\s+|new\s+|open\s+|team\s+|excited\s+|exciting\s+)",
+            "",
+            c,
+            flags=re.IGNORECASE,
+        ).strip()
+        c = re.sub(r"^[\s\-_|•\.,;:!?/]+", "", c).strip()
+        c_lower = c.lower()
+        if not c or len(c) < 2:
+            return None
+
+        if c_lower in NON_COMPANY_WORDS:
+            return None
+        # Disallow pure tech tools unless explicitly validated with employer preposition
+        if c_lower in TECH_TOOL_KEYWORDS:
+            return None
+
+        # Reject conversational fragments
+        if any(
+            bad in c_lower
+            for bad in [
+                "if your team",
+                "your team",
+                "our team",
+                "my team",
+                "several exciting",
+                "exciting opportunities",
+                "multiple roles",
+                "open opportunities",
+                "job openings",
+            ]
+        ):
+            return None
+        return c
+
     def extract_company_name(self, author_headline: str, post_text: str) -> tuple[str, bool]:
         """
-        Extracts company name from headline or text and flags whether it is a Dream Org.
+        Extracts company name from author headline or post text with strict tech-tool disambiguation.
         Returns: (company_name, is_dream_org)
         """
-        combined = f"{author_headline} {post_text}"
-        combined_lower = combined.lower()
+        headline = author_headline or ""
+        text = post_text or ""
 
-        # 1. Match against known dream companies first
-        for dream in self.dream_companies:
-            if dream in combined_lower:
-                return dream.title(), True
-
-        # 2. Check headline patterns: e.g. "SDET @ Okta", "Talent Acquisition at Angel One"
-        match = re.search(
-            r"(?:at|@)\s+([A-Za-z0-9\s&.-]{2,30}?)(?:\s*[|•\-,(]|$)", author_headline or "", re.IGNORECASE
-        )
+        # 1. Author headline employment: e.g. "Senior SDET @ Swiggy", "QA Lead at Okta | Ex-MSFT"
+        match = re.search(r"(?:at|@)\s+([A-Za-z0-9\s&.-]{2,35}?)(?:\s*(?:[|•\-,(]|#|$))", headline, re.IGNORECASE)
         if match:
-            candidate = match.group(1).strip()
-            if (
-                candidate
-                and len(candidate) > 1
-                and candidate.lower() not in ["india", "bengaluru", "bangalore", "remote"]
-            ):
-                is_dream = candidate.lower() in self.dream_companies
-                return candidate.title(), is_dream
+            cand = self._sanitize_company_candidate(match.group(1))
+            if cand:
+                is_dream = cand.lower() in self.dream_companies
+                return cand.title(), is_dream
 
-        # 3. Check post text patterns: e.g. "Okta is hiring", "We at Angel One are looking"
-        text_match = re.search(
-            r"\b(?:at|we at|join our team at)\s+([A-Za-z0-9\s&.-]{2,25})\b", post_text or "", re.IGNORECASE
-        )
-        if text_match:
-            candidate = text_match.group(1).strip()
-            if (
-                candidate
-                and len(candidate) > 1
-                and candidate.lower() not in ["india", "bengaluru", "bangalore", "remote"]
-            ):
-                is_dream = candidate.lower() in self.dream_companies
-                return candidate.title(), is_dream
+        # 2. Post text explicit hiring triggers:
+        # e.g. "Swiggy is actively hiring", "Blitz is Hiring", "IRIS Software – Multiple Job Openings"
+        patterns = [
+            r"(?<!if\s)(?<!your\s)\b([A-Za-z0-9\s&.-]{2,25})\s+is\s+(?:actively\s+)?hiring\b",
+            r"(?:🚀|📢|🔥|✨|👉|📍)\s*([A-Za-z0-9\s&.-]{2,25})\s*(?:–|-|:)\s*(?:Multiple|Job|Hiring|Openings|Referrals)",
+            r"\b(?:hiring for|join our team at|openings at|referrals for|we at)\s+([A-Za-z0-9\s&.-]{2,25})\b",
+            r"team at\s+([A-Za-z0-9\s&.-]{2,25})\s+is\s+expanding",
+        ]
+        for pat in patterns:
+            p_match = re.search(pat, text, re.IGNORECASE)
+            if p_match:
+                cand = self._sanitize_company_candidate(p_match.group(1))
+                if cand:
+                    is_dream = cand.lower() in self.dream_companies
+                    return cand.title(), is_dream
+
+        # 3. Contextual Dream Org Mention (Only when preceded by explicit hiring/referral verbs)
+        for dream in self.dream_companies:
+            if dream in TECH_TOOL_KEYWORDS:
+                # Require explicit employment marker for dual-purpose names (e.g. Postman, Docker)
+                pat = rf"\b(?:at|@|referrals? for|join|hiring for)\s+{re.escape(dream)}\b"
+                if re.search(pat, headline, re.IGNORECASE) or re.search(pat, text, re.IGNORECASE):
+                    return dream.title(), True
+            else:
+                pat = rf"\b{re.escape(dream)}\b"
+                if re.search(pat, headline, re.IGNORECASE) or re.search(pat, text, re.IGNORECASE):
+                    return dream.title(), True
 
         return "Tech Enterprise", False
 
@@ -486,8 +736,9 @@ class PostClassifier:
         if not is_valid:
             return None
 
+        raw_links = raw_post.get("dom_links", [])
         emails = self.extract_emails(post_text)
-        links = self.extract_links(post_text)
+        links = self.extract_links(post_text, additional_links=raw_links)
         job_codes = self.extract_job_codes(post_text)
         role_category = self.classify_author_role(author_headline, post_text)
         company_name, is_dream_org = self.extract_company_name(author_headline, post_text)
