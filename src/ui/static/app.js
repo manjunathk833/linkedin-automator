@@ -1297,6 +1297,47 @@ function confirmColdApplyOverride() {
 // Track 3: Recruiter, Lead & Peer Hiring Posts UI Controller
 // ==============================================================================
 
+// Helper: XSS-safe HTML Escaping
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Helper: Resilient Clipboard Copy
+function copyTextToClipboard(text, msg = 'Copied to clipboard!') {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast(msg);
+        }).catch(() => {
+            fallbackCopyText(text, msg);
+        });
+    } else {
+        fallbackCopyText(text, msg);
+    }
+}
+
+function fallbackCopyText(text, msg) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand('copy');
+        showToast(msg);
+    } catch (e) {
+        showToast('Failed to copy', 'error');
+    }
+    document.body.removeChild(ta);
+}
+
 let currentPosts = [];
 let currentPostFilter = 'all';
 let currentActivePost = null;

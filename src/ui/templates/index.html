@@ -275,11 +275,21 @@
                 </div>
 
                 <!-- Posts Toolbar -->
-                <div class="approved-toolbar">
-                    <div class="search-box">
-                        <input type="text" id="posts-search" placeholder="🔍 Search posts by company, author, role, or keywords..." oninput="filterPosts()">
+                <div class="posts-toolbar-container">
+                    <div class="posts-toolbar-row">
+                        <div class="search-box">
+                            <input type="text" id="posts-search" placeholder="🔍 Search posts by company, author, role, or keywords..." oninput="filterPosts()">
+                        </div>
+                        <div class="toolbar-actions">
+                            <button class="btn btn-accent-sm" onclick="triggerPostDiscovery()">
+                                ⚡ Discover Fresh Posts
+                            </button>
+                            <button class="btn btn-secondary-sm" onclick="loadHiringPosts()">
+                                🔄 Refresh
+                            </button>
+                        </div>
                     </div>
-                    <div class="filter-pills">
+                    <div class="filter-pills posts-filter-pills">
                         <button id="filter-post-all" class="filter-pill active" onclick="setPostFilter('all')">All Leads</button>
                         <button id="filter-post-fresh" class="filter-pill" onclick="setPostFilter('fresh')">🕒 &lt;24h Fresh</button>
                         <button id="filter-post-dream" class="filter-pill" onclick="setPostFilter('dream')">⭐ Dream Orgs</button>
@@ -287,14 +297,6 @@
                         <button id="filter-post-engineer" class="filter-pill" onclick="setPostFilter('engineer')">🛡️ Engineers</button>
                         <button id="filter-post-leader" class="filter-pill" onclick="setPostFilter('leader')">👔 Leads & EMs</button>
                         <button id="filter-post-recruiter" class="filter-pill" onclick="setPostFilter('recruiter')">🎯 Recruiters</button>
-                    </div>
-                    <div class="toolbar-actions">
-                        <button class="btn btn-accent-sm" onclick="triggerPostDiscovery()">
-                            ⚡ Discover Fresh Posts
-                        </button>
-                        <button class="btn btn-secondary-sm" onclick="loadHiringPosts()">
-                            🔄 Refresh
-                        </button>
                     </div>
                 </div>
 
@@ -469,7 +471,7 @@
                         <h3 id="post-modal-heading">Personalized Outreach</h3>
                         <div id="post-modal-subtitle" class="referral-subtitle">Author • Company</div>
                     </div>
-                    <button class="modal-close" onclick="closePostOutreachModal()" title="Close">✕</button>
+                    <button id="post-modal-close" class="modal-close" onclick="closePostOutreachModal()" title="Close">✕</button>
                 </div>
                 <div class="modal-body referral-modal-body">
                     <div class="referral-tabs">

@@ -660,6 +660,30 @@ class ApplicationDatabase:
             cursor.execute("SELECT 1 FROM hiring_posts WHERE post_id = ? LIMIT 1", (post_id,))
             return cursor.fetchone() is not None
 
+    def get_hiring_post(self, post_id: str) -> dict[str, Any] | None:
+        """Retrieves a single hiring post by its post_id."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM hiring_posts WHERE post_id = ? LIMIT 1", (post_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            d = dict(row)
+            d["is_dream_org"] = bool(d.get("is_dream_org"))
+            try:
+                d["extracted_emails"] = json.loads(d.get("extracted_emails") or "[]")
+            except Exception:
+                d["extracted_emails"] = []
+            try:
+                d["extracted_links"] = json.loads(d.get("extracted_links") or "[]")
+            except Exception:
+                d["extracted_links"] = []
+            try:
+                d["extracted_job_codes"] = json.loads(d.get("extracted_job_codes") or "[]")
+            except Exception:
+                d["extracted_job_codes"] = []
+            return d
+
     def get_hiring_posts(
         self,
         limit: int = 50,
@@ -691,9 +715,9 @@ class ApplicationDatabase:
             if search:
                 pattern = f"%{search.strip()}%"
                 conditions.append(
-                    "(author_name LIKE ? OR company_name LIKE ? OR author_headline LIKE ? OR post_text LIKE ?)"
+                    "(post_id LIKE ? OR author_name LIKE ? OR company_name LIKE ? OR author_headline LIKE ? OR post_text LIKE ?)"
                 )
-                params.extend([pattern, pattern, pattern, pattern])
+                params.extend([pattern, pattern, pattern, pattern, pattern])
 
             if conditions:
                 query += " WHERE " + " AND ".join(conditions)

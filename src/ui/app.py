@@ -1475,8 +1475,7 @@ async def generate_post_dm_endpoint(post_id: str):
     from src.storage.database import ApplicationDatabase
 
     db = ApplicationDatabase()
-    posts = db.get_hiring_posts(limit=1, search=post_id)
-    target = next((p for p in posts if p.get("post_id") == post_id), None)
+    target = db.get_hiring_post(post_id)
     if not target:
         raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
 
