@@ -287,8 +287,24 @@
       "vendor": "LINKEDIN_POSTS",
       "symptom": "Job seeker posts slipping through filter and conversational fragments extracted as company names",
       "root_cause": "Substring search for 'our team is hiring' matched 'if your team is hiring' (y-our team). Conversational prefixes ('if your team', 'several exciting') matched greedy regex.",
-      "fix_rule": "Enforce strict word boundaries (\\bour team is hiring\\b), translate unicode small caps (Oᴘᴇɴ ᴛᴏ Wᴏʀᴋ), filter leading conversational stopwords, and run automatic SQLite repair migration.",
+      "fix_rule": "Enforce strict word boundaries (\\bour team is hiring\\b), translate unicode small caps (O\u1d18\u1d07\u0274 \u1d1b\u1d0f W\u1d0f\u0280\u1d0b), filter leading conversational stopwords, and run automatic SQLite repair migration.",
       "date_banked": "2026-10-18T14:10:00.000000+00:00"
+    },
+    {
+      "id": "LESSON-037",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T15:22:18.749703+00:00"
+    },
+    {
+      "id": "LESSON-038",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T15:36:47.368028+00:00"
     }
   ]
 }

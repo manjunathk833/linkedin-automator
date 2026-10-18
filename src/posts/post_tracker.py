@@ -31,6 +31,75 @@ DEFAULT_SEARCH_QUERIES = [
 ]
 
 
+def sanitize_post_text(text: str, author_name: str = "") -> str:
+    """
+    Sanitizes post commentary text:
+    1. Removes prepended author metadata header (<Name> • <Degree> <Headline> <Time> • (Follow|Connect))
+    2. Strips trailing reaction junk ('… more5 reactions', '12 reactions • 3 comments', etc.)
+    3. Strips residual '… see more' / 'Show less' expansion artifacts.
+    4. Normalizes whitespace while preserving authentic paragraph line breaks (\\n\\n).
+    """
+    if not text:
+        return ""
+
+    cleaned = text.strip()
+
+    # Case 1: Text starts with author name (e.g. "VISHAL PATIL • 2nd...")
+    stripped = False
+    if author_name and len(author_name) >= 3:
+        name_pattern = (
+            r"^(?:Feed post\s+)?"
+            + re.escape(author_name)
+            + r"\b.*?(?:\d+[hmdw]\s*•|\b\d+[hmdw]\b)\s*(?:•\s*)?(?:Follow|Connect|Following)?\s*"
+        )
+        new_text = re.sub(name_pattern, "", cleaned, count=1, flags=re.DOTALL | re.IGNORECASE)
+        if new_text != cleaned and len(new_text) >= 15:
+            cleaned = new_text
+            stripped = True
+
+    # Case 2: Text starts with Name + connection degree (e.g. "Some Name • 2nd...")
+    # Supports single-line and multi-line headers (e.g. group updates with "Join")
+    if not stripped:
+        degree_pattern = (
+            r"^(?:Feed post\s+)?[\s\S]{0,120}?•\s*(?:1st|2nd|3rd|\d+[a-z]+)"
+            r"[\s\S]*?(?:\d+[hmdw]\s*•|\b\d+[hmdw]\b)\s*(?:•\s*)?(?:Follow|Connect|Following|Join|Subscribe)?\s*"
+        )
+        new_text = re.sub(degree_pattern, "", cleaned, count=1, flags=re.IGNORECASE)
+        if new_text != cleaned and len(new_text) >= 15:
+            cleaned = new_text
+            stripped = True
+
+    # Case 3: Company post header (e.g. "Velion IT consulting PVT LTD3h • Follow...")
+    if not stripped:
+        co_pattern = (
+            r"^(?:Feed post\s+)?[\s\S]{0,120}?\s*\d+[hmdw]\s*•\s*(?:Follow|Connect|Following|Join|Subscribe)?\s*"
+        )
+        new_text = re.sub(co_pattern, "", cleaned, count=1, flags=re.IGNORECASE)
+        if new_text != cleaned and len(new_text) >= 15:
+            cleaned = new_text
+            stripped = True
+
+    # Trailing reaction metrics, comments, and zero-width spaces across single or multiple lines
+    cleaned = re.sub(
+        r"(?:…\s*more)?[\s\u200b]*\d+[\s\u200b\d]*(?:reactions?|comments?)?[\s\u200b]*$",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    ).strip()
+
+    # Trailing see more / show less toggles
+    cleaned = re.sub(
+        r"\s*…\s*(?:see\s+more|more|show\s+less)\s*$",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    ).strip()
+
+    # Normalize excessive blank lines while preserving genuine paragraph breaks
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
 class LinkedInPostTracker:
     """
     Automated discovery engine for LinkedIn hiring & referral posts.
@@ -46,40 +115,65 @@ class LinkedInPostTracker:
         Extracts an authentic LinkedIn post permalink or authentic author activity URL.
         Multi-tier extraction:
         1. Direct post permalinks in card DOM (/posts/ or /feed/update/urn:li:activity:)
-        2. Attribute inspection (data-urn, data-activity-urn, data-id)
+        2. Attribute inspection (data-chameleon-result-urn, data-urn, data-activity-urn, data-id)
         3. React Fiber & SDUI props evaluation (<5ms)
-        4. Link href regex matching for activity URNs
+        4. Link href regex matching across all anchors inside card
         5. Guaranteed Fallback: Author recent activity or posts (ZERO HTTP 404s)
         """
         post_url = ""
 
-        # 1. Direct post links in DOM
+        # 1. Direct post links in DOM (anchors explicitly linking to posts/updates)
         try:
             direct_link_loc = card.locator(
-                "a[href*='/posts/'], a[href*='/feed/update/urn:li:activity'], a[href*='/feed/update/urn:li:share'], a.update-components-actor__sub-description-link"
+                "a[href*='/posts/'], a[href*='/feed/update/urn:li:activity'], a[href*='/feed/update/urn:li:ugcPost'], a[href*='/feed/update/urn:li:share'], a.update-components-actor__sub-description-link"
             ).first
             if await direct_link_loc.count() > 0:
-                href = (await direct_link_loc.get_attribute("href") or "").split("?")[0].strip()
-                if "/posts/" in href or "/feed/update/urn:li:" in href:
-                    post_url = href
+                href = (await direct_link_loc.get_attribute("href") or "").strip()
+                clean_href = href.split("?")[0].strip()
+                if clean_href.startswith("/"):
+                    clean_href = f"https://www.linkedin.com{clean_href}"
+
+                if "/posts/" in clean_href or "/feed/update/urn:li:" in clean_href:
+                    post_url = clean_href
+                else:
+                    m = re.search(
+                        r"urn:li:(?:activity|ugcPost|share):(\d{18,20})|(?:activity|ugcPost|share)[:\-](\d{18,20})",
+                        clean_href,
+                    )
+                    if m:
+                        act_id = m.group(1) or m.group(2)
+                        post_url = f"https://www.linkedin.com/feed/update/urn:li:activity:{act_id}/"
         except Exception:
             pass
 
-        # 2. Check data-urn or other attributes on card or child elements
+        # 2. Check data-chameleon-result-urn, data-urn, or data-activity-urn on card or child elements
         if not post_url:
             try:
-                post_urn = await card.get_attribute("data-urn") or ""
-                if not post_urn:
-                    urn_elem = card.locator("[data-urn*='activity'], [data-activity-urn]").first
+                for attr in ["data-chameleon-result-urn", "data-urn", "data-activity-urn", "data-id"]:
+                    val = await card.get_attribute(attr) or ""
+                    m = re.search(
+                        r"urn:li:(?:activity|ugcPost|share):(\d{18,20})|(?:activity|ugcPost|share)[:\-](\d{18,20})", val
+                    )
+                    if m:
+                        act_id = m.group(1) or m.group(2)
+                        post_url = f"https://www.linkedin.com/feed/update/urn:li:activity:{act_id}/"
+                        break
+
+                if not post_url:
+                    urn_elem = card.locator(
+                        "[data-chameleon-result-urn], [data-urn*='activity'], [data-urn*='ugcPost'], [data-urn*='share'], [data-activity-urn]"
+                    ).first
                     if await urn_elem.count() > 0:
-                        post_urn = (
-                            await urn_elem.get_attribute("data-urn")
-                            or await urn_elem.get_attribute("data-activity-urn")
-                            or ""
-                        )
-                act_match = re.search(r"activity[:\-](\d{18,20})", post_urn)
-                if act_match:
-                    post_url = f"https://www.linkedin.com/feed/update/urn:li:activity:{act_match.group(1)}/"
+                        for attr in ["data-chameleon-result-urn", "data-urn", "data-activity-urn"]:
+                            val = await urn_elem.get_attribute(attr) or ""
+                            m = re.search(
+                                r"urn:li:(?:activity|ugcPost|share):(\d{18,20})|(?:activity|ugcPost|share)[:\-](\d{18,20})",
+                                val,
+                            )
+                            if m:
+                                act_id = m.group(1) or m.group(2)
+                                post_url = f"https://www.linkedin.com/feed/update/urn:li:activity:{act_id}/"
+                                break
             except Exception:
                 pass
 
@@ -97,7 +191,7 @@ class LinkedInPostTracker:
                                 }
                                 try {
                                     const str = JSON.stringify(props);
-                                    const act = str.match(/urn:li:activity:(\\d{18,20})/);
+                                    const act = str.match(/urn:li:(?:activity|ugcPost|share):(\\d{18,20})/);
                                     if (act) return `https://www.linkedin.com/feed/update/urn:li:activity:${act[1]}/`;
                                     const postMatch = str.match(/https:\\\\/\\\\/www\\.linkedin\\.com\\\\/posts\\\\/[^"\'\\s\\\\]+/);
                                     if (postMatch) return postMatch[0].replace(/\\\\/g, '').split('?')[0];
@@ -123,9 +217,13 @@ class LinkedInPostTracker:
                 all_anchors = await card.locator("a[href]").all()
                 for a in all_anchors:
                     href = await a.get_attribute("href") or ""
-                    act_match = re.search(r"activity[:\-](\d{18,20})", href)
-                    if act_match:
-                        post_url = f"https://www.linkedin.com/feed/update/urn:li:activity:{act_match.group(1)}/"
+                    m = re.search(
+                        r"urn:li:(?:activity|ugcPost|share):(\d{18,20})|(?:activity|ugcPost|share)[:\-](\d{18,20})",
+                        href,
+                    )
+                    if m:
+                        act_id = m.group(1) or m.group(2)
+                        post_url = f"https://www.linkedin.com/feed/update/urn:li:activity:{act_id}/"
                         break
             except Exception:
                 pass
@@ -207,12 +305,35 @@ class LinkedInPostTracker:
                 if not author_headline:
                     author_headline = author_name
 
-            text_loc = card.locator(
-                ".feed-shared-update-v2__description, .feed-shared-text, .update-components-text"
+            commentary_loc = card.locator(
+                ".feed-shared-inline-show-more-text, "
+                ".update-components-update-v2__commentary, "
+                ".feed-shared-update-v2__description, "
+                ".feed-shared-text, "
+                "span.break-words"
             ).first
-            text_content = (
-                (await text_loc.text_content(timeout=1500)).strip() if await text_loc.count() > 0 else raw_text
-            )
+            if await commentary_loc.count() > 0:
+                try:
+                    raw_commentary = (await commentary_loc.inner_text(timeout=1500)).strip()
+                except Exception:
+                    raw_commentary = (await commentary_loc.text_content(timeout=1500) or "").strip()
+            else:
+                try:
+                    raw_commentary = (await card.inner_text(timeout=1500)).strip()
+                except Exception:
+                    raw_commentary = raw_text
+
+            if author_name == "Unknown":
+                hdr_match = re.search(
+                    r"(?:^|\n)([A-Z][a-zA-Z\s\.\-]{2,30})\s*•\s*(?:1st|2nd|3rd|\d+[a-z]+)",
+                    raw_commentary,
+                )
+                if hdr_match:
+                    cand_name = hdr_match.group(1).strip()
+                    if cand_name and len(cand_name) > 3 and cand_name.lower() not in ["feed post"]:
+                        author_name = cand_name
+
+            text_content = sanitize_post_text(raw_commentary, author_name=author_name)
             if len(text_content) < 25:
                 return None
 

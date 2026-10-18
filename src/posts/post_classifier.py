@@ -59,6 +59,14 @@ COMMON_FALSE_JOB_CODES = {
     "link",
     "here",
     "below",
+    "inc",
+    "llc",
+    "corp",
+    "ltd",
+    "co",
+    "pvt ltd",
+    "corporation",
+    "limited",
 }
 
 TECH_TOOL_KEYWORDS = {
@@ -612,8 +620,21 @@ class PostClassifier:
             flags=re.IGNORECASE,
         ).strip()
         c = re.sub(r"^[\s\-_|•\.,;:!?/]+", "", c).strip()
-        c_lower = c.lower()
-        if not c or len(c) < 2:
+
+        # Strip trailing corporate suffixes if preceded by company name (e.g. Integrant, Inc. -> Integrant)
+        corp_stripped = re.sub(
+            r",?\s*(?:Inc|LLC|Corp|Corporation|Ltd|Limited|Pvt\s*Ltd)\.?$",
+            "",
+            c,
+            flags=re.IGNORECASE,
+        ).strip()
+        corp_stripped = re.sub(r"[\s\-_|•\.,;:!?/]+$", "", corp_stripped).strip()
+        if len(corp_stripped) >= 2:
+            c = corp_stripped
+
+        c_clean = re.sub(r"[^a-zA-Z0-9\s]", "", c).strip()
+        c_lower = c_clean.lower()
+        if not c_lower or len(c_lower) < 2:
             return None
 
         if c_lower in NON_COMPANY_WORDS:
@@ -657,9 +678,9 @@ class PostClassifier:
                 return cand.title(), is_dream
 
         # 2. Post text explicit hiring triggers:
-        # e.g. "Swiggy is actively hiring", "Blitz is Hiring", "IRIS Software – Multiple Job Openings"
+        # e.g. "Swiggy is actively hiring", "Blitz is Hiring", "Integrant, Inc. is hiring"
         patterns = [
-            r"(?<!if\s)(?<!your\s)\b([A-Za-z0-9\s&.-]{2,25})\s+is\s+(?:actively\s+)?hiring\b",
+            r"(?<!if\s)(?<!your\s)\b([A-Za-z0-9\s&.-]{2,35}?(?:,\s*(?:Inc|LLC|Corp|Ltd|Pvt\s*Ltd)\.?)?)\s+is\s+(?:actively\s+)?hiring\b",
             r"(?:🚀|📢|🔥|✨|👉|📍)\s*([A-Za-z0-9\s&.-]{2,25})\s*(?:–|-|:)\s*(?:Multiple|Job|Hiring|Openings|Referrals)",
             r"\b(?:hiring for|join our team at|openings at|referrals for|we at)\s+([A-Za-z0-9\s&.-]{2,25})\b",
             r"team at\s+([A-Za-z0-9\s&.-]{2,25})\s+is\s+expanding",

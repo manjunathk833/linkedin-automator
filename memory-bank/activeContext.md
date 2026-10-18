@@ -368,6 +368,27 @@
     - Authored Verification Gate 74 (`verify/74_test_posts_links_and_dream_org_precision.py`): testing clean URL extraction, token truncation, emoji stripping, tool disambiguation, and database migration. Registered in `TIER_1_CORE` in `verify/run_regressions.py` (expanding core suite to 53 tests).
     - Standardized Tier 1 core regression suite (`python main.py test --tier core`): **53/53 PASSED (100% SUCCESS)**.
     - Codebase linted cleanly via `python main.py lint`: **0 errors across 161 files**.
+  - Post Commentary Formatting, Author Header Isolation & Multi-URN Permalink Resilience Complete & Verified (Gate 75):
+    - Root Cause Analysis (Junk Unformatted Post Text):
+      - In `src/posts/post_tracker.py`, falling back to `card.text_content()` dumped the entire DOM container without layout formatting, collapsing newlines and prepending the poster's profile details (`<Author Name> • [Degree] <Headline> <Time> • (Follow|Connect)`) before the post body, along with trailing reaction metrics (`… more5 reactions`).
+      - In Playwright, `text_content()` returns flat unformatted text, whereas `inner_text()` respects block layout and preserves natural paragraph breaks (`\n\n`) and bullet lists.
+    - Root Cause Analysis (Missing Direct Post Permalinks):
+      - `_extract_post_permalink` previously matched only `urn:li:activity:(\d{18,20})` and ignored `data-chameleon-result-urn` on Content Search result cards, `ugcPost`, `share` URN variants, and relative timestamp links (`a.update-components-actor__sub-description-link`), prematurely falling back to the author's activity feed.
+    - Upgraded Post Commentary Extraction & Formatting (`src/posts/post_tracker.py`):
+      - Prioritized modern LinkedIn commentary containers (`.feed-shared-inline-show-more-text`, `.update-components-update-v2__commentary`, `.feed-shared-update-v2__description`, `span.break-words`) using `inner_text()` to strictly preserve formatting and paragraphs.
+      - Implemented `sanitize_post_text(text, author_name)`: cleanly strips prepended author profile headers across personal, group, and company layouts, strips trailing reaction counters and expansion toggles, and normalizes excessive blank lines while preserving genuine paragraph breaks.
+      - Enhanced group post author extraction from header metadata when direct links are not present.
+    - Multi-Tier Multi-URN Permalink Extraction (`src/posts/post_tracker.py`):
+      - Expanded inspection to `data-chameleon-result-urn` and descendants, supporting `activity`, `ugcPost`, and `share` URN patterns (`r"urn:li:(?:activity|ugcPost|share):(\d{18,20})"`).
+      - Automatically normalizes relative timestamp anchors to canonical `https://www.linkedin.com/feed/update/urn:li:activity:{id}/` permalinks.
+    - Corporate Suffix Disambiguation (`src/posts/post_classifier.py`):
+      - Enhanced hiring patterns and `_sanitize_company_candidate` to capture corporate suffixes (e.g. `Integrant, Inc.` -> `Integrant`) and reject standalone corporate tokens (`inc`, `llc`, `corp`, `ltd`).
+    - Database Self-Healing Migration (`src/storage/database.py`):
+      - Integrated `sanitize_post_text` into `repair_posts_metadata_and_links()`, automatically cleansing all 26 existing records in SQLite `hiring_posts`.
+    - Authored Verification Gate 75 (`verify/75_test_post_formatting_and_permalink_resilience.py`): validated author header stripping, line break preservation, multi-URN permalink resolution, and SQLite repair.
+    - Registered in `TIER_1_CORE` in `verify/run_regressions.py` expanding suite to 54 tests.
+    - Standardized Tier 1 core regression suite (`python main.py test --tier core`): **54/54 PASSED (100% SUCCESS)** in 45.66s.
+    - Codebase linted cleanly via `python main.py lint`: **0 errors across 165 files**.
 
 
 

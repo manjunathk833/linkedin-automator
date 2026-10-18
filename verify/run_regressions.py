@@ -100,6 +100,7 @@ TIER_1_CORE = [
     "72_test_hiring_posts_tracker_and_classifier.py",
     "73_test_post_url_extraction_and_repair.py",
     "74_test_posts_links_and_dream_org_precision.py",
+    "75_test_post_formatting_and_permalink_resilience.py",
 ]
 
 

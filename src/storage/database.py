@@ -875,6 +875,7 @@ class ApplicationDatabase:
         """
         from src.posts.outreach_composer import PostOutreachComposer
         from src.posts.post_classifier import PostClassifier
+        from src.posts.post_tracker import sanitize_post_text
 
         classifier = PostClassifier()
         composer = PostOutreachComposer()
@@ -898,12 +899,14 @@ class ApplicationDatabase:
 
             for r in rows:
                 post_id = r["post_id"]
+                author_name = r["author_name"] or ""
                 headline = r["author_headline"] or ""
                 text = r["post_text"] or ""
+                clean_text = sanitize_post_text(text, author_name=author_name)
                 raw_links = _safe_json_list(r["extracted_links"])
 
                 # Validate whether post is an authentic hiring/referral lead
-                is_valid, _reason = classifier.is_hiring_post(headline, text)
+                is_valid, _reason = classifier.is_hiring_post(headline, clean_text)
                 if not is_valid:
                     # Purge job seeker post that slipped in
                     cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
@@ -911,10 +914,10 @@ class ApplicationDatabase:
                     continue
 
                 # Clean links
-                clean_links = classifier.extract_links(text, additional_links=raw_links)
+                clean_links = classifier.extract_links(clean_text, additional_links=raw_links)
                 # Re-extract company and dream flag
-                company, is_dream = classifier.extract_company_name(headline, text)
-                role_cat = r["author_role_category"] or classifier.classify_author_role(headline, text)
+                company, is_dream = classifier.extract_company_name(headline, clean_text)
+                role_cat = r["author_role_category"] or classifier.classify_author_role(headline, clean_text)
                 emails = _safe_json_list(r["extracted_emails"])
                 job_codes = _safe_json_list(r["extracted_job_codes"])
                 posted_time = r["posted_at_relative"] or "recent"
@@ -924,7 +927,7 @@ class ApplicationDatabase:
                 )
 
                 post_data = {
-                    "author_name": r["author_name"],
+                    "author_name": author_name,
                     "company_name": company,
                     "author_role_category": role_cat,
                     "extracted_job_codes": job_codes,
@@ -935,6 +938,7 @@ class ApplicationDatabase:
                 cursor.execute(
                     """
                     UPDATE hiring_posts SET
+                        post_text = ?,
                         company_name = ?,
                         is_dream_org = ?,
                         extracted_links = ?,
@@ -944,6 +948,7 @@ class ApplicationDatabase:
                     WHERE post_id = ?
                     """,
                     (
+                        clean_text,
                         company,
                         1 if is_dream else 0,
                         json.dumps(clean_links),
