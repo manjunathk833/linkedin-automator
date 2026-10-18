@@ -225,6 +225,22 @@
       "root_cause": "Simulated collision test",
       "fix_rule": "Strictly target data-automation-id",
       "date_banked": "2026-10-18T11:45:28.475394+00:00"
+    },
+    {
+      "id": "LESSON-029",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-18T12:32:36.452986+00:00"
+    },
+    {
+      "id": "LESSON-030",
+      "vendor": "LINKEDIN_POSTS",
+      "symptom": "Clicking 'View LinkedIn Post' results in HTTP 404 / 'Page not found'",
+      "root_cause": "Content search cards lack data-urn on outer container, triggering fallback to synthetic MD5 hash URL in /feed/update/{hash} which LinkedIn 404s",
+      "fix_rule": "Use multi-tier extraction (canonical /posts/ links, data-urn regex, React Fiber SDUI props, anchor regex) and fallback strictly to authentic author activity feeds (/recent-activity/all/ or /posts/), completely eradicating synthetic MD5 hash URLs",
+      "date_banked": "2026-10-18T12:40:00.000000+00:00"
     }
   ]
 }

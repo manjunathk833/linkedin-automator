@@ -98,6 +98,7 @@ TIER_1_CORE = [
     "70_test_session_and_email_reporter.py",
     "71_test_referral_reconnaissance_pivot_and_job_links.py",
     "72_test_hiring_posts_tracker_and_classifier.py",
+    "73_test_post_url_extraction_and_repair.py",
 ]
 
 

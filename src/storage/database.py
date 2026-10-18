@@ -10,6 +10,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import sqlite3
 from typing import Any
 
@@ -124,6 +125,7 @@ class ApplicationDatabase:
                 CREATE INDEX IF NOT EXISTS idx_hiring_posts_dream ON hiring_posts(is_dream_org);
                 """
             )
+            self.repair_invalid_post_urls(conn=conn)
 
     def _get_today_bucket(self) -> str:
         """Returns date string bucket in YYYY-MM-DD format."""
@@ -818,3 +820,47 @@ class ApplicationDatabase:
             cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
             conn.commit()
             return cursor.rowcount > 0
+
+    def repair_invalid_post_urls(self, conn: sqlite3.Connection | None = None) -> int:
+        """
+        Repairs legacy hiring post URLs that were populated with synthetic MD5 update hashes
+        (e.g., https://www.linkedin.com/feed/update/{hash}), transforming them into authentic
+        author activity/post feeds that load with HTTP 200.
+        """
+
+        def _do_repair(active_conn: sqlite3.Connection) -> int:
+            cursor = active_conn.cursor()
+            cursor.execute(
+                "SELECT post_id, author_profile_url, post_url FROM hiring_posts "
+                "WHERE post_url LIKE 'https://www.linkedin.com/feed/update/%' "
+                "AND post_url NOT LIKE '%urn:li:activity%'"
+            )
+            rows = cursor.fetchall()
+            updated_count = 0
+            for r in rows:
+                post_id = r["post_id"]
+                author_url = (r["author_profile_url"] or "").strip().rstrip("/")
+                post_url = (r["post_url"] or "").strip()
+                # Check for 8-32 character hex hash
+                if re.search(r"/feed/update/[0-9a-fA-F]{8,32}/?$", post_url):
+                    if "/in/" in author_url:
+                        new_url = f"{author_url}/recent-activity/all/"
+                    elif "/company/" in author_url:
+                        new_url = f"{author_url}/posts/"
+                    elif author_url:
+                        new_url = author_url
+                    else:
+                        continue
+                    cursor.execute(
+                        "UPDATE hiring_posts SET post_url = ? WHERE post_id = ?",
+                        (new_url, post_id),
+                    )
+                    updated_count += 1
+            if updated_count > 0:
+                active_conn.commit()
+            return updated_count
+
+        if conn is not None:
+            return _do_repair(conn)
+        with self._get_connection() as active_conn:
+            return _do_repair(active_conn)

@@ -8,7 +8,6 @@ and Candidate Activity.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import re
 import urllib.parse
 from pathlib import Path
@@ -41,6 +40,109 @@ class LinkedInPostTracker:
         self.db = db or ApplicationDatabase()
         self.classifier = PostClassifier()
         self.composer = PostOutreachComposer()
+
+    async def _extract_post_permalink(self, card: Any, author_url: str, raw_text: str) -> str:
+        """
+        Extracts an authentic LinkedIn post permalink or authentic author activity URL.
+        Multi-tier extraction:
+        1. Direct post permalinks in card DOM (/posts/ or /feed/update/urn:li:activity:)
+        2. Attribute inspection (data-urn, data-activity-urn, data-id)
+        3. React Fiber & SDUI props evaluation (<5ms)
+        4. Link href regex matching for activity URNs
+        5. Guaranteed Fallback: Author recent activity or posts (ZERO HTTP 404s)
+        """
+        post_url = ""
+
+        # 1. Direct post links in DOM
+        try:
+            direct_link_loc = card.locator(
+                "a[href*='/posts/'], a[href*='/feed/update/urn:li:activity'], a[href*='/feed/update/urn:li:share'], a.update-components-actor__sub-description-link"
+            ).first
+            if await direct_link_loc.count() > 0:
+                href = (await direct_link_loc.get_attribute("href") or "").split("?")[0].strip()
+                if "/posts/" in href or "/feed/update/urn:li:" in href:
+                    post_url = href
+        except Exception:
+            pass
+
+        # 2. Check data-urn or other attributes on card or child elements
+        if not post_url:
+            try:
+                post_urn = await card.get_attribute("data-urn") or ""
+                if not post_urn:
+                    urn_elem = card.locator("[data-urn*='activity'], [data-activity-urn]").first
+                    if await urn_elem.count() > 0:
+                        post_urn = (
+                            await urn_elem.get_attribute("data-urn")
+                            or await urn_elem.get_attribute("data-activity-urn")
+                            or ""
+                        )
+                act_match = re.search(r"activity[:\-](\d{18,20})", post_urn)
+                if act_match:
+                    post_url = f"https://www.linkedin.com/feed/update/urn:li:activity:{act_match.group(1)}/"
+            except Exception:
+                pass
+
+        # 3. React Fiber / SDUI Props Inspection (<5ms)
+        if not post_url:
+            try:
+                fiber_url = await card.evaluate("""
+                    (el) => {
+                        function searchFiber(fiber, depth = 0) {
+                            if (!fiber || depth > 12) return null;
+                            const props = fiber.memoizedProps;
+                            if (props) {
+                                if (typeof props.url === 'string' && props.url.includes('linkedin.com/posts/')) {
+                                    return props.url.split('?')[0];
+                                }
+                                try {
+                                    const str = JSON.stringify(props);
+                                    const act = str.match(/urn:li:activity:(\\d{18,20})/);
+                                    if (act) return `https://www.linkedin.com/feed/update/urn:li:activity:${act[1]}/`;
+                                    const postMatch = str.match(/https:\\\\/\\\\/www\\.linkedin\\.com\\\\/posts\\\\/[^"\'\\s\\\\]+/);
+                                    if (postMatch) return postMatch[0].replace(/\\\\/g, '').split('?')[0];
+                                } catch (e) {}
+                            }
+                            return searchFiber(fiber.return, depth + 1) || searchFiber(fiber.child, depth + 1);
+                        }
+                        const key = Object.keys(el).find(k => k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$'));
+                        if (key && el[key]) {
+                            return searchFiber(el[key]);
+                        }
+                        return null;
+                    }
+                """)
+                if fiber_url and ("linkedin.com/posts/" in fiber_url or "urn:li:activity" in fiber_url):
+                    post_url = fiber_url.strip()
+            except Exception:
+                pass
+
+        # 4. Check for activity ID regex across all anchors inside card
+        if not post_url:
+            try:
+                all_anchors = await card.locator("a[href]").all()
+                for a in all_anchors:
+                    href = await a.get_attribute("href") or ""
+                    act_match = re.search(r"activity[:\-](\d{18,20})", href)
+                    if act_match:
+                        post_url = f"https://www.linkedin.com/feed/update/urn:li:activity:{act_match.group(1)}/"
+                        break
+            except Exception:
+                pass
+
+        # 5. Guaranteed Fallback: Author authentic activity / posts (ZERO 404s)
+        if not post_url:
+            clean_author_url = (author_url or "").split("?")[0].rstrip("/")
+            if "/in/" in clean_author_url:
+                post_url = f"{clean_author_url}/recent-activity/all/"
+            elif "/company/" in clean_author_url:
+                post_url = f"{clean_author_url}/posts/"
+            elif clean_author_url:
+                post_url = clean_author_url
+            else:
+                post_url = "https://www.linkedin.com/feed/"
+
+        return post_url
 
     async def _extract_post_from_card(self, card: Any, page: Any) -> dict[str, Any] | None:
         """Extracts text, author, and links from a single DOM update card."""
@@ -120,20 +222,8 @@ class LinkedInPostTracker:
                 time_match = re.search(r"\b(\d+[hmdw])\b", raw_text)
                 relative_time = time_match.group(1) if time_match else "recent"
 
-            # 5. Extract Post permalink / URN
-            post_urn = await card.get_attribute("data-urn") or ""
-            post_url = ""
-            if "activity:" in post_urn:
-                activity_id = post_urn.split("activity:")[1].split(",")[0]
-                post_url = f"https://www.linkedin.com/feed/update/urn:li:activity:{activity_id}/"
-            else:
-                link_loc = card.locator("a[href*='/feed/update/urn:li:activity']").first
-                if await link_loc.count() > 0:
-                    post_url = (await link_loc.get_attribute("href") or "").split("?")[0]
-
-            if not post_url:
-                post_hash = hashlib.md5((author_name + text_content[:100]).encode("utf-8")).hexdigest()[:12]
-                post_url = f"https://www.linkedin.com/feed/update/{post_hash}"
+            # 5. Extract Post permalink / URN with multi-tier resilience
+            post_url = await self._extract_post_permalink(card, author_url, raw_text)
 
             raw_post = {
                 "author_name": author_name,

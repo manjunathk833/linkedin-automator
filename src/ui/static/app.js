@@ -1459,6 +1459,17 @@ function createPostCardElement(post) {
         ? `${textSnippet.substring(0, 320)}... <span class="snippet-expand" onclick="togglePostSnippet('${post.post_id}')">Read more</span>`
         : textSnippet;
 
+    let postLinkUrl = post.post_url;
+    if (postLinkUrl && /\/feed\/update\/[0-9a-f]{8,32}\/?$/i.test(postLinkUrl)) {
+        if (post.author_profile_url) {
+            postLinkUrl = post.author_profile_url.includes('/company/')
+                ? `${post.author_profile_url.replace(/\/+$/, '')}/posts/`
+                : `${post.author_profile_url.replace(/\/+$/, '')}/recent-activity/all/`;
+        }
+    }
+    const isFeedOrActivity = postLinkUrl && (postLinkUrl.includes('/recent-activity/') || postLinkUrl.endsWith('/posts/'));
+    const postLinkLabel = isFeedOrActivity ? '🔗 View Author Posts ↗' : '🔗 View LinkedIn Post ↗';
+
     card.innerHTML = `
         <div class="post-card-header">
             <div class="post-author-box">
@@ -1487,7 +1498,7 @@ function createPostCardElement(post) {
 
         <div class="post-card-footer">
             <div class="post-links-row">
-                ${post.post_url ? `<a href="${post.post_url}" target="_blank" class="post-external-link">🔗 View LinkedIn Post ↗</a>` : ''}
+                ${postLinkUrl ? `<a href="${postLinkUrl}" target="_blank" class="post-external-link">${postLinkLabel}</a>` : ''}
                 ${post.author_profile_url ? `<a href="${post.author_profile_url}" target="_blank" class="post-external-link">👤 Author Profile ↗</a>` : ''}
             </div>
             <div class="post-action-buttons">
@@ -1608,9 +1619,17 @@ async function openPostOutreachModal(postId) {
     const linkInmailAuthor = document.getElementById('post-link-inmail-author');
     const linkOrig = document.getElementById('post-link-original');
 
+    let postModalUrl = target.post_url || '';
+    if (postModalUrl && /\/feed\/update\/[0-9a-f]{8,32}\/?$/i.test(postModalUrl)) {
+        if (target.author_profile_url) {
+            postModalUrl = target.author_profile_url.includes('/company/')
+                ? `${target.author_profile_url.replace(/\/+$/, '')}/posts/`
+                : `${target.author_profile_url.replace(/\/+$/, '')}/recent-activity/all/`;
+        }
+    }
     if (linkAuthor) linkAuthor.href = target.author_profile_url || target.post_url || '#';
     if (linkInmailAuthor) linkInmailAuthor.href = target.author_profile_url || target.post_url || '#';
-    if (linkOrig) linkOrig.href = target.post_url || '#';
+    if (linkOrig) linkOrig.href = postModalUrl || target.post_url || '#';
 
     // Populate DMs via server or fallback
     try {
