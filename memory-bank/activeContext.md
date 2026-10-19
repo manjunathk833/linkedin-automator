@@ -400,12 +400,13 @@
         * Quality Scoring Calibration: +25 bonus for verified Product Companies in `target_companies.json`, -20 penalty for agency/staffing markers (`c2c`, `corp to corp`, `contractual`, `whatsapp`).
         * Scaled Discovery: Scaled default scroll depth from 4 to 12 scrolls, expanded `DEFAULT_SEARCH_QUERIES` with location and senior role scoping (`Bangalore OR Bengaluru OR India OR Remote`), and updated default date filter to `past-week`.
       - Database Self-Healing Migration: Purged false positives (`Struvek`, `Neill McCarthy`), healed conversational company names, and deduplicated existing records in SQLite `hiring_posts`.
-      - Hardened Agent Guidelines: Codified Rule 10 across `.agents/rules/00-core-instructions.md`, `.agents/rules/02-agent-review-protocol.md`, and `.agents/agents/dry_run_agent.md` mandating live, headful dry run execution after every single implementation cycle.
+      - Hardened Agent Guidelines: Codified Rule 10 across `.agents/rules/00-core-instructions.md`, `.agents/rules/01-planning-protocol.md`, `.agents/rules/02-agent-review-protocol.md`, `.agents/agents/reviewer.md`, and `.agents/agents/dry_run_agent.md` mandating live, headful dry run execution after every single implementation cycle and strictly forbidding any implementation plan from omitting an explicit post-implementation dry run phase.
       - Authored Verification Gate 76 (`verify/76_test_posts_optimization_and_deduplication.py`): testing disclaimer rejection, CAD tool disambiguation, phrase rejection, content hash deduplication, and expanded queries.
       - Registered in `TIER_1_CORE` in `verify/run_regressions.py` expanding suite to 55 tests.
-      - Standardized Tier 1 core regression suite (`python main.py test --tier core`): **55/55 PASSED (100% SUCCESS)** in 46.99s.
+      - Standardized Tier 1 core regression suite (`python main.py test --tier core`): **55/55 PASSED (100% SUCCESS)** in 56.30s.
       - Codebase linted cleanly via `python main.py lint`: **0 errors across 166 files**.
-      - Post-Implementation Dry Run Executed: Ran `python main.py posts discover` live with headful Playwright; discovered 3 fresh leads with 0 false positives and 0 duplicate agency posts.
+      - Post-Implementation Dry Run Executed: Ran `python main.py posts discover` live with headful Playwright; discovered fresh leads with 0 false positives and 0 duplicate agency posts.
+      - Browser Subagent UI Dry Run Executed (`http://127.0.0.1:8000`): Verified Tab 4 (`📢 Posts & Leads`), confirmed 16 Total Leads, 1 Dream Org (Snowflake), 4 Fresh <24h, 7 Direct Emails, 0 CAD false positives, clean `lnkd.in` link rendering, and interactive Outreach Modal with character budgeting (under 300 chars) and 1-click clipboard copy.
 
 
 
