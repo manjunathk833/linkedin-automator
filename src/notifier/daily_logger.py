@@ -132,6 +132,8 @@ class DailyRunLogger:
         email_sent: bool,
         duration_sec: float,
         error_message: str | None = None,
+        social_leads_count: int = 0,
+        naukri_status: str | None = None,
     ) -> dict[str, Any]:
         """Logs the completion of a daily automation run."""
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -143,6 +145,8 @@ class DailyRunLogger:
             "git_commit": self.get_git_commit(),
             "staged_count": staged_count,
             "dream_org_count": dream_org_count,
+            "social_leads_count": social_leads_count,
+            "naukri_status": naukri_status,
             "regression_passed": regression_passed,
             "email_sent": email_sent,
             "duration_sec": round(duration_sec, 2),
@@ -151,7 +155,8 @@ class DailyRunLogger:
         self._append_jsonl(entry)
         self._append_log(
             f"[{now}] [RUN_COMPLETED] RunID={run_id} Status={status} Staged={staged_count} "
-            f"DreamOrgs={dream_org_count} Regressions={'PASS' if regression_passed else 'FAIL'} "
+            f"DreamOrgs={dream_org_count} SocialLeads={social_leads_count} Naukri={naukri_status or 'N/A'} "
+            f"Regressions={'PASS' if regression_passed else 'FAIL'} "
             f"Email={'SENT' if email_sent else 'SKIPPED'} Duration={duration_sec:.1f}s"
         )
         if error_message:

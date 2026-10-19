@@ -285,14 +285,25 @@ class LinkedInJobFinder:
                     if self.is_duplicate(job_id, author.strip(), "Hiring Post"):
                         continue
 
+                    # Check upfront if author or company is a categorized Dream Org
+                    is_dream = False
+                    try:
+                        from src.storage.database import ApplicationDatabase
+
+                        is_dream = ApplicationDatabase().is_dream_company(author.strip())
+                    except Exception:
+                        pass
+
                     raw_job = {
                         "job_id": job_id,
                         "source": "linkedin",
+                        "is_dream_org": is_dream,
                         "application_type": "EASY_APPLY",
                         "job_details": {
                             "title": f"Hiring Post by {author.strip()}",
                             "company": author.strip(),
                             "location": "Remote / India",
+                            "is_dream_org": is_dream,
                             "requirements": text.strip()[:1000],
                         },
                     }
@@ -432,12 +443,22 @@ class LinkedInJobFinder:
             except Exception:
                 pass
 
+            # Check upfront if company is a categorized Dream Org
+            is_dream = False
+            try:
+                from src.storage.database import ApplicationDatabase
+
+                is_dream = ApplicationDatabase().is_dream_company(company)
+            except Exception:
+                pass
+
             job_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
             raw_job = {
                 "job_id": job_id,
                 "source": "linkedin",
                 "url": job_url,
                 "job_url": job_url,
+                "is_dream_org": is_dream,
                 "application_type": application_type,
                 "job_details": {
                     "title": title,
@@ -445,6 +466,7 @@ class LinkedInJobFinder:
                     "location": loc,
                     "job_url": job_url,
                     "external_url": external_url,
+                    "is_dream_org": is_dream,
                     "requirements": desc_text[:3000],
                 },
             }

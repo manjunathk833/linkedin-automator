@@ -102,6 +102,7 @@ TIER_1_CORE = [
     "74_test_posts_links_and_dream_org_precision.py",
     "75_test_post_formatting_and_permalink_resilience.py",
     "76_test_posts_optimization_and_deduplication.py",
+    "77_test_daily_pipeline_comprehensive_wiring.py",
 ]
 
 

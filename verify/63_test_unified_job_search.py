@@ -236,6 +236,9 @@ def test_unified_runner_orchestration():
         patch.object(
             LinkedInJobFinder, "search_all_channels", new_callable=AsyncMock, return_value=[{"job_id": "li_1"}]
         ) as mock_li_search,
+        patch(
+            "src.posts.post_tracker.LinkedInPostTracker.discover_posts", new_callable=AsyncMock, return_value=[]
+        ) as mock_posts,
     ):
         import asyncio
 
@@ -244,10 +247,12 @@ def test_unified_runner_orchestration():
         assert mock_ats_ingest.called, "Track 1 (ATS) must be called for source='all'"
         assert mock_ats_save.called, "Track 1 save must be called for source='all'"
         assert mock_li_search.called, "Track 2 (LinkedIn) must be called for source='all'"
+        assert mock_posts.called, "Track 3 (Posts) must be called for source='all'"
 
         # Reset mocks
         mock_ats_ingest.reset_mock()
         mock_li_search.reset_mock()
+        mock_posts.reset_mock()
 
         # Case B: source = "ats"
         asyncio.run(runner.run_search_stage(source="ats"))
