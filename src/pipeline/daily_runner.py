@@ -102,11 +102,35 @@ class DailyPipelineRunner:
                 timeout=120.0,
             )
             passed = res.returncode == 0
-            summary = "49/49 Passed (100%)" if passed else "Regression Failures Detected"
+            summary = "Core Regression Tests Passed (100%)" if passed else "Regression Failures Detected"
+            for line in res.stdout.splitlines():
+                if "Passed" in line and "Total Executed" in res.stdout:
+                    summary = line.strip()
+                    break
             print(f"   Health status: {summary}")
             return passed, summary
         except Exception as e:
             return False, f"Regression check error: {e}"
+
+    async def run_naukri_refresh(self, headless: bool = True) -> dict[str, Any]:
+        """
+        Executes daily automated touch of candidate profile headline on Naukri.com
+        to reset the 'Last Active' timestamp for top ranking in recruiter Resdex queries.
+        Includes non-blocking fault isolation.
+        """
+        print("\n" + "=" * 60)
+        print("  STEP 4: NAUKRI RESDEX DAILY PROFILE VISIBILITY REFRESH")
+        print("=" * 60)
+        try:
+            from scripts.naukri_pinger import run_naukri_pinger
+
+            res = await run_naukri_pinger(headless=headless, dry_run=False)
+            status = res.get("status", "UNKNOWN")
+            print(f"   Naukri Refresh Status: {status} ({res.get('message', '')})")
+            return res
+        except Exception as e:
+            print(f"⚠️ Naukri refresh encountered non-blocking warning: {e}")
+            return {"status": "WARNING", "error": str(e)}
 
     def get_staged_jobs(self) -> list[dict[str, Any]]:
         """Reads all JSON payloads currently waiting in data/pending_queue/."""
@@ -133,8 +157,9 @@ class DailyPipelineRunner:
         launch_dashboard: bool = True,
     ) -> dict[str, Any]:
         """
-        Executes complete morning workflow:
-        1. Regressions -> 2. Ingestion & Tailoring -> 3. Email Briefing -> 4. Dashboard Verification.
+        Executes complete morning workflow across all system capabilities:
+        1. Regressions -> 2. Notes Sync -> 3. Unified Discovery (Tracks 1, 2, 3) ->
+        4. Experience Filter -> 5. Naukri Refresh -> 6. Email Briefing -> 7. Dashboard Readiness.
         """
         run_id = f"daily_{datetime.date.today().strftime('%Y%m%d')}_{uuid.uuid4().hex[:6]}"
         t0 = time.time()
@@ -147,6 +172,8 @@ class DailyPipelineRunner:
         fatal_error: str | None = None
         staged_jobs: list[dict[str, Any]] = []
         dream_orgs: list[dict[str, Any]] = []
+        discovered_posts: list[dict[str, Any]] = []
+        naukri_res: dict[str, Any] = {"status": "SKIPPED"}
         reg_passed, reg_summary = True, "Skipped by flag"
         email_sent = False
 
@@ -168,21 +195,55 @@ class DailyPipelineRunner:
                     details={"reason": "skip_tests flag enabled"},
                 )
 
-            # 2. Unified Job Discovery & AI Tailoring
+            # 2. Candidate Notes -> Master Knowledge Bank Sync
             print("\n" + "=" * 60)
-            print("  STEP 2: DISCOVERING FRESH ROLES & TAILORING RESUMES")
+            print("  STEP 2: CANDIDATE NOTES TO STAR KNOWLEDGE SYNC")
+            print("=" * 60)
+            try:
+                sync_res = self.pipeline_runner.run_sync_stage()
+                self.logger.log_phase(
+                    run_id=run_id,
+                    phase_name="KNOWLEDGE_SYNC",
+                    status="SUCCESS",
+                    details={"added": sync_res.get("added", 0)},
+                )
+            except Exception as e:
+                print(f"⚠️ Knowledge sync warning: {e}")
+                self.logger.log_exception(run_id, e, phase="KNOWLEDGE_SYNC")
+                self.logger.log_phase(
+                    run_id=run_id,
+                    phase_name="KNOWLEDGE_SYNC",
+                    status="WARNING",
+                    details={"warning": str(e)},
+                )
+
+            # 3. Unified Job Discovery & AI Tailoring (Tracks 1, 2 & 3)
+            print("\n" + "=" * 60)
+            print("  STEP 3: MULTI-TRACK JOB & LEAD DISCOVERY (Tracks 1, 2 & 3)")
             print("=" * 60)
             try:
                 await self.pipeline_runner.run_search_stage(source="all", headless=headless)
                 self.pipeline_runner.run_filter_stage()
                 staged_jobs = self.get_staged_jobs()
                 dream_orgs = [j for j in staged_jobs if j.get("is_dream_org")]
-                print(f"\n📊 Pending Queue Summary: {len(staged_jobs)} roles staged ({len(dream_orgs)} Dream Orgs).")
+                discovered_posts = getattr(self.pipeline_runner, "last_posts_discovered", [])
+                if not discovered_posts:
+                    from src.storage.database import ApplicationDatabase
+
+                    discovered_posts = ApplicationDatabase().get_hiring_posts(limit=10)
+
+                print(
+                    f"\n📊 Discovery Summary: {len(staged_jobs)} role(s) staged ({len(dream_orgs)} Dream Orgs) | {len(discovered_posts)} social lead(s) banked."
+                )
                 self.logger.log_phase(
                     run_id=run_id,
                     phase_name="DISCOVERY_AND_TAILORING",
                     status="SUCCESS",
-                    details={"staged_total": len(staged_jobs), "dream_orgs": len(dream_orgs)},
+                    details={
+                        "staged_total": len(staged_jobs),
+                        "dream_orgs": len(dream_orgs),
+                        "social_leads": len(discovered_posts),
+                    },
                 )
             except Exception as e:
                 print(f"⚠️ Search stage warning: {e}")
@@ -196,10 +257,30 @@ class DailyPipelineRunner:
                 staged_jobs = self.get_staged_jobs()
                 dream_orgs = [j for j in staged_jobs if j.get("is_dream_org")]
 
-            # 3. Email Briefing
+            # 4. Naukri Resdex Daily Profile Visibility Refresh (Non-blocking)
+            try:
+                naukri_res = await self.run_naukri_refresh(headless=headless)
+                n_status = "SUCCESS" if naukri_res.get("status") in ("SUCCESS", "dry_run") else "WARNING"
+                self.logger.log_phase(
+                    run_id=run_id,
+                    phase_name="NAUKRI_REFRESH",
+                    status=n_status,
+                    details=naukri_res,
+                )
+            except Exception as e:
+                print(f"⚠️ Naukri refresh warning: {e}")
+                self.logger.log_exception(run_id, e, phase="NAUKRI_REFRESH")
+                self.logger.log_phase(
+                    run_id=run_id,
+                    phase_name="NAUKRI_REFRESH",
+                    status="WARNING",
+                    details={"error": str(e)},
+                )
+
+            # 5. Email Briefing
             if send_email:
                 print("\n" + "=" * 60)
-                print("  STEP 3: DISPATCHING MORNING EXECUTIVE EMAIL BRIEFING")
+                print("  STEP 5: DISPATCHING MORNING EXECUTIVE EMAIL BRIEFING")
                 print("=" * 60)
                 duration_sec = time.time() - t0
                 try:
@@ -208,6 +289,8 @@ class DailyPipelineRunner:
                         regression_passed=reg_passed,
                         regression_summary=reg_summary,
                         execution_duration_sec=duration_sec,
+                        hiring_posts=discovered_posts,
+                        naukri_status=naukri_res,
                     )
                     self.logger.log_phase(
                         run_id=run_id,
@@ -231,10 +314,10 @@ class DailyPipelineRunner:
                     details={"reason": "send_email flag disabled"},
                 )
 
-            # 4. Dashboard Readiness
+            # 6. Dashboard Readiness
             if launch_dashboard:
                 print("\n" + "=" * 60)
-                print("  STEP 4: COMMAND CENTER DASHBOARD READINESS")
+                print("  STEP 6: COMMAND CENTER DASHBOARD READINESS")
                 print("=" * 60)
                 is_db_ready = self.ensure_dashboard_running(port=8000)
                 self.logger.log_phase(
@@ -257,6 +340,8 @@ class DailyPipelineRunner:
             status=run_status,
             staged_count=len(staged_jobs),
             dream_org_count=len(dream_orgs),
+            social_leads_count=len(discovered_posts),
+            naukri_status=naukri_res.get("status"),
             regression_passed=reg_passed,
             email_sent=email_sent,
             duration_sec=total_duration,
@@ -272,6 +357,8 @@ class DailyPipelineRunner:
             "status": run_status,
             "staged_count": len(staged_jobs),
             "dream_org_count": len(dream_orgs),
+            "social_leads_count": len(discovered_posts),
+            "naukri_status": naukri_res.get("status"),
             "regression_passed": reg_passed,
             "email_sent": email_sent,
             "duration_sec": total_duration,
