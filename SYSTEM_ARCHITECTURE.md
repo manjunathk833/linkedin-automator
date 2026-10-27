@@ -302,6 +302,18 @@ graph TD
 
 ---
 
+### Module 16: Autonomous Apply Agent & `/apply` Slash Command (`apply_agent`)
+* **Files:** [`.agents/agents/apply_agent.md`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/.agents/agents/apply_agent.md), [`.agents/skills/apply/SKILL.md`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/.agents/skills/apply/SKILL.md), [`.agents/rules/02-agent-review-protocol.md`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/.agents/rules/02-agent-review-protocol.md)
+* **Architecture:** Standalone Autonomous Apply Agent & Interactive Slash Command:
+  * **Zero-Modification Architectural Independence:** Engineered 100% as an Antigravity agentic customization without altering or monkey-patching core application code in `src/`. The existing Assisted Autofill Copilot (`ats_filler.py`, `linkedin_filler.py`) remains fully operational for manual/dashboard use.
+  * **Deterministic Approved Queue Traversal:** Invoked on-demand via the `/apply` slash command. Operates strictly on candidate-vetted payloads in `data/approved_queue/`, verifying target application URLs, matching pre-compiled tailored resumes (`Manjunath_HK_*.pdf`), and confirming dashboard readiness on `http://127.0.0.1:8000`.
+  * **Candidate Data Bank Grounding:** Eliminates LLM hallucination and unverified inputs by strictly resolving candidate fields from canonical stores: `data/resume_profile.json`, `data/master_knowledge_bank.json`, `data/profile/workday_field_mappings.json`, and `data/profile/allowed_tools_whitelist.json`.
+  * **Interactive Human-in-the-Loop Clarification Interceptor (`ask_question`):** Adheres to Zero Premature Exit. Whenever encountering unmapped screening questions, custom dropdowns, unexpected salary expectation fields, or CAPTCHA/2FA challenges, the agent pauses execution and presents an interactive UI modal (`ask_question`) directly in the Antigravity interface for instant candidate intervention, then seamlessly resumes execution.
+  * **Autonomous Multi-Modal Browser Automation:** Drives headful multi-stage application workflows via `browser_subagent` and Playwright, executing semantic element matching, natural typing jitter, synthetic event dispatching (`input`, `change`, `blur`), and dynamic combobox selection with a bounded step budget (max 25 actions/job).
+  * **Downstream Persistence & Verification:** Detects application confirmation markers (`submitted`, `thank-you`, `application-received`), records application state in SQLite `app_database.db`, and purges applied items from `data/approved_queue/`.
+
+---
+
 ## 4. Data Architecture & Storage Schema
 
 ```
@@ -502,6 +514,7 @@ All features are covered by dedicated, standalone verification scripts in `verif
 - [x] **Milestone 51:** Post Text Formatting, Preview Scoping & Responsive Styling: preserved author paragraph breaks and formatting while stripping UI artifacts and emoji spam; resolved URL collisions in link cards; styled glassmorphic cards with responsive score badges and direct actions. Verified 100% via Verification Gate 75.
 - [x] **Milestone 52:** Post Discovery Optimization & Query Rotation: implemented fast early-break pagination, query rotation across 5 targeted searches, and cross-session deduplication in `post_tracker.py`. Verified 100% via Verification Gate 76.
 - [x] **Milestone 53:** Comprehensive Daily Pipeline All-Capability Wiring: unified all 4 system capabilities into `DailyPipelineRunner` (`src/pipeline/daily_runner.py`, `main.py daily [run|audit|diagnose]`): (1) Dynamic regression health check gate, (2) Candidate notes to STAR knowledge bank sync, (3) Multi-track discovery across Track 1 Direct ATS, Track 2 LinkedIn Job Board, and Track 3 Social Hiring Posts with upfront Dream Org resolution, (4) Policy and experience filter, (5) Non-blocking daily Naukri Resdex profile visibility touch (`scripts/naukri_pinger.py`), (6) Executive HTML morning briefing dispatched via SMTP with local archive and full Track 1/2/3/Naukri rendering, and (7) Command Center Dashboard background readiness on port 8000. Verified 100% across all 56 tests in Tier 1 Core regression suite and authentic live dry run. Verified via Verification Gate 77.
+- [x] **Milestone 54:** Autonomous Apply Agent & `/apply` Slash Command: engineered standalone Antigravity agentic customization (`.agents/agents/apply_agent.md`, `.agents/skills/apply/SKILL.md`) providing deterministic multi-modal browser automation (`browser_subagent`) across approved queue jobs (`data/approved_queue/`), zero-code architectural independence preserving `src/`, interactive UI modal clarification loops (`ask_question`), candidate data bank grounding, bounded step budgets (25 actions/job), and complete post-apply SQLite auditing.
 
 ---
 

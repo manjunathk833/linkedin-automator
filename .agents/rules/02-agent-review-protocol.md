@@ -1,7 +1,7 @@
 ---
 trigger: always_on
 ---
-# Mandatory Quad-Agent Auto-Invocation Protocol (Critic Architect, Vision, ATS Debugger & Dry Run Agent)
+# Mandatory Multi-Agent Auto-Invocation Protocol (Critic Architect, Vision, ATS Debugger, Dry Run Agent & Apply Agent)
 
 For EVERY user prompt and proposed code modification, the agent MUST automatically evaluate the request through four mandatory quality lenses:
 
@@ -48,4 +48,10 @@ Before proposing plans and after code changes or bug fixes are applied, evaluate
 - [ ] **Standardized Regression & Lint Gate:** Core regression suite passes 100% (55+ tests) and linter reports 0 errors across all files.
 - [ ] **Implementation Report Emitted:** Deliver a structured health report upon completion before raising a Pull Request to `main`.
 
-
+## 5. Autonomous Apply Agent Lens (`apply_agent`)
+When reviewing, testing, or executing job application workflows:
+- [ ] **Approved Queue Verification:** Checks and loads job payloads from `data/approved_queue/` with matching tailored PDF resumes.
+- [ ] **Data Bank Grounding:** Ensures 100% data grounding in `resume_profile.json` and `workday_field_mappings.json` (zero unverified tools or fabricated metrics).
+- [ ] **Zero Premature Exit HITL Clarification:** Guarantees that any novel question, ambiguous input, or CAPTCHA triggers an interactive `ask_question` prompt without crashing or aborting.
+- [ ] **Step Budget Enforcement:** Enforces maximum 25 browser actions per job.
+- [ ] **Post-Apply Audit:** Ensures applications are registered in SQLite `ApplicationDatabase` and purged from `data/approved_queue/`.
