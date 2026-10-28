@@ -53,6 +53,11 @@
       "description": "Voluntary veteran disclosure"
     },
     {
+      "pattern": "anyone.*(working|employed).*in|know.*anyone.*(working|employed)",
+      "answer": "No",
+      "description": "Company acquaintance / employee relative disclosure"
+    },
+    {
       "pattern": "^gender$|gender.*identity",
       "answer": "Male",
       "description": "Voluntary gender disclosure"
@@ -91,8 +96,13 @@
     },
     {
       "pattern": "notice.*period",
-      "answer": "30 Days",
+      "answer": "60 Days",
       "description": "Notice period dropdown"
+    },
+    {
+      "pattern": "anyone.*(working|employed).*in|know.*anyone.*(working|employed)",
+      "answer": "No",
+      "description": "Company acquaintance / employee relative disclosure"
     },
     {
       "pattern": "^gender$|gender.*identity",
@@ -134,6 +144,31 @@
     {
       "pattern": "phone.*number|mobile.*number",
       "source_key": "personal.phone"
+    },
+    {
+      "pattern": "expected.*(salary|ctc|compensation)|desired.*(salary|ctc)|salary.*expectation",
+      "default_answer": "2700000",
+      "text_answer": "27 LPA",
+      "range_answer": "25-30 Lakhs",
+      "description": "Expected CTC"
+    },
+    {
+      "pattern": "current.*(salary|ctc|compensation)",
+      "default_answer": "1700000",
+      "text_answer": "17 LPA",
+      "description": "Current CTC"
+    },
+    {
+      "pattern": "notice.*period.*(days|text)|how.*many.*days.*notice",
+      "default_answer": "60",
+      "text_answer": "60 Days",
+      "description": "Notice period in days"
+    },
+    {
+      "pattern": "if.*yes.*specify.*full.*name.*relation.*if.*not.*na|employee.*relation.*na|employee.*referral.*details",
+      "default_answer": "NA",
+      "text_answer": "NA",
+      "description": "Employee acquaintance details if none"
     }
   ]
 }

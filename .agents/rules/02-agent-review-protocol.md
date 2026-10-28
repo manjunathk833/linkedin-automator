@@ -51,7 +51,8 @@ Before proposing plans and after code changes or bug fixes are applied, evaluate
 ## 5. Autonomous Apply Agent Lens (`apply_agent`)
 When reviewing, testing, or executing job application workflows:
 - [ ] **Approved Queue Verification:** Checks and loads job payloads from `data/approved_queue/` with matching tailored PDF resumes.
-- [ ] **Data Bank Grounding:** Ensures 100% data grounding in `candidate_master_data.json`, `resume_profile.json`, and `workday_field_mappings.json` (zero unverified tools or fabricated metrics).
+- [ ] **Data Bank Grounding & Zero Hallucination:** Ensures 100% data grounding in `candidate_master_data.json` (Notice Period: 60 Days, Expected CTC: 27 LPA, Current CTC: 17 LPA), `resume_profile.json`, and `workday_field_mappings.json`. Inlines exact values into browser subagent prompts to strictly prevent hallucination.
+- [ ] **Repeatable Form Container Expansion:** Expands repeatable sections (`+ Add Experience Details`, `+ Add Education Details`) to populate all historical positions (Value Labs, Dunzo, Tata Elxsi) and SJCE degree, and supplies `NA` for negative referral disclosures.
 - [ ] **Strict Fail-Fast Policy (Zero Over-Exploration):** If a job is 404, closed, or unavailable, strictly forbids searching Google or external career portals; immediately logs `UNAVAILABLE`, purges from queue, and advances to the next job.
 - [ ] **High Autonomy & Targeted HITL:** Executes independently across jobs without interrupting for known candidate values; halts and invokes `ask_question` strictly for unmapped salary expectations, novel questions, or CAPTCHA/2FA.
 - [ ] **Step Budget Enforcement:** Enforces maximum 20 browser actions per job.

@@ -55,24 +55,47 @@ Always draw from these exact candidate facts when populating forms:
 | **First Name / Last Name** | First: `Manjunath`, Last: `H K`, Prefix: `Mr.` |
 | **Email Address** | `manjunathhk833@gmail.com` |
 | **Phone Number** | `+91 7337813770` (Country: `India (+91)`, Dial Code: `+91`, Local: `7337813770`) |
-| **Current Location** | `Bengaluru, Karnataka, India` (City: `Bengaluru`, State: `Karnataka`, Postal Code: `560001` / `560037`) |
+| **Current Location** | `Bengaluru, Karnataka, India` (City: `Bengaluru`, State: `Karnataka`, Postal Code: `560076`) |
 | **LinkedIn Profile** | `https://www.linkedin.com/in/manjunath-h-k-ab30b1146/` |
 | **GitHub Profile** | `https://github.com/manjunathk833` |
 | **Portfolio / Website** | `https://manjunathhk.netlify.app/` |
-| **Total Experience** | `7+ years` (Senior SDET / QA Automation Architect) |
-| **Primary Tech Stack** | Python, Java, Playwright, REST Assured, Selenium, CI/CD, Docker, Kafka, Pact, WireMock |
-| **Highest Education** | Bachelor of Engineering (B.E.) in Electronics and Communication Engineering (ECE) from Sri Jayachamarajendra College of Engineering (SJCE), Mysore |
+| **Total Experience** | `7 years` (Senior SDET / QA Automation Architect) |
+| **Current CTC** | `₹17,00,000 INR` (`17 LPA` / `1700000`) |
+| **Expected CTC** | `₹27,00,000 INR` (`27 LPA` / `2700000`). If range asked: `25–30 Lakhs` |
+| **Notice Period** | `60 Days` (`60 days`) |
+| **Primary Tech Stack** | Python, Java, Playwright, REST Assured, Selenium, CI/CD, Docker, Kafka, Pact, WireMock, SQL |
+| **Highest Education** | Bachelor of Engineering (B.E.) from Sri Jayachamarajendra College of Engineering (SJCE), Mysore (2015–2019, GPA: 8.02/10) |
 | **Work Authorization** | Authorized to work in India (Citizen). Does not require visa sponsorship in India. Available for US/Global Remote contracts under Section 44ADA / W-8BEN. |
-| **Notice Period** | `Immediate Joiner` or `15–30 Days` (Negotiable) |
+
+### Employment History (for `+ Add Experience Details`)
+1. **Value Labs** (Current Employer)
+   * Title: `Senior Engineer - QE`
+   * Dates: `June 2023 – Present` (Start: June 2023, Currently Working: Yes)
+   * Location: `Bengaluru, India`
+   * Description: `Architected UI and API automation frameworks for airline projects leveraging REST Assured, Selenium, and BDD with Harness CI/CD.`
+2. **Dunzo**
+   * Title: `SDET-1`
+   * Dates: `August 2022 – June 2023` (Start: August 2022, End: June 2023, Currently Working: No)
+   * Location: `Bengaluru, India`
+   * Description: `Automated end-to-end API flows and DB validations using Ekam Java Framework, achieving 60% test coverage in microservices suite.`
+3. **Tata Elxsi**
+   * Title: `Engineer -> Senior Engineer, QA`
+   * Dates: `December 2019 – August 2022` (Start: December 2019, End: August 2022, Currently Working: No)
+   * Location: `Bengaluru, India`
+   * Description: `Designed BDD automation framework using Python and Appium, automated ~50% sanity suite saving ~5 man-days/month.`
 
 ### Standard Screening Answers (`workday_field_mappings.json`)
 * Prior Employment at Employer: `No`
 * Legally Authorized to Work: `Yes`
 * Require Sponsorship Now or in Future: `No`
 * Relatives / Family Employed at Company: `No`
+* Acquaintance / Anyone working in company: `No` (If details asked: `NA`)
 * Non-Compete or Conflict of Interest: `No`
 * Age 18 or Older: `Yes`
-* EEOC / Voluntary Disclosures (Gender, Disability, Veteran): `Decline to self-identify` / `I choose not to disclose` / `I am not a protected veteran` / `No, I do not have a disability`
+* Notice Period: `60 Days` (or `60`)
+* Expected Salary: `2700000` / `27 LPA` / `25-30 Lakhs`
+* Current Salary: `1700000` / `17 LPA`
+* EEOC / Voluntary Disclosures (Gender, Disability, Veteran): `Male` / `Asian` / `I am not a protected veteran` / `No, I do not have a disability`
 
 ---
 
@@ -111,11 +134,24 @@ Launch `browser_subagent` for each approved job with explicit instructions:
 1. **Navigation:**
    * For `EASY_APPLY`: Navigate to `job_url`, click `Easy Apply`.
    * For `LINKEDIN_EXTERNAL` or Direct ATS: Navigate to `external_url` (or click external Apply on LinkedIn and capture destination tab).
-2. **Form Interaction Standards:**
-   * Use semantic roles (`get_by_role("button")`, `get_by_label(...)`).
-   * Populate text inputs with synthetic event dispatching (`input`, `change`, `blur`) to ensure React/Vue/Angular states update.
-   * Prioritize dial code `+91` for phone country selectors.
-   * Attach the matching pre-compiled PDF resume to file dropzones (`input[type="file"]`).
+2. **Form Interaction Standards & Zero-Hallucination Directives:**
+   * **Literal Value Injection:** You MUST populate every field using the exact literal candidate values provided above. You are STRICTLY FORBIDDEN from guessing, improvising, or hallucinating salaries, notice periods, or dates.
+   * **Repeatable Form Containers (Experience & Education):**
+     * If an `+ Add Experience Details` or `Add Experience` button is present: You MUST click it and create experience entries for `Value Labs` (Current), `Dunzo`, and `Tata Elxsi` with their respective titles, dates, and summaries.
+     * If an `+ Add Education Details` or `Add Education` button is present: You MUST click it and fill degree details for `Sri Jayachamarajendra College of Engineering (SJCE)`.
+     * If a `Skills` or `Add new skill` container is present: Add core tech skills (`Java`, `Selenium`, `REST Assured`, `Playwright`, `API Testing`, `Python`, `SQL`, `CI/CD`).
+   * **Negative Referral Disclosure:**
+     * For "Do you know anyone working in [Company]?" or "Employee referral?", select `No`.
+     * If a follow-up text area asks for relation/details, fill `NA`.
+   * **Notice Period & Salary:**
+     * Notice Period: Always enter `60` or select `60 Days`.
+     * Expected Salary: Enter `2700000` or `27 LPA` (Range: `25-30 Lakhs`).
+     * Current Salary: Enter `1700000` or `17 LPA`.
+   * **Synthetic Events & Locators:**
+     * Use semantic roles (`get_by_role("button")`, `get_by_label(...)`).
+     * Populate text inputs with synthetic event dispatching (`input`, `change`, `blur`) to ensure React/Vue/Angular states update.
+     * Prioritize dial code `+91` for phone country selectors.
+     * Attach the matching pre-compiled PDF resume to file dropzones (`input[type="file"]`).
 3. **Step Progression:**
    * Click `Next` / `Continue` / `Review` to advance through multi-page application wizards.
 
