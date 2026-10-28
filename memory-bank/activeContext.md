@@ -418,7 +418,7 @@
     - Post-Submission Governance: Audits submission in SQLite `ApplicationDatabase`, archives application history, and safely purges processed payloads from `data/approved_queue/`.
     - Multi-Agent Auto-Invocation Protocol: Integrated fifth quality lens (`apply_agent`) into [`.agents/rules/02-agent-review-protocol.md`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/.agents/rules/02-agent-review-protocol.md).
     - Hardened Fail-Fast & High-Autonomy Policy:
-      * Enabled browser JavaScript by default (`antigravity.browser.allowJavaScript: true`, `"always-proceed"` in `.vscode/settings.json`).
+      * Enabled browser JavaScript and terminal command execution by default (`antigravity.browser.allowJavaScript: true`, `toolPermission: "always-proceed"`, `permissions.allow: ["run_command", "evaluate_script", "execute_browser_javascript"]` in `.vscode/settings.json`).
       * Strictly banned over-exploration: max 2 checks on target URL; if 404 or closed, immediately logs `UNAVAILABLE`, purges payload, and advances to next job without searching Google or exploring portals.
       * Scoped HITL strictly to unknown salary expectations, novel unmapped screening questions, or CAPTCHA/2FA.
 
