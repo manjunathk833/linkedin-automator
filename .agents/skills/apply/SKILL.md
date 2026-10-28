@@ -46,27 +46,30 @@ For each approved job in the queue:
 1. Identify target URL:
    * If `application_type == "EASY_APPLY"`: target `job_url` (`https://www.linkedin.com/jobs/view/<job_id>/`).
    * If `application_type == "LINKEDIN_EXTERNAL"`: target `external_url` (or navigate to `job_url` and click external Apply).
-2. Launch `browser_subagent` with detailed instructions:
-   * Navigate to the target application URL.
+2. **Fail-Fast Rule (Strict Zero Over-Exploration):**
+   * Check target URL for 404, "Job closed", "No longer accepting applications", or expired notice (max 2 quick checks).
+   * **STRICTLY PROHIBITED:** Do NOT search Google, browse career search portals, or explore alternate job postings.
+   * If the job is unavailable or expired: log as `UNAVAILABLE`, purge the file from `data/approved_queue/`, and **immediately advance to the next job**.
+3. Launch `browser_subagent` with strict instructions:
+   * Navigate directly to the application URL.
    * Fill personal and contact details with synthetic event dispatching.
    * Attach the matching tailored PDF resume located in `data/approved_queue/`.
    * Resolve known screening questions using `data/profile/workday_field_mappings.json`.
-   * Enforce a hard budget of **25 actions maximum** per job to prevent dynamic SPA loops.
+   * Enforce a hard budget of **20 actions maximum** per job.
 
-### Step 5: Human-in-the-Loop Clarification Interceptor
-* If an unhandled screening question, ambiguous multi-choice option, or CAPTCHA appears:
-  * **DO NOT ABORT.**
-  * Call `ask_question` with the question text and clear selectable options for the user.
-  * Once the user responds, instruct the browser agent to select/fill that answer.
-  * Cache the answer into `data/profile/workday_field_mappings.json` or `data/logs/autofill_learning_vault.json` for future automated runs.
+### Step 5: Targeted Human-in-the-Loop Clarification Interceptor
+* The agent executes independently across jobs without interrupting for known data bank values.
+* **Only halt and invoke `ask_question` for:**
+  * Specific numerical salary expectations requiring candidate input.
+  * Novel questions completely missing from `workday_field_mappings.json`.
+  * Security challenges (CAPTCHA, Cloudflare, 2FA, OTP).
+* Once answered, apply the response, cache the mapping into `workday_field_mappings.json`, and continue.
 
 ### Step 6: Final Review Step & Database Audit
-1. Pause at the final "Review your application" screen.
-2. If user confirms or auto-submit is desired:
-   * Submit the application.
-3. Record the application in the SQLite database:
+1. Submit application at the final Review step.
+2. Record the application in the SQLite database:
    ```bash
    ./venv/bin/python -c "from src.storage.database import ApplicationDatabase; ApplicationDatabase().record_application(job_id='{job_id}', source='{source}', company_name='{company}', job_title='{title}', job_url='{url}', status='applied')"
    ```
-4. Safely delete the processed JSON and PDF from `data/approved_queue/`.
-5. Proceed to the next approved job until the queue is clear.
+3. Safely delete the processed JSON and archive the PDF to `data/resumes/`.
+4. Automatically proceed to the next approved job until the queue is clear.

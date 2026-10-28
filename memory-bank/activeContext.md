@@ -414,9 +414,14 @@
     - Deterministic Approved Queue Traversal: Consumes candidate-approved listings from `data/approved_queue/`, matches pre-compiled tailored resumes (`data/approved_queue/Manjunath_HK_*.pdf`), and checks Command Center status on `http://127.0.0.1:8000`.
     - Candidate Data Bank Grounding: Form inputs strictly grounded in canonical stores: `data/resume_profile.json`, `data/master_knowledge_bank.json`, `data/profile/workday_field_mappings.json`, and `data/profile/allowed_tools_whitelist.json` with zero unverified tool or metric fabrication.
     - Human-in-the-Loop Clarification Interceptor (`ask_question`): Adheres to Zero Premature Exit. Whenever an unfamiliar question, ambiguous dropdown, novel salary negotiation, or CAPTCHA/2FA is encountered, the agent pauses execution and presents an interactive UI modal (`ask_question`) directly in chat for instant candidate decision, then seamlessly resumes execution.
-    - Enforces a bounded step budget of max 25 actions/job to prevent infinite loops on dynamic SPAs.
+    - Enforces a bounded step budget of max 20 actions/job to prevent infinite loops on dynamic SPAs.
     - Post-Submission Governance: Audits submission in SQLite `ApplicationDatabase`, archives application history, and safely purges processed payloads from `data/approved_queue/`.
     - Multi-Agent Auto-Invocation Protocol: Integrated fifth quality lens (`apply_agent`) into [`.agents/rules/02-agent-review-protocol.md`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/.agents/rules/02-agent-review-protocol.md).
+    - Hardened Fail-Fast & High-Autonomy Policy:
+      * Enabled browser JavaScript by default (`antigravity.browser.allowJavaScript: true`, `"always-proceed"` in `.vscode/settings.json`).
+      * Strictly banned over-exploration: max 2 checks on target URL; if 404 or closed, immediately logs `UNAVAILABLE`, purges payload, and advances to next job without searching Google or exploring portals.
+      * Scoped HITL strictly to unknown salary expectations, novel unmapped screening questions, or CAPTCHA/2FA.
+
 
 
 

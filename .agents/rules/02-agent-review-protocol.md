@@ -51,7 +51,8 @@ Before proposing plans and after code changes or bug fixes are applied, evaluate
 ## 5. Autonomous Apply Agent Lens (`apply_agent`)
 When reviewing, testing, or executing job application workflows:
 - [ ] **Approved Queue Verification:** Checks and loads job payloads from `data/approved_queue/` with matching tailored PDF resumes.
-- [ ] **Data Bank Grounding:** Ensures 100% data grounding in `resume_profile.json` and `workday_field_mappings.json` (zero unverified tools or fabricated metrics).
-- [ ] **Zero Premature Exit HITL Clarification:** Guarantees that any novel question, ambiguous input, or CAPTCHA triggers an interactive `ask_question` prompt without crashing or aborting.
-- [ ] **Step Budget Enforcement:** Enforces maximum 25 browser actions per job.
-- [ ] **Post-Apply Audit:** Ensures applications are registered in SQLite `ApplicationDatabase` and purged from `data/approved_queue/`.
+- [ ] **Data Bank Grounding:** Ensures 100% data grounding in `candidate_master_data.json`, `resume_profile.json`, and `workday_field_mappings.json` (zero unverified tools or fabricated metrics).
+- [ ] **Strict Fail-Fast Policy (Zero Over-Exploration):** If a job is 404, closed, or unavailable, strictly forbids searching Google or external career portals; immediately logs `UNAVAILABLE`, purges from queue, and advances to the next job.
+- [ ] **High Autonomy & Targeted HITL:** Executes independently across jobs without interrupting for known candidate values; halts and invokes `ask_question` strictly for unmapped salary expectations, novel questions, or CAPTCHA/2FA.
+- [ ] **Step Budget Enforcement:** Enforces maximum 20 browser actions per job.
+- [ ] **Post-Apply Audit:** Ensures applications are registered in SQLite `ApplicationDatabase`, resumes archived to `data/resumes/`, and payloads purged from `data/approved_queue/`.
