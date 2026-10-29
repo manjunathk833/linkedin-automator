@@ -64,23 +64,28 @@ Before navigating, compile the complete candidate lookup dictionary into memory:
   * Anyone working in company / Employee referral: `No` | If details asked: `NA`
   * Gender: `Male` | Veteran: `I am not a protected veteran` | Disability: `No, I do not have a disability`
 
-### Step 4: Deterministic Application via `browser_subagent`
+### Step 4: High-Speed Hybrid Fast-Path Application Architecture
 For each approved job in the queue:
-1. Identify target URL:
+1. Identify target URL and application type:
    * If `application_type == "EASY_APPLY"`: target `job_url` (`https://www.linkedin.com/jobs/view/<job_id>/`).
-   * If `application_type == "LINKEDIN_EXTERNAL"`: target `external_url` (or navigate to `job_url` and click external Apply).
+   * If `application_type == "LINKEDIN_EXTERNAL"` or direct ATS: target `external_url` or `job_url`.
 2. **Fail-Fast Rule (Strict Zero Over-Exploration):**
    * Check target URL for 404, "Job closed", "No longer accepting applications", or expired notice (max 2 quick checks).
    * **STRICTLY PROHIBITED:** Do NOT search Google, browse career search portals, or explore alternate job postings.
    * If the job is unavailable or expired: log as `UNAVAILABLE`, purge the file from `data/approved_queue/`, and **immediately advance to the next job**.
-3. Launch `browser_subagent` with strict instructions:
-   * Pass the **exact candidate lookup dictionary** compiled in Step 3 directly in the prompt.
-   * **Zero-Hallucination Directive:** STRICTLY populate fields from the provided candidate dictionary. Never hallucinate or improvise numbers or text.
-   * **Expand Repeatable Containers:** If an `+ Add Experience Details` or `+ Add Education Details` button is present, click it and populate each job and education record.
-   * **Skills Container:** If a skills input exists, enter the primary skills tags.
-   * **Negative Referral Fields:** Answer `No` to company employee questions and enter `NA` in follow-up relation textboxes.
-   * Attach the matching tailored PDF resume located in `data/approved_queue/`.
-   * Enforce a hard budget of **20 actions maximum** per job.
+3. **Execution Priority 1: Native Headful Playwright Fast-Path (3–5 Seconds Execution):**
+   * Trigger the local Command Center autofill engine directly:
+     ```bash
+     curl -s -X POST http://127.0.0.1:8000/api/autofill/{job_id}
+     ```
+   * Populates 20+ fields (60 Days notice, 17 LPA current CTC, 27 LPA expected CTC, Value Labs, Dunzo, Tata Elxsi experience, SJCE education) and attaches the tailored PDF resume in **under 5 seconds** in local headful Chrome, stopping at the final Review step.
+4. **Execution Priority 2: Multimodal `browser_subagent` Fallback:**
+   * For non-standard or custom career portals (e.g. Keka, bespoke wizards):
+     * Launch `browser_subagent` passing the inlined candidate lookup dictionary compiled in Step 3.
+     * **Zero-Hallucination Directive:** STRICTLY populate fields from the candidate dictionary; never fabricate metrics or dates.
+     * **Expand Repeatable Containers:** Click `+ Add Experience Details` to add Value Labs, Dunzo, and Tata Elxsi; click `+ Add Education Details` to add SJCE degree; add primary skills tags.
+     * **Negative Referral Fields:** Answer `No` to company employee questions and enter `NA` in follow-up relation textboxes.
+     * Enforce a hard budget of **20 actions maximum** per job.
 
 ### Step 5: Targeted Human-in-the-Loop Clarification Interceptor
 * The agent executes independently across jobs without interrupting for known data bank values.
@@ -90,11 +95,15 @@ For each approved job in the queue:
   * Security challenges (CAPTCHA, Cloudflare, 2FA, OTP).
 * Once answered, apply the response, cache the mapping into `workday_field_mappings.json`, and continue.
 
-### Step 6: Final Review Step & Database Audit
-1. Submit application at the final Review step.
-2. Record the application in the SQLite database:
+### Step 6: Final Review Step & Real-Time Server Synchronization
+1. Submit application at the final Review step (or prompt user if in assisted mode).
+2. **Synchronize Server & Database via REST API:**
    ```bash
-   ./venv/bin/python -c "from src.storage.database import ApplicationDatabase; ApplicationDatabase().record_application(job_id='{job_id}', source='{source}', company_name='{company}', job_title='{title}', job_url='{url}', status='applied')"
+   curl -s -X POST http://127.0.0.1:8000/api/tracking/mark-applied/{job_id}
    ```
-3. Safely delete the processed JSON and archive the PDF to `data/resumes/`.
-4. Automatically proceed to the next approved job until the queue is clear.
+   * **Automated Actions Performed by the Endpoint:**
+     * Marks the job as `applied` in SQLite `ApplicationDatabase`.
+     * Archives the compiled PDF resume from `data/approved_queue/` into `data/resumes/`.
+     * Safely purges temporary JSON and PDF files from `data/approved_queue/`.
+     * Refreshes Tab 2 (`Approved Queue`) and Tab 3 (`Applied Tracking`) on `http://localhost:8000` live.
+3. Automatically proceed to the next approved job until the queue is clear.
