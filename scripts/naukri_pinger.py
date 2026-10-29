@@ -149,8 +149,13 @@ async def run_naukri_pinger(headless: bool = False, dry_run: bool = False) -> di
             if not is_logged_in:
                 log_event(
                     "AUTH_REQUIRED",
-                    "Naukri session not authenticated. Please log in manually in the open browser window.",
+                    "Naukri session not authenticated. Please log in manually in headful mode (python scripts/naukri_pinger.py).",
                 )
+                if headless:
+                    print("⚠️ Naukri session not authenticated (skipping wait in headless mode).")
+                    await context.close()
+                    return {"status": "AUTH_REQUIRED", "message": "Naukri login required"}
+
                 print("⚠️ Please log in to Naukri in the open browser window.")
                 print("⏳ Waiting up to 60 seconds for login completion...")
                 for _ in range(12):

@@ -321,6 +321,62 @@
       "root_cause": "Simulated collision test",
       "fix_rule": "Strictly target data-automation-id",
       "date_banked": "2026-10-18T17:36:38.979471+00:00"
+    },
+    {
+      "id": "LESSON-041",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-24T16:52:27.119482+00:00"
+    },
+    {
+      "id": "LESSON-042",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-27T17:14:15.538933+00:00"
+    },
+    {
+      "id": "LESSON-043",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-27T17:31:03.201785+00:00"
+    },
+    {
+      "id": "LESSON-044",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-28T07:31:42.492642+00:00"
+    },
+    {
+      "id": "LESSON-045",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-28T07:38:06.998445+00:00"
+    },
+    {
+      "id": "LESSON-046",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-28T11:35:06.960090+00:00"
+    },
+    {
+      "id": "LESSON-047",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-10-28T11:38:37.384734+00:00"
     }
   ]
 }

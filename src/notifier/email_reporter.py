@@ -47,19 +47,31 @@ class EmailReporter:
         self,
         staged_jobs: list[dict[str, Any]],
         regression_passed: bool = True,
-        regression_summary: str = "48/48 Passed (100%)",
+        regression_summary: str = "55/55 Passed (100%)",
         execution_duration_sec: float = 0.0,
         run_date: str | None = None,
+        hiring_posts: list[dict[str, Any]] | None = None,
+        naukri_status: dict[str, Any] | None = None,
     ) -> str:
         """Generates modern, responsive Glassmorphic HTML email body."""
         date_str = run_date or datetime.date.today().strftime("%B %d, %Y")
         total_jobs = len(staged_jobs)
+        posts = hiring_posts or []
         dream_jobs = [j for j in staged_jobs if j.get("is_dream_org")]
         ats_jobs = [j for j in staged_jobs if str(j.get("source", "")).lower() != "linkedin"]
         linkedin_jobs = [j for j in staged_jobs if str(j.get("source", "")).lower() == "linkedin"]
 
         status_badge_color = "#10b981" if regression_passed else "#ef4444"
         status_text = "HEALTHY (100% REGRESSION PASS)" if regression_passed else "REGRESSION FAILURE"
+
+        # Naukri status badge
+        n_st = (naukri_status or {}).get("status", "NOT_CONFIGURED")
+        if n_st in ("SUCCESS", "dry_run"):
+            naukri_badge = '<span style="background: #10b981; color: #ffffff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">Naukri Resdex: Refreshed ✅</span>'
+        elif n_st == "AUTH_REQUIRED":
+            naukri_badge = '<span style="background: #f59e0b; color: #ffffff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">Naukri Resdex: Login Required ⚠️</span>'
+        else:
+            naukri_badge = f'<span style="background: #64748b; color: #ffffff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">Naukri Resdex: {n_st}</span>'
 
         # Build job table rows (top 10 jobs)
         rows_html = []
@@ -101,6 +113,65 @@ class EmailReporter:
             else '<tr><td colspan="4" style="padding: 16px; text-align: center; color: #64748b;">No new jobs staged today. Queue is up to date!</td></tr>'
         )
 
+        # Build Social Hiring Posts table rows (top 5 posts)
+        posts_rows_html = []
+        for p in posts[:5]:
+            author = p.get("author_name", "Unknown")
+            role_cat = p.get("author_role_category", "PEER")
+            company = p.get("company_name", "Enterprise")
+            score = p.get("quality_score", 0)
+            post_link = p.get("post_url", "http://localhost:8000")
+            is_dream_p = p.get("is_dream_org", False)
+            dream_tag_p = '<span style="color:#f59e0b;font-weight:700;"> ⭐</span>' if is_dream_p else ""
+            emails = p.get("extracted_emails", [])
+            email_cta = (
+                f'<a href="mailto:{emails[0]}" style="display: inline-block; font-size: 10.5px; background: #059669; color: #ffffff; padding: 3px 8px; border-radius: 4px; text-decoration: none; margin-right: 4px;">✉️ Email</a>'
+                if emails
+                else ""
+            )
+
+            p_row = f"""
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px 12px; font-weight: 600; color: #0f172a;">
+                    {author}{dream_tag_p} <span style="font-size: 10px; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px;">{role_cat}</span><br>
+                    <span style="font-size: 11px; color: #64748b; font-weight: normal;">Score: {score}/100</span>
+                </td>
+                <td style="padding: 10px 12px; color: #334155; font-weight: 500;">{company}</td>
+                <td style="padding: 10px 12px; text-align: right;">
+                    {email_cta}
+                    <a href="{post_link}" style="display: inline-block; font-size: 10.5px; background: #0f172a; color: #ffffff; padding: 3px 8px; border-radius: 4px; text-decoration: none;">Post ↗</a>
+                </td>
+            </tr>
+            """
+            posts_rows_html.append(p_row)
+
+        posts_table_body = (
+            "".join(posts_rows_html)
+            if posts_rows_html
+            else '<tr><td colspan="3" style="padding: 12px; text-align: center; color: #64748b;">No new social hiring posts recorded today.</td></tr>'
+        )
+
+        posts_section = f"""
+        <div style="margin-top: 24px;">
+            <h3 style="font-size: 14px; margin: 0 0 10px 0; color: #0f172a; display: flex; align-items: center; justify-content: space-between;">
+                <span>📢 Inbound Social Hiring Posts & Leads (Track 3)</span>
+                <span style="font-size: 11px; color: #059669; font-weight: 700;">{len(posts)} Discovered</span>
+            </h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Author & Role</th>
+                        <th>Company</th>
+                        <th style="text-align: right;">Contact / Link</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {posts_table_body}
+                </tbody>
+            </table>
+        </div>
+        """
+
         return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -125,6 +196,7 @@ class EmailReporter:
 <div class="card">
   <div class="header">
     <div class="pill" style="background: {status_badge_color}; color: #ffffff;">{status_text}</div>
+    <div style="margin-top: 4px; margin-bottom: 6px;">{naukri_badge}</div>
     <h1 style="margin: 0; font-size: 20px; font-weight: 800;">🚀 Morning SDET Executive Briefing</h1>
     <p style="margin: 4px 0 0 0; font-size: 12.5px; color: #94a3b8;">{date_str} • Pipeline Execution: {execution_duration_sec:.1f}s</p>
   </div>
@@ -146,6 +218,10 @@ class EmailReporter:
       <p class="kpi-num" style="color: #4f46e5;">{len(linkedin_jobs)}</p>
       <p class="kpi-label">LinkedIn Roles</p>
     </div>
+    <div class="kpi">
+      <p class="kpi-num" style="color: #059669;">{len(posts)}</p>
+      <p class="kpi-label">Social Leads</p>
+    </div>
   </div>
 
   <div class="content">
@@ -153,6 +229,7 @@ class EmailReporter:
       <strong>Regression Health:</strong> {regression_summary}. All newly scraped roles have been deduplicated, experience-filtered, and enriched with AI-grounded STAR achievements.
     </p>
 
+    <h3 style="font-size: 14px; margin: 0 0 10px 0; color: #0f172a;">💼 Staged Job Requisitions (Tracks 1 & 2)</h3>
     <table>
       <thead>
         <tr>
@@ -166,6 +243,8 @@ class EmailReporter:
         {table_body}
       </tbody>
     </table>
+
+    {posts_section}
 
     <a href="http://localhost:8000" class="btn-primary">
       👉 Open Command Center (localhost:8000)
@@ -184,8 +263,10 @@ class EmailReporter:
         self,
         staged_jobs: list[dict[str, Any]],
         regression_passed: bool = True,
-        regression_summary: str = "48/48 Passed (100%)",
+        regression_summary: str = "55/55 Passed (100%)",
         execution_duration_sec: float = 0.0,
+        hiring_posts: list[dict[str, Any]] | None = None,
+        naukri_status: dict[str, Any] | None = None,
     ) -> bool:
         """
         Builds report, saves fallback HTML to disk, and attempts SSL dispatch via Gmail SMTP.
@@ -196,6 +277,8 @@ class EmailReporter:
             regression_passed=regression_passed,
             regression_summary=regression_summary,
             execution_duration_sec=execution_duration_sec,
+            hiring_posts=hiring_posts,
+            naukri_status=naukri_status,
         )
 
         # 1. Always save fallback archive HTML to disk
@@ -213,7 +296,10 @@ class EmailReporter:
         # 3. Dispatch via SMTP_SSL
         try:
             msg = EmailMessage()
-            msg["Subject"] = f"🚀 Daily SDET Automation Briefing: {len(staged_jobs)} New Roles ({today_slug})"
+            posts_count = len(hiring_posts or [])
+            msg["Subject"] = (
+                f"🚀 Daily SDET Automation Briefing: {len(staged_jobs)} Jobs & {posts_count} Social Leads ({today_slug})"
+            )
             msg["From"] = self.sender
             msg["To"] = self.recipient
             msg.set_content(

@@ -19,6 +19,7 @@ class JobSearchPipelineRunner:
     def __init__(self, config: dict[str, Any]):
         self.config = config
         self.use_ai = config.get("llm", {}).get("use_ai", True)
+        self.last_posts_discovered: list[dict[str, Any]] = []
 
     def run_sync_stage(self) -> dict[str, Any]:
         """Stage 1: Ingests candidate_notes.md and translates to master_knowledge_bank.json."""
@@ -36,7 +37,7 @@ class JobSearchPipelineRunner:
         headless: bool | None = None,
     ) -> list[dict[str, Any]]:
         """
-        Stage 2: Runs unified multi-source discovery (Direct Keyless ATS + LinkedIn Multi-Channel)
+        Stage 2: Runs unified multi-source discovery (Direct Keyless ATS + LinkedIn Multi-Channel + Social Posts)
         with AI resume tailoring and cross-source deduplication.
         """
         discovery_cfg = dict(self.config.get("discovery", {}))
@@ -52,11 +53,11 @@ class JobSearchPipelineRunner:
         linkedin_jobs: list[dict[str, Any]] = []
 
         # -------------------------------------------------------------
-        # TRACK 1: DIRECT KEYLESS ATS INGESTION (Greenhouse, Lever, Ashby)
+        # TRACK 1: DIRECT KEYLESS ATS INGESTION (Greenhouse, Lever, Ashby, Workday)
         # -------------------------------------------------------------
         if target_source in ["all", "ats", "trio"]:
             print("\n" + "-" * 55)
-            print("  🌐 [TRACK 1] DIRECT KEYLESS ATS INGESTION (Greenhouse, Lever, Ashby)")
+            print("  🌐 [TRACK 1] DIRECT KEYLESS ATS INGESTION (Greenhouse, Lever, Ashby, Workday)")
             print("-" * 55)
             try:
                 coordinator = ATSDiscoveryCoordinator(use_ai=self.use_ai)
@@ -84,11 +85,34 @@ class JobSearchPipelineRunner:
             else:
                 print("ℹ️ No search_profiles found in config.yaml for LinkedIn.\n")
 
+        # -------------------------------------------------------------
+        # TRACK 3: LINKEDIN INBOUND SOCIAL HIRING POSTS & LEADS
+        # -------------------------------------------------------------
+        posts_discovered: list[dict[str, Any]] = []
+        if target_source in ["all", "linkedin", "posts"]:
+            print("\n" + "-" * 55)
+            print("  📢 [TRACK 3] LINKEDIN SOCIAL HIRING POSTS & LEADS SCOUTING")
+            print("-" * 55)
+            try:
+                from src.posts.post_tracker import LinkedInPostTracker
+                from src.storage.database import ApplicationDatabase
+
+                tracker = LinkedInPostTracker(db=ApplicationDatabase())
+                date_filter = discovery_cfg.get("posts_date_filter", "past-week")
+                is_headless = discovery_cfg.get("headless", True)
+                posts_discovered = await tracker.discover_posts(date_filter=date_filter, headless=is_headless)
+                print(f"✅ Track 3 Complete: {len(posts_discovered)} inbound hiring lead(s) banked into SQLite.\n")
+            except Exception as e:
+                print(f"⚠️ Track 3 (Hiring Posts Discovery) encountered warning: {e}\n")
+
+        self.last_posts_discovered = posts_discovered
+
         total_seeded = len(ats_saved_paths) + len(linkedin_jobs)
         print("=" * 60)
-        print(f"🎉 STAGE 2 COMPLETE: {total_seeded} total job(s) staged in data/pending_queue/")
+        print(f"🎉 STAGE 2 COMPLETE: {total_seeded} job(s) staged | {len(posts_discovered)} social lead(s) banked")
         print(f"   • Direct Enterprise ATS Jobs: {len(ats_saved_paths)}")
         print(f"   • LinkedIn Multi-Channel Jobs: {len(linkedin_jobs)}")
+        print(f"   • Inbound Social Posts & Leads: {len(posts_discovered)}")
         print("=" * 60 + "\n")
 
         return linkedin_jobs

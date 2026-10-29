@@ -13,6 +13,7 @@ import asyncio
 import json
 import os
 import sys
+import urllib.parse
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
@@ -171,7 +172,8 @@ def test_approved_queue_jobs_referral_pack():
             assert key in urls, f"Missing key {key} in search_urls for {filename}"
             url_str = urls[key]
             assert "%22%22" not in url_str, f"Found empty quotes '%22%22' in {key} search URL for {filename}: {url_str}"
-            assert company.replace(" ", "%20") in url_str or company in url_str, (
+            encoded_company = urllib.parse.quote(company)
+            assert encoded_company in url_str or company.replace(" ", "%20") in url_str or company in url_str, (
                 f"Company {company} missing from {key} URL: {url_str}"
             )
             # All 7 approved jobs are in India / Bengaluru

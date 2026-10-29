@@ -251,8 +251,10 @@ def handle_daily_audit(limit: int = 5):
 
             print(f"  [{ts}] [{ev}] [{st}] RunID: {rid}")
             if ev == "RUN_COMPLETED":
-                print(f"     • Jobs Staged: {staged} ({dream} Dream Orgs)")
-                print(f"     • Regressions: {reg} | Email: {em} | Duration: {dur}s")
+                social = r.get("social_leads_count", 0)
+                naukri = r.get("naukri_status", "N/A")
+                print(f"     • Jobs Staged: {staged} ({dream} Dream Orgs) | Social Leads: {social}")
+                print(f"     • Naukri Touch: {naukri} | Regressions: {reg} | Email: {em} | Duration: {dur}s")
             if err:
                 print(f"     • Error: {err}")
             print()
