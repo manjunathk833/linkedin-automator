@@ -467,6 +467,14 @@
     - Verification Gate 104 Authored (`verify/104_test_search_sort_and_company_discovery.py`): Validated search sorting parameter handling, config schema compliance, company job title filtering, and Search Profile 1 relevance URL construction. Passed 100%.
     - Standardized Tier 1 Core Regressions: Expanded suite to 59 tests in `verify/run_regressions.py`. Passed 100%.
     - Codebase Linting: 0 errors across all files (`python main.py lint`).
+  - **Socket Timeout Protection & Knowledge Bank Boundary Hardening (Milestone 61):**
+    - Root Cause Analysis on Daily Run Hang: Identified that `google.genai.Client` in `src/tailor/llm_provider.py` lacked an HTTP socket timeout (`timeout=None` default), causing indefinite blocks when Google's API endpoint stalled during card tailoring.
+    - Added `types.HttpOptions(timeout=25000)` to `genai.Client` enforcing a 25-second ceiling with automatic fallback.
+    - Hardened candidate notes translation prompt and added programmatic boundary isolation in `src/tailor/knowledge_translator.py` guaranteeing modern tools (Playwright, TypeScript, Docker, Kubernetes, Kafka, WireMock, Pact) remain under Personal / Certification and cannot leak into Value Labs, Dunzo, or Tata Elxsi histories.
+    - Executed live automated daily pipeline (`python main.py daily run --skip-tests`): completed with 100% SUCCESS in 952.4s.
+    - Yield Scaled: Expanded staged jobs in `data/pending_queue/` from 38 to 52 jobs (+14 new roles, +36.8%) including Swiggy (`4481865334`) and Postman (`4477644487`).
+    - Standardized Tier 1 Core Regressions: 59/59 tests passing (100% SUCCESS).
+    - Codebase Linting: 0 errors across all files (`python main.py lint`).
 
 
 

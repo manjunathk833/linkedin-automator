@@ -157,7 +157,8 @@ Your task is to convert raw candidate notes into structured STAR achievement obj
 
 Convert each note into a structured JSON achievement containing:
 - domain: Classified technical domain (e.g., Performance Testing, API Automation, Event-Driven Architecture, Cloud Certification)
-- company: Associated company name (e.g. Value Labs, Dunzo, Tata Elxsi) or "Personal / Certification"
+- company: Associated company name (e.g. Value Labs, Dunzo, Tata Elxsi) or "Personal / Certification".
+  STRICT EMPLOYMENT BOUNDARY MANDATE: Modern tools (Playwright, TypeScript, Docker, Kubernetes, Kafka, WireMock, Pact) must ALWAYS be assigned to "Personal / Certification", NEVER to Value Labs, Dunzo, or Tata Elxsi.
 - star_achievement: STAR-formatted bullet point [Action Verb] + [Tools] + [Outcome]
 - tools: Array of tech tools (e.g. ["Locust", "Python", "API"])
 - metric: Extracted metric or ROI outcome (e.g. "35% latency reduction")
@@ -194,8 +195,12 @@ class GeminiLLMProvider(LLMProvider):
             try:
                 os.environ["GEMINI_API_KEY"] = self.api_key
                 from google import genai
+                from google.genai import types
 
-                self.client = genai.Client(api_key=self.api_key)
+                self.client = genai.Client(
+                    api_key=self.api_key,
+                    http_options=types.HttpOptions(timeout=25000),
+                )
             except Exception as e:
                 print(f"⚠️ Failed to initialize Gemini Client: {e}")
 
