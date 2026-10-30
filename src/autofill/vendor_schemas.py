@@ -29,7 +29,7 @@ class MasterPersonalDetails(BaseModel):
     postal_code: str = "560001"
     location: str = "Bengaluru, Karnataka, India"
     prefix: str = "Mr."
-    workday_default_password: str = "Candidate@2026Auto!"
+    workday_default_password: str = "CandidateMockSecret123!"
 
 
 class MasterProfiles(BaseModel):
@@ -163,6 +163,7 @@ class ATSVendorPattern:
     DATABRICKS_CUSTOM_GREENHOUSE = "DATABRICKS_CUSTOM_GREENHOUSE"
     COINBASE_CUSTOM_GREENHOUSE = "COINBASE_CUSTOM_GREENHOUSE"
     ORACLE_CLOUD_HCM = "ORACLE_CLOUD_HCM"
+    HIRIST_TECH_STANDARD = "HIRIST_TECH_STANDARD"
     GENERIC_ATS_FALLBACK = "GENERIC_ATS_FALLBACK"
 
 
@@ -573,6 +574,93 @@ VENDOR_SCHEMAS: dict[str, dict[str, Any]] = {
             ],
         },
     },
+    ATSVendorPattern.HIRIST_TECH_STANDARD: {
+        "vendor_name": "Hirist Tech",
+        "url_identifiers": ["hirist.tech", "hirist.com"],
+        "url_patterns": [r"hirist\.tech/j/", r"hirist\.com/j/"],
+        "dom_fingerprints": [
+            "input[name='phoneNumber']",
+            "button:has-text('Save & Next')",
+            "input[name='whatsappConsent']",
+        ],
+        "selectors": {
+            "resume": ["input[type='file']"],
+            "name": ["input[name='name']", "input#name"],
+            "email": ["input[name='email']", "input#email"],
+            "phone": ["input[name='phoneNumber']", "input[type='tel']", "input[name='phone']"],
+            "linkedin": ["input[name='linkedin']", "input[placeholder*='linkedin' i]"],
+            "github": ["input[name='github']", "input[placeholder*='github' i]"],
+            "whatsapp_consent": ["input[name='whatsappConsent']"],
+            "linkedin_consent": ["input[name='linkedinConsent']"],
+            "save_and_next": [
+                "button:has-text('Save & Next')",
+                "button:has-text('Submit')",
+                "button.btn-apply",
+                "button[type='submit']",
+            ],
+            "company": [
+                "input[name='company']",
+                "input[name='organization']",
+                "input[name='currentCompany']",
+                "input[placeholder*='company' i]",
+            ],
+            "designation": [
+                "input[name='designation']",
+                "input[name='title']",
+                "input[name='role']",
+                "input[placeholder*='designation' i]",
+            ],
+            "current_ctc": [
+                "input[name='currentCtc']",
+                "input[name='ctc']",
+                "input[placeholder*='current ctc' i]",
+                "input[placeholder*='fixed' i]",
+            ],
+            "expected_ctc": [
+                "input[name='expectedCtc']",
+                "input[placeholder*='expected ctc' i]",
+            ],
+            "notice_period": [
+                "input[name='noticePeriod']",
+                "select[name='noticePeriod']",
+                "[id*='noticePeriod']",
+                "input[placeholder*='notice' i]",
+            ],
+            "total_experience": [
+                "input[name='totalExperience']",
+                "input[name='experience']",
+                "select[name='experience']",
+            ],
+            "highest_qualification": [
+                "input[name='highestDegree']",
+                "select[name='qualification']",
+                "input[placeholder*='qualification' i]",
+                "input[name='degree']",
+            ],
+            "institute": [
+                "input[name='institute']",
+                "input[name='college']",
+                "input[placeholder*='institute' i]",
+                "input[placeholder*='college' i]",
+            ],
+            "passing_year": [
+                "input[name='passingYear']",
+                "select[name='year']",
+                "input[placeholder*='passing year' i]",
+            ],
+            "skills": [
+                "input[name='skills']",
+                "input[placeholder*='skills' i]",
+            ],
+            "captcha_indicators": [
+                "iframe[src*='recaptcha']",
+                ".g-recaptcha",
+                "[id*='captcha']",
+                "input[name*='captcha']",
+                "input[name*='otp']",
+            ],
+        },
+    },
     ATSVendorPattern.LINKEDIN_EASY_APPLY: {
         "vendor_name": "LinkedIn Easy Apply",
         "url_identifiers": ["linkedin.com"],
@@ -618,6 +706,8 @@ def classify_ats_pattern(url: str) -> str:
         return ATSVendorPattern.ASHBY_STANDARD
     if "workday" in clean_url or "myworkdayjobs.com" in clean_url:
         return ATSVendorPattern.WORKDAY_STANDARD
+    if "hirist.tech" in clean_url or "hirist.com" in clean_url:
+        return ATSVendorPattern.HIRIST_TECH_STANDARD
     if "linkedin.com" in clean_url:
         return ATSVendorPattern.LINKEDIN_EASY_APPLY
 

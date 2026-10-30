@@ -7,6 +7,9 @@ Supports dynamic drop-in of rebrowser-playwright or standard Playwright.
 from __future__ import annotations
 
 import os
+import signal
+import subprocess
+import time
 from typing import Any
 
 # Default directory for persistent stealth session data
@@ -115,6 +118,75 @@ def get_playwright_module():
         return pw_api
 
 
+def clean_stale_browser_processes(user_data_dir: str, force: bool = False) -> int:
+    """
+    Finds and cleanly terminates orphaned Chrome or Chromium processes that are bound
+    to the target user_data_dir, preventing profile lock collisions and renderer crashes.
+    Safely removes Singleton lock files only after processes are dead.
+    """
+    norm_dir = os.path.abspath(user_data_dir)
+    try:
+        res = subprocess.run(["ps", "-A", "-o", "pid,ppid,command"], capture_output=True, text=True, check=False)
+        pids = []
+        current_pid = os.getpid()
+        for line in res.stdout.splitlines():
+            if norm_dir in line and ("Google Chrome" in line or "chromium" in line or "chrome" in line.lower()):
+                parts = line.strip().split(None, 2)
+                if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+                    pid = int(parts[0])
+                    ppid = int(parts[1])
+                    if pid != current_pid and (force or ppid == 1):
+                        pids.append(pid)
+
+        for pid in pids:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError:
+                pass
+
+        if pids:
+            time.sleep(0.4)
+            for pid in pids:
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except OSError:
+                    pass
+
+        # Clean lock files only if no active Chrome process is currently bound
+        active_bound = False
+        res_check = subprocess.run(["ps", "-A", "-o", "pid,command"], capture_output=True, text=True, check=False)
+        for line in res_check.stdout.splitlines():
+            if norm_dir in line and ("Google Chrome" in line or "chromium" in line or "chrome" in line.lower()):
+                parts = line.strip().split(None, 1)
+                if parts and parts[0].isdigit() and int(parts[0]) != current_pid:
+                    active_bound = True
+                    break
+
+        if not active_bound:
+            for lock_file in ("SingletonLock", "SingletonSocket", "SingletonCookie"):
+                lock_path = os.path.join(norm_dir, lock_file)
+                if os.path.lexists(lock_path):
+                    try:
+                        os.remove(lock_path)
+                    except Exception:
+                        pass
+
+        return len(pids)
+    except Exception:
+        return 0
+
+
+def is_browser_context_alive(context: Any) -> bool:
+    """Verifies whether the Playwright browser context and at least one page are alive and accessible."""
+    if not context:
+        return False
+    try:
+        pages = getattr(context, "pages", [])
+        return len(pages) > 0 and not pages[0].is_closed()
+    except Exception:
+        return False
+
+
 async def launch_stealth_browser(
     user_data_dir: str = DEFAULT_STEALTH_DIR,
     headless: bool = False,
@@ -122,11 +194,14 @@ async def launch_stealth_browser(
 ) -> tuple[Any, Any, Any]:
     """
     Launches an anti-detection hardened persistent browser context using system Google Chrome.
+    Ensures stale processes are terminated and locks cleaned to prevent concurrent profile collisions.
 
     Returns:
         tuple: (playwright_instance, context, page)
     """
     os.makedirs(user_data_dir, exist_ok=True)
+    clean_stale_browser_processes(user_data_dir)
+
     pw_api = get_playwright_module()
     playwright_instance = await pw_api.async_playwright().start()
 
@@ -138,6 +213,10 @@ async def launch_stealth_browser(
         "--disable-background-timer-throttling",
         "--disable-backgrounding-occluded-windows",
         "--disable-renderer-backgrounding",
+        "--disable-gpu-shader-disk-cache",
+        "--disable-dev-shm-usage",
+        "--no-zygote",
+        "--remote-debugging-port=9222",
         "--start-maximized",
     ]
 

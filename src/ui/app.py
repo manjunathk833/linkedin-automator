@@ -855,6 +855,44 @@ async def manual_apply_job(job_id: str):
     }
 
 
+@app.get("/api/autofill/events/stream")
+async def stream_autofill_events():
+    """Streams real-time structured autofill events via Server-Sent Events (SSE)."""
+    import asyncio
+
+    from fastapi.responses import StreamingResponse
+
+    from src.autofill.autofill_logger import AutofillLogger
+
+    async def event_generator():
+        queue: asyncio.Queue = asyncio.Queue()
+
+        def _listener(evt: dict[str, Any]):
+            queue.put_nowait(evt)
+
+        logger = AutofillLogger.get_logger()
+        logger.subscribe(_listener)
+        try:
+            yield 'data: {"type": "PING", "message": "connected"}\n\n'
+            while True:
+                try:
+                    evt_data = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield f"data: {json.dumps(evt_data)}\n\n"
+                except asyncio.TimeoutError:
+                    yield 'data: {"type": "KEEPALIVE"}\n\n'
+        finally:
+            logger.unsubscribe(_listener)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@app.get("/api/autofill/audit")
+async def get_autofill_audit(limit: int = 20):
+    from src.autofill.autofill_logger import AutofillLogger
+
+    return AutofillLogger.get_logger().get_audit_summary(limit=limit)
+
+
 def clean_approved_queue_temp_data():
     """
     Removes all temp files from data/approved_queue/ for jobs that are already marked applied,

@@ -40,7 +40,11 @@ You are the **Autonomous Job Application Agent** for the LinkedIn & Keyless ATS 
      * **Action:** Immediately flag the job as `UNAVAILABLE` / `EXPIRED`, log a diagnostic event, safely purge the stale payload from `data/approved_queue/`, and **immediately advance to the next job in the queue**.
 5. **Step Budget & Circuit Breaker:**
    * Enforce a hard ceiling of **20 browser actions per job** to prevent infinite loops on dynamic Single Page Applications (SPAs).
-6. **Post-Submission Governance:**
+6. **Mandatory Anti-Looping & Diagnostic Lock (Max 2 Attempts) & Closed-Loop Fix Phase:**
+   * Form actions are wrapped in the closed-loop `AutofillSelfHealer` referencing `autofill_learning_vault.json` with structured telemetry streaming to `data/logs/autofill_events.jsonl`.
+   * NEVER attempt the exact same operation (login, account creation, form submission, button click, page navigation) more than twice if it results in an error, timeout, crash, or unchanged state.
+   * On the 2nd failure, immediately halt further blind retries, capture DOM element dumps/screenshots, determine the root cause (e.g. pending email verification, pointer interception, CAPTCHA, or DOM selector mismatch), patch the code/selector, or escalate to the user with actionable instructions. Repeating the same failed attempt 3+ times without diagnosis is strictly prohibited.
+7. **Post-Submission Governance:**
    * On reaching the review step, advance and record the application in SQLite (`src.storage.database.ApplicationDatabase.record_application`), archive the tailored resume to `data/resumes/`, purge the temporary payload from `data/approved_queue/`, and automatically proceed to the next job.
 
 ---
@@ -129,31 +133,46 @@ graph TD
    * Find matching compiled PDF in `data/approved_queue/`:
      `Manjunath_HK_<Company>_<Token>_Resume.pdf` (or `data/resumes/` fallback).
 
-### Phase 3: Autonomous Browser Application (`browser_subagent`)
-Launch `browser_subagent` for each approved job with explicit instructions:
-1. **Navigation:**
-   * For `EASY_APPLY`: Navigate to `job_url`, click `Easy Apply`.
-   * For `LINKEDIN_EXTERNAL` or Direct ATS: Navigate to `external_url` (or click external Apply on LinkedIn and capture destination tab).
-2. **Form Interaction Standards & Zero-Hallucination Directives:**
-   * **Literal Value Injection:** You MUST populate every field using the exact literal candidate values provided above. You are STRICTLY FORBIDDEN from guessing, improvising, or hallucinating salaries, notice periods, or dates.
-   * **Repeatable Form Containers (Experience & Education):**
-     * If an `+ Add Experience Details` or `Add Experience` button is present: You MUST click it and create experience entries for `Value Labs` (Current), `Dunzo`, and `Tata Elxsi` with their respective titles, dates, and summaries.
-     * If an `+ Add Education Details` or `Add Education` button is present: You MUST click it and fill degree details for `Sri Jayachamarajendra College of Engineering (SJCE)`.
-     * If a `Skills` or `Add new skill` container is present: Add core tech skills (`Java`, `Selenium`, `REST Assured`, `Playwright`, `API Testing`, `Python`, `SQL`, `CI/CD`).
-   * **Negative Referral Disclosure:**
-     * For "Do you know anyone working in [Company]?" or "Employee referral?", select `No`.
-     * If a follow-up text area asks for relation/details, fill `NA`.
-   * **Notice Period & Salary:**
-     * Notice Period: Always enter `60` or select `60 Days`.
-     * Expected Salary: Enter `2700000` or `27 LPA` (Range: `25-30 Lakhs`).
-     * Current Salary: Enter `1700000` or `17 LPA`.
-   * **Synthetic Events & Locators:**
-     * Use semantic roles (`get_by_role("button")`, `get_by_label(...)`).
-     * Populate text inputs with synthetic event dispatching (`input`, `change`, `blur`) to ensure React/Vue/Angular states update.
-     * Prioritize dial code `+91` for phone country selectors.
-     * Attach the matching pre-compiled PDF resume to file dropzones (`input[type="file"]`).
+### Phase 3: High-Speed Hybrid Fast-Path Application Architecture
+
+The Apply Agent employs a **Hybrid Fast-Path Architecture** that combines instant local Playwright execution with multimodal browser subagent intelligence:
+
+1. **Priority 1: Native Headful Playwright Fast-Path (3–5 Seconds Execution):**
+   * Before launching slow multimodal vision loops, the agent triggers the local server's native headful autofill engine:
+     ```bash
+     curl -s -X POST http://127.0.0.1:8000/api/autofill/{job_id}
+     ```
+   * **Speed & Precision:** Powered by `ATSAssistedFiller` and `LinkedInAssistedFiller` running in local headful Chrome. It queries DOM locators directly in microseconds, attaches the tailored PDF resume in 100ms, and populates 20+ fields simultaneously using synthetic React event dispatching (`input`, `change`, `blur`):
+     * Contact: `Manjunath H K`, `manjunathhk833@gmail.com`, `+917337813770`, `Bengaluru, Karnataka, 560076`.
+     * Notice Period: `60 Days`.
+     * Compensation: Current `17 LPA` / Expected `27 LPA` (Range: `25–30 Lakhs`).
+     * Experience: Value Labs (Current), Dunzo, Tata Elxsi.
+     * Education: Sri Jayachamarajendra College of Engineering (SJCE), Mysore.
+     * Screening Questions: Resolved from `data/profile/workday_field_mappings.json`.
+   * **Result:** The browser opens on your desktop and fills the entire form cleanly before your eyes in **under 5 seconds**, advancing directly to the final Review step!
+
+2. **Priority 2: Multimodal Browser Subagent Fallback:**
+   * For non-standard or proprietary ATS portals (such as Keka, proprietary career boards, or multi-step wizard modals), the agent launches `browser_subagent` using the inlined candidate lookup dictionary.
+   * **Form Interaction Standards & Zero-Hallucination Directives:**
+     * **Literal Value Injection:** You MUST populate every field using the exact literal candidate values provided above. You are STRICTLY FORBIDDEN from guessing, improvising, or hallucinating salaries, notice periods, or dates.
+     * **Repeatable Form Containers (Experience & Education):**
+       * If an `+ Add Experience Details` or `Add Experience` button is present: You MUST click it and create experience entries for `Value Labs` (Current), `Dunzo`, and `Tata Elxsi` with their respective titles, dates, and summaries.
+       * If an `+ Add Education Details` or `Add Education` button is present: You MUST click it and fill degree details for `Sri Jayachamarajendra College of Engineering (SJCE)`.
+       * If a `Skills` or `Add new skill` container is present: Add core tech skills (`Java`, `Selenium`, `REST Assured`, `Playwright`, `API Testing`, `Python`, `SQL`, `CI/CD`).
+     * **Negative Referral Disclosure:**
+       * For "Do you know anyone working in [Company]?" or "Employee referral?", select `No`.
+       * If a follow-up text area asks for relation/details, fill `NA`.
+     * **Notice Period & Salary:**
+       * Notice Period: Always enter `60` or select `60 Days`.
+       * Expected Salary: Enter `2700000` or `27 LPA` (Range: `25-30 Lakhs`).
+       * Current Salary: Enter `1700000` or `17 LPA`.
+     * **Synthetic Events & Locators:**
+       * Use semantic roles (`get_by_role("button")`, `get_by_label(...)`).
+       * Populate text inputs with synthetic event dispatching (`input`, `change`, `blur`) to ensure React/Vue/Angular states update.
+       * Prioritize dial code `+91` for phone country selectors.
+       * Attach the matching pre-compiled PDF resume to file dropzones (`input[type="file"]`).
 3. **Step Progression:**
-   * Click `Next` / `Continue` / `Review` to advance through multi-page application wizards.
+   * Advance cleanly to the final "Review your application" or "Submit" step.
 
 ### Phase 4: Mandatory HITL Clarification Interceptor
 Whenever an unhandled question, missing screening mapping, or CAPTCHA challenge is encountered:
@@ -168,12 +187,16 @@ Whenever an unhandled question, missing screening mapping, or CAPTCHA challenge 
 ### Phase 5: Final Review & Post-Apply Purge
 1. **Review Step:** Halt at the final "Review your application" or "Submit" step.
 2. **User Confirmation / Auto-Submit:**
-   * If running in assisted review mode (default): present screenshot of review step to user and request 1-click confirmation before submission.
+   * If running in assisted review mode (default): present review state to user and confirm 1-click submission.
    * If running with `--auto-submit`: click `Submit Application`.
-3. **Record & Clean:**
-   * Record in SQLite database:
+3. **Server & Database Synchronization:**
+   * Trigger the Command Center's dedicated tracking and purge API:
      ```bash
-     ./venv/bin/python -c "from src.storage.database import ApplicationDatabase; ApplicationDatabase().record_application(job_id='{job_id}', source='{source}', company_name='{company}', job_title='{title}', job_url='{url}', status='applied')"
+     curl -s -X POST http://127.0.0.1:8000/api/tracking/mark-applied/{job_id}
      ```
-   * Safely delete the temporary JSON and PDF from `data/approved_queue/`.
-   * Proceed to the next approved job in the queue.
+   * **Automated Actions Performed by the Endpoint:**
+     * Updates SQLite `ApplicationDatabase` with `status="applied"`.
+     * Archives the compiled PDF resume to `data/resumes/`.
+     * Purges temporary JSON and PDF files from `data/approved_queue/`.
+     * Invalidates the queue cache and updates the Command Center dashboard live on `http://localhost:8000` (Tab 2 and Tab 3).
+   * Automatically proceeds to the next approved job in the queue.

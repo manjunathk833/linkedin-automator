@@ -10,16 +10,53 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
+import uuid
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 LOGS_DIR = Path("data/logs")
 SCREENSHOTS_DIR = LOGS_DIR / "screenshots"
 DIAGNOSTICS_LOG_FILE = LOGS_DIR / "autofill_diagnostics.log"
 EVENTS_JSONL_FILE = LOGS_DIR / "autofill_events.jsonl"
 LEARNING_VAULT_FILE = LOGS_DIR / "autofill_learning_vault.json"
+
+
+def mask_pii(value: str, field_name: str = "") -> str:
+    """Masks sensitive credentials and contact tokens for diagnostic audit trails."""
+    if not value:
+        return ""
+    lower_field = field_name.lower()
+    if any(k in lower_field for k in ("password", "pwd", "secret", "token")):
+        return "********"
+    if any(k in lower_field for k in ("phone", "tel", "mobile")):
+        clean_num = re.sub(r"[^\d+]", "", value)
+        if len(clean_num) > 6:
+            return clean_num[:4] + "****" + clean_num[-2:]
+        return "******"
+    return value
+
+
+@dataclass
+class AutofillEvent:
+    """Structured event capturing atomic autofill and self-healing telemetry."""
+
+    event_id: str
+    timestamp: str
+    event_type: str
+    vendor: str
+    stage: str
+    action_type: str
+    locator: str
+    field_name: str
+    value_preview: str
+    duration_ms: float
+    status: str
+    error: str | None = None
+    diagnostics: dict[str, Any] | None = None
 
 
 def _ensure_directories() -> None:
@@ -36,6 +73,7 @@ class AutofillLogger:
         _ensure_directories()
         self.logger = logging.getLogger("autofill_diagnostics")
         self.logger.setLevel(logging.INFO)
+        self._listeners: list[Callable[[dict[str, Any]], None]] = []
 
         # Avoid duplicate handlers on re-instantiation
         if not self.logger.handlers:
@@ -48,6 +86,16 @@ class AutofillLogger:
             self.logger.addHandler(fh)
 
         self._init_learning_vault_if_missing()
+
+    def subscribe(self, callback: Callable[[dict[str, Any]], None]) -> None:
+        """Subscribes an async or sync callback to receive live autofill events (e.g. for SSE streams)."""
+        if callback not in self._listeners:
+            self._listeners.append(callback)
+
+    def unsubscribe(self, callback: Callable[[dict[str, Any]], None]) -> None:
+        """Unsubscribes a listener callback."""
+        if callback in self._listeners:
+            self._listeners.remove(callback)
 
     @classmethod
     def get_logger(cls) -> AutofillLogger:
@@ -107,6 +155,13 @@ class AutofillLogger:
             with open(LEARNING_VAULT_FILE, "w", encoding="utf-8") as f:
                 json.dump(initial_vault, f, indent=2)
 
+    def _notify_listeners(self, data: dict[str, Any]) -> None:
+        for cb in list(self._listeners):
+            try:
+                cb(data)
+            except Exception:
+                pass
+
     def log(
         self,
         event_type: str,
@@ -140,6 +195,53 @@ class AutofillLogger:
                 f.write(json.dumps(event_data) + "\n")
         except Exception as e:
             self.logger.warning(f"Failed to append to {EVENTS_JSONL_FILE}: {e}")
+
+        self._notify_listeners(event_data)
+
+    def log_field_action(
+        self,
+        event_type: str,
+        vendor: str,
+        stage: str,
+        action_type: str,
+        locator: str,
+        field_name: str,
+        value: str,
+        duration_ms: float,
+        status: str = "SUCCESS",
+        error: str | None = None,
+        diagnostics: dict[str, Any] | None = None,
+    ) -> AutofillEvent:
+        """Records a granular field action with PII masking and broadcasts to listeners."""
+        masked_val = mask_pii(value, field_name)
+        now_iso = datetime.now(timezone.utc).isoformat()
+        evt = AutofillEvent(
+            event_id=f"evt_{uuid.uuid4().hex[:12]}",
+            timestamp=now_iso,
+            event_type=event_type,
+            vendor=vendor,
+            stage=stage,
+            action_type=action_type,
+            locator=locator,
+            field_name=field_name,
+            value_preview=masked_val,
+            duration_ms=round(duration_ms, 2),
+            status=status,
+            error=error,
+            diagnostics=diagnostics,
+        )
+        evt_dict = asdict(evt)
+        self.logger.info(
+            f"[{vendor}] [{stage}] {event_type}: {action_type} '{field_name}' -> status={status} ({duration_ms:.1f}ms)"
+        )
+        try:
+            with open(EVENTS_JSONL_FILE, "a", encoding="utf-8") as f:
+                f.write(json.dumps(evt_dict) + "\n")
+        except Exception as e:
+            self.logger.warning(f"Failed to append to {EVENTS_JSONL_FILE}: {e}")
+
+        self._notify_listeners(evt_dict)
+        return evt
 
     async def capture_diagnostic(
         self,
