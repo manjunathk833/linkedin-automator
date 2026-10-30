@@ -3,14 +3,26 @@
 discovery:
   source: "all"                # Unified discovery: "all" (Direct ATS + LinkedIn), "linkedin", or "ats"
   headless: false              # Set to true for headless CI/CD and daily scheduled runs
+  sort_by: "relevance"         # "relevance" (matches best roles like Swiggy on Page 1) or "date" (strictly newest timestamp)
   max_pages_per_search: 3      # Search query pages (start=0, 25, 50)
   max_recommended_pages: 5     # Recommended feed pages (start=0, 25, 50, 75, 100)
   recommendation_collections:
     - "recommended"
     - "top-applicant"
+    - "still-hiring"
   enable_recommended_feed: true
   enable_recruiter_posts: true
   enable_similar_jobs: true
+  enable_target_company_pages: true
+  target_company_slugs:
+    - "swiggy-in"
+    - "dunzo-in"
+    - "cred-club"
+    - "flipkart"
+    - "postman-platform"
+    - "browserstack"
+    - "razorpay"
+    - "zepto-quick-commerce"
   easy_apply_only: false       # Ingest both Easy Apply and External ATS opportunities
 
 search_profiles:
