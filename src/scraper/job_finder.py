@@ -105,6 +105,7 @@ class LinkedInJobFinder:
         start: int = 0,
         easy_apply_only: bool = False,
         distance: int | None = None,
+        sort_by: str = "relevance",
     ) -> str:
         """
         Constructs clean, optimized LinkedIn job search URL supporting:
@@ -113,7 +114,7 @@ class LinkedInJobFinder:
         - f_E (Experience levels: 4=Mid-Senior)
         - f_TPR (Time posted: r604800=past week, r86400=past 24h, r2592000=past month)
         - distance (Search radius in miles, e.g. 25)
-        - sortBy=DD (Sort newest first)
+        - sortBy (Relevance by default, or DD when sort_by='date')
         - start (Pagination offset: 0, 25, 50)
         """
         clean_kw = keywords.strip()
@@ -126,7 +127,11 @@ class LinkedInJobFinder:
             clean_kw = clean_kw[1:-1].strip()
 
         base_url = "https://www.linkedin.com/jobs/search/?"
-        params = {"keywords": clean_kw, "location": location, "sortBy": "DD"}
+        params = {"keywords": clean_kw, "location": location}
+        if sort_by and sort_by.lower() in ["date", "dd", "newest"]:
+            params["sortBy"] = "DD"
+        elif sort_by and sort_by.lower() in ["relevance_explicit", "r"]:
+            params["sortBy"] = "R"
         if easy_apply_only:
             params["f_AL"] = "true"
         if distance is not None and int(distance) > 0:
@@ -292,6 +297,76 @@ class LinkedInJobFinder:
                     break
 
         print(f"\n✅ Total unique recommended jobs extracted across collections: {len(extracted)}")
+        return extracted
+
+    async def scrape_company_jobs(
+        self,
+        page: Any,
+        company_slugs: list[str],
+        max_jobs_per_company: int = 10,
+    ) -> list[dict[str, Any]]:
+        """Channel 5: Scrapes job openings directly published on target enterprise LinkedIn company pages
+        (e.g., https://www.linkedin.com/company/swiggy-in/jobs/)."""
+        print("\n" + "=" * 50)
+        print(f"🏢 CHANNEL 5: SCRAPING TARGET ENTERPRISE COMPANY JOBS ({len(company_slugs)} companies)")
+        print("=" * 50)
+
+        extracted = []
+        seen_ids = set()
+
+        for slug in company_slugs:
+            clean_slug = slug.strip().strip("/")
+            company_url = f"https://www.linkedin.com/company/{clean_slug}/jobs/"
+            print(f"\n🌐 Navigating to Company Jobs: [{clean_slug}] -> {company_url}")
+
+            try:
+                await page.goto(company_url, wait_until="domcontentloaded")
+                await asyncio.sleep(2.5)
+                await self.scroll_results_pane(page, scrolls=3)
+
+                cards = await page.locator(
+                    ".job-card-container, div[data-job-id], .org-jobs-job-search-results-list__list-item, section.job-card-square, div[data-view-name*='recommended-jobs-card']"
+                ).all()
+                print(f"   Found {len(cards)} card(s) for [{clean_slug}].")
+
+                comp_new_count = 0
+                for card_idx, card in enumerate(cards):
+                    if comp_new_count >= max_jobs_per_company:
+                        break
+
+                    # 1. Quick title relevance check to avoid tailoring non-SDET roles
+                    try:
+                        title_text = ""
+                        title_el = card.locator(
+                            ".job-card-square__title, .artdeco-entity-lockup__title, .job-card-list__title, strong"
+                        ).first
+                        if await title_el.count() > 0:
+                            title_text = (await title_el.text_content() or "").strip()
+                            if "Job Title" in title_text:
+                                title_text = title_text.replace("Job Title", "").strip()
+
+                        t_lower = title_text.lower()
+                        is_relevant = any(
+                            k in t_lower for k in ["sdet", "qa", "test", "quality", "automation", "set", "qe"]
+                        )
+                        if not is_relevant and title_text:
+                            continue
+                    except Exception:
+                        pass
+
+                    job = await self._extract_card_payload(page, card, card_idx, default_prefix=f"{clean_slug}_job")
+                    if job:
+                        jid = str(job.get("job_id", ""))
+                        if jid and jid not in seen_ids:
+                            seen_ids.add(jid)
+                            extracted.append(job)
+                            comp_new_count += 1
+
+                print(f"   Extracted {comp_new_count} relevant job(s) from [{clean_slug}].")
+            except Exception as e:
+                print(f"⚠️ Error scraping company jobs for [{clean_slug}]: {e}")
+
+        print(f"\n✅ Total unique company jobs extracted: {len(extracted)}")
         return extracted
 
     async def scrape_recruiter_posts(
@@ -538,9 +613,17 @@ class LinkedInJobFinder:
         discovery_config = discovery_config or {}
         max_pages = discovery_config.get("max_pages_per_search", 3)
         max_rec_pages = discovery_config.get("max_recommended_pages", 5)
-        rec_collections = discovery_config.get("recommendation_collections", ["recommended", "top-applicant"])
+        rec_collections = discovery_config.get(
+            "recommendation_collections", ["recommended", "top-applicant", "still-hiring"]
+        )
+        sort_by_default = discovery_config.get("sort_by", "relevance")
         enable_rec = discovery_config.get("enable_recommended_feed", True)
         enable_posts = discovery_config.get("enable_recruiter_posts", True)
+        enable_company_pages = bool(discovery_config.get("enable_target_company_pages", True))
+        company_slugs = discovery_config.get(
+            "target_company_slugs",
+            ["swiggy-in", "dunzo-in", "cred-club", "flipkart", "postman-platform", "browserstack"],
+        )
         is_headless = bool(discovery_config.get("headless", False))
 
         all_jobs = []
@@ -586,6 +669,7 @@ class LinkedInJobFinder:
                         break
 
                     start_offset = page_num * 25
+                    profile_sort_by = sp.get("sort_by") or sort_by_default
                     search_url = self.build_search_url(
                         keywords=keywords,
                         location=location,
@@ -595,6 +679,7 @@ class LinkedInJobFinder:
                         start=start_offset,
                         easy_apply_only=easy_apply_only,
                         distance=distance,
+                        sort_by=profile_sort_by,
                     )
                     print(f"🌐 Navigating to Page {page_num + 1} (start={start_offset}): {search_url}")
 
@@ -635,6 +720,13 @@ class LinkedInJobFinder:
                     page, max_jobs=50, max_pages=max_rec_pages, collections=rec_collections
                 )
                 all_jobs.extend(rec_jobs)
+
+            # -------------------------------------------------------------
+            # STEP 2B: TARGET ENTERPRISE COMPANY JOBS (CHANNEL 5)
+            # -------------------------------------------------------------
+            if enable_company_pages and company_slugs:
+                company_jobs = await self.scrape_company_jobs(page, company_slugs=company_slugs, max_jobs_per_company=5)
+                all_jobs.extend(company_jobs)
 
             # -------------------------------------------------------------
             # STEP 3: RECRUITER HIRING POSTS FEED

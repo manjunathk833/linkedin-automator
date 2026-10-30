@@ -27,6 +27,7 @@ def test_job_finder_optimization():
         experience_levels=["mid_senior"],
         time_posted="past_week",
         easy_apply_only=True,
+        sort_by="date",
     )
 
     print(f"🌐 Generated Search URL:\n   {url}")
@@ -36,7 +37,11 @@ def test_job_finder_optimization():
     assert "f_E=4" in url
     assert "f_TPR=r604800" in url
     assert "sortBy=DD" in url
-    print("✅ Optimized URL parameters (f_AL, f_WT, f_E, f_TPR, sortBy) validated!")
+
+    # Validate default relevance sorting omits sortBy=DD
+    url_rel = finder.build_search_url(keywords="Senior SDET", sort_by="relevance")
+    assert "sortBy" not in url_rel
+    print("✅ Optimized URL parameters (f_AL, f_WT, f_E, f_TPR, sortBy) and relevance default validated!")
 
     # 2. Test config.yaml Loading with Boolean Profiles
     print("\n🔍 Step 2: Testing config.yaml Search Profiles...")

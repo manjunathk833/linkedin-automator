@@ -105,6 +105,7 @@ TIER_1_CORE = [
     "77_test_daily_pipeline_comprehensive_wiring.py",
     "79_test_autofill_logging_and_self_healing.py",
     "103_test_expanded_collections_and_keywords.py",
+    "104_test_search_sort_and_company_discovery.py",
 ]
 
 

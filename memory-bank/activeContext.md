@@ -459,6 +459,14 @@
     - Verification Gate 103 Authored (`verify/103_test_expanded_collections_and_keywords.py`): Validated Swiggy title matching against updated boolean syntax, collection schema in config, and multi-collection deduplication logic. Passed 100%.
     - Standardized Tier 1 Core Regressions: Expanded suite to 58 tests in `verify/run_regressions.py`; 58/58 tests passing 100% in 61.24s.
     - Linting: 0 errors across 197 files (`python main.py lint`).
+  - **Relevance-Driven Search, Still-Hiring Feed & Company Jobs Scraper Complete & Verified (Milestone 60 / Gate 104):**
+    - Root Cause Analysis on `sortBy=DD`: Isolated why Swiggy was missing from Search Profile 1. Line 129 in `src/scraper/job_finder.py` hardcoded `sortBy: "DD"`. LinkedIn's `sortBy=DD` real-time streaming index dropped 80% of jobs and pushed 3-day-old postings off Page 1. Removing `sortBy=DD` (relevance ranking within the 7-day velocity window `f_TPR=r604800`) surfaced Swiggy `4481865334` as #4 on Page 1.
+    - Configurable Search Sorting: Added `sort_by: "relevance"` to `config.yaml` and conditional `sortBy` parameter appending in `src/scraper/job_finder.py`.
+    - Still-Hiring Collection Enabled: Added `"still-hiring"` to `recommendation_collections` in `config.yaml` (`["recommended", "top-applicant", "still-hiring"]`).
+    - Company Jobs Tabs Scraper (Channel 5): Implemented `scrape_company_jobs()` in `src/scraper/job_finder.py` navigating to `https://www.linkedin.com/company/{slug}/jobs/` for target enterprises (`swiggy-in`, `dunzo-in`, `cred-club`, `flipkart`, `postman-platform`, `browserstack`), extracting job cards, filtering by SDET/QA title relevance, and deduplicating by `job_id`.
+    - Verification Gate 104 Authored (`verify/104_test_search_sort_and_company_discovery.py`): Validated search sorting parameter handling, config schema compliance, company job title filtering, and Search Profile 1 relevance URL construction. Passed 100%.
+    - Standardized Tier 1 Core Regressions: Expanded suite to 59 tests in `verify/run_regressions.py`. Passed 100%.
+    - Codebase Linting: 0 errors across all files (`python main.py lint`).
 
 
 
