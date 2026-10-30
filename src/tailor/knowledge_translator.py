@@ -117,6 +117,16 @@ class KnowledgeBankTranslator:
                     )
 
             for item in parsed_items:
+                # Rule 02 Employment Boundary Isolation:
+                # Modern project tools must NOT leak into Value Labs, Dunzo, or Tata Elxsi.
+                modern_tools = {"playwright", "typescript", "kubernetes", "docker", "pact", "wiremock", "kafka"}
+                star_lower = item.get("star_achievement", "").lower()
+                tools_lower = {t.lower() for t in item.get("tools", [])}
+                if (any(t in star_lower for t in modern_tools) or (tools_lower & modern_tools)) and item.get(
+                    "company"
+                ) in ["Value Labs", "Dunzo", "Tata Elxsi"]:
+                    item["company"] = "Personal / Certification"
+
                 star_text = item.get("star_achievement", "")
                 a_hash = self.generate_achievement_hash(star_text)
 
