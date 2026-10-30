@@ -202,48 +202,96 @@ class LinkedInJobFinder:
         except Exception as e:
             print(f"⚠️ Scroll warning: {e}")
 
-    async def scrape_recommended_jobs(self, page: Any, max_jobs: int = 50, max_pages: int = 5) -> list[dict[str, Any]]:
-        """Channel 2: Scrapes personalized AI recommendations from /jobs/collections/recommended/ across multiple pages with dynamic early break."""
+    async def scrape_recommended_jobs(
+        self,
+        page: Any,
+        max_jobs: int = 50,
+        max_pages: int = 5,
+        collections: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Channel 2: Scrapes personalized AI recommendations across multiple LinkedIn collection feeds
+        (recommended, top-applicant) and main /jobs/ hub carousels with dynamic early break and deduplication."""
+        target_collections = collections or ["recommended", "top-applicant"]
         print("\n" + "=" * 50)
-        print(f"🤖 CHANNEL 2: SCRAPING PERSONALIZED RECOMMENDED JOBS FEED (UP TO {max_pages} PAGES)")
+        print(f"🤖 CHANNEL 2: SCRAPING MULTI-COLLECTION RECOMMENDED FEEDS {target_collections}")
         print("=" * 50)
 
         extracted = []
-        for page_num in range(max_pages):
+        seen_ids = set()
+
+        # Step A: Scrape carousel cards from main /jobs/ landing hub
+        try:
+            print("🌐 Navigating to LinkedIn Jobs Main Hub (https://www.linkedin.com/jobs/)...")
+            await page.goto("https://www.linkedin.com/jobs/", wait_until="domcontentloaded")
+            await asyncio.sleep(2.5)
+            await self.scroll_results_pane(page, scrolls=3)
+            hub_cards = await page.locator(
+                ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id]"
+            ).all()
+            print(f"   Found {len(hub_cards)} card(s) on main /jobs/ hub.")
+            for c_idx, card in enumerate(hub_cards):
+                if len(extracted) >= max_jobs:
+                    break
+                job = await self._extract_card_payload(page, card, c_idx, default_prefix="jobshub")
+                if job:
+                    jid = str(job.get("job_id", ""))
+                    if jid and jid not in seen_ids:
+                        seen_ids.add(jid)
+                        extracted.append(job)
+        except Exception as e:
+            print(f"⚠️ Notice exploring main /jobs/ hub: {e}")
+
+        # Step B: Scrape each configured collection feed
+        for col in target_collections:
             if len(extracted) >= max_jobs:
                 break
 
-            start_offset = page_num * 25
-            rec_url = f"https://www.linkedin.com/jobs/collections/recommended/?start={start_offset}"
-            print(f"🌐 Navigating to Recommended Feed Page {page_num + 1} (start={start_offset}): {rec_url}")
-
-            try:
-                await page.goto(rec_url, wait_until="domcontentloaded")
-                await asyncio.sleep(2.5)
-                await self.scroll_results_pane(page, scrolls=5)
-
-                cards = await page.locator(
-                    ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], .jobs-job-board-list__item"
-                ).all()
-                print(f"   Found {len(cards)} recommended job card(s) on Page {page_num + 1}.")
-
-                if len(cards) == 0:
-                    print(
-                        f"ℹ️ Recommended feed Page {page_num + 1} returned 0 cards. Stopping recommendation collection."
-                    )
+            print(f"\n📂 Scraping LinkedIn Collection: [{col}] (up to {max_pages} pages)")
+            for page_num in range(max_pages):
+                if len(extracted) >= max_jobs:
                     break
 
-                for card_idx, card in enumerate(cards):
-                    if len(extracted) >= max_jobs:
-                        break
-                    job = await self._extract_card_payload(
-                        page, card, card_idx, default_prefix=f"rec_p{page_num + 1}_job"
-                    )
-                    if job:
-                        extracted.append(job)
-            except Exception as e:
-                print(f"⚠️ Error scraping recommended feed page {page_num + 1}: {e}")
+                start_offset = page_num * 25
+                col_url = f"https://www.linkedin.com/jobs/collections/{col}/?start={start_offset}"
+                print(f"🌐 Navigating to [{col}] Page {page_num + 1} (start={start_offset}): {col_url}")
 
+                try:
+                    await page.goto(col_url, wait_until="domcontentloaded")
+                    await asyncio.sleep(2.5)
+                    await self.scroll_results_pane(page, scrolls=4)
+
+                    cards = await page.locator(
+                        ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], .jobs-job-board-list__item"
+                    ).all()
+                    print(f"   Found {len(cards)} card(s) in collection [{col}] on Page {page_num + 1}.")
+
+                    if len(cards) == 0:
+                        print(f"ℹ️ Collection [{col}] Page {page_num + 1} returned 0 cards. Moving to next collection.")
+                        break
+
+                    col_new_count = 0
+                    for card_idx, card in enumerate(cards):
+                        if len(extracted) >= max_jobs:
+                            break
+                        job = await self._extract_card_payload(
+                            page, card, card_idx, default_prefix=f"{col}_p{page_num + 1}_job"
+                        )
+                        if job:
+                            jid = str(job.get("job_id", ""))
+                            if jid and jid not in seen_ids:
+                                seen_ids.add(jid)
+                                extracted.append(job)
+                                col_new_count += 1
+
+                    print(f"   Extracted {col_new_count} new unique job(s) from [{col}] Page {page_num + 1}.")
+                    if col_new_count == 0 and page_num > 0:
+                        print(f"ℹ️ No new unique cards on [{col}] Page {page_num + 1}. Advancing collection.")
+                        break
+                except Exception as e:
+                    print(f"⚠️ Error scraping collection [{col}] page {page_num + 1}: {e}")
+                    break
+
+        print(f"\n✅ Total unique recommended jobs extracted across collections: {len(extracted)}")
         return extracted
 
     async def scrape_recruiter_posts(
@@ -490,6 +538,7 @@ class LinkedInJobFinder:
         discovery_config = discovery_config or {}
         max_pages = discovery_config.get("max_pages_per_search", 3)
         max_rec_pages = discovery_config.get("max_recommended_pages", 5)
+        rec_collections = discovery_config.get("recommendation_collections", ["recommended", "top-applicant"])
         enable_rec = discovery_config.get("enable_recommended_feed", True)
         enable_posts = discovery_config.get("enable_recruiter_posts", True)
         is_headless = bool(discovery_config.get("headless", False))
@@ -582,7 +631,9 @@ class LinkedInJobFinder:
             # STEP 2: PERSONALIZED RECOMMENDED JOBS FEED (MULTI-PAGE)
             # -------------------------------------------------------------
             if enable_rec:
-                rec_jobs = await self.scrape_recommended_jobs(page, max_jobs=50, max_pages=max_rec_pages)
+                rec_jobs = await self.scrape_recommended_jobs(
+                    page, max_jobs=50, max_pages=max_rec_pages, collections=rec_collections
+                )
                 all_jobs.extend(rec_jobs)
 
             # -------------------------------------------------------------

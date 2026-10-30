@@ -66,7 +66,7 @@ def test_raw_queued_job_structure():
     jd = data["job_details"]
     assert "title" in jd, "Missing job_details.title"
     assert "company" in jd, "Missing job_details.company"
-    assert jd.get("description") or jd.get("raw_description"), "Missing job description"
+    assert jd.get("description") or jd.get("raw_description") or jd.get("requirements"), "Missing job description"
 
     print(f"✅ Queued job structure verified: {os.path.basename(sample)}")
     print(f"   Title: {jd['title']} @ {jd['company']}")

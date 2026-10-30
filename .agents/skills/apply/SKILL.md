@@ -87,12 +87,16 @@ For each approved job in the queue:
      * **Negative Referral Fields:** Answer `No` to company employee questions and enter `NA` in follow-up relation textboxes.
      * Enforce a hard budget of **20 actions maximum** per job.
 
-### Step 5: Targeted Human-in-the-Loop Clarification Interceptor
+### Step 5: Targeted Human-in-the-Loop Clarification Interceptor & Anti-Looping Safeguard
 * The agent executes independently across jobs without interrupting for known data bank values.
+* Form filling operations leverage `AutofillSelfHealer` with real-time telemetry streaming to `data/logs/autofill_events.jsonl`.
+* **Anti-Looping Diagnostic Lock (Max 2 Attempts):**
+  * NEVER attempt the exact same sequence or operation (login, account creation, form submission, button click, page navigation) more than twice if it results in an error, timeout, crash, or unchanged state.
+  * On the 2nd failure, immediately halt further retries, capture DOM element dumps/screenshots, determine the root cause (e.g. pending email verification, pointer interception, CAPTCHA, or DOM selector mismatch), patch the code/selector, or escalate to the user with actionable instructions. Repeating the same failed attempt 3+ times without diagnosis is strictly prohibited.
 * **Only halt and invoke `ask_question` for:**
   * Specific numerical salary expectations requiring candidate input.
   * Novel questions completely missing from `workday_field_mappings.json`.
-  * Security challenges (CAPTCHA, Cloudflare, 2FA, OTP).
+  * Security challenges (CAPTCHA, Cloudflare, 2FA, OTP, email verification link).
 * Once answered, apply the response, cache the mapping into `workday_field_mappings.json`, and continue.
 
 ### Step 6: Final Review Step & Real-Time Server Synchronization

@@ -38,6 +38,7 @@ data/*.pid
 data/pending_queue/
 data/approved_queue/
 data/applied_queue/
+data/skipped_jobs/
 data/resumes/
 *.pdf
 
@@ -77,6 +78,7 @@ cirunlog.md
 data/logs/*.log
 data/logs/*.jsonl
 data/logs/*.html
+data/logs/linkedin_*.json
 data/logs/screenshots/
 .system_generated/
 .tempmediaStorage/

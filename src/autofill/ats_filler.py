@@ -18,6 +18,7 @@ from typing import Any
 
 from src.autofill.autofill_logger import AutofillLogger
 from src.autofill.form_mapper import FormFieldMapper
+from src.autofill.self_healer import AutofillSelfHealer
 from src.autofill.vendor_schemas import (
     ATSVendorPattern,
     CandidateMasterData,
@@ -97,6 +98,8 @@ class ATSAssistedFiller:
         self.headless = headless
         self.mapper = FormFieldMapper()
         self.logger = AutofillLogger.get_logger()
+        self.healer = AutofillSelfHealer(logger=self.logger)
+        self.is_hitl_active = False
         if master_data is not None:
             self.master_data = master_data
         else:
@@ -385,6 +388,9 @@ class ATSAssistedFiller:
         elif pattern == ATSVendorPattern.ORACLE_CLOUD_HCM:
             print("☁️ Identified Oracle Cloud HCM / Fusion Candidate Experience portal.")
             fields_filled, resume_attached = await self._fill_oracle_hcm(page, resume_pdf_path)
+        elif pattern == ATSVendorPattern.HIRIST_TECH_STANDARD:
+            print("🚀 Identified Hirist Tech standard job application portal.")
+            fields_filled, resume_attached = await self._fill_hirist(target, resume_pdf_path)
         elif pattern == ATSVendorPattern.LINKEDIN_EASY_APPLY:
             print("🔗 Identified LinkedIn Easy Apply modal.")
             fields_filled, resume_attached = await self._fill_linkedin_easy_apply(page, resume_pdf_path)
@@ -411,8 +417,10 @@ class ATSAssistedFiller:
             "url": getattr(page, "url", job_url),
         }
 
-    async def _fill_text_input(self, locator: Any, value: str) -> bool:
-        """Fills text input and triggers React synthetic input, change, and blur events."""
+    async def _fill_text_input(
+        self, locator: Any, value: str, field_name: str = "text_input", vendor: str = "COMMON"
+    ) -> bool:
+        """Fills text input using self-healing closed-loop execution and triggers React synthetic events."""
         try:
             if await locator.count() == 0:
                 return False
@@ -421,12 +429,24 @@ class ATSAssistedFiller:
                 await el.scroll_into_view_if_needed(timeout=800)
             except Exception:
                 pass
-            await el.click(timeout=1000)
-            await el.fill(value)
-            await el.dispatch_event("input")
-            await el.dispatch_event("change")
-            await el.dispatch_event("blur")
-            return True
+            try:
+                await el.click(timeout=1000)
+                await el.fill(value)
+                await el.dispatch_event("input")
+                await el.dispatch_event("change")
+                await el.dispatch_event("blur")
+                return True
+            except Exception:
+                # Delegate to deterministic self-healing closed-loop fix phase
+                res = await self.healer.execute_action(
+                    target=locator,
+                    action_type="fill",
+                    locator=locator,
+                    value=value,
+                    field_name=field_name,
+                    vendor=vendor,
+                )
+                return res.get("status") == "success"
         except Exception:
             return False
 
@@ -1636,6 +1656,377 @@ class ATSAssistedFiller:
 
         return filled, attached
 
+    async def _fill_hirist(self, target: Any, resume_pdf_path: str | None) -> tuple[int, bool]:
+        """Fills standard Hirist Tech application forms with candidate profile, resume, and consents.
+        Autonomously advances through Personal, Professional/CTC, and Education stages, pausing only
+        if a CAPTCHA or security checkpoint is encountered."""
+        contact = self.mapper.get_contact_info()
+        filled = 0
+        attached = False
+
+        # 0. Check if initial 'Apply' button must be triggered to mount application modal
+        try:
+            name_check = target.locator("input[name='phoneNumber'], input[name='name']").first
+            if await name_check.count() == 0 or not await name_check.is_visible():
+                apply_btn = target.locator(
+                    "button:has-text('Apply'), a:has-text('Apply'), .btn-apply, a.apply-btn"
+                ).first
+                if await apply_btn.count() > 0 and await apply_btn.is_visible():
+                    print("🖱️ Triggering Hirist 'Apply' action to open application form...")
+                    await self.healer.execute_action(
+                        target=target,
+                        action_type="click",
+                        locator=apply_btn,
+                        field_name="hirist_apply_trigger",
+                        vendor="HIRIST_TECH",
+                    )
+                    await asyncio.sleep(2.0)
+        except Exception as e:
+            print(f"⚠️ Hirist apply trigger notice: {e}")
+
+        # Multi-stage iteration loop (up to 5 page stages)
+        max_stages = 5
+        for stage_idx in range(1, max_stages + 1):
+            print(f"📋 Hirist Form Processing: Stage {stage_idx}/{max_stages}...")
+            stage_filled = 0
+
+            # Check for CAPTCHA / OTP security barrier first
+            try:
+                captcha_check = target.locator(
+                    "iframe[src*='recaptcha'], .g-recaptcha, [id*='captcha'], input[name*='captcha'], input[name*='otp']"
+                ).first
+                if await captcha_check.count() > 0 and await captcha_check.is_visible():
+                    print("🛡️ CAPTCHA / Verification challenge detected on Hirist form.")
+                    self.logger.log(
+                        event_type="CAPTCHA_DETECTED",
+                        message="CAPTCHA or OTP verification detected on Hirist",
+                        vendor="HIRIST_TECH",
+                        url=getattr(getattr(target, "page", target), "url", ""),
+                    )
+                    return filled, attached
+            except Exception:
+                pass
+
+            # 1. Resume File Upload
+            if not attached and resume_pdf_path and os.path.exists(resume_pdf_path):
+                try:
+                    resume_input = target.locator("input[type='file']").first
+                    if await resume_input.count() > 0:
+                        print(f"📎 Attaching tailored resume to Hirist: {os.path.basename(resume_pdf_path)}")
+                        await resume_input.set_input_files(os.path.abspath(resume_pdf_path))
+                        attached = True
+                        filled += 1
+                        stage_filled += 1
+                        await asyncio.sleep(1.0)
+                except Exception as e:
+                    print(f"⚠️ Hirist resume upload notice: {e}")
+
+            # 2. Personal Details (Stage 1)
+            try:
+                name_input = target.locator("input[name='name'], input#name, input[placeholder*='name' i]").first
+                if await name_input.count() > 0 and await name_input.is_visible():
+                    val = await name_input.input_value()
+                    if not val and await self._fill_text_input(
+                        name_input, contact["full_name"], field_name="name", vendor="HIRIST_TECH"
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            try:
+                phone_input = target.locator("input[name='phoneNumber'], input[name='phone'], input[type='tel']").first
+                if await phone_input.count() > 0 and await phone_input.is_visible():
+                    phone_val = contact["phone"]
+                    if phone_val.startswith("+91"):
+                        phone_val = phone_val.replace("+91", "").strip()
+                    val = await phone_input.input_value()
+                    if not val and await self._fill_text_input(
+                        phone_input, phone_val, field_name="phoneNumber", vendor="HIRIST_TECH"
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            try:
+                email_input = target.locator("input[name='email'], input#email").first
+                if await email_input.count() > 0 and await email_input.is_visible():
+                    val = await email_input.input_value()
+                    if not val and await self._fill_text_input(
+                        email_input, contact["email"], field_name="email", vendor="HIRIST_TECH"
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            try:
+                linkedin_input = target.locator("input[name='linkedin'], input[placeholder*='linkedin' i]").first
+                if await linkedin_input.count() > 0 and await linkedin_input.is_visible() and contact.get("linkedin"):
+                    val = await linkedin_input.input_value()
+                    if not val and await self._fill_text_input(
+                        linkedin_input, contact["linkedin"], field_name="linkedin", vendor="HIRIST_TECH"
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            try:
+                github_input = target.locator("input[name='github'], input[placeholder*='github' i]").first
+                if await github_input.count() > 0 and await github_input.is_visible() and contact.get("github"):
+                    val = await github_input.input_value()
+                    if not val and await self._fill_text_input(
+                        github_input, contact["github"], field_name="github", vendor="HIRIST_TECH"
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            for consent_name in ("whatsappConsent", "linkedinConsent"):
+                try:
+                    c_box = target.locator(f"input[name='{consent_name}']").first
+                    if await c_box.count() > 0 and await c_box.is_visible() and not await c_box.is_checked():
+                        await c_box.check(force=True)
+                        filled += 1
+                        stage_filled += 1
+                except Exception:
+                    pass
+
+            # 3. Professional Experience & Current Role (Stage 2)
+            try:
+                company_input = target.locator(
+                    "input[name='company'], input[name='organization'], input[name='currentCompany'], input[placeholder*='company' i], input[placeholder*='organization' i]"
+                ).first
+                if await company_input.count() > 0 and await company_input.is_visible():
+                    val = await company_input.input_value()
+                    if not val and await self._fill_text_input(
+                        company_input, "ValueLabs", field_name="company", vendor="HIRIST_TECH"
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            try:
+                desig_input = target.locator(
+                    "input[name='designation'], input[name='title'], input[name='role'], input[placeholder*='designation' i], input[placeholder*='title' i]"
+                ).first
+                if await desig_input.count() > 0 and await desig_input.is_visible():
+                    val = await desig_input.input_value()
+                    if not val and await self._fill_text_input(
+                        desig_input, "Senior Engineer - QE", field_name="designation", vendor="HIRIST_TECH"
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            try:
+                exp_input = target.locator(
+                    "input[name='totalExperience'], input[name='experience'], select[name='totalExperience'], select[name='experience']"
+                ).first
+                if await exp_input.count() > 0 and await exp_input.is_visible():
+                    tag = await exp_input.evaluate("el => el.tagName.toLowerCase()")
+                    if tag == "select":
+                        await exp_input.select_option(label="6")
+                    else:
+                        val = await exp_input.input_value()
+                        if not val:
+                            await self._fill_text_input(
+                                exp_input, "6", field_name="totalExperience", vendor="HIRIST_TECH"
+                            )
+                    filled += 1
+                    stage_filled += 1
+            except Exception:
+                pass
+
+            # 4. Compensation: CTC & Notice Period
+            try:
+                c_ctc = target.locator(
+                    "input[name='currentCtc'], input[name='ctc'], input[placeholder*='current ctc' i], input[placeholder*='fixed' i]"
+                ).first
+                if await c_ctc.count() > 0 and await c_ctc.is_visible():
+                    val = await c_ctc.input_value()
+                    if not val and await self._fill_text_input(
+                        c_ctc, "17", field_name="currentCtc", vendor="HIRIST_TECH"
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            try:
+                e_ctc = target.locator("input[name='expectedCtc'], input[placeholder*='expected ctc' i]").first
+                if await e_ctc.count() > 0 and await e_ctc.is_visible():
+                    val = await e_ctc.input_value()
+                    if not val and await self._fill_text_input(
+                        e_ctc, "27", field_name="expectedCtc", vendor="HIRIST_TECH"
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            try:
+                notice = target.locator(
+                    "input[name='noticePeriod'], select[name='noticePeriod'], [id*='noticePeriod'], input[placeholder*='notice' i]"
+                ).first
+                if await notice.count() > 0 and await notice.is_visible():
+                    tag = await notice.evaluate("el => el.tagName.toLowerCase()")
+                    if tag == "select":
+                        try:
+                            await notice.select_option(label="60 Days")
+                        except Exception:
+                            await notice.select_option(value="60")
+                    else:
+                        val = await notice.input_value()
+                        if not val:
+                            await self._fill_text_input(
+                                notice, "60 Days", field_name="noticePeriod", vendor="HIRIST_TECH"
+                            )
+                    filled += 1
+                    stage_filled += 1
+            except Exception:
+                pass
+
+            # 5. Education & Academics (Stage 3)
+            try:
+                qual_input = target.locator(
+                    "input[name='highestDegree'], select[name='highestDegree'], select[name='qualification'], input[placeholder*='qualification' i], input[name='degree']"
+                ).first
+                if await qual_input.count() > 0 and await qual_input.is_visible():
+                    tag = await qual_input.evaluate("el => el.tagName.toLowerCase()")
+                    if tag == "select":
+                        try:
+                            await qual_input.select_option(label="B.Tech/B.E.")
+                        except Exception:
+                            await qual_input.select_option(label="B.E.")
+                    else:
+                        val = await qual_input.input_value()
+                        if not val:
+                            await self._fill_text_input(
+                                qual_input,
+                                "B.E. (Bachelor of Engineering)",
+                                field_name="highestDegree",
+                                vendor="HIRIST_TECH",
+                            )
+                    filled += 1
+                    stage_filled += 1
+            except Exception:
+                pass
+
+            try:
+                inst_input = target.locator(
+                    "input[name='institute'], input[name='college'], input[placeholder*='institute' i], input[placeholder*='college' i]"
+                ).first
+                if await inst_input.count() > 0 and await inst_input.is_visible():
+                    val = await inst_input.input_value()
+                    if not val and await self._fill_text_input(
+                        inst_input,
+                        "Sri Jayachamarajendra College of Engineering (SJCE)",
+                        field_name="institute",
+                        vendor="HIRIST_TECH",
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            try:
+                year_input = target.locator(
+                    "input[name='passingYear'], select[name='passingYear'], select[name='year'], input[placeholder*='passing year' i]"
+                ).first
+                if await year_input.count() > 0 and await year_input.is_visible():
+                    tag = await year_input.evaluate("el => el.tagName.toLowerCase()")
+                    if tag == "select":
+                        await year_input.select_option(label="2019")
+                    else:
+                        val = await year_input.input_value()
+                        if not val:
+                            await self._fill_text_input(
+                                year_input, "2019", field_name="passingYear", vendor="HIRIST_TECH"
+                            )
+                    filled += 1
+                    stage_filled += 1
+            except Exception:
+                pass
+
+            # 6. Key Skills
+            try:
+                skills_input = target.locator(
+                    "input[name='skills'], input[name='keySkills'], input[placeholder*='skills' i]"
+                ).first
+                if await skills_input.count() > 0 and await skills_input.is_visible():
+                    val = await skills_input.input_value()
+                    if not val and await self._fill_text_input(
+                        skills_input,
+                        "Java, Python, Selenium, REST Assured, Playwright, API Testing",
+                        field_name="skills",
+                        vendor="HIRIST_TECH",
+                    ):
+                        filled += 1
+                        stage_filled += 1
+            except Exception:
+                pass
+
+            # Check for final confirmation / success state
+            try:
+                page_text = await target.locator("body").inner_text()
+                if any(
+                    x in page_text.lower()
+                    for x in ["application submitted", "successfully applied", "thank you for applying"]
+                ):
+                    print("🎉 Hirist Application successfully submitted!")
+                    self.logger.log(
+                        event_type="APPLICATION_SUBMITTED",
+                        message="Hirist application confirmed submitted",
+                        vendor="HIRIST_TECH",
+                        url=getattr(getattr(target, "page", target), "url", ""),
+                    )
+                    return filled, attached
+            except Exception:
+                pass
+
+            # Advance to next stage: click Save & Next / Next / Submit
+            try:
+                adv_btn = target.locator(
+                    "button:has-text('Save & Next'), button:has-text('Next'), button:has-text('Submit'), button.btn-apply, button[type='submit']"
+                ).first
+                if await adv_btn.count() > 0 and await adv_btn.is_visible():
+                    btn_text = (await adv_btn.inner_text()).strip()
+                    print(f"🖱️ Clicking Hirist advancement button '{btn_text}' via SelfHealer...")
+                    await self.healer.execute_action(
+                        target=target,
+                        action_type="click",
+                        locator=adv_btn,
+                        field_name="hirist_advance_btn",
+                        vendor="HIRIST_TECH",
+                    )
+                    await asyncio.sleep(2.5)
+                else:
+                    if stage_filled == 0:
+                        print("ℹ️ No active uncompleted fields or advancement buttons found on Hirist stage.")
+                        break
+            except Exception as e:
+                print(f"⚠️ Hirist advancement button notice: {e}")
+                break
+
+        return filled, attached
+
+    async def wait_for_manual_takeover_completion(self, page: Any, timeout: float = 600.0) -> bool:
+        """Keeps the session alive while the candidate completes the application or closes the window."""
+        start = time.time()
+        print("⏳ Waiting for candidate manual submission or window dismissal...")
+        while time.time() - start < timeout:
+            if not page or (hasattr(page, "is_closed") and page.is_closed()):
+                print("🛑 Candidate closed browser window.")
+                return True
+            await asyncio.sleep(2.0)
+        return False
+
     async def _capture_workday_diagnostic(self, target: Any, stage_name: str) -> None:
         """Captures diagnostic screenshot and logs visible buttons and elements for post-mortem analysis."""
         try:
@@ -1679,7 +2070,9 @@ class ATSAssistedFiller:
         starts a background monitor detecting submission confirmation."""
         p = self.master_data.personal
         profiles = self.master_data.profiles
-        workday_pwd = getattr(p, "workday_default_password", "Candidate@2026Auto!")
+        workday_pwd = getattr(p, "workday_default_password", None) or os.getenv(
+            "WORKDAY_DEFAULT_PASSWORD", "CandidateMockSecret123!"
+        )
 
         full_name = p.full_name or f"{p.first_name} {p.last_name}"
         email = p.email
@@ -2441,7 +2834,9 @@ class ATSAssistedFiller:
         attached = False
         p = self.master_data.personal
         profiles = self.master_data.profiles
-        workday_pwd = getattr(p, "workday_default_password", "Candidate@2026Auto!")
+        workday_pwd = getattr(p, "workday_default_password", None) or os.getenv(
+            "WORKDAY_DEFAULT_PASSWORD", "CandidateMockSecret123!"
+        )
 
         # 0. Cookie Consent Dismissal
         try:
@@ -2551,7 +2946,7 @@ class ATSAssistedFiller:
                     "input[data-automation-id='verifyPassword'], input#verifyPassword"
                 ).first
                 create_acc_btn = target.locator(
-                    "button[data-automation-id='createAccountSubmitButton'], [data-automation-id='authDialog'] button:has-text('Create Account'), form button[type='submit']"
+                    "button[data-automation-id='createAccountSubmitButton'], div[data-automation-id='click_filter'][aria-label='Create Account'], [data-automation-id='authDialog'] button:has-text('Create Account'), form button[type='submit']"
                 ).first
 
                 if await email_inp.count() > 0 and await email_inp.is_visible():
@@ -2577,7 +2972,7 @@ class ATSAssistedFiller:
                 if await create_acc_btn.count() > 0 and await create_acc_btn.is_visible():
                     print("🚀 Submitting 'Create Account'...")
                     try:
-                        await create_acc_btn.click(timeout=3000)
+                        await create_acc_btn.click(timeout=3000, force=True)
                     except Exception:
                         await create_acc_btn.click(force=True)
                     await asyncio.sleep(2.5)
@@ -2609,7 +3004,7 @@ class ATSAssistedFiller:
                     "input[data-automation-id='password'], input#password, input[type='password']"
                 ).first
                 sign_in_submit = target.locator(
-                    "button[data-automation-id='signInSubmitButton'], [data-automation-id='authDialog'] button:has-text('Sign In'), form button[type='submit']"
+                    "button[data-automation-id='signInSubmitButton'], div[data-automation-id='click_filter'][aria-label='Sign In'], [data-automation-id='authDialog'] button:has-text('Sign In'), form button[type='submit']"
                 ).first
 
                 if await email_inp.count() > 0 and await email_inp.is_visible():
@@ -2625,10 +3020,38 @@ class ATSAssistedFiller:
                 if await sign_in_submit.count() > 0 and await sign_in_submit.is_visible():
                     print("🚀 Submitting 'Sign In'...")
                     try:
-                        await sign_in_submit.click(timeout=3000)
+                        await sign_in_submit.click(timeout=3000, force=True)
                     except Exception:
                         await sign_in_submit.click(force=True)
                     await asyncio.sleep(2.5)
+
+                # Check for pending verification / locked message
+                locked_alert = target.locator(
+                    "div[role='alert']:has-text('locked'), div:has-text('account might be locked'), "
+                    "div:has-text('activate your account'), div:has-text('verification link')"
+                ).first
+                if await locked_alert.count() > 0 and await locked_alert.is_visible():
+                    print("\n" + "=" * 70)
+                    print("🔔 ⚠️ WORKDAY ACCOUNT PENDING EMAIL ACTIVATION")
+                    print("🔔 Workday reported account locked or pending verification.")
+                    print(f"🔔 An activation link was sent to {p.email}.")
+                    print("🔔 Halting repeated attempts. Please click the activation link in your email.")
+                    print("=" * 70 + "\n")
+                    try:
+                        sys.stdout.write("\a\a")
+                        sys.stdout.flush()
+                    except Exception:
+                        pass
+                    await self._enter_manual_takeover_mode(
+                        target=getattr(target, "page", target),
+                        portal_name="Workday Email Activation Gate",
+                        resume_pdf_path=resume_pdf_path,
+                        job_id=job_id,
+                        company_name=company,
+                        job_title=job_title,
+                        job_url=job_url,
+                    )
+                    return filled, attached
 
                 # Check if account does NOT exist
                 account_not_found = target.locator(

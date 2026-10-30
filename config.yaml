@@ -5,6 +5,9 @@ discovery:
   headless: false              # Set to true for headless CI/CD and daily scheduled runs
   max_pages_per_search: 3      # Search query pages (start=0, 25, 50)
   max_recommended_pages: 5     # Recommended feed pages (start=0, 25, 50, 75, 100)
+  recommendation_collections:
+    - "recommended"
+    - "top-applicant"
   enable_recommended_feed: true
   enable_recruiter_posts: true
   enable_similar_jobs: true
@@ -12,7 +15,7 @@ discovery:
 
 search_profiles:
   - name: "Bengaluru Senior SDET & Automation Architect (All Work Types)"
-    keywords: '("Senior SDET" OR "Senior Software Development Engineer in Test" OR "Test Automation Architect" OR "Lead SDET" OR "Senior QA Automation Engineer") NOT (Intern OR Junior)'
+    keywords: '("Senior SDET" OR "Sr. SDET" OR "Sr SDET" OR "Senior Software Development Engineer in Test" OR "Sr. Software Development Engineer in Test" OR "Sr Software Development Engineer in Test" OR "Lead SDET" OR "SDET II" OR "SDET-2" OR "Test Automation Architect" OR "Senior QA Automation Engineer") NOT (Intern OR Junior OR Fresher)'
     location: "Bengaluru"
     distance: 25               # Explicit 25 miles (~40 km) radius
     work_types: ["remote", "hybrid", "onsite"]
@@ -22,7 +25,7 @@ search_profiles:
     max_jobs: 25
 
   - name: "India Remote Staff SDET & Lead QA Automation"
-    keywords: '("Staff SDET" OR "Lead QA Automation Engineer" OR "QA Automation Manager" OR "Principal Quality Engineer" OR "Lead SDET") NOT (Intern OR Junior)'
+    keywords: '("Staff SDET" OR "Lead SDET" OR "Sr. SDET" OR "Lead QA Automation Engineer" OR "QA Automation Manager" OR "Principal Quality Engineer" OR "Principal SDET") NOT (Intern OR Junior OR Fresher)'
     location: "India"
     work_types: ["remote"]
     experience_levels: ["mid_senior"]
@@ -31,7 +34,7 @@ search_profiles:
     max_jobs: 25
 
   - name: "Bengaluru Hybrid & Onsite Test Automation Lead"
-    keywords: '("Test Automation Lead" OR "Automation Lead" OR "Senior Test Automation Engineer") NOT (Intern OR Junior)'
+    keywords: '("Test Automation Lead" OR "Automation Lead" OR "Senior Test Automation Engineer" OR "Sr. Test Automation Engineer" OR "Sr Test Automation Engineer" OR "Lead Automation Engineer") NOT (Intern OR Junior OR Fresher)'
     location: "Bengaluru"
     distance: 25
     work_types: ["hybrid", "onsite"]

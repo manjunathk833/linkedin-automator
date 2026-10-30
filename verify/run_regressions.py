@@ -103,6 +103,8 @@ TIER_1_CORE = [
     "75_test_post_formatting_and_permalink_resilience.py",
     "76_test_posts_optimization_and_deduplication.py",
     "77_test_daily_pipeline_comprehensive_wiring.py",
+    "79_test_autofill_logging_and_self_healing.py",
+    "103_test_expanded_collections_and_keywords.py",
 ]
 
 

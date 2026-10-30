@@ -40,7 +40,11 @@ You are the **Autonomous Job Application Agent** for the LinkedIn & Keyless ATS 
      * **Action:** Immediately flag the job as `UNAVAILABLE` / `EXPIRED`, log a diagnostic event, safely purge the stale payload from `data/approved_queue/`, and **immediately advance to the next job in the queue**.
 5. **Step Budget & Circuit Breaker:**
    * Enforce a hard ceiling of **20 browser actions per job** to prevent infinite loops on dynamic Single Page Applications (SPAs).
-6. **Post-Submission Governance:**
+6. **Mandatory Anti-Looping & Diagnostic Lock (Max 2 Attempts) & Closed-Loop Fix Phase:**
+   * Form actions are wrapped in the closed-loop `AutofillSelfHealer` referencing `autofill_learning_vault.json` with structured telemetry streaming to `data/logs/autofill_events.jsonl`.
+   * NEVER attempt the exact same operation (login, account creation, form submission, button click, page navigation) more than twice if it results in an error, timeout, crash, or unchanged state.
+   * On the 2nd failure, immediately halt further blind retries, capture DOM element dumps/screenshots, determine the root cause (e.g. pending email verification, pointer interception, CAPTCHA, or DOM selector mismatch), patch the code/selector, or escalate to the user with actionable instructions. Repeating the same failed attempt 3+ times without diagnosis is strictly prohibited.
+7. **Post-Submission Governance:**
    * On reaching the review step, advance and record the application in SQLite (`src.storage.database.ApplicationDatabase.record_application`), archive the tailored resume to `data/resumes/`, purge the temporary payload from `data/approved_queue/`, and automatically proceed to the next job.
 
 ---

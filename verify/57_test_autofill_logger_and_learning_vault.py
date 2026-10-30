@@ -151,7 +151,7 @@ async def test_autofill_logger_events_and_vault():
         auth_html = """
         <form data-automation-id="authDialog">
             <input data-automation-id="email" type="email" value="manjunathhk833@gmail.com" />
-            <input data-automation-id="password" type="password" value="Candidate@2026Auto!" />
+            <input data-automation-id="password" type="password" value="MockSecretPassword123!" />
             <button data-automation-id="signInSubmitButton" type="submit">Sign In</button>
         </form>
         """

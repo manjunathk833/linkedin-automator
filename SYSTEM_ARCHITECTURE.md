@@ -118,9 +118,9 @@ graph TD
 
 ### Module 3: Multi-Channel Job Scraper & Description Parser
 * **Files:** [`src/scraper/job_finder.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/scraper/job_finder.py)
-* **Scraping Channels:**
-  1. `Search`: Direct keyword search with filters (e.g. `Senior SDET`, `Remote`, `Past 24 Hours`).
-  2. `Recommended Feed`: Navigates to `linkedin.com/jobs/` and iterates dynamically loaded recommendation modules.
+* **Scraping Channels & Multi-Collection Discovery Engine:**
+  1. `Search`: Direct keyword search with filters (e.g. `Senior SDET`, `Remote`, `Past 24 Hours`). Expanded boolean keyword taxonomy covers formal and abbreviated senior titles (`"Senior SDET"`, `"Sr. SDET"`, `"Sr SDET"`, `"Senior Software Development Engineer in Test"`, `"Sr. Software Development Engineer in Test"`, `"Lead SDET"`, `"SDET II"`, `"SDET-2"`, `"Test Automation Architect"`, `"Senior QA Automation Engineer"`).
+  2. `Multi-Collection Recommended Feeds`: Iterates across multiple high-intent LinkedIn collections (`/jobs/collections/recommended/`, `/jobs/collections/top-applicant/`) configured via `recommendation_collections` in `config.yaml`, as well as carousel rail cards on the main `/jobs/` landing hub, with dynamic pagination, early break, and strict deduplication by `job_id`.
   3. `Recruiter Posts`: Queries content posts mentioning hiring tags (`#hiring #sdet`).
   4. `Similar Jobs`: Extracts related job cards from the detail view of high-relevance listings.
 * **Layout Resilience & Noise Filtering:**
@@ -312,6 +312,34 @@ graph TD
   * **Strict Fail-Fast Policy (Zero Over-Exploration):** Enforces a maximum of 2 URL checks per role. If the target application link is 404, closed, or expired, the agent is strictly prohibited from searching Google or browsing company portals; it immediately logs `UNAVAILABLE`, purges the stale file from `data/approved_queue/`, and advances to the next job in the queue.
   * **Autonomous Multi-Modal Browser Automation:** Drives headful multi-stage application workflows via `browser_subagent` and Playwright, executing semantic element matching, natural typing jitter, synthetic event dispatching (`input`, `change`, `blur`), and dynamic combobox selection with default JavaScript execution enabled (`always-proceed`) and a bounded step budget (max 20 actions/job).
   * **Downstream Persistence & Verification:** Detects application confirmation markers (`submitted`, `thank-you`, `application-received`), records application state in SQLite `app_database.db`, and purges applied items from `data/approved_queue/`.
+
+---
+
+### Module 17: Structured Telemetry, Deterministic Self-Healing & Browser Persistence Architecture (Gate 79)
+* **Files:** [`src/autofill/self_healer.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/self_healer.py), [`src/autofill/autofill_logger.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/autofill_logger.py), [`src/autofill/vendor_schemas.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/vendor_schemas.py), [`src/autofill/ats_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/ats_filler.py), [`src/browser/cdp_stealth.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/cdp_stealth.py), [`src/ui/app.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/app.py), [`verify/79_test_autofill_logging_and_self_healing.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/verify/79_test_autofill_logging_and_self_healing.py)
+* **Architecture:** Closed-loop resilience, structured telemetry streaming, and anti-crash browser persistence on macOS:
+  * **Browser Lifecycle Hardening & Reconnection Guard:**
+    * Eliminates premature Chrome closures by implementing active process checking in `clean_stale_browser_processes()` (only terminating abandoned orphans with `ppid == 1` or when `force=True`, preserving live active sessions).
+    * Enables `--remote-debugging-port=9222` on persistent browser launches, enabling live CDP inspection and multi-stage orchestration without restarting the browser context.
+    * Introduces `KeepAliveSentinel` (`is_hitl_active = True`) suppressing destructive `finally: context.close()` during candidate review and manual takeover.
+    * Adds macOS Metal graphics hardening (`--disable-gpu-shader-disk-cache`, `--disable-dev-shm-usage`, `--no-zygote`) eliminating helper renderer crashes.
+  * **Structured Autofill Event Telemetry (`AutofillLogger`):**
+    * Standardizes atomic telemetry events into `data/logs/autofill_events.jsonl` and `data/logs/autofill_diagnostics.log`.
+    * Enforces PII masking on credentials (`********`) and phone numbers (`+917****70`) in audit logs.
+    * Deploys Server-Sent Events (SSE) streaming endpoint `GET /api/autofill/events/stream` and audit summary API `GET /api/autofill/audit` in FastAPI.
+  * **Deterministic Self-Healing Engine (`AutofillSelfHealer`):**
+    * Wraps Playwright operations in a closed-loop interceptor referencing `autofill_learning_vault.json`.
+    * Implements 5 executable remediation recipes:
+      1. *Pointer Interception Bypass:* Dismisses cookie/overlay banners, scrolls into view, clicks with `force=True`, and dispatches synthetic DOM mouse events.
+      2. *Combobox Loading Notice Filter:* Bypasses transient loading spinners and leverages keyboard navigation.
+      3. *Iframe Detour:* Scans and pivots to embedded child frames when inputs are unmounted from root document.
+      4. *Synthetic React State Commit:* Sets prototype descriptor values and dispatches native `input`, `change`, and `blur` events.
+      5. *Dial Code Prioritization:* Prioritizes exact string matching for dial code `+91`.
+    * Strictly enforces Rule 11 (Max 2 Attempts lock): on the 2nd failure, halts blind retries, captures full-page screenshot and DOM element dump, and gracefully yields to Human-in-the-Loop Takeover.
+  * **Vendor Pattern Discovery & Banking for Hirist Tech (`HIRIST_TECH_STANDARD`):**
+    * Banks `HIRIST_TECH_STANDARD` into `vendor_schemas.py` and `classify_ats_pattern()` for `hirist.tech` and `hirist.com`.
+    * Maps resume dropzone, name, phone, email, LinkedIn, GitHub, WhatsApp/LinkedIn consent checkboxes, and Save & Next triggers in `_fill_hirist()`.
+  * **Standardized Regression Suite Expansion:** Gate 79 registered in `TIER_1_CORE`, expanding suite to 57 tests passing 100%.
 
 ---
 
@@ -518,6 +546,9 @@ All features are covered by dedicated, standalone verification scripts in `verif
 - [x] **Milestone 54:** Autonomous Apply Agent & `/apply` Slash Command: engineered standalone Antigravity agentic customization (`.agents/agents/apply_agent.md`, `.agents/skills/apply/SKILL.md`) providing deterministic multi-modal browser automation (`browser_subagent`) across approved queue jobs (`data/approved_queue/`), zero-code architectural independence preserving `src/`, interactive UI modal clarification loops (`ask_question`), candidate data bank grounding, bounded step budgets (25 actions/job), and complete post-apply SQLite auditing.
 - [x] **Milestone 55:** Deterministic Candidate Ground Truth Injection, Repeatable Container Expansion & Turbo Auto-Execution Settings: updated candidate master data (Notice Period: 60 Days, Current CTC: 17 LPA, Expected CTC: 27 LPA / Range: 25-30 Lakhs, Acquaintance: No/NA), hardened workday field mappings, eliminated hallucination via deterministic inlined candidate dictionary injection in `apply_agent` and `/apply` skill, codified repeatable form container expansion (`+ Add Experience Details` for Value Labs, Dunzo, and Tata Elxsi, `+ Add Education Details` for SJCE, skills tags, and `NA` for negative referral fields), and hardened Antigravity auto-execution settings in `.vscode/settings.json` (turbo preset, always-proceed policy).
 - [x] **Milestone 56:** Hybrid Fast-Path Architecture, Real-Time Server DB Synchronization & Turbo Auto-Execution Tuning: upgraded apply agent with high-speed Hybrid Fast-Path architecture routing standard jobs to native local headful Playwright (3–5s form fill) before multimodal browser subagent fallback, enforced live real-time server and SQLite database synchronization via `POST /api/tracking/mark-applied/{job_id}` (automated DB write, PDF archiving, queue purge, and live UI refresh), and verified native Antigravity IDE architecture and `Shift + Tab` Turbo mode toggle.
+- [x] **Milestone 57:** Structured Telemetry, Deterministic Self-Healing & Browser Persistence: engineered `AutofillLogger` streaming atomic telemetry events to `autofill_events.jsonl`, implemented `AutofillSelfHealer` in `src/autofill/self_healer.py` with 5 automated remediation recipes (pointer bypass, combobox filter, iframe detour, synthetic React events, dial code prioritization) enforcing Rule 11 Anti-Looping, banked `HIRIST_TECH_STANDARD` schema, and authored Gate 79 (`verify/79_test_autofill_logging_and_self_healing.py`).
+- [x] **Milestone 58:** Autonomous Multi-Stage Hirist State Machine & Remote CDP Debugging: expanded `_fill_hirist()` across 5 registration and screening stages, enabled `--remote-debugging-port=9222` in `cdp_stealth.py` for persistent live session orchestration, achieved 100% zero-CAPTCHA submission for Practo Lead SDET (`4474103054`), and verified lifecycle synchronization in SQLite and resume archives.
+- [x] **Milestone 59:** Multi-Collection Discovery Engine & Boolean Keyword Expansion: upgraded `job_finder.py` to iterate across multiple high-intent LinkedIn collections (`recommended`, `top-applicant`) and `/jobs/` landing page carousels; expanded boolean search profiles with senior title abbreviations (`"Sr. SDET"`, `"Sr SDET"`, `"Sr. Software Development Engineer in Test"`, `"SDET II"`, `"SDET-2"`) resolving missed enterprise roles (such as Swiggy `4481865334`); authored and passed Verification Gate 103 (`verify/103_test_expanded_collections_and_keywords.py`). Standardized suite at 58 tests.
 
 ---
 
