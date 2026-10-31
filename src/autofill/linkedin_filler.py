@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from typing import Any
 
 from src.autofill.form_mapper import FormFieldMapper
@@ -31,10 +32,13 @@ class LinkedInAssistedFiller:
         job_url: str,
         resume_pdf_path: str | None = None,
         max_steps: int = 8,
+        job_id: str = "",
+        company: str = "",
+        auto_submit: bool = False,
     ) -> dict[str, Any]:
         """
         Opens the job listing, triggers Easy Apply, fills known fields, attaches PDF,
-        and halts at the final submission modal for human review.
+        and halts at the final submission modal for human review (or auto-submits if requested).
         """
         _pw, _context, page = await launch_stealth_browser(
             headless=self.headless,
@@ -65,6 +69,22 @@ class LinkedInAssistedFiller:
                     print("🔔 MODAL READY: Reached final 'Submit application' step!")
                     print("🔔 Browser is paused for candidate inspection and manual click.")
                     print("🔔 ========================================================\n")
+
+                    if auto_submit:
+                        await human_click(page, submit_btn)
+                        confirmed = await self._monitor_easy_apply_submission(
+                            page, job_id=job_id, company=company, timeout=15.0
+                        )
+                        if confirmed:
+                            return {
+                                "status": "applied",
+                                "step": step_num,
+                                "message": "Application submitted and confirmed on LinkedIn.",
+                            }
+
+                    # In assisted mode, launch background confirmation listener so candidate click is captured
+                    if job_id:
+                        asyncio.create_task(self._monitor_easy_apply_submission(page, job_id=job_id, company=company))
                     return {"status": "ready_for_review", "step": step_num}
 
                 # Auto-fill visible text inputs
@@ -109,3 +129,53 @@ class LinkedInAssistedFiller:
         except Exception as e:
             print(f"⚠️ Autofill error: {e}")
             return {"status": "error", "error": str(e)}
+
+    async def _monitor_easy_apply_submission(
+        self,
+        page: Any,
+        job_id: str = "",
+        company: str = "",
+        timeout: float = 300.0,
+    ) -> bool:
+        """
+        Monitors active page for candidate clicking 'Submit application' on LinkedIn,
+        detects the genuine post-submission confirmation modal, captures a screenshot,
+        and logs a SUBMISSION_CONFIRMED event via SubmissionVerifier.
+        """
+        start_time = time.time()
+        confirmation_selectors = [
+            ".artdeco-modal:has-text('Application sent')",
+            ".artdeco-modal:has-text('Your application was sent')",
+            "div:has-text('Your application was sent to')",
+            "h3:has-text('Application sent')",
+            "span:has-text('Application submitted')",
+            "button[aria-label*='Dismiss']:has-text('Done')",
+        ]
+
+        while time.time() - start_time < timeout:
+            try:
+                if hasattr(page, "is_closed") and page.is_closed():
+                    break
+
+                for sel in confirmation_selectors:
+                    try:
+                        loc = page.locator(sel).first
+                        if await loc.count() > 0 and await loc.is_visible():
+                            print(f"\n🎉 LINKEDIN EASY APPLY SUBMISSION CONFIRMED: {company} ({job_id})")
+                            from src.autofill.autofill_verifier import SubmissionVerifier
+
+                            await SubmissionVerifier.record_submission_confirmed(
+                                job_id=job_id,
+                                company=company,
+                                page=page,
+                                marker_type="linkedin_modal",
+                                marker_text=sel,
+                            )
+                            return True
+                    except Exception:
+                        pass
+
+                await asyncio.sleep(1.0)
+            except Exception:
+                break
+        return False

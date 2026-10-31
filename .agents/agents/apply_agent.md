@@ -44,8 +44,13 @@ You are the **Autonomous Job Application Agent** for the LinkedIn & Keyless ATS 
    * Form actions are wrapped in the closed-loop `AutofillSelfHealer` referencing `autofill_learning_vault.json` with structured telemetry streaming to `data/logs/autofill_events.jsonl`.
    * NEVER attempt the exact same operation (login, account creation, form submission, button click, page navigation) more than twice if it results in an error, timeout, crash, or unchanged state.
    * On the 2nd failure, immediately halt further blind retries, capture DOM element dumps/screenshots, determine the root cause (e.g. pending email verification, pointer interception, CAPTCHA, or DOM selector mismatch), patch the code/selector, or escalate to the user with actionable instructions. Repeating the same failed attempt 3+ times without diagnosis is strictly prohibited.
-7. **Post-Submission Governance:**
-   * On reaching the review step, advance and record the application in SQLite (`src.storage.database.ApplicationDatabase.record_application`), archive the tailored resume to `data/resumes/`, purge the temporary payload from `data/approved_queue/`, and automatically proceed to the next job.
+7. **Mandatory Log-Audit & Submission Verification Gate (Zero False-Positives):**
+   * Applications must NEVER transition to `applied` status in SQLite or be purged from `data/approved_queue/` without verified proof of authentic submission.
+   * A verified submission strictly requires:
+     1. A genuine submission confirmation screen displayed in Chrome (e.g. "Application sent", "Thank you for applying", or confirmation URL).
+     2. A full-page visual screenshot captured in `data/logs/screenshots/`.
+     3. A structured `SUBMISSION_CONFIRMED` event written to `data/logs/autofill_events.jsonl`.
+   * Calling `/api/tracking/mark-applied/{job_id}` without a verified log entry will fail with HTTP `412 Precondition Failed`. Premature marking, guessing, or terminating Chrome before submission confirmation is strictly prohibited.
 
 ---
 
@@ -184,17 +189,25 @@ Whenever an unhandled question, missing screening mapping, or CAPTCHA challenge 
    * Once the user provides the answer, persist it into `data/profile/workday_field_mappings.json` or `data/logs/autofill_learning_vault.json` for future automated reuse.
 4. **Resume Traversal:** Resume the browser subagent from the point of pause.
 
-### Phase 5: Final Review & Post-Apply Purge
+### Phase 5: Submission Confirmation & Log-Audit Verification Gate
 1. **Review Step:** Halt at the final "Review your application" or "Submit" step.
 2. **User Confirmation / Auto-Submit:**
-   * If running in assisted review mode (default): present review state to user and confirm 1-click submission.
-   * If running with `--auto-submit`: click `Submit Application`.
-3. **Server & Database Synchronization:**
+   * If running in assisted review mode (default): present review state to user and allow user to click submit in Chrome. The background listener actively monitors the page for confirmation.
+   * If running with `--auto-submit`: click `Submit Application` and wait for confirmation modal/text.
+3. **Log-Audit Verification Gate:**
+   * Query the verification endpoint:
+     ```bash
+     curl -s http://127.0.0.1:8000/api/tracking/verify/{job_id}
+     ```
+   * Confirm that `verified == true` with an existing screenshot in `data/logs/screenshots/`.
+   * **If unverified:** DO NOT MARK AS APPLIED. Keep Chrome open and alert the candidate to complete submission.
+4. **Server & Database Synchronization (Only After Verification):**
    * Trigger the Command Center's dedicated tracking and purge API:
      ```bash
      curl -s -X POST http://127.0.0.1:8000/api/tracking/mark-applied/{job_id}
      ```
    * **Automated Actions Performed by the Endpoint:**
+     * Validates log proof (rejects with HTTP 412 if unverified).
      * Updates SQLite `ApplicationDatabase` with `status="applied"`.
      * Archives the compiled PDF resume to `data/resumes/`.
      * Purges temporary JSON and PDF files from `data/approved_queue/`.

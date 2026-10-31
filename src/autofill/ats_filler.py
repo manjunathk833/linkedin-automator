@@ -2240,12 +2240,28 @@ class ATSAssistedFiller:
                     print(f"🎉 Final page URL: {getattr(page, 'url', '')}")
                     print("=" * 70 + "\n")
 
-                    self.logger.log(
-                        event_type="SUBMISSION_CONFIRMED",
-                        message=f"Application submission confirmed for {company_name} ({job_id})",
-                        url=getattr(page, "url", ""),
-                        details={"url_match": url_match, "text_match": text_match, "job_id": job_id},
-                    )
+                    try:
+                        from src.autofill.autofill_verifier import SubmissionVerifier
+
+                        await SubmissionVerifier.record_submission_confirmed(
+                            job_id=job_id,
+                            company=company_name,
+                            page=page,
+                            marker_type="url" if url_match else "text",
+                            marker_text=cur_url if url_match else "confirmation_text",
+                        )
+                    except Exception as verif_err:
+                        self.logger.log(
+                            event_type="SUBMISSION_CONFIRMED",
+                            message=f"Application submission confirmed for {company_name} ({job_id})",
+                            url=getattr(page, "url", ""),
+                            details={
+                                "url_match": url_match,
+                                "text_match": text_match,
+                                "job_id": job_id,
+                                "error": str(verif_err),
+                            },
+                        )
 
                     if job_id:
                         try:

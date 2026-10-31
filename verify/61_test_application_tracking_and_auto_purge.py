@@ -138,8 +138,12 @@ def test_mark_applied_endpoint_and_tracking_view():
     with open(mark_file, "w", encoding="utf-8") as f:
         json.dump(sample_job, f)
 
-    # Send POST /api/tracking/mark-applied/{job_id}
-    resp = client.post(f"/api/tracking/mark-applied/{test_mark_id}")
+    # Send POST /api/tracking/mark-applied/{job_id} (Unverified call fails with 412)
+    resp_unverif = client.post(f"/api/tracking/mark-applied/{test_mark_id}")
+    assert resp_unverif.status_code == 412, f"Expected 412 for unverified mark-applied, got {resp_unverif.status_code}"
+
+    # Send POST with explicit force=true override
+    resp = client.post(f"/api/tracking/mark-applied/{test_mark_id}?force=true")
     assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
     body = resp.json()
     assert body["status"] == "success"

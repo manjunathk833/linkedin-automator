@@ -99,15 +99,29 @@ For each approved job in the queue:
   * Security challenges (CAPTCHA, Cloudflare, 2FA, OTP, email verification link).
 * Once answered, apply the response, cache the mapping into `workday_field_mappings.json`, and continue.
 
-### Step 6: Final Review Step & Real-Time Server Synchronization
-1. Submit application at the final Review step (or prompt user if in assisted mode).
-2. **Synchronize Server & Database via REST API:**
+### Step 6: Submission Confirmation, Log Audit & Precondition Gate
+1. Submit application at the final Review step (or allow candidate to click Submit in assisted mode).
+2. **Mandatory Post-Submission Confirmation Detection:**
+   * The system waits for authentic confirmation displays:
+     * Easy Apply: `.artdeco-modal:has-text('Application sent')` or `div:has-text('Your application was sent')`.
+     * External ATS: Confirmation URL markers (`thank-you`, `application-complete`) or text (`"Thank you for applying"`).
+   * Automatically captures full-page visual proof to `data/logs/screenshots/`.
+   * Logs a structured `SUBMISSION_CONFIRMED` event to `data/logs/autofill_events.jsonl`.
+3. **Log-Audit Verification Gate:**
+   * Verify submission confirmation before triggering database tracking:
+     ```bash
+     curl -s http://127.0.0.1:8000/api/tracking/verify/{job_id}
+     ```
+   * Must return `{"verified": true}` with matching timestamp and screenshot.
+   * If unverified: **DO NOT MARK APPLIED**. Keep Chrome open and prompt the user.
+4. **Synchronize Server & Database via REST API (Gated):**
    ```bash
    curl -s -X POST http://127.0.0.1:8000/api/tracking/mark-applied/{job_id}
    ```
    * **Automated Actions Performed by the Endpoint:**
+     * Validates log proof (strictly rejects unconfirmed calls with HTTP `412 Precondition Failed`).
      * Marks the job as `applied` in SQLite `ApplicationDatabase`.
      * Archives the compiled PDF resume from `data/approved_queue/` into `data/resumes/`.
      * Safely purges temporary JSON and PDF files from `data/approved_queue/`.
      * Refreshes Tab 2 (`Approved Queue`) and Tab 3 (`Applied Tracking`) on `http://localhost:8000` live.
-3. Automatically proceed to the next approved job until the queue is clear.
+5. Automatically proceed to the next approved job until the queue is clear.
