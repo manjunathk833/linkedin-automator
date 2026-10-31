@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import signal
+import socket
 import subprocess
 import time
 from typing import Any
@@ -176,6 +177,15 @@ def clean_stale_browser_processes(user_data_dir: str, force: bool = False) -> in
         return 0
 
 
+def is_cdp_port_open(port: int = 9222) -> bool:
+    """Checks whether Chrome is actively listening on the target CDP remote debugging port."""
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.3):
+            return True
+    except OSError:
+        return False
+
+
 def is_browser_context_alive(context: Any) -> bool:
     """Verifies whether the Playwright browser context and at least one page are alive and accessible."""
     if not context:
@@ -193,17 +203,35 @@ async def launch_stealth_browser(
     extra_args: list[str] | None = None,
 ) -> tuple[Any, Any, Any]:
     """
-    Launches an anti-detection hardened persistent browser context using system Google Chrome.
-    Ensures stale processes are terminated and locks cleaned to prevent concurrent profile collisions.
+    Launches an anti-detection hardened browser context using system Google Chrome.
+    If an existing Chrome instance is already running with remote debugging port 9222,
+    seamlessly connects over CDP to prevent profile lock collisions and reuse session.
+    Otherwise, ensures stale processes are terminated and launches persistent context.
 
     Returns:
         tuple: (playwright_instance, context, page)
     """
     os.makedirs(user_data_dir, exist_ok=True)
-    clean_stale_browser_processes(user_data_dir)
-
     pw_api = get_playwright_module()
     playwright_instance = await pw_api.async_playwright().start()
+
+    # Fast-Path: Reuse existing active Chrome session via CDP if available
+    if not headless and is_cdp_port_open(9222):
+        try:
+            print("🔗 Active Chrome detected on CDP port 9222. Connecting over CDP...")
+            browser = await playwright_instance.chromium.connect_over_cdp("http://localhost:9222")
+            contexts = browser.contexts
+            if contexts:
+                context = contexts[0]
+                await context.add_init_script(STEALTH_EVASION_JS)
+                # Use a fresh page or reuse existing blank/new tab
+                page = await context.new_page()
+                print("✅ Seamlessly attached to active headful Chrome session via CDP!")
+                return playwright_instance, context, page
+        except Exception as cdp_err:
+            print(f"⚠️ CDP connection attempt warning: {cdp_err}. Falling back to persistent launch...")
+
+    clean_stale_browser_processes(user_data_dir)
 
     chrome_args = [
         "--disable-blink-features=AutomationControlled",

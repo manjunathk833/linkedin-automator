@@ -483,6 +483,12 @@
     - External ATS Integration: Wired `SubmissionVerifier.record_submission_confirmed` into `ATSAssistedFiller` in `src/autofill/ats_filler.py`.
     - Governance Synchronization: Updated `.agents/agents/apply_agent.md`, `.agents/skills/apply/SKILL.md`, and `.agents/rules/02-agent-review-protocol.md` (Lens 5) establishing mandatory log-audit gates.
     - Authored and Passed Verification Gate 80 (`verify/80_test_submission_verifier_and_guardrails.py`): Rejection of unconfirmed calls with HTTP 412, successful verification and tracking, and human override with `force=true`. Suite expanded to 60 tests.
+  - **Seamless Headful Chrome CDP Reuse & Anti-Collision Engine (Milestone 63 / Gate 81):**
+    - Root Cause Analysis on Profile Lock Crashes: Consecutive autofill runs failed when Chrome was already open from a prior job because `launch_persistent_context` on `.browser_data` hit "Opening in existing browser session", causing child exit and 500 error.
+    - CDP Session Fast-Path: Updated `launch_stealth_browser` in `src/browser/cdp_stealth.py` with `is_cdp_port_open(9222)`. When Chrome is active on port 9222, Playwright seamlessly attaches via `connect_over_cdp("http://localhost:9222")`, opens a new tab, injects stealth scripts, and leaves the user's active browser alive without profile collisions or killed processes.
+    - Authored Verification Gate 81 (`verify/81_test_stealth_browser_cdp_reuse.py`): Validated single and consecutive launches with 100% pass rate.
+    - Core Regression Suite: Expanded to 61 tests in `verify/run_regressions.py` (61/61 PASS, 100%).
+    - Live Dry Run Verification: Tested live with Job 2 (Acceldata `4483032347`) traversing all steps to final review in active Chrome window without collision.
 
 
 
