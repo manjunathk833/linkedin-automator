@@ -475,6 +475,15 @@
     - Yield Scaled: Expanded staged jobs in `data/pending_queue/` from 38 to 52 jobs (+14 new roles, +36.8%) including Swiggy (`4481865334`) and Postman (`4477644487`).
     - Standardized Tier 1 Core Regressions: 59/59 tests passing (100% SUCCESS).
     - Codebase Linting: 0 errors across all files (`python main.py lint`).
+  - **Log-Grounded Submission Verification Gate & False-Positive Guardrail Engine (Milestone 62 / Gate 80):**
+    - Root Cause & Vulnerability Isolation: Premature `mark-applied` calls previously occurred without verifying actual application submission. Un-gated `/api/tracking/mark-applied/{job_id}` endpoint allowed scripts/agents to falsely record unsubmitted forms as `applied`.
+    - Verification Engine: Built `src/autofill/autofill_verifier.py` with `SubmissionVerifier` inspecting `autofill_events.jsonl` in reverse chronological order, verifying `SUBMISSION_CONFIRMED` event within 30 minutes freshness, and asserting visual confirmation screenshot existence.
+    - Endpoint Precondition Gate: Guarded `POST /api/tracking/mark-applied/{job_id}` in `src/ui/app.py` with strict HTTP 412 Precondition Failed rejection unless verified submission proof exists (`?force=true` reserved for manual UI override); added `GET /api/tracking/verify/{job_id}`.
+    - Easy Apply Modal Confirmation: Upgraded `LinkedInAssistedFiller` in `src/autofill/linkedin_filler.py` with `_monitor_easy_apply_submission` listening for LinkedIn success modals (`.artdeco-modal:has-text('Application sent')`, `div:has-text('Your application was sent to')`) and capturing screenshot.
+    - External ATS Integration: Wired `SubmissionVerifier.record_submission_confirmed` into `ATSAssistedFiller` in `src/autofill/ats_filler.py`.
+    - Governance Synchronization: Updated `.agents/agents/apply_agent.md`, `.agents/skills/apply/SKILL.md`, and `.agents/rules/02-agent-review-protocol.md` (Lens 5) establishing mandatory log-audit gates.
+    - Authored and Passed Verification Gate 80 (`verify/80_test_submission_verifier_and_guardrails.py`): Rejection of unconfirmed calls with HTTP 412, successful verification and tracking, and human override with `force=true`. Suite expanded to 60 tests.
+
 
 
 

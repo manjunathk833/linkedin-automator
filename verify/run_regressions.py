@@ -104,6 +104,7 @@ TIER_1_CORE = [
     "76_test_posts_optimization_and_deduplication.py",
     "77_test_daily_pipeline_comprehensive_wiring.py",
     "79_test_autofill_logging_and_self_healing.py",
+    "80_test_submission_verifier_and_guardrails.py",
     "103_test_expanded_collections_and_keywords.py",
     "104_test_search_sort_and_company_discovery.py",
 ]

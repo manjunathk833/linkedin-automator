@@ -118,8 +118,8 @@ def test_explicit_user_driven_mark_applied_and_temp_purge(job_id: str, json_path
     pdf_filename = os.path.basename(pdf_path)
     archived_pdf_path = os.path.join(RESUMES_DIR, pdf_filename)
 
-    # Now simulate the explicit user-driven trigger: POST /api/tracking/mark-applied/{job_id}
-    mark_resp = client.post(f"/api/tracking/mark-applied/{job_id}")
+    # Now simulate the explicit user-driven trigger: POST /api/tracking/mark-applied/{job_id}?force=true
+    mark_resp = client.post(f"/api/tracking/mark-applied/{job_id}?force=true")
     assert mark_resp.status_code == 200, f"Expected 200, got: {mark_resp.text}"
     body = mark_resp.json()
     assert body["status"] == "success"

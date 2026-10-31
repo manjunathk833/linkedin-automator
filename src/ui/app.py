@@ -764,7 +764,7 @@ async def autofill_job(job_id: str):
     # 3. LinkedIn Easy Apply
     else:
         li_filler = LinkedInAssistedFiller(headless=False)
-        result = await li_filler.autofill_easy_apply(job_url, pdf_path)
+        result = await li_filler.autofill_easy_apply(job_url, pdf_path, job_id=job_id, company=company_name)
 
     # Record application audit event
     if result.get("status") in ("ready_for_review", "applied", "success", "manual_takeover_activated"):
@@ -943,12 +943,37 @@ async def cleanup_approved_queue():
     return {"status": "success", "message": "Approved queue temporary data cleaned."}
 
 
+@app.get("/api/tracking/verify/{job_id}")
+async def verify_job_submission(job_id: str):
+    """Audits log and visual evidence to verify if job submission was confirmed."""
+    from src.autofill.autofill_verifier import SubmissionVerifier
+
+    return SubmissionVerifier.verify_submission(job_id)
+
+
 @app.post("/api/tracking/mark-applied/{job_id}")
-async def mark_job_applied(job_id: str):
-    """Marks a job as APPLIED in SQLite database, archives PDF to resumes dir, and purges all temp data."""
+async def mark_job_applied(job_id: str, force: bool = False):
+    """Marks a job as APPLIED in SQLite database, archives PDF to resumes dir, and purges all temp data.
+    Enforces log-grounded submission verification: rejects unverified applications with HTTP 412
+    unless force=True is explicitly supplied for manual human override.
+    """
     import shutil
 
+    from src.autofill.autofill_verifier import SubmissionVerifier
     from src.storage.database import ApplicationDatabase
+
+    # Enforce submission verification gate
+    verif = SubmissionVerifier.verify_submission(job_id)
+    if not verif.get("verified") and not force:
+        raise HTTPException(
+            status_code=412,
+            detail={
+                "error": "PRECONDITION_FAILED",
+                "message": f"Cannot mark job {job_id} as applied: No verified SUBMISSION_CONFIRMED event found in autofill_events.jsonl. {verif.get('reason', '')}",
+                "job_id": job_id,
+                "hint": "Ensure application submission confirmation screen was displayed, or supply force=true for manual human override.",
+            },
+        )
 
     pending_file = os.path.join(PENDING_DIR, f"{job_id}.json")
     approved_file = os.path.join(APPROVED_DIR, f"{job_id}.json")
@@ -1340,9 +1365,24 @@ async def generate_referral_pack_endpoint(job_id: str, request: Request = None):
         reqs = db.get_tracked_requisitions(limit=500)
         for r in reqs:
             if r.get("requisition_id") == job_id or job_id in (r.get("job_url") or ""):
+                c_slug = r.get("company_slug", "")
+                c_name = c_slug.replace("-", " ").replace("_", " ").title()
+                cfg_path = os.path.join(DATA_DIR, "config", "target_companies.json")
+                if os.path.exists(cfg_path):
+                    try:
+                        with open(cfg_path, "r", encoding="utf-8") as cfp:
+                            t_cfg = json.load(cfp)
+                            if isinstance(t_cfg, list):
+                                for ent in t_cfg:
+                                    if ent.get("slug") == c_slug:
+                                        c_name = ent.get("name")
+                                        break
+                    except Exception:
+                        pass
+
                 payload = {
                     "job_id": job_id,
-                    "company_name": r.get("company_slug", "").replace("-", " ").replace("_", " ").title(),
+                    "company_name": c_name,
                     "job_title": r.get("job_title", ""),
                     "location": r.get("location", ""),
                     "url": r.get("job_url", ""),
