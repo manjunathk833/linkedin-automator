@@ -6,6 +6,7 @@ Supports dynamic drop-in of rebrowser-playwright or standard Playwright.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import signal
 import socket
@@ -179,11 +180,28 @@ def clean_stale_browser_processes(user_data_dir: str, force: bool = False) -> in
 
 def is_cdp_port_open(port: int = 9222) -> bool:
     """Checks whether Chrome is actively listening on the target CDP remote debugging port."""
-    try:
-        with socket.create_connection(("127.0.0.1", port), timeout=0.3):
-            return True
-    except OSError:
-        return False
+    for host in ("127.0.0.1", "localhost"):
+        try:
+            with socket.create_connection((host, port), timeout=1.0):
+                return True
+        except OSError:
+            continue
+    return False
+
+
+async def _connect_existing_cdp(playwright_instance: Any, port: int = 9222) -> tuple[Any, Any, Any] | None:
+    """Attempts to attach to an active Chrome instance on the given CDP port."""
+    for endpoint in (f"http://127.0.0.1:{port}", f"http://localhost:{port}"):
+        try:
+            browser = await playwright_instance.chromium.connect_over_cdp(endpoint, timeout=5000)
+            context = browser.contexts[0] if browser.contexts else await browser.new_context()
+            await context.add_init_script(STEALTH_EVASION_JS)
+            page = await context.new_page()
+            print("✅ Seamlessly attached to active headful Chrome session via CDP!")
+            return playwright_instance, context, page
+        except Exception as cdp_err:
+            print(f"⚠️ CDP endpoint {endpoint} warning: {cdp_err}")
+    return None
 
 
 def is_browser_context_alive(context: Any) -> bool:
@@ -223,19 +241,11 @@ async def launch_stealth_browser(
 
     # Fast-Path: Reuse existing active Chrome session via CDP if available
     if is_cdp_port_open(9222):
-        try:
-            print("🔗 Active Chrome detected on CDP port 9222. Connecting over CDP...")
-            browser = await playwright_instance.chromium.connect_over_cdp("http://localhost:9222")
-            contexts = browser.contexts
-            if contexts:
-                context = contexts[0]
-                await context.add_init_script(STEALTH_EVASION_JS)
-                # Use a fresh page or reuse existing blank/new tab
-                page = await context.new_page()
-                print("✅ Seamlessly attached to active headful Chrome session via CDP!")
-                return playwright_instance, context, page
-        except Exception as cdp_err:
-            print(f"⚠️ CDP connection attempt warning: {cdp_err}. Falling back to persistent launch...")
+        print("🔗 Active Chrome detected on CDP port 9222. Connecting over CDP...")
+        cdp_tuple = await _connect_existing_cdp(playwright_instance, 9222)
+        if cdp_tuple is not None:
+            return cdp_tuple
+        print("⚠️ CDP connection attempt warning. Falling back to persistent launch...")
 
     clean_stale_browser_processes(user_data_dir)
 
@@ -269,10 +279,22 @@ async def launch_stealth_browser(
             ignore_default_args=["--enable-automation"],
         )
     except Exception as e:
-        # Fallback to default chromium if native Chrome channel is unavailable
-        print(f"⚠️ System Chrome launch warning: {e}. Falling back to Chromium binary...")
+        # If Chrome delegated to an existing session ('Opening in existing browser session'), attach via CDP
+        await asyncio.sleep(0.5)
+        if is_cdp_port_open(9222):
+            cdp_tuple = await _connect_existing_cdp(playwright_instance, 9222)
+            if cdp_tuple is not None:
+                return cdp_tuple
+
+        # Fallback to bundled Chromium with a deterministic isolated profile dir if user_data_dir is locked (EPERM)
+        import tempfile
+
+        fallback_dir = os.path.join(tempfile.gettempdir(), "agy_stealth_fallback_profile")
+        os.makedirs(fallback_dir, exist_ok=True)
+        clean_stale_browser_processes(fallback_dir)
+        print(f"⚠️ System Chrome launch warning: {e}. Falling back to isolated Chromium ({fallback_dir})...")
         context = await playwright_instance.chromium.launch_persistent_context(
-            user_data_dir=user_data_dir,
+            user_data_dir=fallback_dir,
             headless=headless,
             args=chrome_args,
             no_viewport=True,
