@@ -508,10 +508,10 @@ class ATSAssistedFiller:
 
         if opt_low == target_low or raw_opt.lower() == target_low:
             return 100
+        if opt_low.startswith(target_low) and re.match(rf"^{re.escape(target_low)}(\b|[,:\-\s\(])", opt_low):
+            return 90
         if prefer_exact:
             return 0
-        if opt_low.startswith(target_low) and re.match(rf"^{re.escape(target_low)}(\b|\s|\()", opt_low):
-            return 85
         if re.search(rf"\b{re.escape(target_low)}\b", opt_low):
             return 75
         if target_low in opt_low:
@@ -523,8 +523,8 @@ class ATSAssistedFiller:
         try:
             committed = await el.evaluate(
                 """e => {
-                    const root = e.closest('.select__control, [role="combobox"], .field, div') || e;
-                    const singleVal = root.querySelector('.select__single-value, [class*="singleValue"], [data-automation-id*="selectedOption"]');
+                    const root = e.closest('.select__control, .select__container, .select, .field') || e.parentElement || e;
+                    const singleVal = root.querySelector('.select__single-value, .select__multi-value__label, [class*="singleValue"], [class*="single-value"], [class*="multiValue"], [class*="multi-value"], [data-automation-id*="selectedOption"]');
                     if (singleVal && singleVal.innerText) return singleVal.innerText.trim();
                     if (e.tagName.toLowerCase() === 'select') {
                         const idx = e.selectedIndex;
@@ -589,9 +589,22 @@ class ATSAssistedFiller:
                 if await inner_input.count() > 0:
                     input_el = inner_input
 
-            await input_el.click(timeout=1200)
-            await asyncio.sleep(0.1)
+            try:
+                await input_el.click(timeout=1200)
+            except Exception:
+                pass
+            try:
+                await input_el.focus()
+                await input_el.press("ArrowDown")
+            except Exception:
+                pass
+            await asyncio.sleep(0.08)
 
+            option_selector = (
+                ".select__option:not(.select__menu-notice), "
+                "[role='option']:not(.select__menu-notice):not(.iti__country), "
+                "div[data-automation-id*='promptOption']"
+            )
             is_text_input = await input_el.evaluate("e => ['input', 'textarea'].includes(e.tagName.toLowerCase())")
             if is_text_input:
                 # Preserve '+91' if searching for dial code; only fall back to 'India' if '+91' yields 0 options
@@ -602,24 +615,22 @@ class ATSAssistedFiller:
                 )
                 await input_el.fill(type_text)
                 await input_el.dispatch_event("input")
-            await asyncio.sleep(0.25)
+            await asyncio.sleep(0.18)
 
-            option_selector = (
-                ".select__option:not(.select__menu-notice), [role='option']:not(.select__menu-notice), "
-                "li[role='option'], div[data-automation-id*='promptOption']"
-            )
             options = container.locator(option_selector)
-            try:
-                await options.first.wait_for(state="visible", timeout=1800)
-            except Exception:
-                pass
+            if await options.count() == 0 and is_text_input:
+                try:
+                    await input_el.press("ArrowDown")
+                    await asyncio.sleep(0.15)
+                except Exception:
+                    pass
 
             opt_count = await options.count()
             # If we typed '+91' and the dropdown filters by country name ('India') instead of dial code, retry with 'India'
             if opt_count == 0 and is_text_input and search_text.strip() == "+91":
                 await input_el.fill("India")
                 await input_el.dispatch_event("input")
-                await asyncio.sleep(0.25)
+                await asyncio.sleep(0.2)
                 options = container.locator(option_selector)
                 opt_count = await options.count()
 
@@ -629,7 +640,14 @@ class ATSAssistedFiller:
                 saw_excluded_territory = False
                 for i in range(opt_count):
                     opt = options.nth(i)
-                    txt = (await opt.inner_text()).strip()
+                    txt = ""
+                    try:
+                        if await opt.is_visible():
+                            txt = (await opt.inner_text()).strip()
+                    except Exception:
+                        pass
+                    if not txt:
+                        continue
                     if self.is_excluded_territory_option(txt, search_text):
                         saw_excluded_territory = True
                         continue
@@ -642,7 +660,13 @@ class ATSAssistedFiller:
 
                 if best_idx >= 0 and best_score > 0:
                     await options.nth(best_idx).click(timeout=1200)
-                    await asyncio.sleep(0.15)
+                    await asyncio.sleep(0.1)
+                    # Close any multi-select menu that remains open after option click
+                    try:
+                        if await options.count() > 0 and is_text_input:
+                            await input_el.press("Escape")
+                    except Exception:
+                        pass
                     if await self._verify_combobox_selection(el, container, search_text):
                         return True
 

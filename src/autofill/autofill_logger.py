@@ -23,6 +23,17 @@ SCREENSHOTS_DIR = LOGS_DIR / "screenshots"
 DIAGNOSTICS_LOG_FILE = LOGS_DIR / "autofill_diagnostics.log"
 EVENTS_JSONL_FILE = LOGS_DIR / "autofill_events.jsonl"
 LEARNING_VAULT_FILE = LOGS_DIR / "autofill_learning_vault.json"
+BENCHMARKS_JSONL_FILE = LOGS_DIR / "autofill_benchmarks.jsonl"
+UNMAPPED_BACKLOG_JSONL_FILE = LOGS_DIR / "unmapped_fields_backlog.jsonl"
+LEARNED_MAPPINGS_FILE = LOGS_DIR / "learned_field_mappings.json"
+
+
+def normalize_field_label_key(label: str) -> str:
+    """Normalizes a form field label into a canonical lookup key for learned mappings."""
+    cleaned = re.sub(r"[\*\:\?\(\)\[\]]", " ", (label or "").lower())
+    cleaned = re.sub(r"\b(required|optional|please|enter|select|specify|your)\b", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
 
 
 def mask_pii(value: str, field_name: str = "") -> str:
@@ -409,8 +420,138 @@ class AutofillLogger:
         self.logger.info(f"🧠 Banked new lesson in Learning Vault: {new_lesson['id']} - {symptom}")
         return new_lesson
 
+    def record_batch_run_metrics(
+        self,
+        url: str,
+        vendor: str,
+        total_controls: int,
+        auto_filled_count: int,
+        unmapped_count: int,
+        failed_count: int,
+        duration_ms: float,
+    ) -> dict[str, Any]:
+        """Appends per-page Phase A speed & coverage metrics to autofill_benchmarks.jsonl."""
+        _ensure_directories()
+        coverage_pct = round((auto_filled_count / max(total_controls, 1)) * 100.0, 1)
+        record = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "url": url,
+            "vendor": vendor or "GENERIC",
+            "total_controls": total_controls,
+            "auto_filled_count": auto_filled_count,
+            "unmapped_count": unmapped_count,
+            "failed_count": failed_count,
+            "coverage_pct": coverage_pct,
+            "duration_ms": round(duration_ms, 2),
+        }
+        try:
+            with open(BENCHMARKS_JSONL_FILE, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record) + "\n")
+        except Exception as e:
+            self.logger.warning(f"Failed to append to {BENCHMARKS_JSONL_FILE}: {e}")
+        return record
+
+    def record_unmapped_fields(
+        self,
+        url: str,
+        vendor: str,
+        unmapped_fields: list[dict[str, Any]],
+    ) -> int:
+        """Appends unmapped custom fields from Phase A to unmapped_fields_backlog.jsonl."""
+        if not unmapped_fields:
+            return 0
+        _ensure_directories()
+        now_iso = datetime.now(timezone.utc).isoformat()
+        written = 0
+        try:
+            with open(UNMAPPED_BACKLOG_JSONL_FILE, "a", encoding="utf-8") as f:
+                for fld in unmapped_fields:
+                    label = (fld.get("label") or "").strip()
+                    if not label:
+                        continue
+                    entry = {
+                        "timestamp": now_iso,
+                        "url": url,
+                        "vendor": vendor or "GENERIC",
+                        "field_id": fld.get("field_id", ""),
+                        "label": label,
+                        "normalized_key": normalize_field_label_key(label),
+                        "control_type": fld.get("control_type", "text"),
+                        "required": bool(fld.get("required", False)),
+                        "options_preview": [
+                            opt.get("text", "") if isinstance(opt, dict) else str(opt)
+                            for opt in (fld.get("options") or [])[:10]
+                        ],
+                    }
+                    f.write(json.dumps(entry) + "\n")
+                    written += 1
+        except Exception as e:
+            self.logger.warning(f"Failed to append to {UNMAPPED_BACKLOG_JSONL_FILE}: {e}")
+        return written
+
+    def get_learned_field_mappings(self) -> dict[str, dict[str, Any]]:
+        """Loads previously learned custom field label->value mappings from disk."""
+        if not LEARNED_MAPPINGS_FILE.exists():
+            return {}
+        try:
+            with open(LEARNED_MAPPINGS_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    return data.get("mappings", data)
+        except Exception:
+            pass
+        return {}
+
+    def record_learned_field_mapping(
+        self,
+        label: str,
+        value: str,
+        control_type: str = "text",
+        source: str = "phase_b_custom",
+    ) -> dict[str, Any]:
+        """Banks a custom field question + answer into learned_field_mappings.json for automatic Phase A reuse."""
+        _ensure_directories()
+        norm_key = normalize_field_label_key(label)
+        if not norm_key or value is None or str(value).strip() == "":
+            return {}
+
+        # Never bank sensitive passwords or one-off tokens
+        if any(k in norm_key for k in ("password", "otp", "verification code", "security code", "captcha")):
+            return {}
+
+        mappings = self.get_learned_field_mappings()
+        existing = mappings.get(norm_key, {})
+        hit_count = int(existing.get("use_count", 0)) + 1
+
+        entry = {
+            "label": label.strip(),
+            "normalized_key": norm_key,
+            "value": str(value).strip(),
+            "control_type": control_type,
+            "source": source,
+            "use_count": hit_count,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        mappings[norm_key] = entry
+
+        try:
+            with open(LEARNED_MAPPINGS_FILE, "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "version": "1.0",
+                        "description": "Closed-loop learned custom form field answers automatically reused by Phase A UniversalBatchFormFiller.",
+                        "mappings": mappings,
+                    },
+                    f,
+                    indent=2,
+                )
+            self.logger.info(f"🧠 Auto-learned custom field mapping: '{norm_key}' -> '{mask_pii(str(value), label)}'")
+        except Exception as e:
+            self.logger.warning(f"Failed to save {LEARNED_MAPPINGS_FILE}: {e}")
+        return entry
+
     def get_audit_summary(self, limit: int = 10) -> dict[str, Any]:
-        """Returns the most recent autofill events and learning vault lessons for CLI reports."""
+        """Returns the most recent autofill events, telemetry benchmarks, unmapped backlog, and learning vault lessons."""
         events = []
         if EVENTS_JSONL_FILE.exists():
             try:
@@ -444,9 +585,73 @@ class AutofillLogger:
             except Exception:
                 pass
 
+        benchmarks = []
+        if BENCHMARKS_JSONL_FILE.exists():
+            try:
+                with open(BENCHMARKS_JSONL_FILE, encoding="utf-8") as f:
+                    for ln in f:
+                        if ln.strip():
+                            benchmarks.append(json.loads(ln))
+            except Exception:
+                pass
+
+        avg_coverage_pct = 0.0
+        avg_duration_ms = 0.0
+        if benchmarks:
+            avg_coverage_pct = round(
+                sum(float(b.get("coverage_pct", 0.0)) for b in benchmarks) / len(benchmarks),
+                1,
+            )
+            avg_duration_ms = round(
+                sum(float(b.get("duration_ms", 0.0)) for b in benchmarks) / len(benchmarks),
+                1,
+            )
+
+        unmapped_counts: dict[str, dict[str, Any]] = {}
+        if UNMAPPED_BACKLOG_JSONL_FILE.exists():
+            try:
+                with open(UNMAPPED_BACKLOG_JSONL_FILE, encoding="utf-8") as f:
+                    for ln in f:
+                        if not ln.strip():
+                            continue
+                        item = json.loads(ln)
+                        nkey = item.get("normalized_key") or item.get("label", "")
+                        if not nkey:
+                            continue
+                        rec = unmapped_counts.setdefault(
+                            nkey,
+                            {
+                                "label": item.get("label", nkey),
+                                "normalized_key": nkey,
+                                "control_type": item.get("control_type", "text"),
+                                "count": 0,
+                                "last_vendor": item.get("vendor", "GENERIC"),
+                            },
+                        )
+                        rec["count"] += 1
+            except Exception:
+                pass
+
+        top_unmapped = sorted(
+            unmapped_counts.values(),
+            key=lambda x: x["count"],
+            reverse=True,
+        )[:limit]
+
+        learned_mappings = self.get_learned_field_mappings()
+
         return {
             "recent_events": events,
             "total_lessons_banked": len(lessons),
             "lessons": lessons,
             "recent_screenshots": screenshots,
+            "telemetry": {
+                "total_batch_runs": len(benchmarks),
+                "avg_coverage_pct": avg_coverage_pct,
+                "avg_duration_ms": avg_duration_ms,
+                "recent_benchmarks": benchmarks[-limit:],
+                "top_unmapped_fields": top_unmapped,
+                "total_learned_mappings": len(learned_mappings),
+                "learned_mappings": list(learned_mappings.values())[:limit],
+            },
         }

@@ -81,6 +81,14 @@
       "root_cause": "Substring search for 'our team is hiring' matched 'if your team is hiring' (y-our team). Conversational prefixes ('if your team', 'several exciting') matched greedy regex.",
       "fix_rule": "Enforce strict word boundaries (\\bour team is hiring\\b), translate unicode small caps (O\u1d18\u1d07\u0274 \u1d1b\u1d0f W\u1d0f\u0280\u1d0b), filter leading conversational stopwords, and run automatic SQLite repair migration.",
       "date_banked": "2026-10-18T14:10:00.000000+00:00"
+    },
+    {
+      "id": "LESSON-040",
+      "vendor": "GREENHOUSE_STANDARD",
+      "symptom": "Greenhouse Remix React-Select comboboxes fail to select Yes/No or take >12s, and el.closest('[role=combobox]') returns empty current_value.",
+      "root_cause": "1. Phone input intl-tel-input injects 245 hidden li.iti__country[role='option'] elements at the top of the DOM (with British Indian Ocean Territory at index 30 and India at index 98). 2. Multi-select comboboxes (question_*[]) stay open after option click and block subsequent comboboxes unless Escape is pressed. 3. el.closest('.select__control, [role=combobox]') matches the inner <input role='combobox'> itself rather than the outer .select__control wrapper.",
+      "fix_rule": "1. Exclude :not(.iti__country) from generic [role='option'] locators and check opt.is_visible(). 2. Press ArrowDown to open Remix React-Select menus and Escape after selecting on multi-selects. 3. Use el.closest('.select__control, .select__container, .select, .field') to read .select__single-value and .select__multi-value__label.",
+      "date_banked": "2026-11-01T21:00:00+05:30"
     }
   ]
 }

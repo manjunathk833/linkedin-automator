@@ -31,8 +31,9 @@ from pathlib import Path
 from typing import Any
 
 from src.autofill.ats_filler import ATSAssistedFiller
+from src.autofill.autofill_logger import AutofillLogger, normalize_field_label_key
 from src.autofill.form_mapper import FormFieldMapper
-from src.autofill.vendor_schemas import CandidateMasterData, load_candidate_master_data
+from src.autofill.vendor_schemas import CandidateMasterData, classify_ats_pattern, load_candidate_master_data
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 WORKDAY_MAPPINGS_PATH = PROJECT_ROOT / "data" / "profile" / "workday_field_mappings.json"
@@ -50,6 +51,7 @@ class UniversalBatchFormFiller:
         self.mapper = mapper or FormFieldMapper()
         self.ats_helper = ATSAssistedFiller(headless=True)
         self.workday_mappings = self._load_workday_mappings()
+        self.logger = AutofillLogger.get_logger()
 
     def _load_workday_mappings(self) -> dict[str, Any]:
         if WORKDAY_MAPPINGS_PATH.exists():
@@ -70,17 +72,20 @@ class UniversalBatchFormFiller:
         () => {
             const results = [];
             let counter = 0;
+            for (const existing of document.querySelectorAll('[data-agy-id]')) {
+                const m = (existing.getAttribute('data-agy-id') || '').match(/^agy_field_(\\d+)$/);
+                if (m) counter = Math.max(counter, parseInt(m[1], 10));
+            }
 
             const isVisible = (el) => {
                 if (!el) return false;
-                const style = window.getComputedStyle(el);
+                if (el.tagName.toLowerCase() === 'input' && el.type === 'file') return true;
+                const visTarget = el.closest('.select__control, .select__container') || el;
+                const style = window.getComputedStyle(visTarget);
                 if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
-                    // Allow hidden file inputs so resume upload always works
-                    if (el.tagName.toLowerCase() === 'input' && el.type === 'file') return true;
                     return false;
                 }
-                const rect = el.getBoundingClientRect();
-                if (el.tagName.toLowerCase() === 'input' && el.type === 'file') return true;
+                const rect = visTarget.getBoundingClientRect();
                 return rect.width > 0 && rect.height > 0;
             };
 
@@ -154,9 +159,12 @@ class UniversalBatchFormFiller:
                     if (groupName) seenRadioGroups.add(groupName);
                 }
 
-                counter += 1;
-                const agyId = `agy_field_${counter}`;
-                el.setAttribute('data-agy-id', agyId);
+                let agyId = el.getAttribute('data-agy-id');
+                if (!agyId) {
+                    counter += 1;
+                    agyId = `agy_field_${counter}`;
+                    el.setAttribute('data-agy-id', agyId);
+                }
 
                 let options = [];
                 let currentValue = '';
@@ -194,8 +202,8 @@ class UniversalBatchFormFiller:
                 } else if (type === 'checkbox') {
                     currentValue = el.checked ? 'true' : '';
                 } else if (isCombobox) {
-                    const ctrl = el.closest('.select__control, [role="combobox"], .field, div');
-                    const singleVal = ctrl ? ctrl.querySelector('.select__single-value, [class*="singleValue"], [data-automation-id*="selectedOption"]') : null;
+                    const ctrl = el.closest('.select__control, .select__container, .select, .field') || el.parentElement;
+                    const singleVal = ctrl ? ctrl.querySelector('.select__single-value, .select__multi-value__label, [class*="singleValue"], [class*="single-value"], [class*="multiValue"], [class*="multi-value"], [data-automation-id*="selectedOption"]') : null;
                     currentValue = singleVal ? cleanText(singleVal.innerText) : (el.value || '');
                 } else {
                     currentValue = el.value || '';
@@ -251,12 +259,16 @@ class UniversalBatchFormFiller:
         legal = self.master_data.legal_and_compliance
         eeoc = self.master_data.voluntary_eeoc
 
-        # 1. Phone Country / Dial Code vs Country
+        # 1. Phone Country / Dial Code vs Country (exclude work-authorization/visa questions that mention 'country')
         if re.search(r"\b(phone\s*country|country\s*code|dial\s*code|calling\s*code)\b", combined_key):
             return p.phone_country_code or "+91"
         if (
             re.search(r"\b(country|country/region|country\s*of\s*residence)\b", combined_key)
             and "phone" not in combined_key
+            and not re.search(
+                r"\b(right\s*to\s*work|authorized\s*to\s*work|work\s*permit|visa|sponsorship|eligible\s*to\s*work)\b",
+                combined_key,
+            )
         ):
             return p.country or "India"
 
@@ -342,23 +354,31 @@ class UniversalBatchFormFiller:
         # 7. Legal / Authorization / Sponsorship / Previous Employment / Referral
         if re.search(r"\b(at\s*least\s*18|18\s*years\s*of\s*age|legal\s*age)\b", combined_key):
             return "Yes"
+        # Check visa/work-permit requirement BEFORE generic 'right to work' to avoid matching 'additional right to work support'
+        if re.search(
+            r"\b(require\s*sponsorship|visa\s*sponsorship|require\s*visa|work\s*permit|require.*right\s*to\s*work\s*support)\b",
+            combined_key,
+        ):
+            return "No"
         if re.search(
             r"\b(legally\s*authorized|authorized\s*to\s*work|right\s*to\s*work|eligible\s*to\s*work)\b", combined_key
         ):
             return "Yes"
-        if re.search(r"\b(require\s*sponsorship|visa\s*sponsorship|require\s*visa|work\s*permit)\b", combined_key):
-            return "No"
         if re.search(
-            r"\b(previously\s*employed|worked\s*for\s*us\s*before|former\s*employee|ever\s*worked)\b", combined_key
+            r"\b(previously\s*(employed|worked)|currently\s*work\s*for|worked\s*for\s*us\s*before|former\s*employee|ever\s*worked)\b",
+            combined_key,
         ):
             return "No"
-        if re.search(r"\b(government\s*official|conflict\s*of\s*interest|relatives\s*working)\b", combined_key):
+        if re.search(
+            r"\b(government\s*(official|employee)|procurement\s*or\s*contract|conflict\s*of\s*interest|relatives\s*working)\b",
+            combined_key,
+        ):
             return "No"
-        if re.search(r"\b(how\s*did\s*you\s*hear|source)\b", combined_key):
+        if re.search(r"\b(how\s*did\s*you\s*(hear|learn|find)|source)\b", combined_key) and "other" not in combined_key:
             return legal.how_did_you_hear
 
         # 8. Voluntary EEOC
-        if re.search(r"\bgender\b", combined_key):
+        if re.search(r"\b(gender|sex)\b", combined_key):
             return eeoc.gender
         if re.search(r"\b(race|ethnicity)\b", combined_key):
             return eeoc.race_ethnicity
@@ -377,7 +397,22 @@ class UniversalBatchFormFiller:
 
         # 10. Delegate to FormFieldMapper for skill experience questions (Java, Selenium, Python, Total YOE)
         mapped = self.mapper.resolve_field_value(label, field_type=ftype)
-        return mapped
+        if mapped is not None and mapped != "":
+            return mapped
+
+        # 11. Closed-Loop Learned Field Mappings (from prior Phase B custom answers)
+        norm_key = normalize_field_label_key(label)
+        if norm_key:
+            learned = self.logger.get_learned_field_mappings()
+            if norm_key in learned:
+                return learned[norm_key].get("value")
+            # Substring match for long canonical keys (>= 10 chars)
+            if len(norm_key) >= 10:
+                for l_key, l_entry in learned.items():
+                    if len(l_key) >= 10 and (l_key in norm_key or norm_key in l_key):
+                        return l_entry.get("value")
+
+        return None
 
     async def execute_field_action(self, target: Any, field: dict[str, Any], value: str) -> bool:
         """Executes a single field action deterministically via its `data-agy-id` attribute."""
@@ -541,8 +576,32 @@ class UniversalBatchFormFiller:
 
         audit = await self.verify_filled_controls(target)
         elapsed_ms = round((time.time() - t0) * 1000, 1)
+
+        page = getattr(target, "page", target)
+        cur_url = getattr(page, "url", "") or ""
+        vendor_name = classify_ats_pattern(cur_url) or "GENERIC"
+
+        self.logger.record_batch_run_metrics(
+            url=cur_url,
+            vendor=vendor_name,
+            total_controls=len(schema),
+            auto_filled_count=len(filled_fields),
+            unmapped_count=len(unmapped_fields),
+            failed_count=len(audit.get("contaminated_fields", [])),
+            duration_ms=elapsed_ms,
+        )
+        if unmapped_fields:
+            self.logger.record_unmapped_fields(
+                url=cur_url,
+                vendor=vendor_name,
+                unmapped_fields=unmapped_fields,
+            )
+
         return {
             "elapsed_ms": elapsed_ms,
+            "vendor": vendor_name,
+            "total_controls": len(schema),
+            "coverage_pct": round((len(filled_fields) / max(len(schema), 1)) * 100.0, 1),
             "filled_count": len(filled_fields),
             "resume_attached": resume_attached,
             "filled_fields": filled_fields,
@@ -560,6 +619,7 @@ class UniversalBatchFormFiller:
 
         applied: list[dict[str, Any]] = []
         failed: list[dict[str, Any]] = []
+        learned_count = 0
 
         for key, val in actions.items():
             field = by_id.get(key) or by_label.get(key.strip().lower())
@@ -575,7 +635,17 @@ class UniversalBatchFormFiller:
 
             ok = await self.execute_field_action(target, field, str(val))
             if ok:
-                applied.append({"field_id": field["field_id"], "label": field.get("label"), "value": val})
+                lbl_str = field.get("label") or key
+                applied.append({"field_id": field["field_id"], "label": lbl_str, "value": val})
+                if lbl_str and field.get("type") != "file":
+                    banked = self.logger.record_learned_field_mapping(
+                        label=lbl_str,
+                        value=str(val),
+                        control_type=field.get("type", "text"),
+                        source="phase_b_custom",
+                    )
+                    if banked:
+                        learned_count += 1
             else:
                 failed.append(
                     {
@@ -590,6 +660,7 @@ class UniversalBatchFormFiller:
         return {
             "elapsed_ms": round((time.time() - t0) * 1000, 1),
             "applied_count": len(applied),
+            "learned_count": learned_count,
             "applied": applied,
             "failed": failed,
             "verification": audit,

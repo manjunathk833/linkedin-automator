@@ -163,11 +163,14 @@ The Apply Agent employs a **Hybrid Fast-Path Architecture** that combines instan
         ./venv/bin/python main.py form-batch inspect --job-id {job_id}
         ```
         This single command tags all visible controls with `data-agy-id`, deterministically fills 80–90% of standard & taxonomy fields in 1 pass (enforcing `60 Days` notice period, `17 LPA` current CTC, `27 LPA` expected CTC, `India (+91)` with `British Indian Ocean Territory (+246)` hard-blacklisted), runs a post-fill read-back verification audit, and prints **only** `unmapped_fields` as compact JSON.
-     2. **Phase B (1-Turn Custom Field Batch Fill + Verification):**
+     2. **Phase B (1-Turn Custom Field Batch Fill + Closed-Loop Auto-Learning):**
         Resolve all remaining `unmapped_fields` in **1 single LLM turn** and execute them in **1 batch call**:
         ```bash
         ./venv/bin/python main.py form-batch apply --job-id {job_id} --actions '{"agy_field_12": "Yes", "agy_field_14": "6"}'
         ```
+        Every custom field filled in Phase B is **automatically banked into `data/logs/learned_field_mappings.json`**, so Phase A will deterministically auto-fill that same question on all future job applications without an LLM turn.
+     3. **Post-Batch Telemetry Audit (`autofill_learning_debugger`):**
+        At the end of the `/apply` queue run, if any job encountered `failed_count > 0` or took `> 4 minutes`, run `./venv/bin/python main.py autofill --audit` or invoke `autofill_learning_debugger` to promote recurring unmapped questions from `data/logs/unmapped_fields_backlog.jsonl` into permanent rules.
    * **Form Interaction Standards & Zero-Hallucination Directives:**
      * **Literal Value Injection:** Populate every field using exact literal candidate values from `data/profile/candidate_master_data.json`. Never guess or hallucinate salaries, notice periods, or dates.
      * **Country & Combobox Precision:** Never use loose `has-text('India')` selectors that match `British Indian Ocean Territory (+246)` or `Indiana`. Always use `UniversalBatchFormFiller` or `ATSAssistedFiller._select_react_combobox` which enforce `TERRITORY_EXCLUSIONS` and post-selection read-back verification.

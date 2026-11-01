@@ -110,23 +110,36 @@ async def test_country_and_dial_code_precision() -> None:
         </div>
       </form>
       <script>
-        const rsInput = document.getElementById('rs-country-input');
-        const rsMenu = document.getElementById('rs-country-menu');
-        const rsVal = document.getElementById('rs-country-val');
-        rsInput.addEventListener('click', () => { rsMenu.style.display = 'block'; });
-        rsInput.addEventListener('input', () => { rsMenu.style.display = 'block'; });
-        document.querySelectorAll('#rs-country-menu .select__option').forEach(opt => {
-          opt.addEventListener('click', () => {
-            rsVal.innerText = opt.getAttribute('data-val');
-            rsMenu.style.display = 'none';
+        (() => {
+          const rsInput = document.getElementById('rs-country-input');
+          const rsMenu = document.getElementById('rs-country-menu');
+          const rsVal = document.getElementById('rs-country-val');
+          rsInput.addEventListener('click', () => { rsMenu.style.display = 'block'; });
+          rsInput.addEventListener('input', () => { rsMenu.style.display = 'block'; });
+          document.querySelectorAll('#rs-country-menu .select__option').forEach(opt => {
+            opt.addEventListener('click', () => {
+              rsVal.innerText = opt.getAttribute('data-val');
+              rsMenu.style.display = 'none';
+            });
           });
-        });
+        })();
       </script>
     </body>
     </html>
     """
 
     async with async_playwright() as pw:
+        import json
+
+        from src.autofill.autofill_logger import LEARNED_MAPPINGS_FILE, normalize_field_label_key
+
+        test_key = normalize_field_label_key("Describe your distributed system architecture philosophy *")
+        if LEARNED_MAPPINGS_FILE.exists():
+            data = json.loads(LEARNED_MAPPINGS_FILE.read_text(encoding="utf-8"))
+            if test_key in data.get("mappings", {}):
+                del data["mappings"][test_key]
+                LEARNED_MAPPINGS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
         browser = await pw.chromium.launch(headless=True)
         page = await browser.new_page()
         await page.set_content(html_fixture)
@@ -156,15 +169,41 @@ async def test_country_and_dial_code_precision() -> None:
             f"(repaired contaminated country -> 'India', Notice='60 Days', Expected CTC='27 LPA')."
         )
 
-        # Test Phase B: Single-turn custom field batch execution
+        # Test Phase B: Single-turn custom field batch execution + closed-loop auto-learning
         res_b = await batch_engine.apply_custom_actions(
             page,
             {unmapped_id: "Event-driven contract testing with Playwright, Kafka, and Docker CI sharding."},
         )
         assert res_b["applied_count"] == 1
+        assert res_b["learned_count"] == 1
         assert res_b["verification"]["verification_passed"] is True
         assert len(res_b["verification"]["empty_required_fields"]) == 0
-        print(f"  ✅ Phase B applied custom field in {res_b['elapsed_ms']}ms with 0 empty required fields.")
+        print(f"  ✅ Phase B applied custom field in {res_b['elapsed_ms']}ms and auto-banked 1 learned mapping.")
+
+        # Test Pass 2: Reload fixture and verify Phase A now auto-fills the previously unmapped custom field!
+        await page.set_content(html_fixture)
+        res_pass2 = await batch_engine.inspect_and_autofill_step(page)
+        assert res_pass2["unmapped_count"] == 0, (
+            f"Expected 0 unmapped fields on Pass 2 via closed-loop learning, got {res_pass2['unmapped_count']}: {res_pass2['unmapped_fields']}"
+        )
+        assert (
+            await page.locator("#custom_arch_q").input_value()
+            == "Event-driven contract testing with Playwright, Kafka, and Docker CI sharding."
+        )
+        print("  ✅ Pass 2 verified: Closed-loop auto-learning filled custom field in Phase A (0 unmapped fields).")
+
+        # Clean up test-only learned mapping key so production learned_field_mappings.json stays clean
+        import json
+
+        from src.autofill.autofill_logger import LEARNED_MAPPINGS_FILE, normalize_field_label_key
+
+        if LEARNED_MAPPINGS_FILE.exists():
+            data = json.loads(LEARNED_MAPPINGS_FILE.read_text(encoding="utf-8"))
+            mappings = data.get("mappings", {})
+            test_key = normalize_field_label_key("Describe your distributed system architecture philosophy *")
+            if test_key in mappings:
+                del mappings[test_key]
+                LEARNED_MAPPINGS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
         await browser.close()
 
