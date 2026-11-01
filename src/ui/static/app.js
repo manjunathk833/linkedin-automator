@@ -819,16 +819,34 @@ async function markCurrentJobApplied() {
     }
 
     try {
-        const response = await fetch(`/api/tracking/mark-applied/${job.job_id}`, {
+        let response = await fetch(`/api/tracking/mark-applied/${job.job_id}`, {
             method: 'POST'
         });
-        const data = await response.json();
+        let data = await response.json();
+
+        // If automated submission verification was not met (HTTP 412), offer manual override
+        if (response.status === 412) {
+            const errorMsg = (typeof data.detail === 'object' && data.detail !== null)
+                ? (data.detail.message || data.detail.error || 'No automated submission confirmation log found.')
+                : (data.detail || 'Application confirmation screen not verified.');
+            const forceConfirm = confirm(`${errorMsg}\n\nDid you submit this application manually (e.g. via referral or company website)?\n\nClick OK to record as applied anyway (manual override).`);
+            if (forceConfirm) {
+                response = await fetch(`/api/tracking/mark-applied/${job.job_id}?force=true`, {
+                    method: 'POST'
+                });
+                data = await response.json();
+            }
+        }
+
         if (response.ok) {
             showToast(`✅ Marked as Applied: ${companyName}`);
             removeCurrentJobAndAdvance();
             updateQueueBadges();
         } else {
-            alert(`Could not mark as applied:\n\n${data.detail || response.statusText}`);
+            const errStr = (typeof data.detail === 'object' && data.detail !== null)
+                ? (data.detail.message || JSON.stringify(data.detail))
+                : (data.detail || response.statusText);
+            alert(`Could not mark as applied:\n\n${errStr}`);
         }
     } catch (err) {
         console.error('Error marking staging job applied:', err);
@@ -856,10 +874,25 @@ async function markApprovedJobApplied(jobId, btnElement) {
     }
 
     try {
-        const response = await fetch(`/api/tracking/mark-applied/${jobId}`, {
+        let response = await fetch(`/api/tracking/mark-applied/${jobId}`, {
             method: 'POST'
         });
-        const data = await response.json();
+        let data = await response.json();
+
+        // If automated submission verification was not met (HTTP 412), offer manual override
+        if (response.status === 412) {
+            const errorMsg = (typeof data.detail === 'object' && data.detail !== null)
+                ? (data.detail.message || data.detail.error || 'No automated submission confirmation log found.')
+                : (data.detail || 'Application confirmation screen not verified.');
+            const forceConfirm = confirm(`${errorMsg}\n\nDid you submit this application manually (e.g. via referral or company website)?\n\nClick OK to record as applied anyway (manual override).`);
+            if (forceConfirm) {
+                response = await fetch(`/api/tracking/mark-applied/${jobId}?force=true`, {
+                    method: 'POST'
+                });
+                data = await response.json();
+            }
+        }
+
         if (response.ok) {
             showToast(`✅ Saved to Applied Tracking: ${companyName}`);
 
@@ -878,7 +911,10 @@ async function markApprovedJobApplied(jobId, btnElement) {
                 if (emptyEl) emptyEl.classList.remove('hidden');
             }
         } else {
-            alert(`Could not mark as applied:\n\n${data.detail || response.statusText}`);
+            const errStr = (typeof data.detail === 'object' && data.detail !== null)
+                ? (data.detail.message || JSON.stringify(data.detail))
+                : (data.detail || response.statusText);
+            alert(`Could not mark as applied:\n\n${errStr}`);
         }
     } catch (err) {
         console.error('Error marking approved job applied:', err);
