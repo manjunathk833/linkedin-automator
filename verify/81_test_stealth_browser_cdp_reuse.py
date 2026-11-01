@@ -64,20 +64,27 @@ async def main():
     js_check2 = await page2.evaluate("() => ({ url: window.location.href, hasChrome: !!window.chrome })")
     print(f"   ✅ Second tab acquired seamlessly via CDP: {js_check2}")
 
-    # Clean up test tab
+    # Clean up test tabs
     try:
         await page2.close()
     except Exception:
         pass
+    try:
+        if len(ctx1.pages) > 1:
+            await page1.close()
+    except Exception:
+        pass
 
-    # If the test launched a fresh standalone instance (port was not already open), clean up
+    # If the test launched a fresh standalone instance (port was not already open), clean up context
     if not port_open:
         try:
             await ctx1.close()
         except Exception:
             pass
+
+    for pw in (pw2, pw1):
         try:
-            await pw1.stop()
+            await pw.stop()
         except Exception:
             pass
 
