@@ -43,36 +43,12 @@
       "date_banked": "2026-10-02T18:00:00Z"
     },
     {
-      "id": "LESSON-006",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-05T12:25:39.721140+00:00"
-    },
-    {
-      "id": "LESSON-007",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-05T13:47:21.242766+00:00"
-    },
-    {
       "id": "LESSON-008",
       "vendor": "WORKDAY_STANDARD",
       "symptom": "State classified as 'unknown' and radio options unchecked on live Workday 'My Information' stage.",
       "root_cause": "Live Workday uses BEM IDs ('name--legalName--firstName', 'address--addressLine1') without data-automation-id, radio buttons use boolean value='false' with sibling labels, and Save & Continue uses pageFooterNextButton.",
       "fix_rule": "Match dual-tier selectors (BEM IDs + data-automation-id), group radio inputs by name with value='false'/'true' and sibling label[for] resolution, and recognize pageFooterNextButton.",
       "date_banked": "2026-10-06T00:15:00+05:30"
-    },
-    {
-      "id": "LESSON-009",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-05T19:30:24.306913+00:00"
     },
     {
       "id": "LESSON-010",
@@ -83,172 +59,12 @@
       "date_banked": "2026-10-06T12:20:00+05:30"
     },
     {
-      "id": "LESSON-011",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-06T07:45:27.246087+00:00"
-    },
-    {
-      "id": "LESSON-012",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-13T06:13:19.050890+00:00"
-    },
-    {
-      "id": "LESSON-013",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-13T06:49:04.497459+00:00"
-    },
-    {
-      "id": "LESSON-014",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-13T07:11:17.132828+00:00"
-    },
-    {
-      "id": "LESSON-015",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-13T08:54:49.580450+00:00"
-    },
-    {
-      "id": "LESSON-016",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-13T09:03:28.494810+00:00"
-    },
-    {
-      "id": "LESSON-017",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-13T15:25:29.525560+00:00"
-    },
-    {
-      "id": "LESSON-018",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-13T18:46:38.017482+00:00"
-    },
-    {
-      "id": "LESSON-019",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-13T18:55:27.013747+00:00"
-    },
-    {
-      "id": "LESSON-020",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-13T19:17:53.251823+00:00"
-    },
-    {
-      "id": "LESSON-021",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-15T07:08:58.456813+00:00"
-    },
-    {
-      "id": "LESSON-022",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-15T07:10:50.503684+00:00"
-    },
-    {
-      "id": "LESSON-023",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-15T07:34:17.572831+00:00"
-    },
-    {
-      "id": "LESSON-024",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-15T08:05:00.863505+00:00"
-    },
-    {
-      "id": "LESSON-025",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T09:28:59.102088+00:00"
-    },
-    {
-      "id": "LESSON-026",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T10:27:12.386761+00:00"
-    },
-    {
-      "id": "LESSON-027",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T11:20:47.069989+00:00"
-    },
-    {
-      "id": "LESSON-028",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T11:45:28.475394+00:00"
-    },
-    {
-      "id": "LESSON-029",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T12:32:36.452986+00:00"
-    },
-    {
       "id": "LESSON-030",
       "vendor": "LINKEDIN_POSTS",
       "symptom": "Clicking 'View LinkedIn Post' results in HTTP 404 / 'Page not found'",
       "root_cause": "Content search cards lack data-urn on outer container, triggering fallback to synthetic MD5 hash URL in /feed/update/{hash} which LinkedIn 404s",
       "fix_rule": "Use multi-tier extraction (canonical /posts/ links, data-urn regex, React Fiber SDUI props, anchor regex) and fallback strictly to authentic author activity feeds (/recent-activity/all/ or /posts/), completely eradicating synthetic MD5 hash URLs",
       "date_banked": "2026-10-18T12:40:00.000000+00:00"
-    },
-    {
-      "id": "LESSON-031",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T13:32:05.120678+00:00"
     },
     {
       "id": "LESSON-032",
@@ -259,30 +75,6 @@
       "date_banked": "2026-10-18T13:35:00.000000+00:00"
     },
     {
-      "id": "LESSON-033",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T13:37:23.223556+00:00"
-    },
-    {
-      "id": "LESSON-034",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T14:02:24.360852+00:00"
-    },
-    {
-      "id": "LESSON-035",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T14:06:35.346226+00:00"
-    },
-    {
       "id": "LESSON-036",
       "vendor": "LINKEDIN_POSTS",
       "symptom": "Job seeker posts slipping through filter and conversational fragments extracted as company names",
@@ -291,188 +83,12 @@
       "date_banked": "2026-10-18T14:10:00.000000+00:00"
     },
     {
-      "id": "LESSON-037",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T15:22:18.749703+00:00"
-    },
-    {
-      "id": "LESSON-038",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T15:36:47.368028+00:00"
-    },
-    {
-      "id": "LESSON-039",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T17:28:59.581927+00:00"
-    },
-    {
       "id": "LESSON-040",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-18T17:36:38.979471+00:00"
-    },
-    {
-      "id": "LESSON-041",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-24T16:52:27.119482+00:00"
-    },
-    {
-      "id": "LESSON-042",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-27T17:14:15.538933+00:00"
-    },
-    {
-      "id": "LESSON-043",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-27T17:31:03.201785+00:00"
-    },
-    {
-      "id": "LESSON-044",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-28T07:31:42.492642+00:00"
-    },
-    {
-      "id": "LESSON-045",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-28T07:38:06.998445+00:00"
-    },
-    {
-      "id": "LESSON-046",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-28T11:35:06.960090+00:00"
-    },
-    {
-      "id": "LESSON-047",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-28T11:38:37.384734+00:00"
-    },
-    {
-      "id": "LESSON-048",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-29T08:29:24.188988+00:00"
-    },
-    {
-      "id": "LESSON-049",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-30T08:56:42.646705+00:00"
-    },
-    {
-      "id": "LESSON-050",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-30T09:19:50.540114+00:00"
-    },
-    {
-      "id": "LESSON-051",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-30T09:33:23.994119+00:00"
-    },
-    {
-      "id": "LESSON-052",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-30T11:28:03.841623+00:00"
-    },
-    {
-      "id": "LESSON-053",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-30T11:31:06.138877+00:00"
-    },
-    {
-      "id": "LESSON-054",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-30T12:23:22.843926+00:00"
-    },
-    {
-      "id": "LESSON-055",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-30T17:51:26.957957+00:00"
-    },
-    {
-      "id": "LESSON-056",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-30T18:59:13.371185+00:00"
-    },
-    {
-      "id": "LESSON-057",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-31T12:32:45.972700+00:00"
-    },
-    {
-      "id": "LESSON-058",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-31T12:41:10.693405+00:00"
-    },
-    {
-      "id": "LESSON-059",
-      "vendor": "WORKDAY_STANDARD",
-      "symptom": "Gate 57 simulated selector collision",
-      "root_cause": "Simulated collision test",
-      "fix_rule": "Strictly target data-automation-id",
-      "date_banked": "2026-10-31T12:49:33.301164+00:00"
+      "vendor": "GREENHOUSE_STANDARD",
+      "symptom": "Greenhouse Remix React-Select comboboxes fail to select Yes/No or take >12s, and el.closest('[role=combobox]') returns empty current_value.",
+      "root_cause": "1. Phone input intl-tel-input injects 245 hidden li.iti__country[role='option'] elements at the top of the DOM (with British Indian Ocean Territory at index 30 and India at index 98). 2. Multi-select comboboxes (question_*[]) stay open after option click and block subsequent comboboxes unless Escape is pressed. 3. el.closest('.select__control, [role=combobox]') matches the inner <input role='combobox'> itself rather than the outer .select__control wrapper.",
+      "fix_rule": "1. Exclude :not(.iti__country) from generic [role='option'] locators and check opt.is_visible(). 2. Press ArrowDown to open Remix React-Select menus and Escape after selecting on multi-selects. 3. Use el.closest('.select__control, .select__container, .select, .field') to read .select__single-value and .select__multi-value__label.",
+      "date_banked": "2026-11-01T21:00:00+05:30"
     }
   ]
 }

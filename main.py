@@ -139,15 +139,38 @@ def handle_test(tier: str = "core", live: bool = False):
 
 
 def handle_autofill_audit():
-    """Prints a diagnostics audit report of recent autofill events and learning vault lessons."""
+    """Prints a diagnostics audit report of recent autofill events, telemetry benchmarks, and learning vault lessons."""
     from src.autofill.autofill_logger import AutofillLogger
 
     logger = AutofillLogger.get_logger()
     summary = logger.get_audit_summary(limit=10)
+    telemetry = summary.get("telemetry", {})
 
-    print("\n" + "=" * 65)
-    print("  ATS AUTOFILL DIAGNOSTICS & LEARNING VAULT AUDIT")
-    print("=" * 65)
+    print("\n" + "=" * 72)
+    print("  ATS AUTOFILL CONTINUOUS TELEMETRY & LEARNING VAULT AUDIT")
+    print("=" * 72)
+
+    print("\n⚡ Phase A Batch Form Telemetry (data/logs/autofill_benchmarks.jsonl):")
+    print(f"  • Total Batch Runs Logged : {telemetry.get('total_batch_runs', 0)}")
+    print(f"  • Avg Phase A Coverage    : {telemetry.get('avg_coverage_pct', 0.0)}%")
+    print(f"  • Avg Phase A Speed       : {telemetry.get('avg_duration_ms', 0.0)} ms")
+    print(f"  • Auto-Learned Mappings   : {telemetry.get('total_learned_mappings', 0)} custom questions banked")
+
+    learned_list = telemetry.get("learned_mappings", [])
+    if learned_list:
+        print("\n🔁 Recently Auto-Learned Custom Mappings (data/logs/learned_field_mappings.json):")
+        for lm in learned_list[:5]:
+            print(
+                f"  • [{lm.get('control_type', 'text')}] '{lm.get('label')}' -> '{lm.get('value')}' (used {lm.get('use_count', 1)}x)"
+            )
+
+    top_unmapped = telemetry.get("top_unmapped_fields", [])
+    if top_unmapped:
+        print("\n📋 Top Recurring Unmapped Custom Questions (data/logs/unmapped_fields_backlog.jsonl):")
+        for uf in top_unmapped[:5]:
+            print(
+                f"  • ({uf.get('count', 1)}x) [{uf.get('last_vendor', 'GENERIC')}] {uf.get('label')} ({uf.get('control_type')})"
+            )
 
     print(f"\n🧠 Banked Lessons in Learning Vault ({summary['total_lessons_banked']} total):")
     for lesson in summary["lessons"]:
@@ -176,7 +199,7 @@ def handle_autofill_audit():
         for sc in recent_screenshots[:5]:
             print(f"  • {sc}")
 
-    print("\n" + "=" * 65 + "\n")
+    print("\n" + "=" * 72 + "\n")
 
 
 def handle_session(action: str = "status", output: str | None = None):
@@ -374,6 +397,285 @@ def handle_posts(
         print("\n")
 
 
+def _ensure_cdp_page_target(cdp_url: str = "http://127.0.0.1:9222") -> None:
+    """Ensures at least one browser window/page target exists on macOS Chrome before connect_over_cdp."""
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"{cdp_url}/json/list", timeout=2) as resp:
+            targets = json.loads(resp.read().decode("utf-8"))
+        page_targets = [t for t in targets if t.get("type") == "page"]
+        if not page_targets:
+            req = urllib.request.Request(f"{cdp_url}/json/new?about:blank", method="PUT")
+            urllib.request.urlopen(req, timeout=3).read()
+    except Exception:
+        pass
+
+
+async def _run_form_batch_async(
+    action: str = "inspect",
+    job_id: str = "",
+    url: str = "",
+    resume_path: str = "",
+    actions_json: str = "{}",
+    cdp_url: str = "http://127.0.0.1:9222",
+) -> None:
+    """Connects to persistent Chrome over CDP and runs 2-phase batch form inspection or custom action fill."""
+    from src.autofill.batch_form_engine import UniversalBatchFormFiller
+
+    _ensure_cdp_page_target(cdp_url)
+
+    # Resolve job_id from data/approved_queue if provided
+    if job_id and not (url and resume_path):
+        approved_file = os.path.join("data", "approved_queue", f"{job_id}.json")
+        if os.path.exists(approved_file):
+            with open(approved_file, encoding="utf-8") as f:
+                payload = json.load(f)
+            if not url:
+                url = (
+                    payload.get("url")
+                    or payload.get("job_url")
+                    or payload.get("direct_link")
+                    or payload.get("job_details", {}).get("url", "")
+                )
+            if not resume_path:
+                cand_pdf = payload.get("resume_pdf_path") or os.path.join(
+                    "data", "approved_queue", f"resume_{job_id}.pdf"
+                )
+                if cand_pdf and os.path.exists(cand_pdf):
+                    resume_path = os.path.abspath(cand_pdf)
+                else:
+                    import glob
+                    import re as _re
+
+                    comp = (payload.get("job_details", {}).get("company") or payload.get("company_name") or "").strip()
+                    num_id = "".join(_re.findall(r"\d+", job_id))[:8]
+                    for pdf_f in glob.glob(os.path.join("data", "approved_queue", "*.pdf")):
+                        base_f = os.path.basename(pdf_f).lower()
+                        if (num_id and num_id in base_f) or (comp and comp.lower().split()[0] in base_f):
+                            resume_path = os.path.abspath(pdf_f)
+                            break
+
+    filler = UniversalBatchFormFiller()
+    async with async_playwright() as p:
+        _ensure_cdp_page_target(cdp_url)
+        browser = await p.chromium.connect_over_cdp(cdp_url)
+        context = browser.contexts[0] if browser.contexts else await browser.new_context()
+        pages = context.pages
+        page = None
+
+        if url:
+            for pg in pages:
+                if url in (pg.url or ""):
+                    page = pg
+                    break
+            if page is None:
+                page = pages[-1] if pages else await context.new_page()
+                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                await asyncio.sleep(1.5)
+        else:
+            # Find the tab with the most visible interactive form fields (penalizing LinkedIn browse tabs without Easy Apply modal)
+            best_score = -1000
+            for pg in reversed(pages):
+                try:
+                    score = await pg.evaluate(
+                        """() => {
+                            const els = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea'));
+                            const visCnt = els.filter(el => {
+                                const r = el.getBoundingClientRect();
+                                return r.width > 0 && r.height > 0;
+                            }).length;
+                            if (visCnt === 0) return -1000;
+                            const isLiBrowse = location.hostname.includes('linkedin.com') && !document.querySelector('.jobs-easy-apply-modal, .jobs-easy-apply-content');
+                            return (visCnt * 10) - (isLiBrowse ? 500 : 0);
+                        }"""
+                    )
+                    if score > best_score:
+                        best_score = score
+                        page = pg
+                except Exception:
+                    pass
+            if page is None:
+                page = pages[-1] if pages else await context.new_page()
+
+        if action == "apply":
+            parsed_actions = json.loads(actions_json) if actions_json else {}
+            res = await filler.apply_custom_actions(page, parsed_actions)
+            print(json.dumps(res, indent=2))
+        else:
+            res = await filler.inspect_and_autofill_step(page, resume_pdf_path=resume_path or None)
+            print(json.dumps(res, indent=2))
+
+
+async def _run_referral_scout_async(
+    company_filter: str = "",
+    cdp_url: str = "http://127.0.0.1:9222",
+) -> None:
+    """Dynamically scouts low-key verified SDET/EM referral contacts on LinkedIn for approved/target jobs."""
+    import re
+    from pathlib import Path
+
+    from src.tailor.referral_generator import ReferralNoteGenerator, score_referral_candidate
+
+    targets: list[dict[str, str]] = []
+    q_dir = Path("data/approved_queue")
+    if q_dir.exists():
+        for jf in sorted(q_dir.glob("*.json")):
+            try:
+                payload = json.loads(jf.read_text(encoding="utf-8"))
+                jd = payload.get("job_details", payload)
+                comp = (jd.get("company") or jd.get("company_name") or "").strip()
+                if not comp:
+                    continue
+                if company_filter and company_filter.lower() not in comp.lower():
+                    continue
+                targets.append(
+                    {
+                        "company": comp,
+                        "role": jd.get("title") or jd.get("job_title") or "Senior SDET",
+                        "req_id": str(jd.get("job_id") or jf.stem),
+                        "job_url": (
+                            payload.get("url") or payload.get("job_url") or jd.get("url") or jd.get("job_url") or ""
+                        ),
+                    }
+                )
+            except Exception:
+                pass
+
+    if not targets and company_filter:
+        targets.append(
+            {
+                "company": company_filter,
+                "role": "Senior SDET",
+                "req_id": "N/A",
+                "job_url": "",
+            }
+        )
+
+    if not targets:
+        print("ℹ️ No target jobs found in data/approved_queue/. Pass --company <Name> or stage a job first.")
+        return
+
+    recon_path = Path("data/logs/referral_reconnaissance.json")
+    recon_path.parent.mkdir(parents=True, exist_ok=True)
+    recon_data: dict[str, Any] = {}
+    if recon_path.exists():
+        try:
+            recon_data = json.loads(recon_path.read_text(encoding="utf-8"))
+        except Exception:
+            recon_data = {}
+
+    async with async_playwright() as p:
+        _ensure_cdp_page_target(cdp_url)
+        browser = await p.chromium.connect_over_cdp(cdp_url)
+        context = browser.contexts[0]
+        page = context.pages[0]
+
+        for t in targets:
+            comp = t["company"]
+            urls = ReferralNoteGenerator.build_linkedin_people_search_urls(comp)
+            people_url = urls["company_people_sdet"]
+            print(f"🔍 Scouting verified SDET/QE peers for {comp} -> {people_url}")
+            await page.goto(people_url, wait_until="domcontentloaded", timeout=30000)
+            await asyncio.sleep(3.5)
+            await page.evaluate("() => window.scrollTo(0, 900)")
+            await asyncio.sleep(1.5)
+
+            raw_cards = await page.evaluate(
+                """() => {
+                    const cards = Array.from(document.querySelectorAll('.org-people-profile-card__profile-info, li.org-people-profiles-module__profile-item'));
+                    return cards.map(c => {
+                        const a = c.querySelector('a[href*="/in/"]');
+                        return {
+                            text: c.innerText.trim(),
+                            href: a ? a.href.split('?')[0] : ''
+                        };
+                    }).filter(x => x.href);
+                }"""
+            )
+
+            scored_leads = []
+            seen = set()
+            for item in raw_cards:
+                href = item["href"]
+                if href in seen:
+                    continue
+                seen.add(href)
+                lines = [ln.strip() for ln in item["text"].split("\n") if ln.strip()]
+                if len(lines) < 2:
+                    continue
+                name = re.sub(r"\s*(1st|2nd|3rd\+?|\bdegree connection\b).*", "", lines[0], flags=re.IGNORECASE).strip()
+                deg = "1st" if "1st" in item["text"] else ("2nd" if "2nd" in item["text"] else "3rd")
+                headline = next(
+                    (
+                        ln
+                        for ln in lines[1:]
+                        if not re.search(
+                            r"(degree connection|mutual connection|^Connect$|^Message$|^Follow$)", ln, re.IGNORECASE
+                        )
+                    ),
+                    lines[1],
+                )
+                mutual_m = re.search(r"(\d+)\s+other\s+mutual", item["text"], re.IGNORECASE)
+                mutual_cnt = (
+                    (int(mutual_m.group(1)) + 1)
+                    if mutual_m
+                    else (1 if "mutual connection" in item["text"].lower() else 0)
+                )
+
+                score_info = score_referral_candidate(
+                    {
+                        "name": name,
+                        "headline": headline,
+                        "connection_degree": deg,
+                        "mutual_count": mutual_cnt,
+                        "from_company_people_tab": True,
+                    },
+                    target_company=comp,
+                )
+                if score_info["excluded"]:
+                    continue
+
+                payload = {
+                    "company_name": comp,
+                    "job_title": t["role"],
+                    "requisition_id": t["req_id"],
+                    "job_url": t["job_url"],
+                }
+                fname = name.split()[0] if name else "there"
+                scored_leads.append(
+                    {
+                        "name": name,
+                        "first_name": fname,
+                        "url": href,
+                        "connection_degree": deg,
+                        "headline": headline,
+                        "reply_score": score_info["score"],
+                        "tier": score_info["tier"],
+                        "reasons": score_info["reasons"],
+                        "connection_note": ReferralNoteGenerator.generate_connection_note(
+                            payload, recipient_name=fname
+                        ),
+                        "post_acceptance_dm": ReferralNoteGenerator.generate_post_acceptance_dm(
+                            payload, recipient_name=fname
+                        ),
+                        "inmail_pitch": ReferralNoteGenerator.generate_inmail_pitch(payload, recipient_name=fname),
+                    }
+                )
+
+            scored_leads.sort(key=lambda x: x["reply_score"], reverse=True)
+            recon_data[comp] = {
+                "target_role": t["role"],
+                "target_req_id": t["req_id"],
+                "job_url": t["job_url"],
+                "leads": scored_leads[:5],
+            }
+            print(f"✅ Discovered {len(scored_leads)} high-probability contacts for {comp} (saved top 5).")
+
+    recon_path.write_text(json.dumps(recon_data, indent=2), encoding="utf-8")
+    print(f"\n📂 Updated local referral reconnaissance pack: {recon_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="LinkedIn Job Search & Application Automation Orchestrator",
@@ -559,6 +861,30 @@ def main():
         help="Run browser in headless mode (default: False, runs headful visible)",
     )
 
+    # 14. form-batch (2-Phase Extract-Map-BatchExecute high-speed form engine)
+    parser_batch = subparsers.add_parser(
+        "form-batch", help="High-speed 2-phase DOM schema extractor & deterministic batch form filler"
+    )
+    parser_batch.add_argument(
+        "action",
+        choices=["inspect", "apply"],
+        nargs="?",
+        default="inspect",
+        help="Action: 'inspect' (extract schema & batch-fill known fields) or 'apply' (apply custom field JSON)",
+    )
+    parser_batch.add_argument("--job-id", default="", help="Job ID from data/approved_queue/")
+    parser_batch.add_argument("--url", default="", help="Optional target URL to open/inspect")
+    parser_batch.add_argument("--resume", default="", help="Optional path to tailored resume PDF")
+    parser_batch.add_argument("--actions", default="{}", help="JSON mapping of {field_id_or_label: value} for 'apply'")
+
+    # 15. referral-scout (Dynamic LinkedIn low-key referral contact scout)
+    parser_scout = subparsers.add_parser(
+        "referral-scout", help="Dynamically scout & score low-key SDET/EM referral contacts on LinkedIn via Chrome CDP"
+    )
+    parser_scout.add_argument(
+        "--company", default="", help="Optional company name filter (defaults to all jobs in data/approved_queue/)"
+    )
+
     args = parser.parse_args()
     config = load_config(args.config)
     runner = JobSearchPipelineRunner(config)
@@ -599,6 +925,22 @@ def main():
             date_filter=getattr(args, "date_filter", "past-24h"),
             limit=getattr(args, "limit", 15),
             headless=getattr(args, "headless", True),
+        )
+    elif cmd == "form-batch":
+        asyncio.run(
+            _run_form_batch_async(
+                action=args.action,
+                job_id=getattr(args, "job_id", ""),
+                url=getattr(args, "url", ""),
+                resume_path=getattr(args, "resume", ""),
+                actions_json=getattr(args, "actions", "{}"),
+            )
+        )
+    elif cmd == "referral-scout":
+        asyncio.run(
+            _run_referral_scout_async(
+                company_filter=getattr(args, "company", ""),
+            )
         )
     elif cmd == "daily":
         if args.action == "audit":

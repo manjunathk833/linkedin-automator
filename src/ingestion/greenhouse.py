@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import html
 import re
+from datetime import datetime, timezone
 
 import httpx
 
@@ -15,6 +16,19 @@ from src.ingestion.filters import (
     is_sdet_title,
 )
 from src.storage.models import JobListing
+
+
+def parse_iso_timestamp(raw_ts: str | None) -> datetime | None:
+    """Parses ISO-8601 timestamps from ATS APIs into naive UTC datetime."""
+    if not raw_ts or not isinstance(raw_ts, str):
+        return None
+    try:
+        dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
+    except Exception:
+        return None
 
 
 def clean_html_description(raw_html: str) -> str:
@@ -90,6 +104,8 @@ class GreenhouseCollector:
                     or re.search(r"\bremote\b", title, re.IGNORECASE)
                 )
 
+                posted_dt = parse_iso_timestamp(job.get("first_published") or job.get("updated_at"))
+
                 listing = JobListing(
                     id=f"greenhouse_{slug}_{job_id}",
                     source="greenhouse",
@@ -100,6 +116,7 @@ class GreenhouseCollector:
                     job_description_raw=raw_content,
                     job_description_clean=clean_content,
                     url=job.get("absolute_url", f"https://boards.greenhouse.io/{slug}/jobs/{job_id}"),
+                    posted_at=posted_dt,
                     status="pending",
                 )
                 listings.append(listing)

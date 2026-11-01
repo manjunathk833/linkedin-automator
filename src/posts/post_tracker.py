@@ -111,6 +111,42 @@ class LinkedInPostTracker:
         self.classifier = PostClassifier()
         self.composer = PostOutreachComposer()
 
+    @staticmethod
+    def build_company_hiring_post_query(
+        company_name: str, role_keywords: str = '"SDET" OR "QA" OR "Automation"'
+    ) -> str:
+        """Builds a targeted LinkedIn Content Search query to find hiring/referral posts for a specific company."""
+        clean_co = (company_name or "").strip()
+        return f'"{clean_co}" AND ("hiring" OR "referral" OR "openings" OR "refer") AND ({role_keywords})'
+
+    def find_matching_posts_for_job(self, job_payload: dict[str, Any]) -> list[dict[str, Any]]:
+        """Cross-links a job posting against saved hiring posts in SQLite by company name or post text."""
+        details = job_payload.get("job_details") or {}
+        company = str(
+            job_payload.get("company_name")
+            or job_payload.get("company")
+            or details.get("company")
+            or details.get("company_name")
+            or ""
+        ).strip()
+        if not company:
+            return []
+        comp_low = company.lower()
+        comp_tokens = [t for t in re.split(r"[^a-z0-9]+", comp_low) if len(t) >= 3]
+        primary_tok = comp_tokens[0] if comp_tokens else comp_low
+
+        all_posts = self.db.get_hiring_posts(limit=200)
+        matched: list[dict[str, Any]] = []
+        for post in all_posts:
+            p_comp = str(post.get("company_name") or "").lower()
+            p_text = str(post.get("post_text") or "").lower()
+            p_hl = str(post.get("author_headline") or "").lower()
+            if comp_low in p_comp or (
+                primary_tok and re.search(rf"\b{re.escape(primary_tok)}\b", f"{p_comp} {p_hl} {p_text}")
+            ):
+                matched.append(post)
+        return matched
+
     async def _extract_post_permalink(self, card: Any, author_url: str, raw_text: str) -> str:
         """
         Extracts an authentic LinkedIn post permalink or authentic author activity URL.

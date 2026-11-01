@@ -156,10 +156,24 @@ The Apply Agent employs a **Hybrid Fast-Path Architecture** that combines instan
      * Screening Questions: Resolved from `data/profile/workday_field_mappings.json`.
    * **Result:** The browser opens on your desktop and fills the entire form cleanly before your eyes in **under 5 seconds**, advancing directly to the final Review step!
 
-2. **Priority 2: Multimodal Browser Subagent Fallback:**
-   * For non-standard or proprietary ATS portals (such as Keka, proprietary career boards, or multi-step wizard modals), the agent launches `browser_subagent` using the inlined candidate lookup dictionary.
+2. **Priority 2: 2-Phase `form-batch` Universal DOM Engine (10–15 Apps/Hr):**
+   * For non-standard, custom, or multi-step ATS portals (e.g. Keka, SmartRecruiters, Workday custom steps, bespoke company forms), DO NOT run 15–20 sequential Python one-liners per field. Instead, use the 2-Phase `UniversalBatchFormFiller` CLI:
+     1. **Phase A (Extract Schema & Batch-Fill All Known Fields in `<3s`):**
+        ```bash
+        ./venv/bin/python main.py form-batch inspect --job-id {job_id}
+        ```
+        This single command tags all visible controls with `data-agy-id`, deterministically fills 80–90% of standard & taxonomy fields in 1 pass (enforcing `60 Days` notice period, `17 LPA` current CTC, `27 LPA` expected CTC, `India (+91)` with `British Indian Ocean Territory (+246)` hard-blacklisted), runs a post-fill read-back verification audit, and prints **only** `unmapped_fields` as compact JSON.
+     2. **Phase B (1-Turn Custom Field Batch Fill + Closed-Loop Auto-Learning):**
+        Resolve all remaining `unmapped_fields` in **1 single LLM turn** and execute them in **1 batch call**:
+        ```bash
+        ./venv/bin/python main.py form-batch apply --job-id {job_id} --actions '{"agy_field_12": "Yes", "agy_field_14": "6"}'
+        ```
+        Every custom field filled in Phase B is **automatically banked into `data/logs/learned_field_mappings.json`**, so Phase A will deterministically auto-fill that same question on all future job applications without an LLM turn.
+     3. **Post-Batch Telemetry Audit (`autofill_learning_debugger`):**
+        At the end of the `/apply` queue run, if any job encountered `failed_count > 0` or took `> 4 minutes`, run `./venv/bin/python main.py autofill --audit` or invoke `autofill_learning_debugger` to promote recurring unmapped questions from `data/logs/unmapped_fields_backlog.jsonl` into permanent rules.
    * **Form Interaction Standards & Zero-Hallucination Directives:**
-     * **Literal Value Injection:** You MUST populate every field using the exact literal candidate values provided above. You are STRICTLY FORBIDDEN from guessing, improvising, or hallucinating salaries, notice periods, or dates.
+     * **Literal Value Injection:** Populate every field using exact literal candidate values from `data/profile/candidate_master_data.json`. Never guess or hallucinate salaries, notice periods, or dates.
+     * **Country & Combobox Precision:** Never use loose `has-text('India')` selectors that match `British Indian Ocean Territory (+246)` or `Indiana`. Always use `UniversalBatchFormFiller` or `ATSAssistedFiller._select_react_combobox` which enforce `TERRITORY_EXCLUSIONS` and post-selection read-back verification.
      * **Repeatable Form Containers (Experience & Education):**
        * If an `+ Add Experience Details` or `Add Experience` button is present: You MUST click it and create experience entries for `Value Labs` (Current), `Dunzo`, and `Tata Elxsi` with their respective titles, dates, and summaries.
        * If an `+ Add Education Details` or `Add Education` button is present: You MUST click it and fill degree details for `Sri Jayachamarajendra College of Engineering (SJCE)`.

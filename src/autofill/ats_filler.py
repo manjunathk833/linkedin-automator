@@ -142,8 +142,10 @@ class ATSAssistedFiller:
         job_id: str = "",
         company: str = "",
         job_title: str = "",
+        skip_takeover_wait: bool = False,
     ) -> dict[str, Any]:
         """Fills out the application form on the given page or frame locator."""
+        self._skip_takeover_wait = skip_takeover_wait
         page_url = getattr(page, "url", "")
         # Prefer the actual page url if valid and not about:blank
         active_url = page_url if (page_url and page_url != "about:blank") else job_url
@@ -450,10 +452,100 @@ class ATSAssistedFiller:
         except Exception:
             return False
 
+    TERRITORY_EXCLUSIONS = (
+        "british indian ocean territory",
+        "+246",
+        "indiana",
+        "indianapolis",
+        "west indies",
+        "american indian",
+    )
+
+    @classmethod
+    def is_excluded_territory_option(cls, option_text: str, search_text: str) -> bool:
+        """Prevents selecting 'British Indian Ocean Territory (+246)' or 'Indiana' when targeting 'India' / '+91'."""
+        s_low = (search_text or "").strip().lower()
+        opt_low = (option_text or "").strip().lower()
+        if not opt_low:
+            return True
+        if (
+            (s_low in ("india", "+91", "india (+91)", "in") or "+91" in s_low or "india" in s_low)
+            and "british" not in s_low
+            and "indiana" not in s_low
+        ):
+            for excl in cls.TERRITORY_EXCLUSIONS:
+                if excl in opt_low:
+                    return True
+        return False
+
+    @classmethod
+    def _score_combobox_option(cls, option_text: str, search_text: str, prefer_exact: bool = False) -> int:
+        """Scores a dropdown option deterministically (0 = reject, 100 = exact match)."""
+        raw_opt = (option_text or "").strip()
+        if not raw_opt or "loading" in raw_opt.lower() or "no options" in raw_opt.lower():
+            return 0
+        if cls.is_excluded_territory_option(raw_opt, search_text):
+            return 0
+
+        # Strip leading flag emojis or non-ASCII symbols for clean comparison
+        clean_opt = re.sub(r"^[^\w\+]+", "", raw_opt).strip()
+        opt_low = clean_opt.lower()
+        target_low = (search_text or "").strip().lower()
+
+        # Special high-precision scoring for India / +91
+        if target_low in ("india", "+91", "india (+91)") or "+91" in target_low:
+            if "+91" in target_low and "+91" in opt_low:
+                if opt_low in ("+91", "india (+91)", "india +91", "in (+91)", "+91 (india)"):
+                    return 100
+                return 95
+            if opt_low == "india" or re.match(r"^india\s*(\(\+91\)|\+91|-\s*in)?$", opt_low):
+                return 98
+            if "+91" in opt_low:
+                return 92
+            if re.search(r"\bindia\b", opt_low):
+                return 85
+            return 0
+
+        if opt_low == target_low or raw_opt.lower() == target_low:
+            return 100
+        if opt_low.startswith(target_low) and re.match(rf"^{re.escape(target_low)}(\b|[,:\-\s\(])", opt_low):
+            return 90
+        if prefer_exact:
+            return 0
+        if re.search(rf"\b{re.escape(target_low)}\b", opt_low):
+            return 75
+        if target_low in opt_low:
+            return 55
+        return 0
+
+    async def _verify_combobox_selection(self, el: Any, container: Any, search_text: str) -> bool:
+        """Reads back the control's committed value to verify zero contamination (e.g. +246 / British Indian Ocean)."""
+        try:
+            committed = await el.evaluate(
+                """e => {
+                    const root = e.closest('.select__control, .select__container, .select, .field') || e.parentElement || e;
+                    const singleVal = root.querySelector('.select__single-value, .select__multi-value__label, [class*="singleValue"], [class*="single-value"], [class*="multiValue"], [class*="multi-value"], [data-automation-id*="selectedOption"]');
+                    if (singleVal && singleVal.innerText) return singleVal.innerText.trim();
+                    if (e.tagName.toLowerCase() === 'select') {
+                        const idx = e.selectedIndex;
+                        return idx >= 0 && e.options[idx] ? e.options[idx].text.trim() : (e.value || '');
+                    }
+                    return (e.value || e.innerText || '').trim();
+                }"""
+            )
+            if committed and self.is_excluded_territory_option(committed, search_text):
+                print(
+                    f"🚨 Combobox verification caught contaminated territory '{committed}' for target '{search_text}'!"
+                )
+                return False
+            return True
+        except Exception:
+            return True
+
     async def _select_react_combobox(
         self, target: Any, locator: Any, search_text: str, prefer_exact: bool = False
     ) -> bool:
-        """Resiliently interacts with React-Select / custom combobox / native select controls."""
+        """Resiliently interacts with React-Select / custom combobox / native select controls with territory exclusion."""
         try:
             if await locator.count() == 0:
                 return False
@@ -463,101 +555,144 @@ class ATSAssistedFiller:
             except Exception:
                 pass
 
-            # Check if this is a native HTML select
+            container = target if hasattr(target, "locator") else getattr(target, "page", target)
+
+            # 1. Native HTML <select> handling with tiered exact-first scoring & territory exclusion
             tag = await el.evaluate("e => e.tagName.toLowerCase()")
             if tag == "select":
-                try:
-                    await el.select_option(label=search_text, timeout=1500)
-                    return True
-                except Exception:
-                    options = await el.locator("option").all()
-                    for opt in options:
-                        t = await opt.inner_text()
-                        if search_text.lower() in t.lower():
-                            val = await opt.get_attribute("value")
-                            if val:
-                                await el.select_option(value=val, timeout=1500)
-                                return True
-                    return False
+                options = await el.locator("option").all()
+                best_val: str | None = None
+                best_label: str | None = None
+                best_score = 0
+                for opt in options:
+                    t = (await opt.inner_text()).strip()
+                    score = self._score_combobox_option(t, search_text, prefer_exact=prefer_exact)
+                    if score > best_score:
+                        best_score = score
+                        best_val = await opt.get_attribute("value")
+                        best_label = t
+                        if score == 100:
+                            break
+                if best_score > 0:
+                    if best_val is not None:
+                        await el.select_option(value=best_val, timeout=1500)
+                    elif best_label is not None:
+                        await el.select_option(label=best_label, timeout=1500)
+                    await el.dispatch_event("change")
+                    return await self._verify_combobox_selection(el, container, search_text)
+                return False
 
-            # If it's a container element, look for the inner input
+            # 2. Custom Combobox / React-Select handling
             input_el = el
             if tag != "input":
                 inner_input = el.locator("input.select__input, input[role='combobox'], input").first
                 if await inner_input.count() > 0:
                     input_el = inner_input
 
-            # Focus / click trigger
-            await input_el.click(timeout=1200)
-            await asyncio.sleep(0.15)
-
-            is_text_input = await input_el.evaluate("e => ['input', 'textarea'].includes(e.tagName.toLowerCase())")
-            if is_text_input:
-                type_text = "India" if ("+91" in search_text or search_text == "India") else search_text
-                await input_el.fill(type_text)
-                await input_el.dispatch_event("input")
-            await asyncio.sleep(0.4)
-
-            # Check if options menu opened (.select__option, div[role='option'], li[role='option'], [role='option'])
-            container = target if hasattr(target, "locator") else getattr(target, "page", target)
-            options = container.locator(
-                ".select__option:not(.select__menu-notice), [role='option']:not(.select__menu-notice), li[role='option'], div[data-automation-id*='promptOption']"
-            )
             try:
-                await options.first.wait_for(state="visible", timeout=3000)
+                await input_el.click(timeout=1200)
             except Exception:
                 pass
+            try:
+                await input_el.focus()
+                await input_el.press("ArrowDown")
+            except Exception:
+                pass
+            await asyncio.sleep(0.08)
+
+            option_selector = (
+                ".select__option:not(.select__menu-notice), "
+                "[role='option']:not(.select__menu-notice):not(.iti__country), "
+                "div[data-automation-id*='promptOption']"
+            )
+            is_text_input = await input_el.evaluate("e => ['input', 'textarea'].includes(e.tagName.toLowerCase())")
+            if is_text_input:
+                # Preserve '+91' if searching for dial code; only fall back to 'India' if '+91' yields 0 options
+                type_text = (
+                    "+91"
+                    if search_text.strip() == "+91"
+                    else ("India" if ("+91" in search_text or search_text.strip().lower() == "india") else search_text)
+                )
+                await input_el.fill(type_text)
+                await input_el.dispatch_event("input")
+            await asyncio.sleep(0.18)
+
+            options = container.locator(option_selector)
+            if await options.count() == 0 and is_text_input:
+                try:
+                    await input_el.press("ArrowDown")
+                    await asyncio.sleep(0.15)
+                except Exception:
+                    pass
 
             opt_count = await options.count()
-            if opt_count > 0:
-                # Special matching for Country dial code (+91)
-                if "+91" in search_text or search_text == "India":
-                    for i in range(opt_count):
-                        opt = options.nth(i)
-                        txt = await opt.inner_text()
-                        if "+91" in txt:
-                            await opt.click(timeout=1200)
-                            await asyncio.sleep(0.2)
-                            return True
-                    for i in range(opt_count):
-                        opt = options.nth(i)
-                        txt = (await opt.inner_text()).strip()
-                        if txt == "India" or txt.startswith("India (") or "india (+91)" in txt.lower():
-                            await opt.click(timeout=1200)
-                            await asyncio.sleep(0.2)
-                            return True
+            # If we typed '+91' and the dropdown filters by country name ('India') instead of dial code, retry with 'India'
+            if opt_count == 0 and is_text_input and search_text.strip() == "+91":
+                await input_el.fill("India")
+                await input_el.dispatch_event("input")
+                await asyncio.sleep(0.2)
+                options = container.locator(option_selector)
+                opt_count = await options.count()
 
-                # Matching logic
+            if opt_count > 0:
+                best_idx = -1
+                best_score = 0
+                saw_excluded_territory = False
                 for i in range(opt_count):
                     opt = options.nth(i)
-                    txt = (await opt.inner_text()).strip()
-                    if not txt or "loading" in txt.lower():
+                    txt = ""
+                    try:
+                        if await opt.is_visible():
+                            txt = (await opt.inner_text()).strip()
+                    except Exception:
+                        pass
+                    if not txt:
                         continue
-                    if (
-                        prefer_exact
-                        and search_text.lower() == txt.lower()
-                        or not prefer_exact
-                        and search_text.lower() in txt.lower()
-                    ):
-                        await opt.click(timeout=1200)
-                        await asyncio.sleep(0.2)
+                    if self.is_excluded_territory_option(txt, search_text):
+                        saw_excluded_territory = True
+                        continue
+                    score = self._score_combobox_option(txt, search_text, prefer_exact=prefer_exact)
+                    if score > best_score:
+                        best_score = score
+                        best_idx = i
+                        if score == 100:
+                            break
+
+                if best_idx >= 0 and best_score > 0:
+                    await options.nth(best_idx).click(timeout=1200)
+                    await asyncio.sleep(0.1)
+                    # Close any multi-select menu that remains open after option click
+                    try:
+                        if await options.count() > 0 and is_text_input:
+                            await input_el.press("Escape")
+                    except Exception:
+                        pass
+                    if await self._verify_combobox_selection(el, container, search_text):
                         return True
 
-                # Fallback to first visible valid option (ignoring notices)
-                first_opt = options.first
-                if await first_opt.is_visible():
-                    first_txt = (await first_opt.inner_text()).strip()
-                    if "loading" not in first_txt.lower():
-                        await first_opt.click(timeout=1200)
-                        await asyncio.sleep(0.2)
-                        return True
+                # Only fall back to first visible option if we are NOT in a territory-sensitive search and prefer_exact is False
+                if (
+                    not prefer_exact
+                    and not saw_excluded_territory
+                    and search_text.strip().lower() not in ("india", "+91", "india (+91)")
+                ):
+                    first_opt = options.first
+                    if await first_opt.is_visible():
+                        first_txt = (await first_opt.inner_text()).strip()
+                        if "loading" not in first_txt.lower() and not self.is_excluded_territory_option(
+                            first_txt, search_text
+                        ):
+                            await first_opt.click(timeout=1200)
+                            await asyncio.sleep(0.15)
+                            return await self._verify_combobox_selection(el, container, search_text)
+                return False
 
-            # If no dropdown option matched and it's an input, press Enter and dispatch events
-            if is_text_input:
+            # If no dropdown options rendered at all and it's a plain text input (not a country/territory list), press Enter
+            if is_text_input and search_text.strip().lower() not in ("india", "+91", "india (+91)"):
                 await input_el.press("Enter")
                 await input_el.dispatch_event("change")
                 await input_el.dispatch_event("blur")
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(0.15)
                 return True
         except Exception:
             pass
@@ -2068,6 +2203,8 @@ class ATSAssistedFiller:
         Sounds audible alert (\\a), renders candidate quick-reference card in terminal,
         injects a non-intrusive floating helper widget into the web page DOM, and
         starts a background monitor detecting submission confirmation."""
+        if getattr(self, "_skip_takeover_wait", False):
+            return {"status": "batch_mode_active", "portal": portal_name}
         p = self.master_data.personal
         profiles = self.master_data.profiles
         workday_pwd = getattr(p, "workday_default_password", None) or os.getenv(
@@ -3471,9 +3608,22 @@ class ATSAssistedFiller:
                     print(f"📎 Attaching tailored resume: {resume_pdf_path}")
                     await file_input.set_input_files(resume_pdf_path)
                     attached = True
-                    await asyncio.sleep(1.0)
+                    await asyncio.sleep(0.5)
             except Exception as e:
                 print(f"⚠️ Resume attachment notice: {e}")
+
+        # Sweep all remaining visible controls (comboboxes, selects, radios, CTC, Notice Period=60 Days, EEOC)
+        try:
+            from src.autofill.batch_form_engine import UniversalBatchFormFiller
+
+            batch_filler = UniversalBatchFormFiller(master_data=self.master_data, mapper=self.mapper)
+            batch_res = await batch_filler.inspect_and_autofill_step(target, resume_pdf_path=resume_pdf_path)
+            newly_filled = sum(1 for item in batch_res.get("filled_fields", []) if item.get("status") == "batch_filled")
+            filled += newly_filled
+            if batch_res.get("resume_attached"):
+                attached = True
+        except Exception as e:
+            print(f"⚠️ UniversalBatchFormFiller sweep notice: {e}")
 
         return filled, attached
 

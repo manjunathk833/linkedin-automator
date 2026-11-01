@@ -99,10 +99,18 @@ class FormFieldMapper:
         # 2. Contact details
         if re.search(r"\b(email|e-mail)\b", norm_label):
             return contact["email"]
+        if re.search(r"\b(phone\s*country|country\s*code|dial\s*code)\b", norm_label):
+            return contact["phone_country_code"]
         if re.search(r"\b(phone|mobile|cell|contact\s*number)\b", norm_label):
             return contact["phone"]
         if re.search(r"\b(city|current\s*city)\b", norm_label):
             return contact["city"]
+        if re.search(r"\b(state|province)\b", norm_label):
+            return self.master_data.get("personal", {}).get("state", "Karnataka")
+        if re.search(r"\b(postal\s*code|zip\s*code|pincode|pin\s*code)\b", norm_label):
+            return self.master_data.get("personal", {}).get("postal_code", "560076")
+        if re.search(r"\b(country|country/region)\b", norm_label):
+            return contact["country"]
         if re.search(r"\b(location|address)\b", norm_label):
             return contact["location"]
 
@@ -111,10 +119,16 @@ class FormFieldMapper:
             return contact["linkedin"]
         if re.search(r"\bgithub\b", norm_label):
             return contact["github"]
-        if re.search(r"\b(portfolio|website|site)\b", norm_label):
+        if re.search(r"\b(portfolio|website|site|personal\s*url)\b", norm_label):
             return contact["portfolio"]
 
-        # 4. Standard Experience Questions
+        # 4. Current Employment & Education
+        if re.search(r"\b(current\s*company|current\s*employer|present\s*employer|organization)\b", norm_label):
+            return self.master_data.get("current_employment", {}).get("company", "Value Labs")
+        if re.search(r"\b(current\s*title|current\s*role|job\s*title|designation)\b", norm_label):
+            return self.master_data.get("current_employment", {}).get("title", "Senior Engineer - QE")
+
+        # 5. Standard Experience Questions
         if re.search(r"\b(years\s*of\s*experience|total\s*experience|overall\s*experience)\b", norm_label):
             return "6"
         if re.search(r"\b(java|core\s*java)\b", norm_label) and re.search(r"\b(years|exp)\b", norm_label):
@@ -130,7 +144,7 @@ class FormFieldMapper:
         if re.search(r"\b(jenkins|ci/cd|cicd)\b", norm_label) and re.search(r"\b(years|exp)\b", norm_label):
             return "5"
 
-        # 5. Authorization & Sponsorship (India)
+        # 6. Authorization & Sponsorship (India)
         if re.search(r"\b(legally\s*authorized|authorized\s*to\s*work|right\s*to\s*work)\b", norm_label):
             return "Yes"
         if re.search(
@@ -138,8 +152,23 @@ class FormFieldMapper:
         ):
             return "No"
 
-        # 6. Notice period
-        if re.search(r"\b(notice\s*period|how\s*soon|joining\s*time)\b", norm_label):
-            return "Immediate / 15-30 days"
+        # 7. Notice period (Strictly 60 Days per candidate_master_data.json)
+        if re.search(r"\b(notice\s*period|how\s*soon|joining\s*time|days\s*to\s*join)\b", norm_label):
+            legal = self.master_data.get("legal_and_compliance", {})
+            if field_type in ("number", "numeric") or "in days" in norm_label:
+                return str(legal.get("notice_period_days", 60))
+            return str(legal.get("notice_period_text", "60 Days"))
+
+        # 8. Compensation / CTC
+        if re.search(r"\b(current\s*ctc|current\s*salary|present\s*ctc|current\s*compensation)\b", norm_label):
+            legal = self.master_data.get("legal_and_compliance", {})
+            if field_type in ("number", "numeric"):
+                return str(legal.get("current_ctc_numeric", 1700000))
+            return str(legal.get("current_ctc", "17,00,000 INR"))
+        if re.search(r"\b(expected\s*ctc|expected\s*salary|desired\s*salary|expected\s*compensation)\b", norm_label):
+            legal = self.master_data.get("legal_and_compliance", {})
+            if field_type in ("number", "numeric"):
+                return str(legal.get("expected_ctc_numeric", 2700000))
+            return str(legal.get("expected_ctc", "27,00,000 INR"))
 
         return None

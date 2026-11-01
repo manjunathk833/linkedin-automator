@@ -124,6 +124,8 @@ class LinkedInAssistedFiller:
                 else:
                     break
 
+            if job_id:
+                asyncio.create_task(self._monitor_easy_apply_submission(page, job_id=job_id, company=company))
             return {"status": "ready_for_review", "message": "Autofill paused at final step."}
 
         except Exception as e:

@@ -24,7 +24,21 @@ class AutofillSelfHealer:
 
     def __init__(self, logger: AutofillLogger | None = None) -> None:
         self.logger = logger or AutofillLogger.get_logger()
-        self._load_vault_cache()
+        self.vault_lessons: list[dict[str, Any]] = self._load_vault_cache()
+
+    def find_matching_lesson(self, vendor: str, field_name: str, error_msg: str = "") -> dict[str, Any] | None:
+        """Consults banked lessons in the Learning Vault for matching vendor + field/symptom."""
+        vendor_norm = (vendor or "").lower()
+        field_norm = (field_name or "").lower()
+        for lesson in self.vault_lessons:
+            l_vendor = str(lesson.get("vendor", "")).lower()
+            l_symptom = str(lesson.get("symptom", "")).lower()
+            vendor_match = l_vendor in ("common", "all_vendors") or l_vendor in vendor_norm or vendor_norm in l_vendor
+            if vendor_match and (
+                (field_norm and field_norm in l_symptom) or (error_msg and error_msg[:40].lower() in l_symptom)
+            ):
+                return lesson
+        return None
 
     def _load_vault_cache(self) -> list[dict[str, Any]]:
         """Loads banked lessons from the persistent Learning Vault."""

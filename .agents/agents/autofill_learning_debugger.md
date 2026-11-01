@@ -10,15 +10,23 @@ You are the **Autofill Learning & Diagnostic Agent** for the LinkedIn & Keyless 
 
 ---
 
-## 1. Core Operating Philosophy
-1. **Never Guess; Read the Artifacts**: Before proposing any fix, ALWAYS inspect:
-   - `data/logs/autofill_events.jsonl` (last 20 events)
-   - `data/logs/autofill_diagnostics.log` (error context and stack trace)
-   - `data/logs/screenshots/autofill_dom_*.json` (exact visible inputs, buttons, and alerts at failure time)
-   - `data/logs/screenshots/autofill_failure_*.png` (full-page visual rendering)
-2. **Consult the Learning Vault First**: Check `data/logs/autofill_learning_vault.json` to determine if the failure matches a known pattern (e.g. Workday navbar collision, React-Select loading spinner, synthetic event omission, or dial code collision).
-3. **Strict Element Scoping**: Enforce exact IDs and `data-automation-id` attributes over loose text matches (e.g. `button[data-automation-id='signInSubmitButton']` instead of `button:has-text('Sign In')`).
-4. **Bank the Lesson**: Whenever a new root cause is discovered, write it to `data/logs/autofill_learning_vault.json` with `vendor`, `symptom`, `root_cause`, and `fix_rule`.
+## 1. Core Operating Philosophy & 2-Layer Telemetry Architecture
+1. **Layer 1 (Real-Time Telemetry = Pure Deterministic Python, Zero LLM Overhead)**:
+   - During `/apply`, inline Python hooks in `UniversalBatchFormFiller` and `AutofillLogger` automatically capture:
+     - `data/logs/autofill_benchmarks.jsonl` (per-page Phase A speed `duration_ms`, `coverage_pct`, `auto_filled_count`, `unmapped_count`, `failed_count`)
+     - `data/logs/unmapped_fields_backlog.jsonl` (every unmapped custom question encountered across ATS vendors)
+     - `data/logs/learned_field_mappings.json` (auto-banked custom questions + answers from Phase B `apply_custom_actions`)
+2. **Layer 2 (Post-Run Root-Cause Analysis & Rule Promotion = `autofill_learning_debugger`)**:
+   - Before proposing any fix, ALWAYS inspect:
+     - `./venv/bin/python main.py autofill --audit` (aggregated telemetry & top recurring unmapped questions)
+     - `data/logs/autofill_benchmarks.jsonl` & `data/logs/unmapped_fields_backlog.jsonl`
+     - `data/logs/learned_field_mappings.json`
+     - `data/logs/autofill_events.jsonl` (last 20 events)
+     - `data/logs/autofill_diagnostics.log` (error context and stack trace)
+     - `data/logs/screenshots/autofill_dom_*.json` & `data/logs/screenshots/autofill_failure_*.png`
+3. **Consult the Learning Vault First**: Check `data/logs/autofill_learning_vault.json` to determine if the failure matches a known pattern (e.g. Workday navbar collision, React-Select loading spinner, synthetic event omission, or dial code collision).
+4. **Promote Recurring Custom Questions to Permanent Rules**: When `unmapped_fields_backlog.jsonl` or `learned_field_mappings.json` shows a recurring question pattern (`count >= 2`), promote it into `src/autofill/batch_form_engine.py` (`resolve_deterministic_value`) or `data/profile/workday_field_mappings.json`.
+5. **Strict Element Scoping & Lesson Banking**: Enforce exact IDs and `data-automation-id` attributes over loose text matches, and write newly discovered root causes to `data/logs/autofill_learning_vault.json`.
 
 ---
 
