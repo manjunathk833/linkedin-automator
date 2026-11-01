@@ -286,10 +286,12 @@ async def launch_stealth_browser(
             if cdp_tuple is not None:
                 return cdp_tuple
 
-        # Fallback to bundled Chromium with an isolated profile dir if user_data_dir is locked (EPERM)
+        # Fallback to bundled Chromium with a deterministic isolated profile dir if user_data_dir is locked (EPERM)
         import tempfile
 
-        fallback_dir = tempfile.mkdtemp(prefix="stealth_chromium_fallback_")
+        fallback_dir = os.path.join(tempfile.gettempdir(), "agy_stealth_fallback_profile")
+        os.makedirs(fallback_dir, exist_ok=True)
+        clean_stale_browser_processes(fallback_dir)
         print(f"⚠️ System Chrome launch warning: {e}. Falling back to isolated Chromium ({fallback_dir})...")
         context = await playwright_instance.chromium.launch_persistent_context(
             user_data_dir=fallback_dir,
