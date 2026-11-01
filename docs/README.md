@@ -19,6 +19,7 @@ The documentation is organized into clear functional layers:
 | **[04_USAGE_AND_OPERATIONS.md](04_USAGE_AND_OPERATIONS.md)** | **Operations & Usage** | Comprehensive CLI command reference (`main.py` subcommands including `form-batch`, `referral-scout`, `daily`, `posts`, `test`), configuration guide, and operational playbooks. | Operators & Daily Users |
 | **[05_VERIFICATION_AND_TESTING.md](05_VERIFICATION_AND_TESTING.md)** | **Quality Assurance** | Catalog of the Standardized Multi-Tier Regression Runner (`python main.py test --tier core`, 62 Core gates + 18 Autofill simulations) and Ruff linter standards. | QA Architects & Contributors |
 | **[SYSTEM_CAPABILITIES_EVALUATION.md](SYSTEM_CAPABILITIES_EVALUATION.md)** | **System Evaluation** | Comprehensive audit of all end-to-end capabilities, telemetry pipelines, and funnel metrics. | Architects & Operators |
+| **[RESEARCH_1000_ORG_CI_PORTAL_SNIPER.md](RESEARCH_1000_ORG_CI_PORTAL_SNIPER.md)** | **Next-Phase Architecture** | Blueprint for the Explicit 1,000-Org Watchlist, GitHub CI `<24h` Delta Scanner, and Cloud-to-Local SQLite/Dashboard Auto-Ingest. | System Designers & Operators |
 
 ---
 
