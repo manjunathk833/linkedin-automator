@@ -1,187 +1,89 @@
 # Technical Specification & Module Architecture
 
-This document provides exhaustive, code-level engineering specifications for all 10 subsystems of the application copilot.
+This document provides code-level engineering specifications for all core subsystems of the platform.
 
 ---
 
 ## 1. System Module Catalog
 
-```
+```text
 src/
-├── browser/                     # Module 2: Anti-detection browser & kinematics
-├── ingestion/                   # Module 7: Multi-source keyless ATS collectors
-├── scraper/                     # Module 3: 4-Channel LinkedIn discovery scraper
-├── tailor/                      # Module 4: Grounded AI resume tailor & translator
-├── llm/                         # Module 8: Ollama client & verification gate
-├── compiler/                    # Module 8: Single-column ATS PDF generator
-├── filter/                      # Module 5: Experience & location policy filter
-├── autofill/                    # Module 9: Assisted Easy Apply & ATS form copilot
-├── storage/                     # Module 10: Pydantic models & SQLite persistence
-├── ui/                          # Module 9: Local FastAPI approval gate dashboard
-└── pipeline/                    # Module 1: One-shot pipeline runner orchestrator
+├── browser/      # Module 2: CDP port 9222 reuse, stealth context, session manager & Bézier kinematics
+├── ingestion/    # Module 3: Keyless REST collectors (Greenhouse, Lever, Ashby, Workday CXS) & filters
+├── scraper/      # Module 4: 5-Channel LinkedIn discovery scraper & sub-24h First-Applicant Sniper
+├── posts/        # Module 5: Track 3 Social Hiring Posts tracker, 2-tier classifier & outreach composer
+├── tailor/       # Module 6: Grounded STAR tailorer, 3-Tier InterviewRouter & Referral Scorer
+├── llm/          # Module 7: Deterministic ResumeVerificationGate & company boundary isolation
+├── compiler/     # Module 8: Typst & Playwright single-column ATS PDF compiler
+├── filter/       # Module 9: Experience (5–12 yrs), India/Global Remote & jurisdiction policy filter
+├── autofill/     # Module 10: UniversalBatchFormFiller, vendor schemas, self-healer & HTTP 412 verifier
+├── notifier/     # Module 11: DailyRunLogger & Gmail SMTP SSL Executive Briefing reporter
+├── storage/      # Module 12: Pydantic models & 5-table SQLite persistence manager
+├── ui/           # Module 13: 4-Tab FastAPI Command Center (http://127.0.0.1:8000)
+└── pipeline/     # Module 1: Unified & Daily Pipeline orchestrators
 ```
 
 ---
 
-## 2. Module-by-Module Technical Deep Dive
+## 2. Module-by-Module Technical Breakdown
 
 ### Module 1: CLI Entrypoint & Pipeline Orchestration
-* **Source:** [`main.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/main.py), [`src/pipeline/runner.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/pipeline/runner.py)
-* **Architecture:** Decoupled subcommand architecture using `argparse.add_subparsers()` routing into `JobSearchPipelineRunner`.
-* **Execution Modes:**
-  * `python main.py run` (`pipeline`): Executes end-to-end one-shot pipeline (`sync` $\rightarrow$ `search` $\rightarrow$ `filter` $\rightarrow$ `dashboard`).
-  * `python main.py search`: Scrapes and tailors LinkedIn listings across 4 channels.
-  * `python main.py sync`: Syncs unstructured notes (`candidate_notes.md`) to `master_knowledge_bank.json`.
-  * `python main.py filter`: Scans `data/pending_queue/` and purges non-matching experience postings.
-  * `python main.py dashboard`: Launches local FastAPI web UI on port 8000.
-  * `python main.py apply [--no-dry-run]`: Executes batch Easy Apply submissions.
-  * `python main.py login`: Launches headful persistent Chrome for manual one-time LinkedIn authentication.
-  * `python main.py lint`: Runs Ruff auto-fix linter and code formatter.
+* **Source:** [`main.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/main.py), [`src/pipeline/runner.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/pipeline/runner.py), [`src/pipeline/daily_runner.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/pipeline/daily_runner.py)
+* **Primary Subcommands:**
+  * `python main.py daily [run|audit|diagnose]`: Orchestrates regression health check $\rightarrow$ notes sync $\rightarrow$ 3-track discovery $\rightarrow$ Naukri Resdex pinger $\rightarrow$ HTML executive email briefing $\rightarrow$ Command Center readiness.
+  * `python main.py form-batch [inspect|apply] --job-id <id>`: Executes Phase A (`inspect`: single-pass DOM extraction, deterministic batch fill, read-back verification) and Phase B (`apply`: 1-turn custom field batch execution + closed-loop learning).
+  * `python main.py referral-scout [--job-id <id>]`: Dynamically scouts verified current employees on LinkedIn over CDP port 9222 and scores them via `score_referral_candidate`.
+  * `python main.py posts [discover|list|stats]`: Runs Track 3 hiring posts discovery and analytics.
+  * `python main.py autofill [--audit]`: Aggregates telemetry from `autofill_benchmarks.jsonl`, `unmapped_fields_backlog.jsonl`, and `autofill_learning_vault.json`.
+  * `python main.py test [--tier core|autofill|all]`: Runs the Standardized Multi-Tier Regression Suite (62 Core gates).
+  * `python main.py lint`: Runs Ruff auto-fix linter and formatter across 174+ files.
 
 ---
 
-### Module 2: Browser Context, Anti-Detection & Kinematics Engine
-* **Source:** [`src/browser/cdp_stealth.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/cdp_stealth.py), [`src/browser/kinematics.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/kinematics.py)
-* **CDP Evasion Mechanisms:**
-  * Overrides `navigator.webdriver` getter to return `undefined`.
-  * Mocks complete `window.chrome` object (runtime, loadTimes, csi, app).
-  * Emulates authentic macOS Chrome plugins (PDF Viewer, Chromium PDF Viewer).
-  * Passes anti-automation Chrome arguments: `--disable-blink-features=AutomationControlled`, `--disable-infobars`, `--exclude-switches=enable-automation`.
-* **Kinematics Math:**
-  * Cursor trajectories calculated via cubic Bézier curves:
-    $$B(t) = (1-t)^3 P_0 + 3(1-t)^2 t P_1 + 3(1-t) t^2 P_2 + t^3 P_3, \quad t \in [0, 1]$$
-  * Intermediate control points $P_1$ and $P_2$ generated with randomized perpendicular offsets proportional to distance ($0.25 \times \text{dist}$).
-  * Acceleration modulated with smoothstep easing ($S(t) = 3t^2 - 2t^3$) and Gaussian micro-tremor jitter ($\mu=0, \sigma=0.75$).
-  * Keystrokes generated from log-normal distribution ($\mu=\ln(95), \sigma=0.35$, bounded between $40–240$ ms).
+### Module 2: Browser Context, CDP Reuse & Kinematics
+* **Source:** [`src/browser/cdp_stealth.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/cdp_stealth.py), [`src/browser/session_manager.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/session_manager.py), [`src/browser/kinematics.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/browser/kinematics.py)
+* **Seamless CDP Fast-Path (Gate 81):** `is_cdp_port_open(9222)` checks `127.0.0.1:9222` and `localhost:9222`; if open, `_connect_existing_cdp` attaches via `connect_over_cdp` and opens a new tab without profile lock collisions. Automatically falls back to headless mode on Linux CI when `$DISPLAY` is unset, and uses a deterministic isolated fallback profile if `.browser_data` is locked across sandbox boundaries (`EPERM`).
+* **Kinematics:** Cubic Bézier cursor trajectories ($B(t) = (1-t)^3 P_0 + 3(1-t)^2 t P_1 + 3(1-t) t^2 P_2 + t^3 P_3$) and log-normal keystroke intervals.
 
 ---
 
-### Module 3: Multi-Channel LinkedIn Discovery Scraper
-* **Source:** [`src/scraper/job_finder.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/scraper/job_finder.py)
-* **Discovery Channels:**
-  1. *Paginated Keyword Search:* Iterates `start=0, 25, 50` with Boolean filters (`f_AL=true`, `f_WT=2,3`, `f_E=4`, `sortBy=DD`).
-  2. *Recommended Feed:* Iterates `/jobs/collections/recommended/` with container scrolling.
-  3. *Recruiter Posts:* Queries `/search/results/content/` for posts with `#hiring #sdet`.
-  4. *Similar Jobs:* Scrapes related listings sidebar from viewed cards.
-* **Resilience Heuristics:** Decoupled card metadata extraction before page navigation to prevent stale Playwright element handles.
+### Module 3 & 4: Tri-Track Ingestion & Sub-24h Sniper Discovery
+* **Source:** [`src/ingestion/greenhouse.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/greenhouse.py), [`src/ingestion/lever.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/lever.py), [`src/ingestion/ashby.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/ashby.py), [`src/ingestion/workday.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/workday.py), [`src/ingestion/filters.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/filters.py), [`src/scraper/job_finder.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/scraper/job_finder.py)
+* **Publish Timestamp Extraction:** Extracts authentic `posted_at` datetimes across Greenhouse (`updated_at` / `first_published`), Lever (`createdAt` epoch ms), Ashby (`publishedAt`), and Workday (`postedOn` relative parser).
+* **5-Channel LinkedIn Scraper + Sniper Mode:** Iterates Boolean Keyword Search (configurable `sort_by: "relevance"` or `"date"` and sub-24h sniper windows `past_1h` `r3600`, `past_3h` `r10800`, `past_6h` `r21600`, `past_24h` `r86400`), Multi-Collection Feeds (`recommended`, `top-applicant`, `still-hiring`), Recruiter Posts, Similar Jobs, and Company Jobs Tabs (`/company/{slug}/jobs/`).
 
 ---
 
-### Module 4: Grounded AI Resume Tailoring & Translation
-* **Source:** [`src/tailor/resume_tailorer.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/resume_tailorer.py), [`src/tailor/llm_provider.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/llm_provider.py), [`src/tailor/knowledge_translator.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/knowledge_translator.py)
-* **LLM Architecture:**
-  * `HybridLLMProvider`: Primary engine Google Gemini 2.5 Flash (`temperature=0.0`); automatic offline fallback to local Ollama (`qwen2.5:7b`).
-  * `KnowledgeBankTranslator`: Parses unstructured notes from `data/candidate_notes.md`, chunks them into batches of 5, translates into STAR format, deduplicates via MD5 hashing, and writes to `data/master_knowledge_bank.json`.
+### Module 5 & 6: 3-Tier `InterviewRouter`, Referral Scorer & Grounded Tailoring
+* **Source:** [`src/tailor/referral_generator.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/referral_generator.py), [`src/tailor/resume_tailorer.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/resume_tailorer.py), [`src/tailor/llm_provider.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/llm_provider.py), [`src/posts/post_tracker.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/posts/post_tracker.py)
+* **`InterviewRouter.classify_job_strategy`:** Routes jobs into `TIER_0_POST_AUTHOR` (matching hiring post), `TIER_1_SNIPER_APPLY` (`<24h` fresh non-Workday postings), or `TIER_2_REFERRAL_SLA` (36-hour hold for Dream Enterprises / Workday roles with `referral_sla_deadline` metadata).
+* **`score_referral_candidate` & `is_verified_current_employee`:** Rejects `>3,000` follower influencers (`-100`) and `"Ex-<Company>"` former employees (`-100`); boosts 1st-degree connections (`+40`), post authors (`+45`), shared alumni (`Dunzo`, `Value Labs`, `Tata Elxsi`, `SJCE` `+35`), and SDET ICs (`+25`).
+* **LLM Rate Pacer & Timeout Protection:** `genai.Client(http_options=types.HttpOptions(timeout=25000))` with a `4.0s` request pacer and `60s` model cooldown circuit-breaker.
 
 ---
 
-### Module 5: Experience & Policy Filter Engine
-* **Source:** [`src/filter/job_filter.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/filter/job_filter.py)
-* **Rules:**
-  * Senior SDET Experience Bounds: Requires $\ge 4$ years and $\le 10$ years.
-  * Candidate Profile Baseline: 6.8 years (Senior SDET baseline profile).
-  * Context-guarded regex ignores false positives (e.g. "20+ years in business", "15 locations").
-  * Location policy: Bengaluru (onsite/hybrid/remote) or India (remote only). Non-Bengaluru onsite roles are automatically purged.
+### Module 7 & 8: Boundary-Isolated Verification Gate & PDF Compiler
+* **Source:** [`src/llm/validator.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/llm/validator.py), [`src/tailor/knowledge_translator.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/tailor/knowledge_translator.py), [`src/compiler/pdf_engine.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/compiler/pdf_engine.py)
+* **Whitelist & Boundary Isolation:** Allows modern architecture tools (`playwright`, `typescript`, `docker`, `kubernetes`, `kafka`, `wiremock`, `pact`) strictly inside `Technical Projects` / `Personal` achievements while preventing cross-contamination into historical employers (`Value Labs`, `Dunzo`, `Tata Elxsi`). Purges unverified tools (`cypress`, `golang`, etc.).
+* **Professional PDF Naming:** Compiles `Manjunath_HK_<Company>_<Token>_Resume.pdf` with `Content-Disposition: inline` preview support.
 
 ---
 
-### Module 6: Easy Apply Execution Engine
-* **Source:** [`src/automation/easy_apply.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/automation/easy_apply.py)
-* **Workflow:** Attaches to persistent browser, detects Easy Apply triggers, iterates multi-step modals, answers screening questions via LLM solver, attaches tailored PDF, and logs to `data/application_history.json`.
+### Module 10: 2-Phase Batch Autofill, Self-Healer & HTTP 412 Verifier
+* **Source:** [`src/autofill/batch_form_engine.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/batch_form_engine.py), [`src/autofill/ats_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/ats_filler.py), [`src/autofill/vendor_schemas.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/vendor_schemas.py), [`src/autofill/autofill_verifier.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/autofill_verifier.py), [`src/autofill/autofill_logger.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/autofill_logger.py)
+* **`UniversalBatchFormFiller`:**
+  * `extract_form_schema(page)`: Tags inputs/selects/comboboxes with `data-agy-id`, resolving hidden React-Select inputs via parent `.select__control`.
+  * `execute_batch_fill(page, resume_path)`: Deterministically fills fields (`60 Days` notice, `17 LPA` current CTC, `27 LPA` expected CTC, `India (+91)`), enforces `TERRITORY_EXCLUSIONS` (blocking `"British Indian Ocean Territory (+246)"` and `"Indiana"`), verifies filled values via `verify_filled_fields`, and logs telemetry to `autofill_benchmarks.jsonl` and `unmapped_fields_backlog.jsonl`.
+  * `apply_custom_actions(page, actions, unmapped_fields)`: Executes Phase B actions in 1 call and banks learned mappings into `data/logs/learned_field_mappings.json`.
+* **`SubmissionVerifier` (HTTP 412 Gate):** Audits `data/logs/autofill_events.jsonl` for a verified `SUBMISSION_CONFIRMED` event and confirms screenshot existence in `data/logs/screenshots/` before allowing `/api/tracking/mark-applied/{job_id}`.
 
 ---
 
-### Module 7: Multi-Source Keyless ATS Ingestion Engine
-* **Source:** [`src/ingestion/greenhouse.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/greenhouse.py), [`src/ingestion/lever.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/lever.py), [`src/ingestion/ashby.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/ashby.py), [`src/ingestion/ats_discovery.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ingestion/ats_discovery.py)
-* **Public REST Endpoints:**
-  * Greenhouse: `https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true`
-  * Lever: `https://api.lever.co/v0/postings/{slug}?mode=json`
-  * Ashby: `https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true`
-* **Concurrency:** Parallel non-blocking HTTP requests managed via `asyncio.Semaphore(10)`.
+## 3. SQLite Relational Database Schema (`data/app_database.db`)
 
----
-
-### Module 8: Deterministic Verification Gate & Typst Resume Compiler
-* **Source:** [`src/llm/validator.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/llm/validator.py), [`src/compiler/typst_generator.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/compiler/typst_generator.py)
-* **Deterministic Token Gate:** `ResumeVerificationGate` validates bullets against `data/profile/allowed_tools_whitelist.json`. Automatically purges or substitutes unallowed tools:
-  * `playwright` / `cypress` $\rightarrow$ `Selenium`
-  * `kubernetes` / `k8s` $\rightarrow$ `Docker`
-  * `golang` / `go` $\rightarrow$ `Python`
-  * `kafka` $\rightarrow$ `REST API`
-* **Compilation:** Compiles clean single-column ATS PDFs into `data/resumes/{company}_{job_id}_{role_slug}.pdf` using Typst CLI with HTML/Playwright fallback.
-
----
-
-### Module 9: Dual-Mode Application Command Center & Assisted Copilot
-* **Source:** [`src/autofill/form_mapper.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/form_mapper.py), [`src/autofill/linkedin_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/linkedin_filler.py), [`src/autofill/ats_filler.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/ats_filler.py), [`src/ui/app.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/ui/app.py)
-* **Features:**
-  * **Dual-Mode Command Center:** Dual tabs (`📋 Staging Review` and `🚀 Ready to Apply`), live queue count polling via `/api/queue-status`, and keyword search filtering.
-  * **Approval Pipeline:** Type-coercion approval endpoints (`/api/approve-job`, `/api/approve-all`) that compile single-column ATS PDFs into `data/resumes/` and move jobs to `data/approved_queue/`.
-  * **Inline PDF Preview:** `/api/pdf/{job_id}` endpoint serving compiled PDFs directly into a preview modal.
-  * **Canonical ATS Routing:** `resolve_canonical_ats_url` translates wrapper career URLs (e.g. Coinbase `gh_jid`) into canonical Greenhouse board URLs.
-  * **Multi-Tab & Popup Interception:** Captures `<a target="_blank">` or `window.open()` popups via `page.context.on("page", ...)` event listeners, switches active page focus, calls `bring_to_front()`, and navigates embedded ATS iframes.
-  * **Session Longevity:** `_ACTIVE_SESSIONS` global registry keeps headful browser windows alive indefinitely until candidate submission.
-  * **Pause-Before-Submit:** Types inputs with humanized Bézier movements and keystroke jitter, attaches tailored PDF, and halts before final submission.
-
----
-
-### Module 10: Governance, SQLite Audit Trails & Rate Governor
-* **Source:** [`src/storage/database.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/storage/database.py), [`src/autofill/governor.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/autofill/governor.py)
-* **Safety Policy:** Daily quota of $\le 15$ applications per 24 hours. Blocks with HTTP 429 once budget is reached.
-* **Audit Trail:** Logs every application into local SQLite database (`data/app_database.db`).
-
----
-
-## 3. Data Schemas
-
-### Relational Database Schema (`data/app_database.db`)
-
-```sql
-CREATE TABLE IF NOT EXISTS job_applications (
-    id TEXT PRIMARY KEY,
-    source TEXT NOT NULL,
-    company_name TEXT NOT NULL,
-    job_title TEXT NOT NULL,
-    job_url TEXT NOT NULL,
-    resume_path TEXT NOT NULL,
-    tailored_data_json TEXT NOT NULL,
-    screening_qa_json TEXT,
-    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS daily_submission_limits (
-    date_bucket TEXT PRIMARY KEY,
-    submission_count INTEGER DEFAULT 0
-);
-```
-
-### Normalized Pydantic Models (`src/storage/models.py`)
-
-```python
-class JobListing(BaseModel):
-    id: str = Field(description="Unique composite key: {source}_{company}_{external_id}")
-    source: str = Field(description="greenhouse | lever | ashby | linkedin")
-    company_name: str
-    job_title: str
-    location: str
-    is_remote: bool = False
-    job_description_raw: str
-    job_description_clean: str
-    url: str
-    salary_range: Optional[str] = None
-    extracted_skills: list[str] = Field(default_factory=list)
-    screening_questions: list[dict[str, Any]] = Field(default_factory=list)
-    posted_at: Optional[datetime] = None
-    discovered_at: datetime = Field(default_factory=datetime.utcnow)
-    status: str = Field(default="pending", description="pending | approved | rejected | applied")
-
-
-class TargetCompany(BaseModel):
-    name: str
-    ats_provider: str = Field(description="greenhouse | lever | ashby")
-    slug: str
-    domain: Optional[str] = None
-    active: bool = True
-    industry: Optional[str] = None
-```
+Managed by [`src/storage/database.py`](file:///Users/yeshwinmanjunath/development/linkedinjobsearchautomation/src/storage/database.py) across 5 indexed tables:
+1. **`job_applications`:** Tracks `id`, `source`, `company_name`, `job_title`, `job_url`, `resume_path`, `tailored_data_json`, `screening_qa_json`, `applied_at`, and `status` (`pending` | `approved` | `applied` | `rejected`).
+2. **`daily_submission_limits`:** Tracks daily application counts against the configurable safety governor ceiling (`default: 200/day`).
+3. **`tracked_requisitions`:** Stores SHA-256 content hashes of direct ATS requisitions (`NEW` $\rightarrow$ `ACTIVE` $\rightarrow$ `UPDATED`).
+4. **`referral_outreach`:** Tracks referral outreach packs (`job_id`, `company`, `requisition_id`, `connection_note`, `inmail_pitch`, `status`: `GENERATED` $\rightarrow$ `SENT` $\rightarrow$ `CONNECTED` $\rightarrow$ `REFERRED`).
+5. **`hiring_posts`:** Stores Track 3 social hiring posts (`post_id`, `author_name`, `author_headline`, `author_persona`, `company`, `post_text`, `post_url`, `extracted_emails`, `extracted_links`, `confidence_score`, `status`).

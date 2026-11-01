@@ -1,130 +1,65 @@
 # Verification Suite & Testing Standards
 
-Per project design rules, every browser interaction, DOM selector, LLM translation, data schema, and rate limiter must be proven via an isolated, standalone executable script in `verify/` before it is integrated into the production pipeline.
+Per Workspace Rule #2 and Rule #8, every browser interaction, DOM selector, LLM translation, data schema, and API endpoint must be verified via an executable script in `verify/` and pass the Standardized Multi-Tier Regression Runner (`100%` pass rate required before any commit or PR).
 
 ---
 
-## 1. Master Verification Script Catalog (Scripts 01 to 32)
+## 1. Standardized Multi-Tier Regression Runner (`verify/run_regressions.py`)
 
-| Script Path | Target Subsystem | Validation Criteria | Status |
-| :--- | :--- | :--- | :--- |
-| `verify/01_test_playwright_launch.sh` | Browser Engine | Verifies headful Playwright persistent context launch on macOS | **PASSED** |
-| `verify/02_test_resume_store.py` | Schema Store | Validates `ResumeProfile` Pydantic models, JSON Resume compliance, and experience helpers | **PASSED** |
-| `verify/03_test_approval_gate.py` | Dashboard Backend | Validates FastAPI state transitions, queue reading, and approval persistence | **PASSED** |
-| `verify/04_test_playwright_cdp.sh` | Chrome CDP | Tests remote debugging port 9222 connection and session navigation | **PASSED** |
-| `verify/05_test_pdf_engine.py` | PDF Engine | Generates sample ATS PDF from candidate profile using Playwright | **PASSED** |
-| `verify/06_audit_resume_accuracy.py` | Data Integrity | Audits exact text match between `Manjunathhkstandardresume.json` and `resume_profile.json` | **PASSED** |
-| `verify/07_test_easy_apply_flow.py` | Easy Apply Automation | Tests multi-step form traversal, text inputs, radio groups, and dry-run safety | **PASSED** |
-| `verify/08_test_job_finder_and_tailorer.py` | Discovery & Tailor | Tests search query construction, job card extraction, and initial keyword tailoring | **PASSED** |
-| `verify/09_test_llm_integration.py` | LLM Integration | Tests `HybridLLMProvider` initialization, structured Pydantic schemas, and Gemini/Ollama routing | **PASSED** |
-| `verify/10_test_linkedin_live_flow.py` | Live Scraper Flow | Tests live LinkedIn job detail expansion, noise filtering, and pending queue persistence | **PASSED** |
-| `verify/11_test_main_orchestrator.py` | Main Orchestrator | Tests CLI flags, configuration loading, and application history logging | **PASSED** |
-| `verify/12_test_search_and_filter.py` | Search & Deduplication | Tests single browser session reuse, deduplication index `processed_jobs.json`, and filter logic | **PASSED** |
-| `verify/13_test_job_finder_optimization.py` | Query Optimization | Tests Boolean search query injection (`f_WT=2,3`, `f_E=4`, `f_TPR=r604800`) | **PASSED** |
-| `verify/14_test_multi_channel_discovery.py` | 4-Channel Scraper | Tests pagination across Search, Recommended feed, Recruiter posts, and Similar jobs | **PASSED** |
-| `verify/15_test_scraper_bug_fixes.py` | DOM Scraper Resilience | Tests bracket query formatting, card decoupling, and multi-scroll container loading | **PASSED** |
-| `verify/18_test_dynamic_pagination.py` | Pagination Guards | Tests early break on empty pages and configurable recommended feed page limits | **PASSED** |
-| `verify/20_test_easy_apply_resilience.py` | Selector Resilience | Tests `try...finally` context cleanup and fallback Easy Apply button locators | **PASSED** |
-| `verify/21_test_description_and_diff.py` | Diff & Cleaning Engine | Tests boilerplate noise removal and visual diff badging (`is_tailored`) | **PASSED** |
-| `verify/24_test_knowledge_translation.py` | Notes Translator | Tests markdown bullet extraction, chunking, MD5 dedup, and atomic vault replacement | **PASSED** |
-| `verify/25_test_fabrication_detector.py` | Fabrication Detector | Proves hallucinated tools (Playwright/Cypress) are detected and purged | **PASSED** |
-| `verify/26_test_pipeline_runner.py` | Pipeline Runner & CLI | Tests unified `argparse` subparsers and `JobSearchPipelineRunner` orchestration | **PASSED** |
-| `verify/27_test_kinematics_and_stealth.py` | Anti-Detection Kinematics | Validates cubic Bézier curves, log-normal typing jitter, and CDP evasion JS | **PASSED** |
-| `verify/28_test_ollama_local.py` | Local Ollama Client | Tests async connection, token speed benchmarks, and offline fallback | **PASSED** |
-| `verify/29_test_ats_ingestion.py` | Direct ATS Collectors | Tests keyless unauthenticated Greenhouse, Lever, and Ashby ingestion in <3s | **PASSED** |
-| `verify/30_test_tailoring_and_compilation.py` | Whitelist Gate & Typst | Tests 100% false-skill purging and single-column ATS PDF compilation | **PASSED** |
-| `verify/31_test_assisted_autofill.py` | Assisted Autofill Copilot | Verifies form field heuristics, candidate contact resolver, and 404 guards | **PASSED** |
-| `verify/32_test_governance_and_sqlite.py` | SQLite DB & Rate Governor | Verifies audit logging transactions and 15/day quota safety cutoff | **PASSED** |
-| `verify/33_test_resume_and_knowledge_regeneration.py` | Resume & Knowledge Vault | Verifies 100% Pydantic compliance and 11 authentic STAR achievements | **PASSED** |
-| `verify/34_test_dashboard_data_flow.py` | Dashboard Flow | Verifies API responses, job card schema, and payload sanitization | **PASSED** |
-| `verify/35_test_approval_gate_coercion.py` | Approval Gate Coercion | Tests string notice periods and type coercion during job approval | **PASSED** |
-| `verify/36_test_queue_status_flow.py` | Real-Time Queue Status | Tests `/api/queue-status` counts and state transitions between queues | **PASSED** |
-| `verify/37_test_approved_queue_ui_flow.py` | Approved Queue & PDF Preview | Verifies `/api/approved-jobs`, inline `/api/pdf/{job_id}`, and PDF rendering | **PASSED** |
-| `verify/38_test_static_cache_headers.py` | Cache-Busting & Headers | Tests no-cache headers and static asset version query parameters | **PASSED** |
-| `verify/39_test_ats_filler_resilience.py` | ATS URL & Trigger Resilience | Tests canonical ATS URL resolution and 'Apply' button trigger detection | **PASSED** |
-| `verify/40_test_new_tab_ats_handling.py` | Multi-Tab & Popup Autofill | Tests target="_blank" and window.open() new-tab switching, focus, and form filling | **PASSED** |
-| `verify/41_test_standardized_vendor_autofill.py` | Standardized ATS Schemas | Tests unified Candidate Master Data across Greenhouse, Lever, Ashby, Workday, LinkedIn | **PASSED** |
-| `verify/42_test_safety_governor_cap_200.py` | 200/Day Rate Governor | Tests configurable high-volume daily limit (200/day) in safety governor | **PASSED** |
-| `verify/43_test_coinbase_greenhouse_live_fill.py` | React-Select Combobox Autofill | Tests 28 fields live on Greenhouse with multi-job experience loop and phone dial code | **PASSED** |
-| `verify/44_test_resume_professional_naming.py` | Candidate Resume Naming | Tests `Manjunath_HK_<Company>_<Token>_Resume.pdf` naming pattern and download headers | **PASSED** |
-| `verify/45_test_staging_job_metadata_enrichment.py` | Staging Job Intelligence | Tests US-only location warnings, experience extraction, and direct ATS posting links | **PASSED** |
-| `verify/46_test_okta_autofill_heuristics.py` | Okta Branded ATS Autofill | Tests Okta custom pattern classification, portfolio mapping, and live form fill | **PASSED** |
-| `verify/47_test_databricks_autofill_heuristics.py` | Databricks Custom ATS Suite | Tests Databricks iframe piercing, preferred name, current firm, and live autofill | **PASSED** |
-| `verify/48_test_coinbase_autofill_heuristics.py` | Coinbase Canonical Embed Autofill | Tests Coinbase wrapper resolution to embed portal, zero-error live 28-field autofill | **PASSED** |
-| `verify/49_test_linkedin_external_ats_pivot.py` | LinkedIn External ATS Pivot | Tests easy_apply_only=False, distance=25, 7-day velocity window, and external ATS pivot | **PASSED** |
-| `verify/50_test_gemini_38_flash_pacer.py` | Rate-Paced LLM Tailoring | Tests Gemini Flash Lite rate pacer (4.0s), 60s quota circuit-breaker, and request logging | **PASSED** |
-| `verify/51_test_company_boundary_isolation.py` | Company Boundary Isolation | Tests deterministic cross-company contamination blocking and company-scoped tailoring | **PASSED** |
-| `verify/52_audit_queue_zero_contamination.py` | Queue Zero Contamination Audit | Audits all staged jobs in pending_queue asserting 100% zero cross-company contamination | **PASSED** |
-| `verify/53_test_resume_comparison_and_selection.py` | Resume Comparison & Selection Gate | Validates standard vs tailored PDF preview endpoints, inspection modal, and approval routing | **PASSED** |
-| `verify/54_test_pdf_inline_preview_headers.py` | PDF Inline Preview Disposition | Verifies Content-Disposition: inline and no-cache headers preventing unintended downloads | **PASSED** |
-| `verify/55_test_oracle_hcm_autofill_heuristics.py` | Oracle Cloud HCM (Akamai) Autofill | Validates Oracle Cloud HCM pattern classification, multi-stage traversal, and form precision | **PASSED** |
-| `verify/56_test_workday_autofill_heuristics.py` | Workday Standard ATS Autofill | Validates Workday pattern classification, tenant auth gate, OTP loop, multi-stage autofill, and resume attachment | **PASSED** |
-| `verify/56b_test_workday_live_page_autofill.py` | Workday Live Portal Probing | Validates live JioStar portal hydration barrier, modal opening, and live auth gate detection | **PASSED** |
-| `verify/57_test_autofill_logger_and_learning_vault.py` | Structured Diagnostics, Event Logger & Learning Vault | Validates JSONL events, failure screenshots, DOM element dumps, Learning Vault banking, and Workday navbar anti-collision | **PASSED** |
-| `verify/58_test_workday_dynamic_question_solver.py` | Workday Deterministic Dynamic Question Solver | Validates dynamic radio & dropdown question answering (prior employment, prefix, auth, disclosures) and multi-stage traversal | **PASSED** |
-| `verify/59_test_workday_live_dom_schema_precision.py` | Workday Live BEM Schema Precision & Sibling Radios | Validates live Workday BEM IDs (`name--legalName--firstName`, `address--...`), sibling `candidateIsPreviousWorker` radio (`false`), and `pageFooterNextButton` | **PASSED** |
-| `verify/60_test_manual_takeover_fallback.py` | Human-in-the-Loop Manual Takeover Fallback | Validates graceful manual apply fallback, headful browser takeover, candidate cheat sheet injection, and submission confirmation detection | **PASSED** |
-| `verify/61_test_application_tracking_and_auto_purge.py` | Application Tracking, Database Indexing & Auto-Purge | Validates SQLite status and applied_at indexing (<1ms lookups), mark-applied endpoints, auto-purge of pending queues, and live dashboard tracking | **PASSED** |
-| `verify/62_test_user_driven_applied_and_approved_purge.py` | User-Driven Applied Trigger & Approved Queue Temp Purge | Validates browser launch isolation from applied status, repeat-click safety, explicit user confirmation gate, complete temp PDF/JSON purge from approved queue, and resume archiving | **PASSED** |
-
----
-
-## 2. Running Verification Test Suites
-
-You can execute all test suites individually using the project's virtual environment:
+Execute the standardized test suite via `main.py`:
 
 ```bash
-# Activate virtual environment
-source venv/bin/activate
+# Run Tier 1 Core Regression Suite (62 self-contained tests in ~60s — Mandatory before every commit/PR):
+./venv/bin/python main.py test --tier core
 
-# 1. Test Anti-Detection & Kinematics
-python verify/27_test_kinematics_and_stealth.py
+# Run Tier 2 Playwright Autofill Simulation Suite (18 vendor form simulation gates):
+./venv/bin/python main.py test --tier autofill
 
-# 2. Test Keyless ATS Ingestion
-python verify/29_test_ats_ingestion.py
+# Run All Tiers (Core + Autofill):
+./venv/bin/python main.py test --tier all
 
-# 3. Test Deterministic Whitelist & PDF Compilation
-python verify/30_test_tailoring_and_compilation.py
-
-# 4. Test Assisted Autofill Form Mapping
-python verify/31_test_assisted_autofill.py
-
-# 5. Test SQLite Database & Rate Governor
-python verify/32_test_governance_and_sqlite.py
-
-# 6. Test ATS URL Resolution & Form Resilience
-python verify/39_test_ats_filler_resilience.py
-
-# 7. Test Multi-Tab & Popup ATS Form Autofill
-python verify/40_test_new_tab_ats_handling.py
-
-# 8. Test Rate-Paced Gemini Tailoring, Circuit Breaker & Request Diagnostics Logging
-python verify/50_test_gemini_38_flash_pacer.py
-
-# 9. Test Workday Dynamic Question Solver & Screening Taxonomy
-python verify/58_test_workday_dynamic_question_solver.py
-
-# 10. Test Workday Live BEM Schema Precision & Sibling Radio Matching
-python verify/59_test_workday_live_dom_schema_precision.py
-
-# 11. Test Human-in-the-Loop Manual Takeover Fallback & Submission Confirmation Detector
-python verify/60_test_manual_takeover_fallback.py
-
-# 12. Test Application Tracking, Database Indexing & Auto-Purge Flow
-python verify/61_test_application_tracking_and_auto_purge.py
-
-# 13. Test User-Driven Applied Trigger & Complete Approved Queue Temp Purge
-python verify/62_test_user_driven_applied_and_approved_purge.py
+# Run Ruff Linter & Formatter (0 errors required across 174+ files):
+./venv/bin/python main.py lint
 ```
+
+* **CI/CD Portability:** When `data/profile/candidate_master_data.json` is absent (e.g., on GitHub Actions Ubuntu runners where candidate PII is gitignored), `verify/synthetic_mock_fixtures.py` automatically deploys deterministic mock fixtures, and `src/browser/cdp_stealth.py` auto-switches to headless mode when `$DISPLAY` is unset.
 
 ---
 
-## 3. Code Quality & Linting Standards
+## 2. Master Verification Gate Catalog (Gates 01 to 105)
 
-* **Linter Engine:** Ruff (`.ruff.toml`) configured for Python 3.9 compatibility.
-* **Standards Enforced:** Clean type annotations, modern string formatting, import ordering (`isort`), and structured exception handling.
-* **Auto-Fix Command:**
-  ```bash
-  python main.py lint
-  ```
-  Runs across all 104 codebase files in <1 second and maintains **0 remaining linter errors**.
+### Gates 01–62: Foundation, Ingestion, Grounding, Vendor Schemas & Queue Governance
+| Gate | Script Path | Subsystem Verified | Status |
+| :---: | :--- | :--- | :---: |
+| **01–06** | `verify/01` to `06_audit_resume_accuracy.py` | Playwright launch, `ResumeProfile` Pydantic schema, FastAPI approval gate, CDP connect, PDF engine, and canonical resume accuracy | **PASSED** |
+| **07–21** | `verify/07` to `21_test_description_and_diff.py` | Multi-step Easy Apply, Boolean query optimization, 4-channel scraper, pagination guards, status sync, and visual diff badging | **PASSED** |
+| **23–33** | `verify/23` to `33_test_resume_and_knowledge_regeneration.py` | STAR notes translation, deterministic fabrication detector, local Ollama client, keyless Greenhouse/Lever/Ashby ingestion, Typst PDF compiler, and SQLite governor | **PASSED** |
+| **34–45** | `verify/34` to `45_test_staging_job_metadata_enrichment.py` | Dashboard data flow, type coercion, live queue status, inline PDF preview, static cache busting, multi-tab popup switching, standardized vendor schemas, 200/day governor, React-Select comboboxes, and `Manjunath_HK_*` PDF naming | **PASSED** |
+| **46–54** | `verify/46` to `54_test_pdf_inline_preview_headers.py` | Okta, Databricks, and Coinbase custom Greenhouse schemas, LinkedIn External ATS pivot, Gemini rate pacer & 60s cooldown circuit-breaker, cross-company boundary isolation, zero-contamination queue audit, and side-by-side PDF comparison | **PASSED** |
+| **55–62** | `verify/55` to `62_test_user_driven_applied_and_approved_purge.py` | Oracle Cloud HCM, Workday Standard & BEM DOM precision, `AutofillLogger` & Learning Vault (`autofill_learning_vault.json`), manual takeover cheat-sheet, SQLite indexing, and user-driven applied queue auto-purge | **PASSED** |
+
+### Gates 63–105: Career Transition Sprints, Social Posts, Self-Healing, CDP Reuse & Interview Engine
+| Gate | Script Path | Subsystem Verified | Status |
+| :---: | :--- | :--- | :---: |
+| **63** | `verify/63_test_unified_job_search.py` | Unified search coordinator pooling Direct ATS + LinkedIn channels with cross-source deduplication | **PASSED** |
+| **64** | `verify/64_test_source_badge_accuracy.py` | Accurate source badge resolution (`Greenhouse`, `Lever`, `Ashby`, `Workday`, `LinkedIn`) in UI | **PASSED** |
+| **65** | `verify/65_test_sprint1_stack_and_inbound.py` | Modern SDET tool whitelist (`Playwright`, `TypeScript`, `Docker`, `K8s`, `Kafka`, `Pact`, `WireMock`), `Technical Projects` boundary isolation, and Naukri pinger | **PASSED** |
+| **66** | `verify/66_test_sprint2_workday_cxs_and_dream_orgs.py` | Keyless Workday CXS REST collector, 56-company registry (45 Dream Orgs), and SQLite `tracked_requisitions` SHA-256 change detection | **PASSED** |
+| **67** | `verify/67_test_sprint2_enhanced_filtering_and_workday.py` | Centralized `is_sdet_title` and `is_india_or_remote_location` filters + multi-term Workday India search | **PASSED** |
+| **68** | `verify/68_test_sprint3_dual_funnel_and_referral_generator.py` | Dual-funnel routing, `ReferralNoteGenerator` ($\le 300$-char notes, $\le 1000$-char InMails), and isolated SQLite `referral_outreach` lifecycle | **PASSED** |
+| **69** | `verify/69_test_sprint4_global_remote_and_compliance.py` | Global remote heuristics, US-only jurisdiction exclusions, Section 44ADA / W-8BEN / GST LUT guides, and concurrency-safe SDET coding patterns | **PASSED** |
+| **70** | `verify/70_test_session_and_email_reporter.py` | `SessionManager` cookie export, `EmailReporter` HTML briefing & archive fallback, and `DailyRunLogger` diagnostics | **PASSED** |
+| **71** | `verify/71_test_referral_reconnaissance_pivot_and_job_links.py` | Parameterized LinkedIn People search links, clean job URL weaving, and dynamic recipient greeting reactivity | **PASSED** |
+| **72** | `verify/72_test_hiring_posts_tracker_and_classifier.py` | Track 3 `HiringPostTracker`, two-tier `PostClassifier`, `PostOutreachComposer`, SQLite `hiring_posts`, and Tab 4 UI | **PASSED** |
+| **73** | `verify/73_test_post_url_extraction_and_repair.py` | Multi-tier LinkedIn post permalink extraction, React Fiber SDUI inspection, and `repair_invalid_post_urls` migration | **PASSED** |
+| **74** | `verify/74_test_posts_links_and_dream_org_precision.py` | Direct ATS career link extraction from posts, `mailto:` recruiter triggers, and word-boundary Dream Org matching | **PASSED** |
+| **75** | `verify/75_test_post_formatting_and_permalink_resilience.py` | Post paragraph preservation, UI noise stripping, and permalink fallback resilience | **PASSED** |
+| **76** | `verify/76_test_posts_optimization_and_deduplication.py` | Fast early-break post pagination, 5-query rotation, and cross-session SHA-256 post deduplication | **PASSED** |
+| **77** | `verify/77_test_daily_pipeline_comprehensive_wiring.py` | End-to-end `DailyPipelineRunner` wiring across Track 1, Track 2, Track 3, Naukri Resdex touch, and morning HTML briefing | **PASSED** |
+| **79** | `verify/79_test_autofill_logging_and_self_healing.py` | `AutofillLogger` atomic JSONL streaming, `AutofillSelfHealer` 5 remediation recipes, and `HIRIST_TECH_STANDARD` schema | **PASSED** |
+| **80** | `verify/80_test_submission_verifier_and_guardrails.py` | `SubmissionVerifier` log-audit gate, `HTTP 412 Precondition Failed` protection on `/api/tracking/mark-applied/{job_id}`, and `force=true` override | **PASSED** |
+| **81** | `verify/81_test_stealth_browser_cdp_reuse.py` | Seamless Chrome CDP Port `9222` session reuse, anti-collision fallback, and headless Linux CI compatibility | **PASSED** |
+| **103** | `verify/103_test_expanded_collections_and_keywords.py` | Multi-collection discovery (`recommended`, `top-applicant`, `still-hiring`) and expanded Senior SDET boolean syntax | **PASSED** |
+| **104** | `verify/104_test_search_sort_and_company_discovery.py` | Configurable relevance vs. date sorting (`sort_by: "relevance"`) and Channel 5 Company Jobs Tab scraper (`scrape_company_jobs`) | **PASSED** |
+| **105** | `verify/105_test_interview_engine_and_batch_autofill.py` | Zero-contamination country/dial-code combobox scorer (`TERRITORY_EXCLUSIONS`, `+91`), `UniversalBatchFormFiller` Phase A & Phase B closed-loop learning, 60-Day Notice Lock, ATS publish timestamps, 3-Tier `InterviewRouter`, and Low-Key Referral Scorer | **PASSED** |
+| **106** | `verify/106_test_portal_sniper_and_ci_auto_ingest.py` | Extended Collectors (`SmartRecruiters`, `Rippling`, `Workable`, `Recruitee`), `OrgResearcher` 107-org watchlist audit, `PortalSniperEngine` `<24h` delta & seen-ledger filter, and `CISyncIngestor` + `/api/ci-sync` onboarding | **PASSED** |

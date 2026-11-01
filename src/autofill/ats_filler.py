@@ -160,6 +160,12 @@ class ATSAssistedFiller:
         # Check vendor pattern upfront
         pattern = classify_ats_pattern(active_url)
         print(f"🎯 Pattern Recognition Engine: Identified ATS Pattern [{pattern}] for URL: {active_url}")
+        try:
+            from src.ingestion.org_researcher import OrgResearcher
+
+            OrgResearcher().extract_and_bank_ats_url(active_url, company_name=company, save=True)
+        except Exception:
+            pass
         self.logger.log(
             event_type="SESSION_START",
             message=f"Starting ATS autofill for pattern [{pattern}]",

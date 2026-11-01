@@ -128,6 +128,14 @@ class JobSearchPipelineRunner:
 
     def run_dashboard_stage(self):
         """Stage 4: Launches FastAPI Approval Gate Web Dashboard on http://127.0.0.1:8000."""
+        try:
+            from src.ingestion.ci_sync import CISyncIngestor
+
+            sync_res = CISyncIngestor(use_ai=False).sync_latest_drops(fetch_remote=True)
+            if sync_res.get("ingested_count", 0) > 0:
+                print(f"📥 Auto-onboarded {sync_res['ingested_count']} fresh CI drop(s) into pending_queue/!")
+        except Exception:
+            pass
         print("\n" + "=" * 60)
         print("  STAGE 4: LAUNCHING APPROVAL GATE DASHBOARD")
         print("  Access UI at: http://127.0.0.1:8000")

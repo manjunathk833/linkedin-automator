@@ -13,7 +13,9 @@ from pydantic import BaseModel, Field
 
 class JobListing(BaseModel):
     id: str = Field(description="Unique composite key: {source}_{company}_{external_id}")
-    source: str = Field(description="greenhouse | lever | ashby | workday | linkedin")
+    source: str = Field(
+        description="greenhouse | lever | ashby | workday | smartrecruiters | rippling | workable | recruitee | linkedin"
+    )
     company_name: str
     job_title: str
     location: str
@@ -32,7 +34,9 @@ class JobListing(BaseModel):
 
 class TargetCompany(BaseModel):
     name: str
-    ats_provider: str = Field(description="greenhouse | lever | ashby | workday")
+    ats_provider: str = Field(
+        description="greenhouse | lever | ashby | workday | smartrecruiters | rippling | workable | recruitee"
+    )
     slug: str
     domain: str | None = None
     active: bool = True
@@ -40,3 +44,4 @@ class TargetCompany(BaseModel):
     is_dream_org: bool = Field(default=False, description="Whether company is tagged as an elite Dream Org")
     site: str | None = Field(default=None, description="Workday site name if applicable")
     datacenter: str | None = Field(default="wd3", description="Workday datacenter if applicable")
+    career_url: str | None = Field(default=None, description="Explicit official career portal URL if applicable")

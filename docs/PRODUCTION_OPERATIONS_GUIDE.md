@@ -1,176 +1,83 @@
 # Production Operations & Daily Workflow Guide
 
-> **Quick Summary:** You never need to leave your primary workspace or open the `prod` directory to operate the system. Because of shared storage symlinks, all databases, staged jobs, and logs are accessible directly right here in your normal workspace.
+> **Quick Summary:** You never need to leave your primary workspace (`linkedinjobsearchautomation` on `develop`) to operate the system. Because of shared storage symlinks, all databases, staged jobs, telemetry logs, and browser cookies are accessible directly in your main workspace.
 
 ---
 
-## 1. The 30-Second Mental Model
+## 1. The 30-Second Mental Model: Dual-Branch Worktree Architecture
 
-Your automated job search operates using a **Dual-Branch Worktree Architecture**:
-
-```
+```text
 /Users/yeshwinmanjunath/development/
 ├── linkedinjobsearchautomation/        <--- [YOUR MAIN WORKSPACE] (Branch: develop)
-│   ├── .browser_data/                  <--- Master LinkedIn session cookies
-│   ├── data/                           <--- Master SQLite DB, queues, logs
-│   └── (You code, fix bugs, and run commands here)
+│   ├── .agents/                        <--- Streamlined Agent OS (3 Rules, 1 Skill, 3 Subagents)
+│   ├── .browser_data/                  <--- Master LinkedIn & ATS session cookies
+│   ├── data/                           <--- Master SQLite DB, queues, telemetry logs
+│   └── (You review jobs, run /apply, fix bugs, and raise PRs here)
 │
 └── linkedinjobsearchautomation-prod/   <--- [ISOLATED DAEMON RUNNER] (Branch: main)
     ├── .browser_data  ───────(Symlink)───> Points to your develop .browser_data
     ├── data           ───────(Symlink)───> Points to your develop data
-    └── (Runs silently at 8:00 AM IST via macOS launchd; you never need to cd here)
+    └── (Runs silently at 8:00 AM IST via macOS launchd; pulls origin/main automatically)
 ```
-
-### Why this design?
-1. **Zero Browser Locks:** Ephemeral headless Chrome runs at 8:00 AM using exported `storage_state.json` without conflicting with your open Chrome windows.
-2. **Zero Git Disruptions:** Daily runs execute on `main` in the background without modifying your branch, dirtying your working tree, or interrupting your active coding sessions on `develop`.
-3. **Shared Real-Time State:** Every job discovered, resume tailored, and log entry created by the background runner appears **immediately** inside your active development workspace.
 
 ---
 
-## 2. Daily Operations Cheat Sheet
+## 2. Daily Operator Cheat Sheet
 
-All commands below are run directly from your **primary workspace** (`linkedinjobsearchautomation`):
+All commands below are run from your **primary workspace** (`linkedinjobsearchautomation`):
 
-### Task 1: Check if the background daemon is healthy
-Run the built-in system doctor:
+### Task 1: Check Morning Daemon & System Health
 ```bash
-python main.py daily diagnose
+./venv/bin/python main.py daily diagnose
+./venv/bin/python main.py daily audit
 ```
-**What this inspects:**
-* ✅ **LinkedIn Session:** Confirms `storage_state.json` exists and `li_at` authentication cookie is valid.
-* ✅ **Zero-Cost Email:** Checks if optional Gmail SMTP credentials are configured in `.env`.
-* ✅ **macOS Daemon:** Verifies that `com.linkedin.automator.daily` is registered with `launchctl`.
-* ✅ **Latest Run:** Displays the timestamp, status, and duration of the most recent pipeline execution.
+* Verifies `storage_state.json` authentication (`li_at` cookie), Gmail SMTP config, `launchd` registration, and recent run job counts across Track 1 (Direct ATS), Track 2 (LinkedIn + Sniper `<24h`), and Track 3 (Social Hiring Posts).
 
-*(Quick Terminal alternative: `launchctl list | grep linkedin.automator`)*
-
----
-
-### Task 2: Audit morning run telemetry & staged jobs
-To see how many jobs were found and tailored during recent morning runs:
+### Task 2: Open the 4-Tab Local Command Center (`http://localhost:8000`)
 ```bash
-python main.py daily audit
+./venv/bin/python main.py dashboard
 ```
-**Example output:**
-```text
-  [2026-10-15T08:00:12] [RUN_COMPLETED] [SUCCESS] RunID: daily_20261015_a81f3c
-     • Jobs Staged: 28 (5 Dream Orgs)
-     • Regressions: PASS | Email: SENT | Duration: 42.1s
-```
-* **To see more past runs:** `python main.py daily audit --limit 10`
+* **Tab 1 (`📋 Staging Review`):** Inspect fresh jobs with `⭐ Dream Org` badges and routing tiers (`TIER_0_POST_AUTHOR`, `TIER_1_SNIPER_APPLY`, `TIER_2_REFERRAL_SLA`). Compare Base vs. Tailored PDFs and click `✅ Approve` or `🤝 Generate Referral Note`.
+* **Tab 2 (`🚀 Ready to Apply`):** View approved applications ready for high-speed execution.
+* **Tab 3 (`📊 Applied Tracking`):** View your permanent SQLite ledger of `66+` submitted applications.
+* **Tab 4 (`📢 Posts & Leads`):** Browse organic hiring posts from EMs, QA Leads, and recruiters with 1-click outreach notes ($\le 300$ chars), InMails ($\le 1000$ chars), and `mailto:` links.
 
----
-
-### Task 3: Manually test or trigger the morning run anytime
-If you don't want to wait until 8:00 AM IST and want to run the full discovery pipeline right now:
+### Task 3: Scout High-Responder Referrals for Dream Orgs
+Instead of cold-applying to Workday / Dream Enterprise roles or messaging `10k+` follower influencers:
 ```bash
-bash scripts/run_daily_prod.sh
+./venv/bin/python main.py referral-scout
 ```
-*(Or via python directly: `python main.py daily run --headless`)*
+* Attaches to Chrome on CDP Port `9222`, searches current employees at your approved Dream Orgs, rejects `"Ex-<Company>"` former employees and `>3,000` follower influencers, and ranks 1st-degree connections, post authors, and shared-alumni (`Dunzo`, `Value Labs`, `Tata Elxsi`, `SJCE`) peer SDETs.
 
-**What this does automatically:**
-1. Pulls the latest production code (`git pull origin main`).
-2. Runs the 49-test Tier 1 Core regression suite to ensure zero breakages.
-3. Discovers fresh Senior SDET roles across Track 1 (Workday, Greenhouse, Lever, Ashby) and Track 2 (LinkedIn Stealth).
-4. Tailors custom STAR resumes with anti-fabrication gates.
-5. Sends your morning executive email briefing (or saves local archive to `data/logs/daily_report_YYYY-MM-DD.html`).
-6. Ensures your Command Center dashboard is up and running on port 8000.
+### Task 4: Drain Approved Applications at High Speed (`/apply` & `form-batch`)
+* **In Antigravity Chat:** Simply type **`/apply`**.
+* **Under the Hood (2-Phase Batch Engine — 10–15+ Apps/Hr):**
+  1. **Phase A (`<6s`):** `./venv/bin/python main.py form-batch inspect --job-id <id>` tags all controls with `data-agy-id`, fills 80–90% of fields (`60 Days` notice, `17 LPA` current / `27 LPA` expected CTC, `India (+91)` with `British Indian Ocean Territory (+246)` blocked), verifies via DOM read-back, and prints only `unmapped_fields`.
+  2. **Phase B (1 Turn):** `./venv/bin/python main.py form-batch apply --job-id <id> --actions '<json>'` fills custom questions in one batch call and auto-banks them into `data/logs/learned_field_mappings.json` for zero-LLM reuse on future applications.
+  3. **Submission Verification Gate (HTTP 412):** Verifies `SUBMISSION_CONFIRMED` log proof and screenshot in `data/logs/screenshots/` before marking `applied` in SQLite.
 
----
-
-### Task 4: Launch & View the Local Command Center Dashboard
-Start the web approval dashboard:
+### Task 5: Audit Autofill Telemetry & Unmapped Questions Backlog
 ```bash
-python main.py dashboard
+./venv/bin/python main.py autofill --audit
 ```
-Open your browser to: **[http://localhost:8000](http://localhost:8000)**
-
-* **Tab 1 (`📋 Staging Review`):** Review pending jobs side-by-side with your tailored STAR resume.
-  - Click `✅ Approve` to queue for application.
-  - Click `🤝 Generate Referral Note` for Dream Orgs (auto-generates $\le 300$-char InMail pitches).
-* **Tab 2 (`🚀 Ready to Apply`):** Your approved application cards.
-  - Click `🚀 Launch Copilot` $\rightarrow$ Real Chrome opens, auto-fills the form, and **halts right before submit**.
-  - Click `🖐️ Manual Apply` $\rightarrow$ Opens page with a floating candidate cheat-sheet helper.
-* **Tab 3 (`📊 Applied Tracking`):** View your persistent SQLite ledger of submitted applications, direct job links, and archived PDFs.
+* Displays Phase A benchmark speeds (`autofill_benchmarks.jsonl`), vendor error rates, and top recurring custom questions (`unmapped_fields_backlog.jsonl`).
 
 ---
 
-### Task 5: Inspect the SQLite Database Directly
-All application records, referral notes, and daily limits live in `data/app_database.db`:
-
-```bash
-# View recent applications:
-sqlite3 data/app_database.db "SELECT id, company_name, job_title, status, applied_at FROM job_applications ORDER BY applied_at DESC LIMIT 5;"
-
-# Check daily submission count:
-sqlite3 data/app_database.db "SELECT date, count FROM daily_submission_limits ORDER BY date DESC LIMIT 3;"
-
-# Check referral outreach notes:
-sqlite3 data/app_database.db "SELECT company, requisition_id, status FROM referral_outreach LIMIT 5;"
-```
-
----
-
-## 3. How to Diagnose, Fix & Deploy Changes (`develop -> PR -> main`)
-
-When an issue occurs (e.g. an ATS vendor changes a DOM selector, or a network timeout happens):
+## 3. Diagnosing, Fixing & Deploying Changes (`develop -> PR -> main`)
 
 ```mermaid
 graph LR
-    A[Diagnose in Antigravity<br/>main.py daily audit] --> B[Reproduce & Fix on develop<br/>verify/ & src/]
-    B --> C[Pass Regressions & Lint<br/>main.py test --tier core]
-    C --> D[Open PR & Merge on GitHub<br/>CI verifies 49 tests]
-    D --> E[Auto-Sync in Prod Worktree<br/>git pull origin main at 8 AM]
+    A["Diagnose Telemetry<br/>main.py autofill --audit"] --> B["Patch on develop<br/>src/ & verify/"]
+    B --> C["Pass 62 Core Tests & Lint<br/>main.py test --tier core"]
+    C --> D["Push develop & Open PR<br/>CI verifies 62 tests"]
+    D --> E["User Merges PR on GitHub<br/>Prod syncs at 8 AM"]
 ```
 
-### Step 1: Diagnose the Failure
-Run the diagnostic audit:
-```bash
-python main.py daily audit
-```
-Check the detailed operational logs:
-* Operational text log: `data/logs/daily_runs.log`
-* Structured event stream: `data/logs/daily_runs.jsonl`
-* Background stdout / stderr: `data/logs/launchd_stdout.log` & `launchd_stderr.log`
-* Headless failure screenshots: `data/logs/screenshots/` (open in Finder or view in Antigravity).
-
-### Step 2: Reproduce & Patch on `develop`
-1. Make your code edit in `src/`.
-2. Run the specific verification script in `verify/` (e.g. `python verify/56_test_workday_autofill_heuristics.py`).
-
-### Step 3: Run the Regression Gate & Linter
-Before committing, ensure 100% pass rate:
-```bash
-python main.py test --tier core    # Must pass 50/50 (100%)
-python main.py lint                # Must show 0 errors
-```
-
-### Step 4: Commit & Push to `develop`
-```bash
-git add .
-git commit -m "fix(autofill): update vendor selector heuristic"
-git push origin develop
-```
-
-### Step 5: Merge PR on GitHub
-> 🔒 **Hard Constraint:** AI agents are strictly forbidden from committing or pushing directly to `main`. Every code change is pushed to `develop`, followed by opening a GitHub Pull Request via `gh pr create`.
-1. The agent or developer opens a Pull Request from `develop` into `main` on GitHub.
-2. **GitHub Actions CI** automatically runs the 50-test regression suite and Ruff linter.
-3. The **USER** reviews the PR diff and clicks **Merge pull request** directly on GitHub.
-
-### Step 6: Does the prod worktree get the changes automatically?
-**YES!** You do not need to run anything.
-Next morning at 8:00 AM IST, `scripts/run_daily_prod.sh` executes `git pull origin main` inside the prod worktree before running the daily search.
-*(If you want to sync prod immediately after merging on GitHub, simply run `git -C ../linkedinjobsearchautomation-prod pull origin main`)*.
-
----
-
-## 4. Emergency Troubleshooting FAQ
-
-| Problem | Cause | One-Line Fix |
-| :--- | :--- | :--- |
-| **Status says "NOT AUTHENTICATED"** | LinkedIn cookies expired in `.browser_data/`. | Run `python main.py login`, log in once manually, then run `python main.py session export`. |
-| **Email briefing not received in inbox** | `GMAIL_USER` / `GMAIL_APP_PASSWORD` not set in `.env`. | It safely saved the report locally! View `data/logs/daily_report_YYYY-MM-DD.html`. To enable email, add Gmail App Password to `.env`. |
-| **Dashboard not opening on port 8000** | Port occupied or background service stopped. | Run `python main.py dashboard`. |
-| **Daemon stopped running at 8 AM** | macOS LaunchAgent unloaded or laptop powered off. | Run `bash scripts/setup_daily_runner.sh` to re-register with `launchctl`. |
+1. **Run the Standardized Quality Gate:**
+   ```bash
+   ./venv/bin/python main.py test --tier core    # Must pass 62/62 (100%)
+   ./venv/bin/python main.py lint                # Must show 0 errors
+   ```
+2. **Push to `develop` & Review PR on GitHub (Rule 9):**
+   * AI agents never push or merge directly to `main`. All commits push to `origin/develop`, verified by GitHub Actions CI (`62/62` tests + Ruff lint), and you merge the PR on GitHub.

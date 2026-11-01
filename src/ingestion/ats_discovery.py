@@ -15,6 +15,12 @@ import re
 from typing import Any
 
 from src.ingestion.ashby import AshbyCollector
+from src.ingestion.extended_providers import (
+    RecruiteeCollector,
+    RipplingCollector,
+    SmartRecruitersCollector,
+    WorkableCollector,
+)
 from src.ingestion.greenhouse import GreenhouseCollector
 from src.ingestion.lever import LeverCollector
 from src.ingestion.workday import WorkdayCollector
@@ -41,12 +47,17 @@ class ATSDiscoveryCoordinator:
         self.queue_dir = queue_dir
         self.db_file = db_file
         self.use_ai = use_ai
-        self.semaphore = asyncio.Semaphore(max_concurrency)
+        self.max_concurrency = max_concurrency
+        self.semaphore: asyncio.Semaphore | None = None
 
         self.greenhouse = GreenhouseCollector()
         self.lever = LeverCollector()
         self.ashby = AshbyCollector()
         self.workday = WorkdayCollector()
+        self.smartrecruiters = SmartRecruitersCollector()
+        self.rippling = RipplingCollector()
+        self.workable = WorkableCollector()
+        self.recruitee = RecruiteeCollector()
 
     def load_processed_jobs(self) -> dict[str, Any]:
         """Loads master deduplication index from data/processed_jobs.json."""
@@ -134,6 +145,8 @@ class ATSDiscoveryCoordinator:
 
     async def _fetch_company_jobs(self, company: TargetCompany) -> list[JobListing]:
         """Fetches jobs for a single target company using its respective ATS collector."""
+        if self.semaphore is None:
+            self.semaphore = asyncio.Semaphore(self.max_concurrency)
         async with self.semaphore:
             provider = company.ats_provider.lower()
             listings: list[JobListing] = []
@@ -151,6 +164,14 @@ class ATSDiscoveryCoordinator:
                     datacenter=company.datacenter or "wd3",
                     is_dream_org=company.is_dream_org,
                 )
+            elif provider == "smartrecruiters":
+                listings = await self.smartrecruiters.fetch_board_jobs(company.name, company.slug)
+            elif provider == "rippling":
+                listings = await self.rippling.fetch_board_jobs(company.name, company.slug)
+            elif provider == "workable":
+                listings = await self.workable.fetch_board_jobs(company.name, company.slug)
+            elif provider == "recruitee":
+                listings = await self.recruitee.fetch_board_jobs(company.name, company.slug)
             for item in listings:
                 item.is_dream_org = company.is_dream_org
             return listings
@@ -165,6 +186,7 @@ class ATSDiscoveryCoordinator:
             return []
 
         print(f"🌐 Ingesting ATS boards across {len(companies)} target enterprises...")
+        self.semaphore = asyncio.Semaphore(self.max_concurrency)
         tasks = [self._fetch_company_jobs(c) for c in companies]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -242,6 +264,7 @@ class ATSDiscoveryCoordinator:
                 },
                 "job_url": item.url,
                 "url": item.url,
+                "posted_at": item.posted_at.isoformat() if item.posted_at else None,
                 "discovered_at": item.discovered_at.isoformat(),
             }
 

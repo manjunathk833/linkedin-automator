@@ -885,6 +885,61 @@ def main():
         "--company", default="", help="Optional company name filter (defaults to all jobs in data/approved_queue/)"
     )
 
+    # 16. portal-sniper (Cycle 2: <24h Official Career Portal Delta Scanner for CI/CD & Local)
+    parser_sniper = subparsers.add_parser(
+        "portal-sniper",
+        help="Cycle 2: Poll all 100+ explicit org portals & package <24h fresh SDET/QA drops into data/ci_inbox/",
+    )
+    parser_sniper.add_argument(
+        "--hours",
+        type=float,
+        default=24.0,
+        help="Maximum job age in hours to qualify as a fresh drop (default: 24.0)",
+    )
+    parser_sniper.add_argument(
+        "--ci-mode",
+        action="store_true",
+        default=False,
+        help="Run in headless CI mode (outputs data/ci_inbox/latest_ci_drops.json + latest_daily_report.md)",
+    )
+    parser_sniper.add_argument(
+        "--auto-ingest",
+        action="store_true",
+        default=False,
+        help="Immediately onboard discovered fresh drops into local SQLite and data/pending_queue/",
+    )
+
+    # 17. sync-ci (Cloud-to-Local CI Drop Auto-Ingestor)
+    parser_syncci = subparsers.add_parser(
+        "sync-ci",
+        help="Onboard <24h fresh drops from data/ci_inbox/latest_ci_drops.json (or origin/ci-job-drops) into SQLite & pending_queue/",
+    )
+    parser_syncci.add_argument(
+        "--fetch-remote",
+        action="store_true",
+        default=False,
+        help="Fetch latest data/ci_inbox/latest_ci_drops.json from origin/ci-job-drops git branch first",
+    )
+
+    # 18. org-research (Cycle 1: Explicit Organization Watchlist Auditor & Endpoint Fingerprinter)
+    parser_orgres = subparsers.add_parser(
+        "org-research",
+        help="Cycle 1: Audit explicit organization watchlist coverage, expand from 700+ catalog, or bank an ATS URL",
+    )
+    parser_orgres.add_argument("--probe", default="", help="Optional company slug to probe across all ATS providers")
+    parser_orgres.add_argument(
+        "--expand",
+        action="store_true",
+        help="Probe all 700+ explicit orgs in master_org_catalog.json and expand target_companies.json",
+    )
+    parser_orgres.add_argument(
+        "--bank-url",
+        default="",
+        help="Extract ATS provider & slug from a career URL and bank it into target_companies.json",
+    )
+    parser_orgres.add_argument("--audit", action="store_true", help="Audit live endpoint responsiveness for watchlist")
+    parser_orgres.add_argument("--limit", type=int, default=15, help="Number of watchlist orgs to live-probe in audit")
+
     args = parser.parse_args()
     config = load_config(args.config)
     runner = JobSearchPipelineRunner(config)
@@ -942,6 +997,77 @@ def main():
                 company_filter=getattr(args, "company", ""),
             )
         )
+    elif cmd == "portal-sniper":
+        from src.ingestion.ci_sync import CISyncIngestor
+        from src.ingestion.portal_sniper import PortalSniperEngine
+
+        sniper = PortalSniperEngine(max_age_hours=getattr(args, "hours", 24.0))
+        bundle = asyncio.run(sniper.execute_scan())
+        print("\n" + "=" * 70)
+        print("  🎯 PORTAL SNIPER (<24H FRESH DROPS) SCAN SUMMARY")
+        print("=" * 70)
+        print(f"  • Explicit Orgs Polled    : {bundle['total_orgs_polled']}")
+        print(f"  • Total SDET/QA Matches   : {bundle['total_sdet_matches_scanned']}")
+        print(f"  • Verified Fresh Drops    : {bundle['fresh_drops_count']} (<= {bundle['max_age_hours']}h)")
+        print(f"  • Filtered (Already Seen) : {bundle['skipped_already_seen']}")
+        print(f"  • Filtered (Older Window) : {bundle['skipped_older_than_window']}")
+        print(f"  • Output JSON             : {sniper.drops_path}")
+        print(f"  • Output Markdown Report  : {sniper.report_path}")
+        print("=" * 70 + "\n")
+        if getattr(args, "auto_ingest", False):
+            ing = CISyncIngestor(use_ai=runner.use_ai).sync_latest_drops(fetch_remote=False)
+            print(f"📥 Auto-Ingested {ing['ingested_count']} fresh drop(s) into local pending_queue/ & SQLite!")
+    elif cmd == "sync-ci":
+        from src.ingestion.ci_sync import CISyncIngestor
+
+        ing = CISyncIngestor(use_ai=False).sync_latest_drops(fetch_remote=getattr(args, "fetch_remote", False))
+        print("\n" + "=" * 65)
+        print("  📥 CLOUD-TO-LOCAL CI DROP SYNC SUMMARY")
+        print("=" * 65)
+        print(f"  • Remote Branch Pulled : {ing.get('pulled_remote')}")
+        print(f"  • New Jobs Ingested    : {ing.get('ingested_count')}")
+        print(f"  • Duplicates Skipped   : {ing.get('skipped_duplicates')}")
+        if ing.get("ingested_job_ids"):
+            for jid in ing["ingested_job_ids"][:15]:
+                print(f"    + {jid}")
+        print("=" * 65 + "\n")
+    elif cmd == "org-research":
+        from src.ingestion.org_researcher import OrgResearcher
+
+        researcher = OrgResearcher()
+        probe_slug = getattr(args, "probe", "").strip()
+        bank_url = getattr(args, "bank_url", "").strip()
+        if probe_slug:
+            res = asyncio.run(researcher.probe_company_slug(probe_slug, probe_slug))
+            print(json.dumps(res, indent=2))
+        elif bank_url:
+            banked = researcher.extract_and_bank_ats_url(bank_url, save=True)
+            print(json.dumps(banked.model_dump(exclude_none=True) if banked else {"status": "unrecognized"}, indent=2))
+        elif getattr(args, "expand", False):
+            exp_res = asyncio.run(researcher.expand_watchlist_from_catalog(max_concurrency=35, save=True))
+            print("\n" + "=" * 68)
+            print("  🚀 MASTER CATALOG EXPANSION SUMMARY (Cycle 1)")
+            print("=" * 68)
+            print(f"  • Master Catalog Size   : {exp_res['catalog_size']}")
+            print(f"  • Candidates Probed     : {exp_res['probed_count']}")
+            print(f"  • Newly Verified Boards : {exp_res['newly_verified_count']}")
+            print(f"  • Total Active Watchlist: {exp_res['total_watchlist_count']}")
+            print("=" * 68 + "\n")
+        elif getattr(args, "audit", False):
+            audit_res = asyncio.run(researcher.audit_watchlist_health(limit=getattr(args, "limit", 15)))
+            print(json.dumps(audit_res, indent=2))
+        else:
+            summary = researcher.get_watchlist_Breakdown()
+            print("\n" + "=" * 65)
+            print("  🔭 EXPLICIT ORGANIZATION WATCHLIST BREAKDOWN (Cycle 1)")
+            print("=" * 65)
+            print(f"  • Master Catalog Size : {summary['master_catalog_size']}")
+            print(f"  • Verified Active Orgs: {summary['total_companies']}")
+            print(f"  • Dream Organizations : {summary['dream_orgs']}")
+            print("  • Adapter Distribution:")
+            for prov, cnt in sorted(summary["by_provider"].items(), key=lambda x: x[1], reverse=True):
+                print(f"    - {prov:18s}: {cnt}")
+            print("=" * 65 + "\n")
     elif cmd == "daily":
         if args.action == "audit":
             handle_daily_audit(limit=args.limit)

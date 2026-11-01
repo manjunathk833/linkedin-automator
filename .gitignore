@@ -39,6 +39,7 @@ data/pending_queue/
 data/approved_queue/
 data/applied_queue/
 data/skipped_jobs/
+data/ci_inbox/
 data/resumes/
 *.pdf
 
