@@ -79,6 +79,12 @@ async def test_autofill_logger_events_and_vault():
     summary = logger.get_audit_summary(limit=5)
     assert summary["total_lessons_banked"] >= 6, "Total lessons count mismatch"
     assert any(l["symptom"] == test_symptom for l in summary["lessons"]), "New lesson not found in audit summary"
+    # Clean up simulated test lesson so production vault remains unpolluted
+    with open(LEARNING_VAULT_FILE, encoding="utf-8") as f:
+        vault_clean = json.load(f)
+    vault_clean["lessons"] = [l for l in vault_clean.get("lessons", []) if l.get("symptom") != test_symptom]
+    with open(LEARNING_VAULT_FILE, "w", encoding="utf-8") as f:
+        json.dump(vault_clean, f, indent=2)
     print("✅ Step 2: Learning Vault banking and audit summary verified successfully.")
 
     # Step 3: Diagnostic Snapshot (Screenshot & DOM Element Dump)

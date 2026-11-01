@@ -9,12 +9,326 @@ from __future__ import annotations
 
 import re
 import urllib.parse
+from datetime import datetime, timezone
 from typing import Any
 
 CANDIDATE_PORTFOLIO = "https://manjunathhk.netlify.app/"
 CANDIDATE_LINKEDIN = "https://www.linkedin.com/in/manjunath-h-k-ab30b1146/"
 CANDIDATE_NAME = "Manjunath H K"
 CANDIDATE_EXPERIENCE = "~6.8 YOE"
+CANDIDATE_PAST_COMPANIES = ("value labs", "valuelabs", "dunzo", "tata elxsi")
+CANDIDATE_ALMA_MATER = ("sjce", "sri jayachamarajendra", "jss science and technology", "jssstu")
+INFLUENCER_KEYWORDS = (
+    "top voice",
+    "influencer",
+    "youtuber",
+    "content creator",
+    "keynote speaker",
+    "tedx",
+    "newsletter",
+    "10k+",
+    "20k+",
+    "50k+",
+    "100k+",
+    "followers",
+)
+
+
+def parse_follower_count(text: str | int | None) -> int:
+    """Parses follower counts like '12,400 followers', '15.2K followers', or integer values."""
+    if isinstance(text, int):
+        return text
+    if not text or not isinstance(text, str):
+        return 0
+    m = re.search(r"(\d+(?:[\.,]\d+)?)\s*([kKmM])?\+?\s*followers", text, re.IGNORECASE)
+    if not m:
+        # Check bare number string if passed directly
+        m2 = re.fullmatch(r"\s*(\d+(?:,\d+)*)\s*", text)
+        if m2:
+            return int(m2.group(1).replace(",", ""))
+        return 0
+    raw_num = m.group(1).replace(",", "")
+    suffix = (m.group(2) or "").lower()
+    try:
+        val = float(raw_num)
+        if suffix == "k":
+            return int(val * 1000)
+        if suffix == "m":
+            return int(val * 1_000_000)
+        return int(val)
+    except Exception:
+        return 0
+
+
+def is_verified_current_employee(headline: str, target_company: str, experience_text: str = "") -> bool:
+    """Verifies that a lead is currently employed at `target_company` and NOT a former ('Ex-') employee."""
+    comp = (target_company or "").strip().lower()
+    if not comp:
+        return False
+    hl = (headline or "").strip().lower()
+    exp = (experience_text or "").strip().lower()
+    combined = f"{hl} {exp}".strip()
+
+    # Check if company name is present at all
+    comp_tokens = [t for t in re.split(r"[^a-z0-9]+", comp) if len(t) >= 2]
+    primary_token = comp_tokens[0] if comp_tokens else comp
+    if comp not in combined and primary_token not in combined:
+        return False
+
+    # Reject explicit former-employee markers attached to target company (e.g., "Ex-Swiggy", "Ex Swiggy", "Formerly at Swiggy")
+    for tok in {comp, primary_token}:
+        ex_pattern = rf"\b(ex[-\s]+|former\s+.*?\b|previously\s+.*?\b|past\s+.*?\b|intern\s+at\s+){re.escape(tok)}\b"
+        if re.search(ex_pattern, hl):
+            # Only allow if they also explicitly state current role "@ <Company>" before the "Ex-" clause
+            current_pattern = rf"^(?!.*\bex[-\s]+{re.escape(tok)}).*?(@|at\s+)\s*{re.escape(tok)}\b"
+            if not re.search(current_pattern, hl):
+                return False
+
+    # Reject if headline starts with "Ex-" or "Former" for that company
+    return not re.search(rf"\bex[-\s]*{re.escape(primary_token)}\b", hl)
+
+
+def score_referral_candidate(candidate: dict[str, Any], target_company: str) -> dict[str, Any]:
+    """Scores a potential referral contact (0-100) to prioritize 'Low-Key High-Responders' and reject influencers/ex-employees.
+
+    Expected `candidate` keys:
+      - name: str
+      - headline: str
+      - profile_url: str
+      - followers: int | str (optional)
+      - activity_snippet / post_text: str (optional)
+      - is_post_author: bool (optional)
+      - post_url: str (optional)
+      - experience_text: str (optional)
+      - tenure_months: int (optional)
+    """
+    headline = str(candidate.get("headline") or "").strip()
+    hl_low = headline.lower()
+    exp_text = str(candidate.get("experience_text") or "").strip()
+    activity = str(candidate.get("activity_snippet") or candidate.get("post_text") or "").strip().lower()
+    followers = parse_follower_count(candidate.get("followers") or headline)
+
+    reasons: list[str] = []
+
+    # 1. Hard Reject: Not a verified current employee (e.g. "Ex-Swiggy" or unverified company)
+    if not is_verified_current_employee(headline, target_company, experience_text=exp_text):
+        return {
+            **candidate,
+            "eligible": False,
+            "responder_score": -100,
+            "tier": "REJECTED_NOT_CURRENT_EMPLOYEE",
+            "reasons": [f"Not verified as current employee at {target_company} (or matched 'Ex-{target_company}')"],
+        }
+
+    # 2. Hard Reject: High-follower LinkedIn Influencer (> 3,000 followers) or Creator/Top Voice headline
+    if followers > 3000:
+        return {
+            **candidate,
+            "eligible": False,
+            "responder_score": -100,
+            "tier": "REJECTED_INFLUENCER",
+            "reasons": [f"High follower count ({followers} > 3,000 cap) -> <1% DM response rate"],
+        }
+
+    for inf_kw in ("top voice", "influencer", "youtuber", "content creator", "keynote speaker", "tedx"):
+        if inf_kw in hl_low:
+            return {
+                **candidate,
+                "eligible": False,
+                "responder_score": -100,
+                "tier": "REJECTED_INFLUENCER",
+                "reasons": [f"Influencer/Creator headline marker ('{inf_kw}') -> low referral conversion"],
+            }
+
+    score = 20  # Base score for verified current employee
+
+    # 3. Tier S Boost: Authored a Hiring / Referral Post (+45 pts) or 1st-Degree Connection (+40 pts)
+    has_referral_post = bool(
+        candidate.get("is_post_author")
+        or candidate.get("post_url")
+        or re.search(
+            r"\b(hiring|happy to refer|dm for referral|open role|we're looking for|drop your resume)\b", activity
+        )
+    )
+    is_first_degree = bool(
+        candidate.get("is_first_degree")
+        or str(candidate.get("degree") or "").strip().lower() in ("1st", "1")
+        or re.search(r"\b1st(\s+degree)?\b", f"{hl_low} {exp_text.lower()}")
+    )
+    if has_referral_post:
+        score += 45
+        reasons.append("Authored hiring/referral post (+45)")
+    if is_first_degree:
+        score += 40
+        reasons.append("1st-degree connection (free direct Message unlocked, 0 note cap) (+40)")
+
+    # 4. Shared Warm Affinity: Ex-Dunzo / Ex-Value Labs / Ex-Tata Elxsi / SJCE Alumni (+35 pts)
+    combined_bg = f"{hl_low} {exp_text.lower()}"
+    if any(co in combined_bg for co in CANDIDATE_PAST_COMPANIES):
+        score += 35
+        reasons.append("Shared past employer overlap (Value Labs / Dunzo / Tata Elxsi) (+35)")
+    elif any(sch in combined_bg for sch in CANDIDATE_ALMA_MATER):
+        score += 35
+        reasons.append("Shared alma mater (SJCE / JSS) (+35)")
+
+    # 5. Role Relevance: Same-Function Peer IC vs Hiring Manager vs C-Suite
+    if re.search(r"\b(vp|vice president|chief|cto|ceo|president|partner)\b", hl_low):
+        score -= 30
+        reasons.append("Executive/VP title (-30)")
+    elif re.search(r"\b(sdet|qa|quality\s*engineer|test\s*engineer|automation\s*engineer)\b", hl_low):
+        if re.search(r"\b(manager|lead|staff|principal|architect|head)\b", hl_low):
+            score += 25
+            reasons.append("QA/SDET Hiring Lead or Architect (+25)")
+        else:
+            score += 25
+            reasons.append("Same-function Peer SDET/QA IC (+25)")
+    elif re.search(r"\b(engineering\s*manager|talent\s*acquisition|technical\s*recruiter|recruiter)\b", hl_low):
+        score += 20
+        reasons.append("Engineering Manager / Technical Recruiter (+20)")
+    elif re.search(r"\b(software\s*engineer|sde|member\s*of\s*technical\s*staff|mts|senior\s*engineer)\b", hl_low):
+        score += 15
+        reasons.append("Peer Software Engineer IC (+15)")
+
+    # 6. Recent Joiner Empathy (< 18 months) (+15 pts)
+    tenure = candidate.get("tenure_months")
+    if isinstance(tenure, (int, float)) and 1 <= tenure <= 18:
+        score += 15
+        reasons.append(f"Recent joiner ({int(tenure)} mos) (+15)")
+
+    # 7. Low-Key Follower Sweet Spot (50 to 2,500 followers) (+10 pts)
+    if 0 < followers <= 2500:
+        score += 10
+        reasons.append(f"Low-key follower count ({followers}) (+10)")
+
+    final_score = max(0, min(100, score))
+    if has_referral_post:
+        tier = "TIER_S_POST_AUTHOR"
+    elif final_score >= 70:
+        tier = "TIER_A_WARM_PEER_OR_ALUMNI"
+    elif final_score >= 45:
+        tier = "TIER_B_VERIFIED_PEER"
+    else:
+        tier = "TIER_C_GENERAL_EMPLOYEE"
+
+    return {
+        **candidate,
+        "eligible": True,
+        "responder_score": final_score,
+        "tier": tier,
+        "reasons": reasons,
+    }
+
+
+class InterviewRouter:
+    """Determines whether a job should be Fast-Sniped immediately, routed via Post-Author DM, or held for a 36h Referral SLA."""
+
+    @staticmethod
+    def compute_job_age_hours(job_payload: dict[str, Any]) -> float | None:
+        """Calculates job age in hours from `posted_at` timestamp if available."""
+        details = job_payload.get("job_details") or {}
+        raw_posted = job_payload.get("posted_at") or details.get("posted_at")
+        if not raw_posted:
+            return None
+        try:
+            if isinstance(raw_posted, datetime):
+                dt = raw_posted
+            else:
+                dt = datetime.fromisoformat(str(raw_posted).replace("Z", "+00:00"))
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+            delta = datetime.utcnow() - dt
+            return max(0.0, round(delta.total_seconds() / 3600.0, 2))
+        except Exception:
+            return None
+
+    @classmethod
+    def classify_job_strategy(
+        cls,
+        job_payload: dict[str, Any],
+        matched_posts: list[dict[str, Any]] | None = None,
+        sla_hours: float = 36.0,
+    ) -> dict[str, Any]:
+        """Classifies a job into the 3-Tier Interview Routing Matrix."""
+        details = job_payload.get("job_details") or {}
+        is_dream = bool(job_payload.get("is_dream_org") or details.get("is_dream_org"))
+        url = extract_job_url(job_payload).lower()
+        source = str(job_payload.get("source") or details.get("source") or "").lower()
+        is_workday = "workday" in url or "myworkdayjobs" in url or source == "workday"
+        age_hours = cls.compute_job_age_hours(job_payload)
+
+        # Freshness priority boost
+        if age_hours is not None and age_hours <= 3.0:
+            freshness_badge = "🔥 SNIPER (<3h old)"
+            priority_boost = 25
+        elif age_hours is not None and age_hours <= 24.0:
+            freshness_badge = "⚡ EARLY (<24h old)"
+            priority_boost = 15
+        elif age_hours is not None and age_hours > 72.0:
+            freshness_badge = "🕒 STALE (>72h old)"
+            priority_boost = -15
+        else:
+            freshness_badge = "📅 STANDARD"
+            priority_boost = 0
+
+        # Tier 0: Direct Hiring Post Match exists!
+        if matched_posts:
+            best_post = matched_posts[0]
+            return {
+                "routing_tier": "TIER_0_POST_AUTHOR",
+                "allow_immediate_apply": not (is_dream and is_workday),
+                "referral_sla_hours": sla_hours if (is_dream and is_workday) else 0.0,
+                "age_hours": age_hours,
+                "freshness_badge": freshness_badge,
+                "priority_boost": priority_boost + 30,
+                "associated_post_url": best_post.get("post_url", ""),
+                "post_author_name": best_post.get("author_name", ""),
+                "post_author_url": best_post.get("author_profile_url", ""),
+                "rationale": "Direct hiring/referral post found -> message post author immediately.",
+            }
+
+        # Tier 2: Dream Enterprise or Workday ATS -> Hold for 36h Referral SLA (preserves Workday bonus attribution)
+        if is_dream or is_workday:
+            return {
+                "routing_tier": "TIER_2_REFERRAL_SLA",
+                "allow_immediate_apply": False,
+                "referral_sla_hours": sla_hours,
+                "age_hours": age_hours,
+                "freshness_badge": freshness_badge,
+                "priority_boost": priority_boost + 10,
+                "associated_post_url": "",
+                "post_author_name": "",
+                "post_author_url": "",
+                "rationale": f"Dream Org / Workday source ownership rule -> Scout 3 low-key referrers first; auto-unlock direct apply after {int(sla_hours)}h SLA.",
+            }
+
+        # Tier 1: Growth Startup / Scaleup (<24h old) -> Fast-Snipe Immediately
+        if age_hours is None or age_hours <= 24.0:
+            return {
+                "routing_tier": "TIER_1_SNIPER_APPLY",
+                "allow_immediate_apply": True,
+                "referral_sla_hours": 0.0,
+                "age_hours": age_hours,
+                "freshness_badge": freshness_badge,
+                "priority_boost": priority_boost,
+                "associated_post_url": "",
+                "post_author_name": "",
+                "post_author_url": "",
+                "rationale": "Fresh growth/scaleup drop -> Fast-snipe immediately (<3 min) for first-applicant 4x callback multiplier.",
+            }
+
+        # Tier 1B: Older Non-Dream role -> Batch apply + ping 2 peers
+        return {
+            "routing_tier": "TIER_1B_APPLY_AND_PEER_PING",
+            "allow_immediate_apply": True,
+            "referral_sla_hours": 0.0,
+            "age_hours": age_hours,
+            "freshness_badge": freshness_badge,
+            "priority_boost": priority_boost,
+            "associated_post_url": "",
+            "post_author_name": "",
+            "post_author_url": "",
+            "rationale": "Standard growth/scaleup role -> Batch apply immediately + ping 2 low-key team peers.",
+        }
 
 
 def extract_company_name(job_payload: dict[str, Any]) -> str:
@@ -254,10 +568,12 @@ class ReferralNoteGenerator:
         return pitch[:max_chars].strip()
 
     @staticmethod
-    def build_linkedin_search_urls(company_name: str, location: str = "") -> dict[str, str]:
+    def build_linkedin_search_urls(company_name: str, location: str = "", req_id: str = "") -> dict[str, str]:
         """
-        Builds pre-scoped LinkedIn People search URLs to identify Engineering Managers,
-        Quality Engineering Leads, and Alumni at the target company.
+        Builds pre-scoped LinkedIn People & Content search URLs to identify:
+        1. Hiring Posts / Active Referrers for the company (Content Search)
+        2. Shared Past-Company & College Alumni (Dunzo, Value Labs, SJCE)
+        3. Low-Key Peer SDETs & QA Leads at the target company.
         """
         clean_company = company_name.strip()
         quoted_company = urllib.parse.quote(f'"{clean_company}"') if clean_company else ""
@@ -281,13 +597,50 @@ class ReferralNoteGenerator:
             loc_token = "%20India"
 
         comp_token = f"%20{quoted_company}" if quoted_company else ""
+        post_kw = urllib.parse.quote(
+            f'"{clean_company}" ("hiring" OR "referral" OR "openings") ("SDET" OR "QA" OR "Automation")'
+        )
+        company_slug = re.sub(r"[^a-z0-9\-]+", "-", clean_company.lower()).strip("-")
+        if clean_company.lower() == "swiggy":
+            company_slug = "swiggy-in"
 
         return {
+            "company_people_sdet": f"https://www.linkedin.com/company/{company_slug}/people/?keywords=SDET",
+            "hiring_posts_content": f"https://www.linkedin.com/search/results/content/?datePosted=%22past-week%22&keywords={post_kw}&sortBy=%22date_posted%22",
+            "peer_sdet_ics": f"https://www.linkedin.com/search/results/people/?keywords=Senior%20SDET{comp_token}{loc_token}&origin=GLOBAL_SEARCH_HEADER",
+            "ex_dunzo_alumni": f"https://www.linkedin.com/search/results/people/?keywords=%22Dunzo%22{comp_token}{loc_token}&origin=GLOBAL_SEARCH_HEADER",
+            "alumni": f"https://www.linkedin.com/search/results/people/?keywords=%22Value%20Labs%22{comp_token}{loc_token}&origin=GLOBAL_SEARCH_HEADER",
+            "sjce_alumni": f"https://www.linkedin.com/search/results/people/?keywords=%22SJCE%22{comp_token}{loc_token}&origin=GLOBAL_SEARCH_HEADER",
             "engineering_managers": f"https://www.linkedin.com/search/results/people/?keywords=Engineering%20Manager{comp_token}{loc_token}&origin=GLOBAL_SEARCH_HEADER",
             "qa_leads": f"https://www.linkedin.com/search/results/people/?keywords=Quality%20Engineering%20Manager{comp_token}{loc_token}&origin=GLOBAL_SEARCH_HEADER",
             "tech_leads": f"https://www.linkedin.com/search/results/people/?keywords=Staff%20SDET{comp_token}{loc_token}&origin=GLOBAL_SEARCH_HEADER",
-            "alumni": f"https://www.linkedin.com/search/results/people/?keywords=%22Value%20Labs%22{comp_token}{loc_token}&origin=GLOBAL_SEARCH_HEADER",
         }
+
+    @staticmethod
+    def generate_post_acceptance_dm(
+        job_payload: dict[str, Any],
+        recipient_name: str = "there",
+        associated_post_url: str = "",
+    ) -> str:
+        """Generates a concise post-acceptance DM (used after a blank connection invite is accepted, bypassing the 5-note/month free cap)."""
+        company = extract_company_name(job_payload) or "your company"
+        title = extract_job_title(job_payload) or "Senior SDET"
+        req_id = extract_requisition_id(job_payload)
+        job_url = clean_job_url(extract_job_url(job_payload))
+        name = recipient_name.strip() if recipient_name and recipient_name.lower() != "there" else "there"
+
+        post_ref = (
+            f"I saw your recent post ({associated_post_url}) and wanted to reach out! " if associated_post_url else ""
+        )
+        return (
+            f"Hi {name}, thanks for connecting! {post_ref}"
+            f"I'm a Senior SDET ({CANDIDATE_EXPERIENCE}, currently at Value Labs, previously Dunzo & Tata Elxsi) "
+            f"specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\n"
+            f"I'm very interested in the {title} role (Req: {req_id}) at {company}"
+            f"{f' ({job_url})' if job_url else ''} and have held off on applying directly so an internal referral can be logged cleanly.\n\n"
+            f"Portfolio: {CANDIDATE_PORTFOLIO}\n"
+            f"If you're open to referring me, I'd be grateful to share my resume PDF and details!"
+        )
 
     @classmethod
     def generate_referral_pack(
@@ -307,7 +660,9 @@ class ReferralNoteGenerator:
 
         conn_note = cls.generate_connection_note(job_payload, recipient_name=recipient_name)
         inmail = cls.generate_inmail_pitch(job_payload, recipient_name=recipient_name)
-        search_urls = cls.build_linkedin_search_urls(company, location=location)
+        post_accept_dm = cls.generate_post_acceptance_dm(job_payload, recipient_name=recipient_name)
+        search_urls = cls.build_linkedin_search_urls(company, location=location, req_id=req_id)
+        routing = InterviewRouter.classify_job_strategy(job_payload)
 
         return {
             "requisition_id": req_id,
@@ -319,5 +674,7 @@ class ReferralNoteGenerator:
             "connection_note_chars": len(conn_note),
             "inmail_pitch": inmail,
             "inmail_pitch_chars": len(inmail),
+            "post_acceptance_dm": post_accept_dm,
+            "routing_strategy": routing,
             "search_urls": search_urls,
         }

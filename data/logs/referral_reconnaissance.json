@@ -1,155 +1,317 @@
-{
-  "Apple": {
-    "target_role": "Software Development Engineer in Test, Retail CS&E",
-    "target_req_id": "4477572600",
-    "job_url": "https://www.linkedin.com/jobs/view/4477572600/",
-    "leads": [
+[
+  {
+    "company": "Swiggy",
+    "job_title": "Staff Software Dev Engineer in Test",
+    "requisition_id": "16779",
+    "job_url": "https://www.linkedin.com/jobs/view/4323911675/",
+    "routing_strategy": {
+      "routing_tier": "TIER_2_REFERRAL_SLA",
+      "allow_immediate_apply": false,
+      "referral_sla_hours": 36.0,
+      "age_hours": null,
+      "freshness_badge": "\ud83d\udcc5 STANDARD",
+      "priority_boost": 10,
+      "associated_post_url": "",
+      "post_author_name": "",
+      "post_author_url": "",
+      "rationale": "Dream Org / Workday source ownership rule -> Scout 3 low-key referrers first; auto-unlock direct apply after 36h SLA."
+    },
+    "search_urls": {
+      "company_people_sdet": "https://www.linkedin.com/company/swiggy-in/people/?keywords=SDET",
+      "hiring_posts_content": "https://www.linkedin.com/search/results/content/?datePosted=%22past-week%22&keywords=%22Swiggy%22%20%28%22hiring%22%20OR%20%22referral%22%20OR%20%22openings%22%29%20%28%22SDET%22%20OR%20%22QA%22%20OR%20%22Automation%22%29&sortBy=%22date_posted%22",
+      "peer_sdet_ics": "https://www.linkedin.com/search/results/people/?keywords=Senior%20SDET%20%22Swiggy%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "ex_dunzo_alumni": "https://www.linkedin.com/search/results/people/?keywords=%22Dunzo%22%20%22Swiggy%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "alumni": "https://www.linkedin.com/search/results/people/?keywords=%22Value%20Labs%22%20%22Swiggy%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "sjce_alumni": "https://www.linkedin.com/search/results/people/?keywords=%22SJCE%22%20%22Swiggy%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "engineering_managers": "https://www.linkedin.com/search/results/people/?keywords=Engineering%20Manager%20%22Swiggy%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "qa_leads": "https://www.linkedin.com/search/results/people/?keywords=Quality%20Engineering%20Manager%20%22Swiggy%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "tech_leads": "https://www.linkedin.com/search/results/people/?keywords=Staff%20SDET%20%22Swiggy%22%20India&origin=GLOBAL_SEARCH_HEADER"
+    },
+    "verified_low_key_leads": [
       {
-        "name": "Anchal Parey",
-        "first_name": "Anchal",
-        "headline": "SDET Lead at Apple | Ex Microsoft",
-        "url": "https://www.linkedin.com/in/anchal-parey-11aa7486/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "43 mutual connections (Vignesh Waran, Sachchidanand Jha)",
-        "connection_note": "Hi Anchal, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Software Development Engi... role (Req: 4477572600) at Apple: https://www.linkedin.com/jobs/view/4477572600/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 287,
-        "inmail_pitch": "Hi Anchal,\n\nI hope you're having a great week.\n\nI saw the Software Development Engineer in Test, Retail CS&E opening (Req #4477572600) at Apple and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4477572600/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 875
+        "name": "Mohammad Suhail",
+        "headline": "Lead Software Test Engineer at Swiggy (1st-Degree Connection - Direct Message Unlocked)",
+        "profile_url": "https://www.linkedin.com/in/mohdsuhail/",
+        "degree": "1st",
+        "followers": "800 followers",
+        "eligible": true,
+        "responder_score": 95,
+        "tier": "TIER_A_WARM_PEER_OR_ALUMNI",
+        "reasons": [
+          "1st-degree connection (free direct Message unlocked, 0 note cap) (+40)",
+          "QA/SDET Hiring Lead or Architect (+25)",
+          "Low-key follower count (800) (+10)"
+        ],
+        "connection_note": "Hi Mohammad, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Staff Software Dev Engine... role (Req: 16779) at Swiggy: https://www.linkedin.com/jobs/view/4323911675/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Mohammad, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Staff Software Dev Engineer in Test role (Req: 16779) at Swiggy (https://www.linkedin.com/jobs/view/4323911675/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Mohammad,\n\nI hope you're having a great week.\n\nI saw the Staff Software Dev Engineer in Test opening (Req #16779) at Swiggy and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4323911675/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      },
+      {
+        "name": "Prasandeep",
+        "headline": "SDET at Swiggy | Mobile Automation (iOS & Android) | AI in QA (1st-Degree Connection)",
+        "profile_url": "https://www.linkedin.com/in/iprasandeep/",
+        "degree": "1st",
+        "followers": "650 followers",
+        "eligible": true,
+        "responder_score": 95,
+        "tier": "TIER_A_WARM_PEER_OR_ALUMNI",
+        "reasons": [
+          "1st-degree connection (free direct Message unlocked, 0 note cap) (+40)",
+          "Same-function Peer SDET/QA IC (+25)",
+          "Low-key follower count (650) (+10)"
+        ],
+        "connection_note": "Hi Prasandeep, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Staff Software Dev Engine... role (Req: 16779) at Swiggy: https://www.linkedin.com/jobs/view/4323911675/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Prasandeep, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Staff Software Dev Engineer in Test role (Req: 16779) at Swiggy (https://www.linkedin.com/jobs/view/4323911675/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Prasandeep,\n\nI hope you're having a great week.\n\nI saw the Staff Software Dev Engineer in Test opening (Req #16779) at Swiggy and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4323911675/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      },
+      {
+        "name": "Mohit Nagori",
+        "headline": "Engineering leader at Swiggy | Cloud Architect (1st-Degree Connection)",
+        "profile_url": "https://www.linkedin.com/in/nagorimohit/",
+        "degree": "1st",
+        "followers": "1,200 followers",
+        "eligible": true,
+        "responder_score": 70,
+        "tier": "TIER_A_WARM_PEER_OR_ALUMNI",
+        "reasons": [
+          "1st-degree connection (free direct Message unlocked, 0 note cap) (+40)",
+          "Low-key follower count (1200) (+10)"
+        ],
+        "connection_note": "Hi Mohit, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Staff Software Dev Engine... role (Req: 16779) at Swiggy: https://www.linkedin.com/jobs/view/4323911675/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Mohit, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Staff Software Dev Engineer in Test role (Req: 16779) at Swiggy (https://www.linkedin.com/jobs/view/4323911675/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Mohit,\n\nI hope you're having a great week.\n\nI saw the Staff Software Dev Engineer in Test opening (Req #16779) at Swiggy and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4323911675/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      },
+      {
+        "name": "Varun Dang",
+        "headline": "Lead SDET at Swiggy",
+        "profile_url": "https://www.linkedin.com/in/varun-dang-617766128/",
+        "degree": "2nd",
+        "followers": "950 followers",
+        "eligible": true,
+        "responder_score": 55,
+        "tier": "TIER_B_VERIFIED_PEER",
+        "reasons": [
+          "QA/SDET Hiring Lead or Architect (+25)",
+          "Low-key follower count (950) (+10)"
+        ],
+        "connection_note": "Hi Varun, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Staff Software Dev Engine... role (Req: 16779) at Swiggy: https://www.linkedin.com/jobs/view/4323911675/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Varun, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Staff Software Dev Engineer in Test role (Req: 16779) at Swiggy (https://www.linkedin.com/jobs/view/4323911675/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Varun,\n\nI hope you're having a great week.\n\nI saw the Staff Software Dev Engineer in Test opening (Req #16779) at Swiggy and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4323911675/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      },
+      {
+        "name": "Tushar Verma",
+        "headline": "SDET at Swiggy",
+        "profile_url": "https://www.linkedin.com/in/er-tushar-verma/",
+        "degree": "2nd",
+        "followers": "1K followers",
+        "eligible": true,
+        "responder_score": 55,
+        "tier": "TIER_B_VERIFIED_PEER",
+        "reasons": [
+          "Same-function Peer SDET/QA IC (+25)",
+          "Low-key follower count (1000) (+10)"
+        ],
+        "connection_note": "Hi Tushar, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Staff Software Dev Engine... role (Req: 16779) at Swiggy: https://www.linkedin.com/jobs/view/4323911675/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Tushar, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Staff Software Dev Engineer in Test role (Req: 16779) at Swiggy (https://www.linkedin.com/jobs/view/4323911675/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Tushar,\n\nI hope you're having a great week.\n\nI saw the Staff Software Dev Engineer in Test opening (Req #16779) at Swiggy and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4323911675/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      }
+    ]
+  },
+  {
+    "company": "Zscaler",
+    "job_title": "Senior Staff Test Engineer - Endpoint Projects",
+    "requisition_id": "4300349746",
+    "job_url": "https://www.linkedin.com/jobs/view/4300349746/",
+    "routing_strategy": {
+      "routing_tier": "TIER_2_REFERRAL_SLA",
+      "allow_immediate_apply": false,
+      "referral_sla_hours": 36.0,
+      "age_hours": null,
+      "freshness_badge": "\ud83d\udcc5 STANDARD",
+      "priority_boost": 10,
+      "associated_post_url": "",
+      "post_author_name": "",
+      "post_author_url": "",
+      "rationale": "Dream Org / Workday source ownership rule -> Scout 3 low-key referrers first; auto-unlock direct apply after 36h SLA."
+    },
+    "search_urls": {
+      "company_people_sdet": "https://www.linkedin.com/company/zscaler/people/?keywords=SDET",
+      "hiring_posts_content": "https://www.linkedin.com/search/results/content/?datePosted=%22past-week%22&keywords=%22Zscaler%22%20%28%22hiring%22%20OR%20%22referral%22%20OR%20%22openings%22%29%20%28%22SDET%22%20OR%20%22QA%22%20OR%20%22Automation%22%29&sortBy=%22date_posted%22",
+      "peer_sdet_ics": "https://www.linkedin.com/search/results/people/?keywords=Senior%20SDET%20%22Zscaler%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "ex_dunzo_alumni": "https://www.linkedin.com/search/results/people/?keywords=%22Dunzo%22%20%22Zscaler%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "alumni": "https://www.linkedin.com/search/results/people/?keywords=%22Value%20Labs%22%20%22Zscaler%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "sjce_alumni": "https://www.linkedin.com/search/results/people/?keywords=%22SJCE%22%20%22Zscaler%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "engineering_managers": "https://www.linkedin.com/search/results/people/?keywords=Engineering%20Manager%20%22Zscaler%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "qa_leads": "https://www.linkedin.com/search/results/people/?keywords=Quality%20Engineering%20Manager%20%22Zscaler%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "tech_leads": "https://www.linkedin.com/search/results/people/?keywords=Staff%20SDET%20%22Zscaler%22%20India&origin=GLOBAL_SEARCH_HEADER"
+    },
+    "verified_low_key_leads": [
+      {
+        "name": "Nitish Vashisht",
+        "headline": "Staff SDET @Zscaler | Selenium | Playwright | Java | Python | API Testing | CI/CD | Cloud Security QA",
+        "profile_url": "https://www.linkedin.com/in/nitish-vashisht-762b97100/",
+        "degree": "2nd",
+        "followers": "1K followers",
+        "eligible": true,
+        "responder_score": 55,
+        "tier": "TIER_B_VERIFIED_PEER",
+        "reasons": [
+          "QA/SDET Hiring Lead or Architect (+25)",
+          "Low-key follower count (1000) (+10)"
+        ],
+        "connection_note": "Hi Nitish, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Senior Staff Test Enginee... role (Req: 4300349746) at Zscaler: https://www.linkedin.com/jobs/view/4300349746/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Nitish, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Senior Staff Test Engineer - Endpoint Projects role (Req: 4300349746) at Zscaler (https://www.linkedin.com/jobs/view/4300349746/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Nitish,\n\nI hope you're having a great week.\n\nI saw the Senior Staff Test Engineer - Endpoint Projects opening (Req #4300349746) at Zscaler and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4300349746/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      },
+      {
+        "name": "Siddharth Kempanna",
+        "headline": "QA Manager at Zscaler | Leading Cloud Security Quality Engineering",
+        "profile_url": "https://www.linkedin.com/in/siddharth-kempanna-225b19184/",
+        "degree": "2nd",
+        "followers": "900 followers",
+        "eligible": true,
+        "responder_score": 55,
+        "tier": "TIER_B_VERIFIED_PEER",
+        "reasons": [
+          "QA/SDET Hiring Lead or Architect (+25)",
+          "Low-key follower count (900) (+10)"
+        ],
+        "connection_note": "Hi Siddharth, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Senior Staff Test Enginee... role (Req: 4300349746) at Zscaler: https://www.linkedin.com/jobs/view/4300349746/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Siddharth, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Senior Staff Test Engineer - Endpoint Projects role (Req: 4300349746) at Zscaler (https://www.linkedin.com/jobs/view/4300349746/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Siddharth,\n\nI hope you're having a great week.\n\nI saw the Senior Staff Test Engineer - Endpoint Projects opening (Req #4300349746) at Zscaler and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4300349746/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      },
+      {
+        "name": "Yogesh CB",
+        "headline": "Senior Staff SDE @ Zscaler | Automation and Testing Expertise",
+        "profile_url": "https://www.linkedin.com/in/yogesh-cb/",
+        "degree": "2nd",
+        "followers": "1,400 followers",
+        "eligible": true,
+        "responder_score": 45,
+        "tier": "TIER_B_VERIFIED_PEER",
+        "reasons": [
+          "Peer Software Engineer IC (+15)",
+          "Low-key follower count (1400) (+10)"
+        ],
+        "connection_note": "Hi Yogesh, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Senior Staff Test Enginee... role (Req: 4300349746) at Zscaler: https://www.linkedin.com/jobs/view/4300349746/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Yogesh, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Senior Staff Test Engineer - Endpoint Projects role (Req: 4300349746) at Zscaler (https://www.linkedin.com/jobs/view/4300349746/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Yogesh,\n\nI hope you're having a great week.\n\nI saw the Senior Staff Test Engineer - Endpoint Projects opening (Req #4300349746) at Zscaler and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4300349746/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      },
+      {
+        "name": "Saket Saraogi",
+        "headline": "Senior Software Development Engineer Test at Zscaler",
+        "profile_url": "https://www.linkedin.com/in/saket-saraogi-407967173/",
+        "degree": "2nd",
+        "followers": "1K followers",
+        "eligible": true,
+        "responder_score": 30,
+        "tier": "TIER_C_GENERAL_EMPLOYEE",
+        "reasons": [
+          "Low-key follower count (1000) (+10)"
+        ],
+        "connection_note": "Hi Saket, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Senior Staff Test Enginee... role (Req: 4300349746) at Zscaler: https://www.linkedin.com/jobs/view/4300349746/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Saket, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Senior Staff Test Engineer - Endpoint Projects role (Req: 4300349746) at Zscaler (https://www.linkedin.com/jobs/view/4300349746/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Saket,\n\nI hope you're having a great week.\n\nI saw the Senior Staff Test Engineer - Endpoint Projects opening (Req #4300349746) at Zscaler and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4300349746/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      }
+    ]
+  },
+  {
+    "company": "Apple",
+    "job_title": "Software Development Engineer in Test",
+    "requisition_id": "4323502237",
+    "job_url": "https://www.linkedin.com/jobs/view/4323502237/",
+    "routing_strategy": {
+      "routing_tier": "TIER_2_REFERRAL_SLA",
+      "allow_immediate_apply": false,
+      "referral_sla_hours": 36.0,
+      "age_hours": null,
+      "freshness_badge": "\ud83d\udcc5 STANDARD",
+      "priority_boost": 10,
+      "associated_post_url": "",
+      "post_author_name": "",
+      "post_author_url": "",
+      "rationale": "Dream Org / Workday source ownership rule -> Scout 3 low-key referrers first; auto-unlock direct apply after 36h SLA."
+    },
+    "search_urls": {
+      "company_people_sdet": "https://www.linkedin.com/company/apple/people/?keywords=SDET",
+      "hiring_posts_content": "https://www.linkedin.com/search/results/content/?datePosted=%22past-week%22&keywords=%22Apple%22%20%28%22hiring%22%20OR%20%22referral%22%20OR%20%22openings%22%29%20%28%22SDET%22%20OR%20%22QA%22%20OR%20%22Automation%22%29&sortBy=%22date_posted%22",
+      "peer_sdet_ics": "https://www.linkedin.com/search/results/people/?keywords=Senior%20SDET%20%22Apple%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "ex_dunzo_alumni": "https://www.linkedin.com/search/results/people/?keywords=%22Dunzo%22%20%22Apple%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "alumni": "https://www.linkedin.com/search/results/people/?keywords=%22Value%20Labs%22%20%22Apple%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "sjce_alumni": "https://www.linkedin.com/search/results/people/?keywords=%22SJCE%22%20%22Apple%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "engineering_managers": "https://www.linkedin.com/search/results/people/?keywords=Engineering%20Manager%20%22Apple%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "qa_leads": "https://www.linkedin.com/search/results/people/?keywords=Quality%20Engineering%20Manager%20%22Apple%22%20India&origin=GLOBAL_SEARCH_HEADER",
+      "tech_leads": "https://www.linkedin.com/search/results/people/?keywords=Staff%20SDET%20%22Apple%22%20India&origin=GLOBAL_SEARCH_HEADER"
+    },
+    "verified_low_key_leads": [
+      {
+        "name": "Ankit Rahaman",
+        "headline": "Automation Architect | SDET Lead at Apple | Scalable Automation Frameworks | CI/CD",
+        "profile_url": "https://www.linkedin.com/in/ankit-rahaman-a04b60141/",
+        "degree": "2nd",
+        "followers": "1,500 followers",
+        "eligible": true,
+        "responder_score": 55,
+        "tier": "TIER_B_VERIFIED_PEER",
+        "reasons": [
+          "QA/SDET Hiring Lead or Architect (+25)",
+          "Low-key follower count (1500) (+10)"
+        ],
+        "connection_note": "Hi Ankit, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Software Development Engi... role (Req: 4323502237) at Apple: https://www.linkedin.com/jobs/view/4323502237/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Ankit, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Software Development Engineer in Test role (Req: 4323502237) at Apple (https://www.linkedin.com/jobs/view/4323502237/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Ankit,\n\nI hope you're having a great week.\n\nI saw the Software Development Engineer in Test opening (Req #4323502237) at Apple and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4323502237/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      },
+      {
+        "name": "Payal Sapra",
+        "headline": "SDET at Apple | Ex-FICO",
+        "profile_url": "https://www.linkedin.com/in/payal-sapra-a1a741199/",
+        "degree": "2nd",
+        "followers": "1,100 followers",
+        "eligible": true,
+        "responder_score": 55,
+        "tier": "TIER_B_VERIFIED_PEER",
+        "reasons": [
+          "Same-function Peer SDET/QA IC (+25)",
+          "Low-key follower count (1100) (+10)"
+        ],
+        "connection_note": "Hi Payal, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Software Development Engi... role (Req: 4323502237) at Apple: https://www.linkedin.com/jobs/view/4323502237/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Payal, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Software Development Engineer in Test role (Req: 4323502237) at Apple (https://www.linkedin.com/jobs/view/4323502237/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Payal,\n\nI hope you're having a great week.\n\nI saw the Software Development Engineer in Test opening (Req #4323502237) at Apple and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4323502237/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
+      },
+      {
+        "name": "Shubham K",
+        "headline": "SDET At Apple",
+        "profile_url": "https://www.linkedin.com/in/shubham-k-778b56211/",
+        "degree": "2nd",
+        "followers": "2K followers",
+        "eligible": true,
+        "responder_score": 55,
+        "tier": "TIER_B_VERIFIED_PEER",
+        "reasons": [
+          "Same-function Peer SDET/QA IC (+25)",
+          "Low-key follower count (2000) (+10)"
+        ],
+        "connection_note": "Hi Shubham, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Software Development Engi... role (Req: 4323502237) at Apple: https://www.linkedin.com/jobs/view/4323502237/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Shubham, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Software Development Engineer in Test role (Req: 4323502237) at Apple (https://www.linkedin.com/jobs/view/4323502237/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Shubham,\n\nI hope you're having a great week.\n\nI saw the Software Development Engineer in Test opening (Req #4323502237) at Apple and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4323502237/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
       },
       {
         "name": "Ankit Sirmor",
-        "first_name": "Ankit",
         "headline": "Software Engineer In Test at Apple",
-        "url": "https://www.linkedin.com/in/ankit-sirmor-4b33035b/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "50 mutual connections (Vignesh Waran, Rajnish kumar)",
-        "connection_note": "Hi Ankit, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Software Development Engi... role (Req: 4477572600) at Apple: https://www.linkedin.com/jobs/view/4477572600/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 286,
-        "inmail_pitch": "Hi Ankit,\n\nI hope you're having a great week.\n\nI saw the Software Development Engineer in Test, Retail CS&E opening (Req #4477572600) at Apple and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4477572600/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 874
-      },
-      {
-        "name": "Jyothi Rai",
-        "first_name": "Jyothi",
-        "headline": "Test Automation Engineer | SDET at Apple",
-        "url": "https://www.linkedin.com/in/jyothirai/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "81 mutual connections (Shilpee Naik, Vignesh Waran)",
-        "connection_note": "Hi Jyothi, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Software Development Engi... role (Req: 4477572600) at Apple: https://www.linkedin.com/jobs/view/4477572600/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 287,
-        "inmail_pitch": "Hi Jyothi,\n\nI hope you're having a great week.\n\nI saw the Software Development Engineer in Test, Retail CS&E opening (Req #4477572600) at Apple and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4477572600/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 875
-      }
-    ]
-  },
-  "Swiggy": {
-    "target_role": "Sr. Software Development Engineer in Test",
-    "target_req_id": "4481865334",
-    "job_url": "https://www.linkedin.com/jobs/view/4481865334/",
-    "leads": [
-      {
-        "name": "Arya Prakash",
-        "first_name": "Arya",
-        "headline": "Lead SDET - Swiggy | Building BEAM",
-        "url": "https://www.linkedin.com/in/arya02196/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "38 mutual connections (Ronik Basak, Rajnish kumar)",
-        "connection_note": "Hi Arya, I'm an ex-Dunzo SDET (~6.8 YOE) in quick-commerce test automation. Saw the Sr. SDET role (Req: 4481865334) at Swiggy: https://www.linkedin.com/jobs/view/4481865334/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 268,
-        "inmail_pitch": "Hi Arya,\n\nI hope you're having a great week.\n\nI noticed the Sr. Software Development Engineer in Test opening (Req #4481865334) at Swiggy and wanted to reach out. Having scaled test automation at Dunzo in Bengaluru quick-commerce, my background aligns closely with Swiggy's high-throughput architecture:\n\n\u2022 Ex-Dunzo SDET-1: Built distributed test suites for catalog, order placement, and delivery dispatch microservices.\n\u2022 Modular Playwright + TypeScript automation with Docker CI sharding and synthetic load validation.\n\u2022 Kafka event streaming verification and Pact API contract testing across decoupled services.\n\nJob Posting: https://www.linkedin.com/jobs/view/4481865334/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 950
-      },
-      {
-        "name": "Deeksha DV",
-        "first_name": "Deeksha",
-        "headline": "SDET @Swiggy | Ex OneTrust | Ex Infoedge",
-        "url": "https://www.linkedin.com/in/deeksha-dv-935967213/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "28 mutual connections (Shilpee Naik, PIYUSH SHARMA)",
-        "connection_note": "Hi Deeksha, I'm an ex-Dunzo SDET (~6.8 YOE) in quick-commerce test automation. Saw the Sr. SDET role (Req: 4481865334) at Swiggy: https://www.linkedin.com/jobs/view/4481865334/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 271,
-        "inmail_pitch": "Hi Deeksha,\n\nI hope you're having a great week.\n\nI noticed the Sr. Software Development Engineer in Test opening (Req #4481865334) at Swiggy and wanted to reach out. Having scaled test automation at Dunzo in Bengaluru quick-commerce, my background aligns closely with Swiggy's high-throughput architecture:\n\n\u2022 Ex-Dunzo SDET-1: Built distributed test suites for catalog, order placement, and delivery dispatch microservices.\n\u2022 Modular Playwright + TypeScript automation with Docker CI sharding and synthetic load validation.\n\u2022 Kafka event streaming verification and Pact API contract testing across decoupled services.\n\nJob Posting: https://www.linkedin.com/jobs/view/4481865334/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 953
-      },
-      {
-        "name": "Abhishek PR",
-        "first_name": "Abhishek",
-        "headline": "Engineering Manager & Head of Quality Engineering (Ex-CRED, Ex-Swiggy)",
-        "url": "https://www.linkedin.com/in/abhishekprsetty/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "33 mutual connections (Vignesh Waran, Abhigya Jha)",
-        "connection_note": "Hi Abhishek, I'm an ex-Dunzo SDET (~6.8 YOE) in quick-commerce test automation. Saw the Sr. SDET role (Req: 4481865334) at Swiggy: https://www.linkedin.com/jobs/view/4481865334/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 272,
-        "inmail_pitch": "Hi Abhishek,\n\nI hope you're having a great week.\n\nI noticed the Sr. Software Development Engineer in Test opening (Req #4481865334) at Swiggy and wanted to reach out. Having scaled test automation at Dunzo in Bengaluru quick-commerce, my background aligns closely with Swiggy's high-throughput architecture:\n\n\u2022 Ex-Dunzo SDET-1: Built distributed test suites for catalog, order placement, and delivery dispatch microservices.\n\u2022 Modular Playwright + TypeScript automation with Docker CI sharding and synthetic load validation.\n\u2022 Kafka event streaming verification and Pact API contract testing across decoupled services.\n\nJob Posting: https://www.linkedin.com/jobs/view/4481865334/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 954
-      },
-      {
-        "name": "Binit Anand",
-        "first_name": "Binit",
-        "headline": "Head/Director of Engineering | Developer Productivity & Automation (Ex-Swiggy)",
-        "url": "https://www.linkedin.com/in/binit-anand/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "30 mutual connections (Rohit Bhat, Kiran Kumar N)",
-        "connection_note": "Hi Binit, I'm an ex-Dunzo SDET (~6.8 YOE) in quick-commerce test automation. Saw the Sr. SDET role (Req: 4481865334) at Swiggy: https://www.linkedin.com/jobs/view/4481865334/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 269,
-        "inmail_pitch": "Hi Binit,\n\nI hope you're having a great week.\n\nI noticed the Sr. Software Development Engineer in Test opening (Req #4481865334) at Swiggy and wanted to reach out. Having scaled test automation at Dunzo in Bengaluru quick-commerce, my background aligns closely with Swiggy's high-throughput architecture:\n\n\u2022 Ex-Dunzo SDET-1: Built distributed test suites for catalog, order placement, and delivery dispatch microservices.\n\u2022 Modular Playwright + TypeScript automation with Docker CI sharding and synthetic load validation.\n\u2022 Kafka event streaming verification and Pact API contract testing across decoupled services.\n\nJob Posting: https://www.linkedin.com/jobs/view/4481865334/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 951
-      }
-    ]
-  },
-  "Zscaler": {
-    "target_role": "Principal Software Development Engineer - QA + Networking",
-    "target_req_id": "5271592007",
-    "job_url": "https://job-boards.greenhouse.io/zscaler/jobs/5271592007",
-    "leads": [
-      {
-        "name": "Yogesh CB",
-        "first_name": "Yogesh",
-        "headline": "Senior Staff SDE @ ZScaler | Automation and Testing Expertise",
-        "url": "https://www.linkedin.com/in/yogesh-cb/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "35 mutual connections (Shilpee Naik, Abhigya Jha)",
-        "connection_note": "Hi Yogesh, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Principal Software Develo... role (Req: 5271592007) at Zscaler: https://job-boards.greenhouse.io/zscaler/jobs/5271592007 - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 299,
-        "inmail_pitch": "Hi Yogesh,\n\nI hope you're having a great week.\n\nI saw the Principal Software Development Engineer - QA + Networking opening (Req #5271592007) at Zscaler and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://job-boards.greenhouse.io/zscaler/jobs/5271592007\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 894
-      },
-      {
-        "name": "Pramod Kumar Mohapatra",
-        "first_name": "Pramod",
-        "headline": "Staff Software Quality Assurance Engineer at Zscaler",
-        "url": "https://www.linkedin.com/in/pramod-kumar-mohapatra-1811289b/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "37 mutual connections (Shilpee Naik, PIYUSH SHARMA)",
-        "connection_note": "Hi Pramod, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Principal Software Develo... role (Req: 5271592007) at Zscaler: https://job-boards.greenhouse.io/zscaler/jobs/5271592007 - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 299,
-        "inmail_pitch": "Hi Pramod,\n\nI hope you're having a great week.\n\nI saw the Principal Software Development Engineer - QA + Networking opening (Req #5271592007) at Zscaler and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://job-boards.greenhouse.io/zscaler/jobs/5271592007\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 894
-      },
-      {
-        "name": "Avinash Choudhary",
-        "first_name": "Avinash",
-        "headline": "Sr. Software Development Engineer at Zscaler",
-        "url": "https://www.linkedin.com/in/avinashchoudhary1/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "50 mutual connections (Shilpee Naik, Shashank Sinha)",
-        "connection_note": "Hi Avinash, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Principal Software Develo... role (Req: 5271592007) at Zscaler: https://job-boards.greenhouse.io/zscaler/jobs/5271592007 - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 300,
-        "inmail_pitch": "Hi Avinash,\n\nI hope you're having a great week.\n\nI saw the Principal Software Development Engineer - QA + Networking opening (Req #5271592007) at Zscaler and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://job-boards.greenhouse.io/zscaler/jobs/5271592007\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 895
-      },
-      {
-        "name": "Anurag Upadhyay",
-        "first_name": "Anurag",
-        "headline": "Staff SDE in Zscaler",
-        "url": "https://www.linkedin.com/in/anurag-upadhyay-1012/",
-        "location": "Bengaluru, Karnataka, India",
-        "mutuals": "30 mutual connections (Abhigya Jha, Saritha Tanakki)",
-        "connection_note": "Hi Anurag, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Principal Software Develo... role (Req: 5271592007) at Zscaler: https://job-boards.greenhouse.io/zscaler/jobs/5271592007 - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
-        "connection_note_len": 299,
-        "inmail_pitch": "Hi Anurag,\n\nI hope you're having a great week.\n\nI saw the Principal Software Development Engineer - QA + Networking opening (Req #5271592007) at Zscaler and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://job-boards.greenhouse.io/zscaler/jobs/5271592007\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K",
-        "inmail_pitch_len": 894
+        "profile_url": "https://www.linkedin.com/in/ankit-sirmor-4b33035b/",
+        "degree": "2nd",
+        "followers": "900 followers",
+        "eligible": true,
+        "responder_score": 45,
+        "tier": "TIER_B_VERIFIED_PEER",
+        "reasons": [
+          "Peer Software Engineer IC (+15)",
+          "Low-key follower count (900) (+10)"
+        ],
+        "connection_note": "Hi Ankit, I'm an SDET (~6.8 YOE) specializing in Playwright & API testing. Saw the Software Development Engi... role (Req: 4323502237) at Apple: https://www.linkedin.com/jobs/view/4323502237/ - would love to connect and share my portfolio (manjunathhk.netlify.app) if open to referring!",
+        "post_acceptance_dm": "Hi Ankit, thanks for connecting! I'm a Senior SDET (~6.8 YOE, currently at Value Labs, previously Dunzo & Tata Elxsi) specializing in Java/Python, REST Assured, Selenium & Playwright automation.\n\nI'm very interested in the Software Development Engineer in Test role (Req: 4323502237) at Apple (https://www.linkedin.com/jobs/view/4323502237/) and have held off on applying directly so an internal referral can be logged cleanly.\n\nPortfolio: https://manjunathhk.netlify.app/\nIf you're open to referring me, I'd be grateful to share my resume PDF and details!",
+        "inmail_pitch": "Hi Ankit,\n\nI hope you're having a great week.\n\nI saw the Software Development Engineer in Test opening (Req #4323502237) at Apple and wanted to reach out. As an SDET with ~6.8 YOE specializing in distributed test automation, I believe my background aligns well with your team's engineering standards:\n\n\u2022 Modular Playwright + TypeScript test execution with Docker CI sharding.\n\u2022 Asynchronous Kafka event stream validation and Pact/WireMock API contract testing.\n\u2022 CI/CD pipeline automation reducing regression feedback cycles.\n\nJob Posting: https://www.linkedin.com/jobs/view/4323502237/\nPortfolio & Architecture: https://manjunathhk.netlify.app/\nLinkedIn: https://www.linkedin.com/in/manjunath-h-k-ab30b1146/\n\nWould you be open to reviewing my profile or referring me internally for this position? Happy to share my resume directly.\n\nBest regards,\nManjunath H K"
       }
     ]
   }
-}
+]

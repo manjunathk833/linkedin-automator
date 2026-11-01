@@ -6,6 +6,7 @@ Directly ingests unauthenticated job postings from api.lever.co.
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone
 
 import httpx
 
@@ -79,6 +80,14 @@ class LeverCollector:
                     re.search(r"\bremote\b", location_name, re.IGNORECASE)
                 )
 
+                created_ms = post.get("createdAt")
+                posted_dt: datetime | None = None
+                if isinstance(created_ms, (int, float)) and created_ms > 0:
+                    try:
+                        posted_dt = datetime.fromtimestamp(created_ms / 1000.0, tz=timezone.utc).replace(tzinfo=None)
+                    except Exception:
+                        posted_dt = None
+
                 listing = JobListing(
                     id=f"lever_{slug}_{post_id}",
                     source="lever",
@@ -89,6 +98,7 @@ class LeverCollector:
                     job_description_raw=raw_desc,
                     job_description_clean=plain_desc,
                     url=post.get("hostedUrl", f"https://jobs.lever.co/{slug}/{post_id}"),
+                    posted_at=posted_dt,
                     status="pending",
                 )
                 listings.append(listing)

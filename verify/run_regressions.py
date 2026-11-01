@@ -108,6 +108,7 @@ TIER_1_CORE = [
     "81_test_stealth_browser_cdp_reuse.py",
     "103_test_expanded_collections_and_keywords.py",
     "104_test_search_sort_and_company_discovery.py",
+    "105_test_interview_engine_and_batch_autofill.py",
 ]
 
 

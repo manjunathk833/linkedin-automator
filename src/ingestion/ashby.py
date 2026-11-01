@@ -11,6 +11,7 @@ from src.ingestion.filters import (
     is_india_or_remote_location,
     is_sdet_title,
 )
+from src.ingestion.greenhouse import parse_iso_timestamp
 from src.storage.models import JobListing
 
 
@@ -74,6 +75,8 @@ class AshbyCollector:
                     if min_val or max_val:
                         salary_str = f"{currency} {min_val or ''} - {max_val or ''}".strip()
 
+                posted_dt = parse_iso_timestamp(job.get("publishedAt") or job.get("updatedAt"))
+
                 listing = JobListing(
                     id=f"ashby_{slug}_{job_id}",
                     source="ashby",
@@ -85,6 +88,7 @@ class AshbyCollector:
                     job_description_clean=clean_desc,
                     url=job.get("jobUrl", f"https://jobs.ashbyhq.com/{slug}/{job_id}"),
                     salary_range=salary_str,
+                    posted_at=posted_dt,
                     status="pending",
                 )
                 listings.append(listing)

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import html
 import re
+from datetime import datetime, timedelta
 from typing import Any
 
 import httpx
@@ -17,6 +18,28 @@ from src.ingestion.filters import (
     is_sdet_title,
 )
 from src.storage.models import JobListing
+
+
+def parse_workday_posted_on(posted_on: str | None, start_date: str | None = None) -> datetime | None:
+    """Parses Workday CXS 'postedOn' ('Posted Today', 'Posted Yesterday', 'Posted 3 Days Ago') or ISO startDate."""
+    now = datetime.utcnow()
+    if start_date and isinstance(start_date, str):
+        try:
+            return datetime.fromisoformat(start_date.replace("Z", ""))
+        except Exception:
+            pass
+    if not posted_on or not isinstance(posted_on, str):
+        return None
+    low = posted_on.strip().lower()
+    if "today" in low or "just posted" in low:
+        return now
+    if "yesterday" in low:
+        return now - timedelta(days=1)
+    m = re.search(r"(\d+)\+?\s*day", low)
+    if m:
+        return now - timedelta(days=int(m.group(1)))
+    return None
+
 
 DEFAULT_WORKDAY_SEARCH_TERMS = [
     "SDET India",
@@ -151,12 +174,14 @@ class WorkdayCollector:
                             detail_url = f"{base_cxs_url}{ext_path}"
                             desc_raw = ""
                             desc_clean = ""
+                            start_date_str = None
                             try:
                                 d_res = await client.get(detail_url, headers=headers)
                                 if d_res.status_code == 200:
                                     d_data = d_res.json().get("jobPostingInfo", {})
                                     desc_raw = d_data.get("jobDescription", "")
                                     desc_clean = clean_html_description(desc_raw)
+                                    start_date_str = d_data.get("startDate")
                                     if d_data.get("externalUrl"):
                                         job_url = d_data.get("externalUrl")
                             except Exception:
@@ -165,6 +190,7 @@ class WorkdayCollector:
                             is_remote = bool(
                                 re.search(r"\b(remote|anywhere)\b", f"{title} {locations_text}", re.IGNORECASE)
                             )
+                            posted_dt = parse_workday_posted_on(item.get("postedOn"), start_date=start_date_str)
 
                             listing = JobListing(
                                 id=job_id,
@@ -177,6 +203,7 @@ class WorkdayCollector:
                                 job_description_raw=desc_raw or desc_clean,
                                 job_description_clean=desc_clean,
                                 url=job_url,
+                                posted_at=posted_dt,
                             )
                             listings.append(listing)
 

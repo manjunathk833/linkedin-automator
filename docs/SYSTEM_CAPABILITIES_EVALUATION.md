@@ -417,6 +417,7 @@ The repository enforces a strict **Zero Direct Push to Main** policy (Rule 9) an
 | `verify/75_test_post_formatting_and_permalink_resilience.py` | Post text formatting and responsive glassmorphic cards | 0.12s |
 | `verify/76_test_posts_optimization_and_deduplication.py` | Post discovery optimization and cross-session deduplication | 0.12s |
 | `verify/77_test_daily_pipeline_comprehensive_wiring.py` | All-capability daily pipeline wiring, fault isolation, and dry run | 0.21s |
+| `verify/105_test_interview_engine_and_batch_autofill.py` | Zero-territory contamination, 2-phase batch form engine, 3-Tier InterviewRouter, and Low-Key High-Responder referral scorer | 1.45s |
 
 ---
 

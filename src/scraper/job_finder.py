@@ -158,7 +158,15 @@ class LinkedInJobFinder:
             if exp_codes:
                 params["f_E"] = ",".join(exp_codes)
 
-        tpr_map = {"past_24h": "r86400", "past_week": "r604800", "past_month": "r2592000"}
+        tpr_map = {
+            "past_1h": "r3600",
+            "past_3h": "r10800",
+            "past_6h": "r21600",
+            "past_12h": "r43200",
+            "past_24h": "r86400",
+            "past_week": "r604800",
+            "past_month": "r2592000",
+        }
         if time_posted and time_posted.lower() in tpr_map:
             params["f_TPR"] = tpr_map[time_posted.lower()]
 

@@ -374,6 +374,80 @@ def handle_posts(
         print("\n")
 
 
+async def _run_form_batch_async(
+    action: str = "inspect",
+    job_id: str = "",
+    url: str = "",
+    resume_path: str = "",
+    actions_json: str = "{}",
+    cdp_url: str = "http://127.0.0.1:9222",
+) -> None:
+    """Connects to persistent Chrome over CDP and runs 2-phase batch form inspection or custom action fill."""
+    from src.autofill.batch_form_engine import UniversalBatchFormFiller
+
+    # Resolve job_id from data/approved_queue if provided
+    if job_id and not (url and resume_path):
+        approved_file = os.path.join("data", "approved_queue", f"{job_id}.json")
+        if os.path.exists(approved_file):
+            with open(approved_file, encoding="utf-8") as f:
+                payload = json.load(f)
+            if not url:
+                url = payload.get("job_details", {}).get("url", "")
+            if not resume_path:
+                cand_pdf = os.path.join("data", "approved_queue", f"resume_{job_id}.pdf")
+                if os.path.exists(cand_pdf):
+                    resume_path = os.path.abspath(cand_pdf)
+
+    filler = UniversalBatchFormFiller()
+    async with async_playwright() as p:
+        browser = await p.chromium.connect_over_cdp(cdp_url)
+        context = browser.contexts[0] if browser.contexts else await browser.new_context()
+        pages = context.pages
+        page = None
+
+        if url:
+            for pg in pages:
+                if url in (pg.url or ""):
+                    page = pg
+                    break
+            if page is None:
+                page = pages[-1] if pages else await context.new_page()
+                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                await asyncio.sleep(1.5)
+        else:
+            # Find the tab with the most visible interactive form fields (penalizing LinkedIn browse tabs without Easy Apply modal)
+            best_score = -1000
+            for pg in reversed(pages):
+                try:
+                    score = await pg.evaluate(
+                        """() => {
+                            const els = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea'));
+                            const visCnt = els.filter(el => {
+                                const r = el.getBoundingClientRect();
+                                return r.width > 0 && r.height > 0;
+                            }).length;
+                            if (visCnt === 0) return -1000;
+                            const isLiBrowse = location.hostname.includes('linkedin.com') && !document.querySelector('.jobs-easy-apply-modal, .jobs-easy-apply-content');
+                            return (visCnt * 10) - (isLiBrowse ? 500 : 0);
+                        }"""
+                    )
+                    if score > best_score:
+                        best_score = score
+                        page = pg
+                except Exception:
+                    pass
+            if page is None:
+                page = pages[-1] if pages else await context.new_page()
+
+        if action == "apply":
+            parsed_actions = json.loads(actions_json) if actions_json else {}
+            res = await filler.apply_custom_actions(page, parsed_actions)
+            print(json.dumps(res, indent=2))
+        else:
+            res = await filler.inspect_and_autofill_step(page, resume_pdf_path=resume_path or None)
+            print(json.dumps(res, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="LinkedIn Job Search & Application Automation Orchestrator",
@@ -559,6 +633,22 @@ def main():
         help="Run browser in headless mode (default: False, runs headful visible)",
     )
 
+    # 14. form-batch (2-Phase Extract-Map-BatchExecute high-speed form engine)
+    parser_batch = subparsers.add_parser(
+        "form-batch", help="High-speed 2-phase DOM schema extractor & deterministic batch form filler"
+    )
+    parser_batch.add_argument(
+        "action",
+        choices=["inspect", "apply"],
+        nargs="?",
+        default="inspect",
+        help="Action: 'inspect' (extract schema & batch-fill known fields) or 'apply' (apply custom field JSON)",
+    )
+    parser_batch.add_argument("--job-id", default="", help="Job ID from data/approved_queue/")
+    parser_batch.add_argument("--url", default="", help="Optional target URL to open/inspect")
+    parser_batch.add_argument("--resume", default="", help="Optional path to tailored resume PDF")
+    parser_batch.add_argument("--actions", default="{}", help="JSON mapping of {field_id_or_label: value} for 'apply'")
+
     args = parser.parse_args()
     config = load_config(args.config)
     runner = JobSearchPipelineRunner(config)
@@ -599,6 +689,16 @@ def main():
             date_filter=getattr(args, "date_filter", "past-24h"),
             limit=getattr(args, "limit", 15),
             headless=getattr(args, "headless", True),
+        )
+    elif cmd == "form-batch":
+        asyncio.run(
+            _run_form_batch_async(
+                action=args.action,
+                job_id=getattr(args, "job_id", ""),
+                url=getattr(args, "url", ""),
+                resume_path=getattr(args, "resume", ""),
+                actions_json=getattr(args, "actions", "{}"),
+            )
         )
     elif cmd == "daily":
         if args.action == "audit":

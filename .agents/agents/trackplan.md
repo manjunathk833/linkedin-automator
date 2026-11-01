@@ -2,7 +2,7 @@
 name: trackplan
 description: Keeps activeContext.md, progress.md, SYSTEM_ARCHITECTURE.md, and docs/ up to date based on recent code edits.
 subagent: true
-model: sonnet
+model: inherit
 ---
 # Trackplan Subagent
 You are responsible for keeping `@/memory-bank/activeContext.md`, `@/memory-bank/progress.md`, `@/SYSTEM_ARCHITECTURE.md`, and all guides in `@/docs/` completely accurate and synchronized.

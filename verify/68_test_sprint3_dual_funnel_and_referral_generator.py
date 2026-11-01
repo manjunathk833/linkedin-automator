@@ -130,6 +130,10 @@ def test_sqlite_referral_ledger():
     records_updated = db.get_referral_outreach(outreach_id=outreach_id)
     assert records_updated[0]["status"] == "CONNECTED", "Status was not updated in SQLite"
     print(f"  ✅ Updated record status to: {records_updated[0]['status']}")
+    # Clean up test row
+    with db._get_connection() as conn:
+        conn.execute("DELETE FROM referral_outreach WHERE job_id = ?", (job_id,))
+        conn.commit()
 
 
 async def test_fastapi_referral_endpoints():
@@ -196,6 +200,13 @@ async def test_fastapi_referral_endpoints():
         assert up_res.status_code == 200
         assert up_res.json()["new_status"] == "REFERRED"
         print("  ✅ POST /api/referral/update-status updated record to REFERRED")
+        # Clean up test rows from production DB
+        with db._get_connection() as conn:
+            conn.execute(
+                "DELETE FROM referral_outreach WHERE job_id IN ('api_test_okta_8045905', 'test_sprint3_adobe_r170647')"
+            )
+            conn.execute("DELETE FROM tracked_requisitions WHERE requisition_id = 'R170647_API_TEST'")
+            conn.commit()
 
 
 async def main():

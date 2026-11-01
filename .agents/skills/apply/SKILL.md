@@ -79,10 +79,18 @@ For each approved job in the queue:
      curl -s -X POST http://127.0.0.1:8000/api/autofill/{job_id}
      ```
    * Populates 20+ fields (60 Days notice, 17 LPA current CTC, 27 LPA expected CTC, Value Labs, Dunzo, Tata Elxsi experience, SJCE education) and attaches the tailored PDF resume in **under 5 seconds** in local headful Chrome, stopping at the final Review step.
-4. **Execution Priority 2: Multimodal `browser_subagent` Fallback:**
-   * For non-standard or custom career portals (e.g. Keka, bespoke wizards):
-     * Launch `browser_subagent` passing the inlined candidate lookup dictionary compiled in Step 3.
-     * **Zero-Hallucination Directive:** STRICTLY populate fields from the candidate dictionary; never fabricate metrics or dates.
+4. **Execution Priority 2: 2-Phase `form-batch` Universal DOM Engine (10–15 Apps/Hr):**
+   * For non-standard or custom career portals (e.g. Keka, SmartRecruiters, custom company screening questions):
+     * **Phase A (Single-Call DOM Extract + Deterministic Batch Fill in `<3s`):**
+       ```bash
+       ./venv/bin/python main.py form-batch inspect --job-id {job_id}
+       ```
+       Tags all visible controls with `data-agy-id`, fills all known candidate fields (`60 Days` notice, `17 LPA` / `27 LPA`, `India (+91)` with `British Indian Ocean Territory (+246)` strictly excluded), verifies filled values via DOM read-back, and outputs compact JSON of `unmapped_fields`.
+     * **Phase B (1-Turn Custom Field Batch Execution):**
+       Map all `unmapped_fields` in **one single turn** and apply them in **one batch call**:
+       ```bash
+       ./venv/bin/python main.py form-batch apply --job-id {job_id} --actions '{"agy_field_8": "Yes"}'
+       ```
      * **Expand Repeatable Containers:** Click `+ Add Experience Details` to add Value Labs, Dunzo, and Tata Elxsi; click `+ Add Education Details` to add SJCE degree; add primary skills tags.
      * **Negative Referral Fields:** Answer `No` to company employee questions and enter `NA` in follow-up relation textboxes.
      * Enforce a hard budget of **20 actions maximum** per job.
