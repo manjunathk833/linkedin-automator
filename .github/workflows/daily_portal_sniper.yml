@@ -1,0 +1,76 @@
+name: Daily Career Portal Sniper (<24h Fresh Drops)
+
+on:
+  schedule:
+    # Runs twice daily at 01:30 UTC (07:00 IST) and 13:30 UTC (19:00 IST)
+    - cron: "30 1,13 * * *"
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "Freshness window in hours (default: 24)"
+        required: false
+        default: "24"
+
+permissions:
+  contents: write
+
+jobs:
+  portal-sniper:
+    name: Poll Explicit 100+ Org Watchlist (<24h Delta)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Restore Seen Ledger from ci-job-drops Branch (If Exists)
+        run: |
+          mkdir -p data/ci_inbox
+          if git ls-remote --exit-code --heads origin ci-job-drops >/dev/null 2>&1; then
+            git fetch origin ci-job-drops
+            git show origin/ci-job-drops:data/ci_inbox/portal_seen_ledger.json > data/ci_inbox/portal_seen_ledger.json 2>/dev/null || true
+          fi
+
+      - name: Run Official Career Portal Sniper (<24h Delta Scan)
+        run: |
+          HOURS="${{ github.event.inputs.hours || '24' }}"
+          python main.py portal-sniper --ci-mode --hours "$HOURS"
+
+      - name: Publish Report to GitHub Step Summary
+        run: |
+          if [ -f data/ci_inbox/latest_daily_report.md ]; then
+            cat data/ci_inbox/latest_daily_report.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Fresh Drops Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-fresh-drops
+          path: |
+            data/ci_inbox/latest_ci_drops.json
+            data/ci_inbox/portal_seen_ledger.json
+            data/ci_inbox/latest_daily_report.md
+          retention-days: 14
+
+      - name: Sync Drops & Seen Ledger to ci-job-drops Branch for Local Auto-Ingest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B ci-job-drops
+          git add -f data/ci_inbox/latest_ci_drops.json data/ci_inbox/portal_seen_ledger.json data/ci_inbox/latest_daily_report.md
+          git commit -m "chore(ci-sniper): update <24h career portal drops [skip ci]" || true
+          git push -f origin ci-job-drops
+

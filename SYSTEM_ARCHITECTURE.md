@@ -10,7 +10,8 @@
 > * [**02_CONCEPTUAL_ARCHITECTURE.md**](docs/02_CONCEPTUAL_ARCHITECTURE.md): Zero-cost economics, dual-track ingestion, and anti-detection threat model.
 > * [**03_TECHNICAL_SPECIFICATION.md**](docs/03_TECHNICAL_SPECIFICATION.md): Exhaustive breakdown of Modules 1–10 and data schemas.
 > * [**04_USAGE_AND_OPERATIONS.md**](docs/04_USAGE_AND_OPERATIONS.md): CLI subcommands and troubleshooting playbooks.
-> * [**05_VERIFICATION_AND_TESTING.md**](docs/05_VERIFICATION_AND_TESTING.md): Catalog of all 32 verification test scripts.
+> * [**05_VERIFICATION_AND_TESTING.md**](docs/05_VERIFICATION_AND_TESTING.md): Catalog of all 63 Tier 1 Core + 18 Tier 2 Autofill verification test scripts.
+> * [**RESEARCH_1000_ORG_CI_PORTAL_SNIPER.md**](docs/RESEARCH_1000_ORG_CI_PORTAL_SNIPER.md): Explicit 100+ Org CI/CD Career Portal Sniper (`<24h` delta) & Local SQLite/Dashboard Auto-Ingest architecture.
 
 ---
 

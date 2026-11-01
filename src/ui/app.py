@@ -1588,3 +1588,23 @@ async def delete_hiring_post_endpoint(post_id: str):
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
     return {"status": "success", "post_id": post_id, "message": "Post dismissed."}
+
+
+@app.post("/api/ci-sync")
+async def sync_ci_drops_endpoint(request: Request):
+    """
+    Onboards `<24h` fresh drops from `data/ci_inbox/latest_ci_drops.json` (or `origin/ci-job-drops`)
+    into local SQLite `tracked_requisitions` and `data/pending_queue/` for Command Center review.
+    """
+    from src.ingestion.ci_sync import CISyncIngestor
+
+    fetch_remote = False
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            fetch_remote = bool(body.get("fetch_remote", False))
+    except Exception:
+        fetch_remote = False
+
+    ingestor = CISyncIngestor(use_ai=False)
+    return ingestor.sync_latest_drops(fetch_remote=fetch_remote)

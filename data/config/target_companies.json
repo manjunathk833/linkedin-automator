@@ -571,5 +571,464 @@
     "is_dream_org": false,
     "site": "external",
     "datacenter": "wd3"
+  },
+  {
+    "name": "Visa",
+    "ats_provider": "smartrecruiters",
+    "slug": "Visa",
+    "domain": "visa.com",
+    "active": true,
+    "industry": "Payments & Fintech",
+    "is_dream_org": true
+  },
+  {
+    "name": "Bosch",
+    "ats_provider": "smartrecruiters",
+    "slug": "BoschGroup",
+    "domain": "bosch.com",
+    "active": true,
+    "industry": "Automotive & IoT GCC",
+    "is_dream_org": false
+  },
+  {
+    "name": "Amadeus",
+    "ats_provider": "smartrecruiters",
+    "slug": "Amadeus",
+    "domain": "amadeus.com",
+    "active": true,
+    "industry": "Travel Tech",
+    "is_dream_org": true
+  },
+  {
+    "name": "NielsenIQ",
+    "ats_provider": "smartrecruiters",
+    "slug": "NielsenIQ",
+    "domain": "nielseniq.com",
+    "active": true,
+    "industry": "Data & Analytics",
+    "is_dream_org": false
+  },
+  {
+    "name": "Publicis Sapient",
+    "ats_provider": "smartrecruiters",
+    "slug": "PublicisSapient",
+    "domain": "publicissapient.com",
+    "active": true,
+    "industry": "Digital Engineering",
+    "is_dream_org": false
+  },
+  {
+    "name": "Western Digital",
+    "ats_provider": "smartrecruiters",
+    "slug": "WesternDigital",
+    "domain": "westerndigital.com",
+    "active": true,
+    "industry": "Storage & Systems",
+    "is_dream_org": true
+  },
+  {
+    "name": "ServiceTitan",
+    "ats_provider": "smartrecruiters",
+    "slug": "ServiceTitan",
+    "domain": "servicetitan.com",
+    "active": true,
+    "industry": "B2B SaaS",
+    "is_dream_org": true
+  },
+  {
+    "name": "Informatica",
+    "ats_provider": "smartrecruiters",
+    "slug": "Informatica",
+    "domain": "informatica.com",
+    "active": true,
+    "industry": "Enterprise Data Cloud",
+    "is_dream_org": true
+  },
+  {
+    "name": "Rippling",
+    "ats_provider": "rippling",
+    "slug": "rippling",
+    "domain": "rippling.com",
+    "active": true,
+    "industry": "Workforce & HR Cloud",
+    "is_dream_org": true
+  },
+  {
+    "name": "AngelList",
+    "ats_provider": "rippling",
+    "slug": "angellist",
+    "domain": "angellist.com",
+    "active": true,
+    "industry": "Venture & Fintech",
+    "is_dream_org": true
+  },
+  {
+    "name": "Substack",
+    "ats_provider": "rippling",
+    "slug": "substack",
+    "domain": "substack.com",
+    "active": true,
+    "industry": "Creator Publishing",
+    "is_dream_org": true
+  },
+  {
+    "name": "Workable",
+    "ats_provider": "workable",
+    "slug": "workable",
+    "domain": "workable.com",
+    "active": true,
+    "industry": "HR Tech",
+    "is_dream_org": false
+  },
+  {
+    "name": "Voodoo",
+    "ats_provider": "workable",
+    "slug": "voodoo",
+    "domain": "voodoo.io",
+    "active": true,
+    "industry": "Gaming & Mobile",
+    "is_dream_org": false
+  },
+  {
+    "name": "Tellent",
+    "ats_provider": "recruitee",
+    "slug": "tellent",
+    "domain": "tellent.com",
+    "active": true,
+    "industry": "HR SaaS",
+    "is_dream_org": false
+  },
+  {
+    "name": "PhonePe",
+    "ats_provider": "greenhouse",
+    "slug": "phonepe",
+    "domain": "phonepe.com",
+    "active": true,
+    "industry": "Payments & Fintech",
+    "is_dream_org": true
+  },
+  {
+    "name": "Meesho",
+    "ats_provider": "lever",
+    "slug": "meesho",
+    "domain": "meesho.com",
+    "active": true,
+    "industry": "E-Commerce",
+    "is_dream_org": true
+  },
+  {
+    "name": "Groww",
+    "ats_provider": "greenhouse",
+    "slug": "groww",
+    "domain": "groww.in",
+    "active": true,
+    "industry": "Wealthtech",
+    "is_dream_org": true
+  },
+  {
+    "name": "Zepto",
+    "ats_provider": "lever",
+    "slug": "zepto",
+    "domain": "zeptonow.com",
+    "active": true,
+    "industry": "Quick Commerce",
+    "is_dream_org": true
+  },
+  {
+    "name": "Chargebee",
+    "ats_provider": "greenhouse",
+    "slug": "chargebee",
+    "domain": "chargebee.com",
+    "active": true,
+    "industry": "Subscription Billing SaaS",
+    "is_dream_org": true
+  },
+  {
+    "name": "Freshworks",
+    "ats_provider": "smartrecruiters",
+    "slug": "Freshworks",
+    "domain": "freshworks.com",
+    "active": true,
+    "industry": "Enterprise CRM & ITSM",
+    "is_dream_org": true
+  },
+  {
+    "name": "Harness",
+    "ats_provider": "greenhouse",
+    "slug": "harnessinc",
+    "domain": "harness.io",
+    "active": true,
+    "industry": "CI/CD & DevOps",
+    "is_dream_org": true
+  },
+  {
+    "name": "Hasura",
+    "ats_provider": "greenhouse",
+    "slug": "hasura",
+    "domain": "hasura.io",
+    "active": true,
+    "industry": "GraphQL & Data API",
+    "is_dream_org": true
+  },
+  {
+    "name": "Supabase",
+    "ats_provider": "ashby",
+    "slug": "supabase",
+    "domain": "supabase.com",
+    "active": true,
+    "industry": "Open Source Backend",
+    "is_dream_org": true
+  },
+  {
+    "name": "PostHog",
+    "ats_provider": "ashby",
+    "slug": "posthog",
+    "domain": "posthog.com",
+    "active": true,
+    "industry": "Product Analytics",
+    "is_dream_org": true
+  },
+  {
+    "name": "Deel",
+    "ats_provider": "ashby",
+    "slug": "deel",
+    "domain": "deel.com",
+    "active": true,
+    "industry": "Global Payroll & HR",
+    "is_dream_org": true
+  },
+  {
+    "name": "Cohere",
+    "ats_provider": "ashby",
+    "slug": "cohere",
+    "domain": "cohere.com",
+    "active": true,
+    "industry": "Enterprise AI",
+    "is_dream_org": true
+  },
+  {
+    "name": "Perplexity",
+    "ats_provider": "ashby",
+    "slug": "perplexity",
+    "domain": "perplexity.ai",
+    "active": true,
+    "industry": "AI Search",
+    "is_dream_org": true
+  },
+  {
+    "name": "ElevenLabs",
+    "ats_provider": "ashby",
+    "slug": "elevenlabs",
+    "domain": "elevenlabs.io",
+    "active": true,
+    "industry": "Voice AI",
+    "is_dream_org": true
+  },
+  {
+    "name": "Grafana Labs",
+    "ats_provider": "greenhouse",
+    "slug": "grafanalabs",
+    "domain": "grafana.com",
+    "active": true,
+    "industry": "Observability",
+    "is_dream_org": true
+  },
+  {
+    "name": "Datadog",
+    "ats_provider": "greenhouse",
+    "slug": "datadog",
+    "domain": "datadoghq.com",
+    "active": true,
+    "industry": "Cloud Monitoring",
+    "is_dream_org": true
+  },
+  {
+    "name": "Cockroach Labs",
+    "ats_provider": "greenhouse",
+    "slug": "cockroachlabs",
+    "domain": "cockroachlabs.com",
+    "active": true,
+    "industry": "Distributed SQL",
+    "is_dream_org": true
+  },
+  {
+    "name": "Temporal",
+    "ats_provider": "greenhouse",
+    "slug": "temporaltechnologies",
+    "domain": "temporal.io",
+    "active": true,
+    "industry": "Durable Execution",
+    "is_dream_org": true
+  },
+  {
+    "name": "Airbyte",
+    "ats_provider": "lever",
+    "slug": "airbyte",
+    "domain": "airbyte.com",
+    "active": true,
+    "industry": "Data Integration",
+    "is_dream_org": true
+  },
+  {
+    "name": "Fivetran",
+    "ats_provider": "greenhouse",
+    "slug": "fivetran",
+    "domain": "fivetran.com",
+    "active": true,
+    "industry": "Data Movement",
+    "is_dream_org": true
+  },
+  {
+    "name": "dbt Labs",
+    "ats_provider": "greenhouse",
+    "slug": "dbtlabsinc",
+    "domain": "getdbt.com",
+    "active": true,
+    "industry": "Analytics Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "PagerDuty",
+    "ats_provider": "greenhouse",
+    "slug": "pagerduty",
+    "domain": "pagerduty.com",
+    "active": true,
+    "industry": "Incident Response",
+    "is_dream_org": true
+  },
+  {
+    "name": "Amplitude",
+    "ats_provider": "greenhouse",
+    "slug": "amplitude",
+    "domain": "amplitude.com",
+    "active": true,
+    "industry": "Digital Analytics",
+    "is_dream_org": true
+  },
+  {
+    "name": "Braze",
+    "ats_provider": "greenhouse",
+    "slug": "braze",
+    "domain": "braze.com",
+    "active": true,
+    "industry": "Customer Engagement",
+    "is_dream_org": true
+  },
+  {
+    "name": "HubSpot",
+    "ats_provider": "greenhouse",
+    "slug": "hubspot",
+    "domain": "hubspot.com",
+    "active": true,
+    "industry": "CRM Platform",
+    "is_dream_org": true
+  },
+  {
+    "name": "Intercom",
+    "ats_provider": "greenhouse",
+    "slug": "intercom",
+    "domain": "intercom.com",
+    "active": true,
+    "industry": "AI Customer Service",
+    "is_dream_org": true
+  },
+  {
+    "name": "Gusto",
+    "ats_provider": "greenhouse",
+    "slug": "gusto",
+    "domain": "gusto.com",
+    "active": true,
+    "industry": "Payroll & Benefits",
+    "is_dream_org": true
+  },
+  {
+    "name": "Brex",
+    "ats_provider": "greenhouse",
+    "slug": "brex",
+    "domain": "brex.com",
+    "active": true,
+    "industry": "Corporate Spend",
+    "is_dream_org": true
+  },
+  {
+    "name": "Carta",
+    "ats_provider": "greenhouse",
+    "slug": "carta",
+    "domain": "carta.com",
+    "active": true,
+    "industry": "Equity Management",
+    "is_dream_org": true
+  },
+  {
+    "name": "Adyen",
+    "ats_provider": "greenhouse",
+    "slug": "adyen",
+    "domain": "adyen.com",
+    "active": true,
+    "industry": "Global Payments",
+    "is_dream_org": true
+  },
+  {
+    "name": "Robinhood",
+    "ats_provider": "greenhouse",
+    "slug": "robinhood",
+    "domain": "robinhood.com",
+    "active": true,
+    "industry": "Fintech & Trading",
+    "is_dream_org": true
+  },
+  {
+    "name": "Kraken",
+    "ats_provider": "ashby",
+    "slug": "kraken.com",
+    "domain": "kraken.com",
+    "active": true,
+    "industry": "Crypto Exchange",
+    "is_dream_org": true
+  },
+  {
+    "name": "SentinelOne",
+    "ats_provider": "greenhouse",
+    "slug": "sentinelone",
+    "domain": "sentinelone.com",
+    "active": true,
+    "industry": "Autonomous Cybersecurity",
+    "is_dream_org": true
+  },
+  {
+    "name": "Cohesity",
+    "ats_provider": "greenhouse",
+    "slug": "cohesity",
+    "domain": "cohesity.com",
+    "active": true,
+    "industry": "Data Security & Backup",
+    "is_dream_org": true
+  },
+  {
+    "name": "Nutanix",
+    "ats_provider": "greenhouse",
+    "slug": "nutanix",
+    "domain": "nutanix.com",
+    "active": true,
+    "industry": "Hybrid Multicloud",
+    "is_dream_org": true
+  },
+  {
+    "name": "Reddit",
+    "ats_provider": "greenhouse",
+    "slug": "reddit",
+    "domain": "reddit.com",
+    "active": true,
+    "industry": "Social Community",
+    "is_dream_org": true
+  },
+  {
+    "name": "Discord",
+    "ats_provider": "greenhouse",
+    "slug": "discord",
+    "domain": "discord.com",
+    "active": true,
+    "industry": "Real-Time Comms",
+    "is_dream_org": true
   }
 ]

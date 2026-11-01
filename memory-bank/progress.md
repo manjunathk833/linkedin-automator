@@ -11,6 +11,11 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 66: Explicit 100+ Org CI/CD Career Portal Sniper & Local DB Auto-Ingest (Gate 106)**:
+  - Built `SmartRecruitersCollector`, `RipplingCollector`, `WorkableCollector`, and `RecruiteeCollector` (`src/ingestion/extended_providers.py`) and expanded `data/config/target_companies.json` to 107 explicit product organizations (90 Dream Orgs).
+  - Built `OrgResearcher` (`src/ingestion/org_researcher.py`), `PortalSniperEngine` (`src/ingestion/portal_sniper.py`), and `CISyncIngestor` (`src/ingestion/ci_sync.py`) with `POST /api/ci-sync` and `.github/workflows/daily_portal_sniper.yml`.
+  - Verified live dry run across 107 portals + Command Center UI onboarding (`verify/106_test_portal_sniper_and_ci_auto_ingest.py`).
+  - Standardized Tier 1 Core Regressions: **63/63 PASSED (100% SUCCESS in 57.94s)**; Ruff linter clean with **0 errors across 180 files**.
 - **Phase 65: Interview Generation Engine, High-Speed 2-Phase Batch Autofill & CI Cross-Platform Hardening (Gates 81 & 105)**:
   - **Country & Dial Code Precision Bug Eradicated (`src/autofill/ats_filler.py`)**: Completely eliminated `"British Indian Ocean Territory (+246)"` and `"Indiana"` false-selection errors in `_select_react_combobox` through `TERRITORY_EXCLUSIONS`, 4-tier exact-first option scoring (`_score_combobox_option`), and mandatory post-selection DOM read-back verification (`_verify_combobox_selection`).
   - **Strict 60-Day Notice Period Lock**: Hardened `src/autofill/form_mapper.py`, `src/autofill/vendor_schemas.py`, and `src/autofill/batch_form_engine.py` with `Notice Period: 60 Days`, `Current CTC: 17 LPA`, `Expected CTC: 27 LPA`, and `6.8 YOE`.

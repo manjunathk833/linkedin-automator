@@ -121,3 +121,4 @@ Every single organization on your 1,000-company list is a first-class row in `da
 3. **Phase 3 — Local SQLite & Command Center Auto-Ingest (`src/ingestion/ci_sync.py`):**
    - Wire automatic CI drop ingestion into `src/ui/app.py` startup and `python main.py sync-ci` so all cloud-discovered `<24h` jobs populate `data/app_database.db` and `data/pending_queue/` on `http://localhost:8000`.
    - Default local `python main.py search` to Chrome-only tracks (`linkedin` + `posts`) since Track 1 is handled by the CI sniper.
+
