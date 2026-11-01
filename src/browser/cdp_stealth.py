@@ -215,8 +215,14 @@ async def launch_stealth_browser(
     pw_api = get_playwright_module()
     playwright_instance = await pw_api.async_playwright().start()
 
+    # Auto-fallback to headless on Linux when DISPLAY is unset (e.g. CI environments)
+    import sys
+
+    if not headless and sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
+        headless = True
+
     # Fast-Path: Reuse existing active Chrome session via CDP if available
-    if not headless and is_cdp_port_open(9222):
+    if is_cdp_port_open(9222):
         try:
             print("🔗 Active Chrome detected on CDP port 9222. Connecting over CDP...")
             browser = await playwright_instance.chromium.connect_over_cdp("http://localhost:9222")

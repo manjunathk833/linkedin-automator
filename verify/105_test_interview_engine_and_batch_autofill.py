@@ -158,8 +158,10 @@ async def test_country_and_dial_code_precision() -> None:
         assert res_a["verification"]["verification_passed"] is True, f"Verification failed: {res_a['verification']}"
         rs_committed = (await page.locator("#rs-country-val").inner_text()).strip()
         assert rs_committed == "India", f"Expected auto-repaired 'India', got '{rs_committed}'"
-        assert await page.locator("#first_name").input_value() == "Manjunath"
-        assert await page.locator("#last_name").input_value() == "H K"
+        expected_first = batch_engine.master_data.personal.first_name
+        expected_last = batch_engine.master_data.personal.last_name
+        assert await page.locator("#first_name").input_value() == expected_first
+        assert await page.locator("#last_name").input_value() == expected_last
         assert await page.locator("#notice_period").input_value() == "60 Days"
         assert await page.locator("#expected_ctc").input_value() == "27 LPA"
         assert res_a["unmapped_count"] == 1

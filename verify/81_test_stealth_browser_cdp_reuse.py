@@ -29,10 +29,14 @@ async def main():
     port_open = is_cdp_port_open(9222)
     print(f"📡 CDP Port 9222 Status: {'OPEN (Active Chrome)' if port_open else 'CLOSED'}")
 
+    is_headless = bool(os.environ.get("CI") or (sys.platform.startswith("linux") and not os.environ.get("DISPLAY")))
+    if is_headless:
+        print("ℹ️ CI / Headless Linux environment detected: running in headless mode.")
+
     print("\n🧪 Step 1: Testing initial launch_stealth_browser...")
     pw1, ctx1, page1 = await launch_stealth_browser(
         user_data_dir=DEFAULT_STEALTH_DIR,
-        headless=False,
+        headless=is_headless,
     )
     assert pw1 is not None, "Playwright instance must not be None"
     assert ctx1 is not None, "Browser context must not be None"
@@ -50,7 +54,7 @@ async def main():
     # Call launch_stealth_browser again while the first session is active
     pw2, ctx2, page2 = await launch_stealth_browser(
         user_data_dir=DEFAULT_STEALTH_DIR,
-        headless=False,
+        headless=is_headless,
     )
     assert pw2 is not None, "Second Playwright instance must not be None"
     assert ctx2 is not None, "Second Browser context must not be None"
@@ -65,6 +69,17 @@ async def main():
         await page2.close()
     except Exception:
         pass
+
+    # If the test launched a fresh standalone instance (port was not already open), clean up
+    if not port_open:
+        try:
+            await ctx1.close()
+        except Exception:
+            pass
+        try:
+            await pw1.stop()
+        except Exception:
+            pass
 
     print("\n🎉 ALL GATE 81 CHECKS COMPLETED SUCCESSFULLY!")
     print("   Consecutive autofill launches are verified safe against browser profile collisions.\n")
