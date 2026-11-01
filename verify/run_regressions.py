@@ -110,6 +110,7 @@ TIER_1_CORE = [
     "104_test_search_sort_and_company_discovery.py",
     "105_test_interview_engine_and_batch_autofill.py",
     "106_test_portal_sniper_and_ci_auto_ingest.py",
+    "107_test_mark_applied_force_override.py",
 ]
 
 
