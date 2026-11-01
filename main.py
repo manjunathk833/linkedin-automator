@@ -924,9 +924,19 @@ def main():
     # 18. org-research (Cycle 1: Explicit Organization Watchlist Auditor & Endpoint Fingerprinter)
     parser_orgres = subparsers.add_parser(
         "org-research",
-        help="Cycle 1: Audit explicit organization watchlist coverage or probe a company slug across ATS providers",
+        help="Cycle 1: Audit explicit organization watchlist coverage, expand from 700+ catalog, or bank an ATS URL",
     )
     parser_orgres.add_argument("--probe", default="", help="Optional company slug to probe across all ATS providers")
+    parser_orgres.add_argument(
+        "--expand",
+        action="store_true",
+        help="Probe all 700+ explicit orgs in master_org_catalog.json and expand target_companies.json",
+    )
+    parser_orgres.add_argument(
+        "--bank-url",
+        default="",
+        help="Extract ATS provider & slug from a career URL and bank it into target_companies.json",
+    )
     parser_orgres.add_argument("--audit", action="store_true", help="Audit live endpoint responsiveness for watchlist")
     parser_orgres.add_argument("--limit", type=int, default=15, help="Number of watchlist orgs to live-probe in audit")
 
@@ -1026,9 +1036,23 @@ def main():
 
         researcher = OrgResearcher()
         probe_slug = getattr(args, "probe", "").strip()
+        bank_url = getattr(args, "bank_url", "").strip()
         if probe_slug:
             res = asyncio.run(researcher.probe_company_slug(probe_slug, probe_slug))
             print(json.dumps(res, indent=2))
+        elif bank_url:
+            banked = researcher.extract_and_bank_ats_url(bank_url, save=True)
+            print(json.dumps(banked.model_dump(exclude_none=True) if banked else {"status": "unrecognized"}, indent=2))
+        elif getattr(args, "expand", False):
+            exp_res = asyncio.run(researcher.expand_watchlist_from_catalog(max_concurrency=35, save=True))
+            print("\n" + "=" * 68)
+            print("  🚀 MASTER CATALOG EXPANSION SUMMARY (Cycle 1)")
+            print("=" * 68)
+            print(f"  • Master Catalog Size   : {exp_res['catalog_size']}")
+            print(f"  • Candidates Probed     : {exp_res['probed_count']}")
+            print(f"  • Newly Verified Boards : {exp_res['newly_verified_count']}")
+            print(f"  • Total Active Watchlist: {exp_res['total_watchlist_count']}")
+            print("=" * 68 + "\n")
         elif getattr(args, "audit", False):
             audit_res = asyncio.run(researcher.audit_watchlist_health(limit=getattr(args, "limit", 15)))
             print(json.dumps(audit_res, indent=2))
@@ -1037,8 +1061,8 @@ def main():
             print("\n" + "=" * 65)
             print("  🔭 EXPLICIT ORGANIZATION WATCHLIST BREAKDOWN (Cycle 1)")
             print("=" * 65)
-            print(f"  • Total Explicit Orgs : {summary['total_companies']}")
-            print(f"  • Active Monitored    : {summary['active_companies']}")
+            print(f"  • Master Catalog Size : {summary['master_catalog_size']}")
+            print(f"  • Verified Active Orgs: {summary['total_companies']}")
             print(f"  • Dream Organizations : {summary['dream_orgs']}")
             print("  • Adapter Distribution:")
             for prov, cnt in sorted(summary["by_provider"].items(), key=lambda x: x[1], reverse=True):

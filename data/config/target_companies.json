@@ -579,7 +579,8 @@
     "domain": "visa.com",
     "active": true,
     "industry": "Payments & Fintech",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Bosch",
@@ -588,7 +589,8 @@
     "domain": "bosch.com",
     "active": true,
     "industry": "Automotive & IoT GCC",
-    "is_dream_org": false
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Amadeus",
@@ -597,7 +599,8 @@
     "domain": "amadeus.com",
     "active": true,
     "industry": "Travel Tech",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "NielsenIQ",
@@ -606,7 +609,8 @@
     "domain": "nielseniq.com",
     "active": true,
     "industry": "Data & Analytics",
-    "is_dream_org": false
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Publicis Sapient",
@@ -615,7 +619,8 @@
     "domain": "publicissapient.com",
     "active": true,
     "industry": "Digital Engineering",
-    "is_dream_org": false
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Western Digital",
@@ -624,7 +629,8 @@
     "domain": "westerndigital.com",
     "active": true,
     "industry": "Storage & Systems",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "ServiceTitan",
@@ -633,7 +639,8 @@
     "domain": "servicetitan.com",
     "active": true,
     "industry": "B2B SaaS",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Informatica",
@@ -642,7 +649,8 @@
     "domain": "informatica.com",
     "active": true,
     "industry": "Enterprise Data Cloud",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Rippling",
@@ -651,7 +659,8 @@
     "domain": "rippling.com",
     "active": true,
     "industry": "Workforce & HR Cloud",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "AngelList",
@@ -660,7 +669,8 @@
     "domain": "angellist.com",
     "active": true,
     "industry": "Venture & Fintech",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Substack",
@@ -669,7 +679,8 @@
     "domain": "substack.com",
     "active": true,
     "industry": "Creator Publishing",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Workable",
@@ -678,7 +689,8 @@
     "domain": "workable.com",
     "active": true,
     "industry": "HR Tech",
-    "is_dream_org": false
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Voodoo",
@@ -687,7 +699,8 @@
     "domain": "voodoo.io",
     "active": true,
     "industry": "Gaming & Mobile",
-    "is_dream_org": false
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "Tellent",
@@ -696,7 +709,8 @@
     "domain": "tellent.com",
     "active": true,
     "industry": "HR SaaS",
-    "is_dream_org": false
+    "is_dream_org": false,
+    "datacenter": "wd3"
   },
   {
     "name": "PhonePe",
@@ -705,7 +719,8 @@
     "domain": "phonepe.com",
     "active": true,
     "industry": "Payments & Fintech",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Meesho",
@@ -714,7 +729,8 @@
     "domain": "meesho.com",
     "active": true,
     "industry": "E-Commerce",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Groww",
@@ -723,7 +739,8 @@
     "domain": "groww.in",
     "active": true,
     "industry": "Wealthtech",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Zepto",
@@ -732,7 +749,8 @@
     "domain": "zeptonow.com",
     "active": true,
     "industry": "Quick Commerce",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Chargebee",
@@ -741,7 +759,8 @@
     "domain": "chargebee.com",
     "active": true,
     "industry": "Subscription Billing SaaS",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Freshworks",
@@ -750,7 +769,8 @@
     "domain": "freshworks.com",
     "active": true,
     "industry": "Enterprise CRM & ITSM",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Harness",
@@ -759,7 +779,8 @@
     "domain": "harness.io",
     "active": true,
     "industry": "CI/CD & DevOps",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Hasura",
@@ -768,7 +789,8 @@
     "domain": "hasura.io",
     "active": true,
     "industry": "GraphQL & Data API",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Supabase",
@@ -777,7 +799,8 @@
     "domain": "supabase.com",
     "active": true,
     "industry": "Open Source Backend",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "PostHog",
@@ -786,7 +809,8 @@
     "domain": "posthog.com",
     "active": true,
     "industry": "Product Analytics",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Deel",
@@ -795,7 +819,8 @@
     "domain": "deel.com",
     "active": true,
     "industry": "Global Payroll & HR",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Cohere",
@@ -804,7 +829,8 @@
     "domain": "cohere.com",
     "active": true,
     "industry": "Enterprise AI",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Perplexity",
@@ -813,7 +839,8 @@
     "domain": "perplexity.ai",
     "active": true,
     "industry": "AI Search",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "ElevenLabs",
@@ -822,7 +849,8 @@
     "domain": "elevenlabs.io",
     "active": true,
     "industry": "Voice AI",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Grafana Labs",
@@ -831,7 +859,8 @@
     "domain": "grafana.com",
     "active": true,
     "industry": "Observability",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Datadog",
@@ -840,7 +869,8 @@
     "domain": "datadoghq.com",
     "active": true,
     "industry": "Cloud Monitoring",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Cockroach Labs",
@@ -849,7 +879,8 @@
     "domain": "cockroachlabs.com",
     "active": true,
     "industry": "Distributed SQL",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Temporal",
@@ -858,7 +889,8 @@
     "domain": "temporal.io",
     "active": true,
     "industry": "Durable Execution",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Airbyte",
@@ -867,7 +899,8 @@
     "domain": "airbyte.com",
     "active": true,
     "industry": "Data Integration",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Fivetran",
@@ -876,7 +909,8 @@
     "domain": "fivetran.com",
     "active": true,
     "industry": "Data Movement",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "dbt Labs",
@@ -885,7 +919,8 @@
     "domain": "getdbt.com",
     "active": true,
     "industry": "Analytics Engineering",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "PagerDuty",
@@ -894,7 +929,8 @@
     "domain": "pagerduty.com",
     "active": true,
     "industry": "Incident Response",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Amplitude",
@@ -903,7 +939,8 @@
     "domain": "amplitude.com",
     "active": true,
     "industry": "Digital Analytics",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Braze",
@@ -912,7 +949,8 @@
     "domain": "braze.com",
     "active": true,
     "industry": "Customer Engagement",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "HubSpot",
@@ -921,7 +959,8 @@
     "domain": "hubspot.com",
     "active": true,
     "industry": "CRM Platform",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Intercom",
@@ -930,7 +969,8 @@
     "domain": "intercom.com",
     "active": true,
     "industry": "AI Customer Service",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Gusto",
@@ -939,7 +979,8 @@
     "domain": "gusto.com",
     "active": true,
     "industry": "Payroll & Benefits",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Brex",
@@ -948,7 +989,8 @@
     "domain": "brex.com",
     "active": true,
     "industry": "Corporate Spend",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Carta",
@@ -957,7 +999,8 @@
     "domain": "carta.com",
     "active": true,
     "industry": "Equity Management",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Adyen",
@@ -966,7 +1009,8 @@
     "domain": "adyen.com",
     "active": true,
     "industry": "Global Payments",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Robinhood",
@@ -975,7 +1019,8 @@
     "domain": "robinhood.com",
     "active": true,
     "industry": "Fintech & Trading",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Kraken",
@@ -984,7 +1029,8 @@
     "domain": "kraken.com",
     "active": true,
     "industry": "Crypto Exchange",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "SentinelOne",
@@ -993,7 +1039,8 @@
     "domain": "sentinelone.com",
     "active": true,
     "industry": "Autonomous Cybersecurity",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Cohesity",
@@ -1002,7 +1049,8 @@
     "domain": "cohesity.com",
     "active": true,
     "industry": "Data Security & Backup",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Nutanix",
@@ -1011,7 +1059,8 @@
     "domain": "nutanix.com",
     "active": true,
     "industry": "Hybrid Multicloud",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Reddit",
@@ -1020,7 +1069,8 @@
     "domain": "reddit.com",
     "active": true,
     "industry": "Social Community",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
   },
   {
     "name": "Discord",
@@ -1029,6 +1079,3187 @@
     "domain": "discord.com",
     "active": true,
     "industry": "Real-Time Comms",
-    "is_dream_org": true
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Pine Labs",
+    "ats_provider": "greenhouse",
+    "slug": "pine",
+    "domain": "pinelabs.com",
+    "active": true,
+    "industry": "Merchant Commerce",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Slice",
+    "ats_provider": "greenhouse",
+    "slug": "slice",
+    "domain": "sliceit.com",
+    "active": true,
+    "industry": "Consumer Fintech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "ClearTax",
+    "ats_provider": "greenhouse",
+    "slug": "clear",
+    "domain": "clear.com",
+    "active": true,
+    "industry": "Fintech & Tax SaaS",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Whatfix",
+    "ats_provider": "smartrecruiters",
+    "slug": "whatfix",
+    "domain": "whatfix.com",
+    "active": true,
+    "industry": "Digital Adoption SaaS",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Druva",
+    "ats_provider": "greenhouse",
+    "slug": "druva",
+    "domain": "druva.com",
+    "active": true,
+    "industry": "Cloud Data Protection",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Zenoti",
+    "ats_provider": "greenhouse",
+    "slug": "zenoti",
+    "domain": "zenoti.com",
+    "active": true,
+    "industry": "Vertical SaaS",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mindtickle",
+    "ats_provider": "lever",
+    "slug": "mindtickle",
+    "domain": "mindtickle.com",
+    "active": true,
+    "industry": "Revenue Enablement SaaS",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Zeta",
+    "ats_provider": "lever",
+    "slug": "zeta",
+    "domain": "zeta.com",
+    "active": true,
+    "industry": "Banking Tech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Tekion",
+    "ats_provider": "ashby",
+    "slug": "tekion",
+    "domain": "tekion.com",
+    "active": true,
+    "industry": "Automotive Retail Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "CommerceIQ",
+    "ats_provider": "greenhouse",
+    "slug": "commerceiq",
+    "domain": "commerceiq.com",
+    "active": true,
+    "industry": "Retail E-Commerce AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Upstox",
+    "ats_provider": "smartrecruiters",
+    "slug": "upstox",
+    "domain": "upstox.com",
+    "active": true,
+    "industry": "Fintech Brokerage",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Porter",
+    "ats_provider": "greenhouse",
+    "slug": "porter",
+    "domain": "porter.com",
+    "active": true,
+    "industry": "Logistics Marketplace",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Cars24",
+    "ats_provider": "smartrecruiters",
+    "slug": "cars24",
+    "domain": "cars24.com",
+    "active": true,
+    "industry": "Auto Tech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Navi",
+    "ats_provider": "ashby",
+    "slug": "navi",
+    "domain": "navi.com",
+    "active": true,
+    "industry": "BFSI & Fintech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Fi Money",
+    "ats_provider": "lever",
+    "slug": "fi",
+    "domain": "epifi.com",
+    "active": true,
+    "industry": "Neobanking",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Paytm",
+    "ats_provider": "lever",
+    "slug": "paytm",
+    "domain": "paytm.com",
+    "active": true,
+    "industry": "Fintech",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Ixigo",
+    "ats_provider": "smartrecruiters",
+    "slug": "ixigo",
+    "domain": "ixigo.com",
+    "active": true,
+    "industry": "Travel Tech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "NoBroker",
+    "ats_provider": "smartrecruiters",
+    "slug": "nobroker",
+    "domain": "nobroker.com",
+    "active": true,
+    "industry": "Proptech",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Unacademy",
+    "ats_provider": "smartrecruiters",
+    "slug": "unacademy",
+    "domain": "unacademy.com",
+    "active": true,
+    "industry": "EdTech",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Newton School",
+    "ats_provider": "smartrecruiters",
+    "slug": "newtonschool",
+    "domain": "newtonschool.com",
+    "active": true,
+    "industry": "EdTech",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "SmartBear",
+    "ats_provider": "greenhouse",
+    "slug": "smartbear",
+    "domain": "smartbear.com",
+    "active": true,
+    "industry": "API & Test Tooling",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sauce Labs",
+    "ats_provider": "greenhouse",
+    "slug": "saucelabs",
+    "domain": "saucelabs.com",
+    "active": true,
+    "industry": "Cloud Testing Grid",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mabl",
+    "ats_provider": "greenhouse",
+    "slug": "mabl",
+    "domain": "mabl.com",
+    "active": true,
+    "industry": "Intelligent Test Automation",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Observe.AI",
+    "ats_provider": "greenhouse",
+    "slug": "observeai",
+    "domain": "observeai.com",
+    "active": true,
+    "industry": "Contact Center AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Kore.ai",
+    "ats_provider": "smartrecruiters",
+    "slug": "koreai",
+    "domain": "koreai.com",
+    "active": true,
+    "industry": "Enterprise AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sarvam AI",
+    "ats_provider": "ashby",
+    "slug": "sarvam",
+    "domain": "sarvam.com",
+    "active": true,
+    "industry": "GenAI India",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Entropik",
+    "ats_provider": "smartrecruiters",
+    "slug": "entropik",
+    "domain": "entropik.com",
+    "active": true,
+    "industry": "Consumer AI",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Turing",
+    "ats_provider": "greenhouse",
+    "slug": "turing",
+    "domain": "turing.com",
+    "active": true,
+    "industry": "AI Developer Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Endava",
+    "ats_provider": "smartrecruiters",
+    "slug": "endava",
+    "domain": "endava.com",
+    "active": true,
+    "industry": "Technology Services",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Brillio",
+    "ats_provider": "smartrecruiters",
+    "slug": "brillioinc",
+    "domain": "brillio.com",
+    "active": true,
+    "industry": "Digital Transformation",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Tiger Analytics",
+    "ats_provider": "ashby",
+    "slug": "tiger",
+    "domain": "tigeranalytics.com",
+    "active": true,
+    "industry": "AI & Analytics",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Meta",
+    "ats_provider": "recruitee",
+    "slug": "meta",
+    "domain": "meta.com",
+    "active": true,
+    "industry": "Social & AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Uber",
+    "ats_provider": "smartrecruiters",
+    "slug": "uber",
+    "domain": "uber.com",
+    "active": true,
+    "industry": "Mobility & Delivery",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Airbnb",
+    "ats_provider": "greenhouse",
+    "slug": "airbnb",
+    "domain": "airbnb.com",
+    "active": true,
+    "industry": "Travel Marketplace",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Lyft",
+    "ats_provider": "greenhouse",
+    "slug": "lyft",
+    "domain": "lyft.com",
+    "active": true,
+    "industry": "Mobility",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Pinterest",
+    "ats_provider": "greenhouse",
+    "slug": "pinterest",
+    "domain": "pinterest.com",
+    "active": true,
+    "industry": "Visual Discovery",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Dropbox",
+    "ats_provider": "greenhouse",
+    "slug": "dropbox",
+    "domain": "dropbox.com",
+    "active": true,
+    "industry": "Cloud Storage",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Box",
+    "ats_provider": "greenhouse",
+    "slug": "boxinc",
+    "domain": "box.com",
+    "active": true,
+    "industry": "Cloud Content Management",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Asana",
+    "ats_provider": "greenhouse",
+    "slug": "asana",
+    "domain": "asana.com",
+    "active": true,
+    "industry": "Work Management",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "ClickUp",
+    "ats_provider": "ashby",
+    "slug": "clickup",
+    "domain": "clickup.com",
+    "active": true,
+    "industry": "Productivity Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Smartsheet",
+    "ats_provider": "greenhouse",
+    "slug": "smartsheet",
+    "domain": "smartsheet.com",
+    "active": true,
+    "industry": "Enterprise Work Management",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Miro",
+    "ats_provider": "ashby",
+    "slug": "miro",
+    "domain": "miro.com",
+    "active": true,
+    "industry": "Visual Collaboration",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Webflow",
+    "ats_provider": "ashby",
+    "slug": "webflow",
+    "domain": "webflow.com",
+    "active": true,
+    "industry": "Visual Web Development",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Squarespace",
+    "ats_provider": "greenhouse",
+    "slug": "squarespace",
+    "domain": "squarespace.com",
+    "active": true,
+    "industry": "Web Publishing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "BigCommerce",
+    "ats_provider": "smartrecruiters",
+    "slug": "bigcommerce",
+    "domain": "bigcommerce.com",
+    "active": true,
+    "industry": "E-Commerce SaaS",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "VTEX",
+    "ats_provider": "greenhouse",
+    "slug": "vtex",
+    "domain": "vtex.com",
+    "active": true,
+    "industry": "Enterprise Digital Commerce",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Klaviyo",
+    "ats_provider": "greenhouse",
+    "slug": "klaviyo",
+    "domain": "klaviyo.com",
+    "active": true,
+    "industry": "Marketing Automation",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Attentive",
+    "ats_provider": "greenhouse",
+    "slug": "attentive",
+    "domain": "attentive.com",
+    "active": true,
+    "industry": "SMS Marketing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mixpanel",
+    "ats_provider": "greenhouse",
+    "slug": "mixpanel",
+    "domain": "mixpanel.com",
+    "active": true,
+    "industry": "Product Analytics",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "LaunchDarkly",
+    "ats_provider": "greenhouse",
+    "slug": "launchdarkly",
+    "domain": "launchdarkly.com",
+    "active": true,
+    "industry": "Feature Management",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Algolia",
+    "ats_provider": "greenhouse",
+    "slug": "algolia",
+    "domain": "algolia.com",
+    "active": true,
+    "industry": "Search & Discovery API",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Contentful",
+    "ats_provider": "greenhouse",
+    "slug": "contentful",
+    "domain": "contentful.com",
+    "active": true,
+    "industry": "Composable Content",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sanity",
+    "ats_provider": "ashby",
+    "slug": "sanity",
+    "domain": "sanity.com",
+    "active": true,
+    "industry": "Structured Content",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Storyblok",
+    "ats_provider": "greenhouse",
+    "slug": "storyblok",
+    "domain": "storyblok.com",
+    "active": true,
+    "industry": "Headless CMS",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "New Relic",
+    "ats_provider": "greenhouse",
+    "slug": "newrelic",
+    "domain": "newrelic.com",
+    "active": true,
+    "industry": "Observability",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sumo Logic",
+    "ats_provider": "greenhouse",
+    "slug": "sumologic",
+    "domain": "sumologic.com",
+    "active": true,
+    "industry": "Cloud Log Analytics",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Honeycomb",
+    "ats_provider": "greenhouse",
+    "slug": "honeycomb",
+    "domain": "honeycomb.com",
+    "active": true,
+    "industry": "Observability Engineering",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Cribl",
+    "ats_provider": "greenhouse",
+    "slug": "cribl",
+    "domain": "cribl.com",
+    "active": true,
+    "industry": "Data Engine for IT & Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Snyk",
+    "ats_provider": "ashby",
+    "slug": "snyk",
+    "domain": "snyk.com",
+    "active": true,
+    "industry": "Developer Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Wiz",
+    "ats_provider": "greenhouse",
+    "slug": "wizinc",
+    "domain": "wiz.com",
+    "active": true,
+    "industry": "Cloud Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Orca Security",
+    "ats_provider": "greenhouse",
+    "slug": "orcasecurity",
+    "domain": "orcasecurity.com",
+    "active": true,
+    "industry": "Agentless Cloud Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sysdig",
+    "ats_provider": "lever",
+    "slug": "sysdig",
+    "domain": "sysdig.com",
+    "active": true,
+    "industry": "Container & Cloud Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Tenable",
+    "ats_provider": "greenhouse",
+    "slug": "tenableinc",
+    "domain": "tenable.com",
+    "active": true,
+    "industry": "Exposure Management",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Ping Identity",
+    "ats_provider": "greenhouse",
+    "slug": "pingidentity",
+    "domain": "pingidentity.com",
+    "active": true,
+    "industry": "Enterprise Identity",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "BeyondTrust",
+    "ats_provider": "greenhouse",
+    "slug": "beyondtrust",
+    "domain": "beyondtrust.com",
+    "active": true,
+    "industry": "Privileged Access",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "1Password",
+    "ats_provider": "ashby",
+    "slug": "1password",
+    "domain": "1password.com",
+    "active": true,
+    "industry": "Identity & Access",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Bitwarden",
+    "ats_provider": "greenhouse",
+    "slug": "bitwarden",
+    "domain": "bitwarden.com",
+    "active": true,
+    "industry": "Open Source Password Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Dashlane",
+    "ats_provider": "greenhouse",
+    "slug": "dashlane",
+    "domain": "dashlane.com",
+    "active": true,
+    "industry": "Credential Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Vanta",
+    "ats_provider": "ashby",
+    "slug": "vanta",
+    "domain": "vanta.com",
+    "active": true,
+    "industry": "Trust Management",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Drata",
+    "ats_provider": "ashby",
+    "slug": "drata",
+    "domain": "drata.com",
+    "active": true,
+    "industry": "Continuous Compliance",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Secureframe",
+    "ats_provider": "ashby",
+    "slug": "secureframe",
+    "domain": "secureframe.com",
+    "active": true,
+    "industry": "Security Compliance",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "OneTrust",
+    "ats_provider": "greenhouse",
+    "slug": "onetrust",
+    "domain": "onetrust.com",
+    "active": true,
+    "industry": "Trust Intelligence",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "BigID",
+    "ats_provider": "greenhouse",
+    "slug": "bigid",
+    "domain": "bigid.com",
+    "active": true,
+    "industry": "Data Security & Privacy",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Illumio",
+    "ats_provider": "ashby",
+    "slug": "illumio",
+    "domain": "illumio.com",
+    "active": true,
+    "industry": "Zero Trust Segmentation",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Netskope",
+    "ats_provider": "greenhouse",
+    "slug": "netskope",
+    "domain": "netskope.com",
+    "active": true,
+    "industry": "SASE & Cloud Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Cato Networks",
+    "ats_provider": "greenhouse",
+    "slug": "catonetworks",
+    "domain": "catonetworks.com",
+    "active": true,
+    "industry": "SASE Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Abnormal Security",
+    "ats_provider": "greenhouse",
+    "slug": "abnormalsecurity",
+    "domain": "abnormalsecurity.com",
+    "active": true,
+    "industry": "AI Email Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Recorded Future",
+    "ats_provider": "greenhouse",
+    "slug": "recordedfuture",
+    "domain": "recordedfuture.com",
+    "active": true,
+    "industry": "Threat Intelligence",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Huntress",
+    "ats_provider": "greenhouse",
+    "slug": "huntress",
+    "domain": "huntress.com",
+    "active": true,
+    "industry": "Managed Cybersecurity",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Fastly",
+    "ats_provider": "greenhouse",
+    "slug": "fastly",
+    "domain": "fastly.com",
+    "active": true,
+    "industry": "Edge Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Netlify",
+    "ats_provider": "greenhouse",
+    "slug": "netlify",
+    "domain": "netlify.com",
+    "active": true,
+    "industry": "Modern Web Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Render",
+    "ats_provider": "ashby",
+    "slug": "render",
+    "domain": "render.com",
+    "active": true,
+    "industry": "Cloud Application Hosting",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Fly.io",
+    "ats_provider": "lever",
+    "slug": "fly",
+    "domain": "fly.com",
+    "active": true,
+    "industry": "Edge Application Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Railway",
+    "ats_provider": "ashby",
+    "slug": "railway",
+    "domain": "railway.com",
+    "active": true,
+    "industry": "Infrastructure Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Vultr",
+    "ats_provider": "ashby",
+    "slug": "vultr",
+    "domain": "vultr.com",
+    "active": true,
+    "industry": "Cloud Compute",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "CoreWeave",
+    "ats_provider": "greenhouse",
+    "slug": "coreweave",
+    "domain": "coreweave.com",
+    "active": true,
+    "industry": "AI Hyperscaler",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Lambda",
+    "ats_provider": "ashby",
+    "slug": "lambda",
+    "domain": "lambda.com",
+    "active": true,
+    "industry": "GPU Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Crusoe",
+    "ats_provider": "ashby",
+    "slug": "crusoe",
+    "domain": "crusoe.com",
+    "active": true,
+    "industry": "Clean AI Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Together AI",
+    "ats_provider": "greenhouse",
+    "slug": "togetherai",
+    "domain": "togetherai.com",
+    "active": true,
+    "industry": "Generative AI Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Fireworks AI",
+    "ats_provider": "ashby",
+    "slug": "fireworks",
+    "domain": "fireworksai.com",
+    "active": true,
+    "industry": "Fast AI Inference",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Baseten",
+    "ats_provider": "ashby",
+    "slug": "baseten",
+    "domain": "baseten.com",
+    "active": true,
+    "industry": "ML Inference Infrastructure",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Modal",
+    "ats_provider": "ashby",
+    "slug": "modal",
+    "domain": "modal.com",
+    "active": true,
+    "industry": "Serverless AI Compute",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Anyscale",
+    "ats_provider": "ashby",
+    "slug": "anyscale",
+    "domain": "anyscale.com",
+    "active": true,
+    "industry": "Ray Distributed AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "LangChain",
+    "ats_provider": "ashby",
+    "slug": "langchain",
+    "domain": "langchain.com",
+    "active": true,
+    "industry": "LLM Application Framework",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "LlamaIndex",
+    "ats_provider": "ashby",
+    "slug": "llamaindex",
+    "domain": "llamaindex.com",
+    "active": true,
+    "industry": "Data Framework for LLMs",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Anthropic",
+    "ats_provider": "greenhouse",
+    "slug": "anthropic",
+    "domain": "anthropic.com",
+    "active": true,
+    "industry": "AI Safety & Frontier Models",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "OpenAI",
+    "ats_provider": "ashby",
+    "slug": "openai",
+    "domain": "openai.com",
+    "active": true,
+    "industry": "Frontier AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Runway",
+    "ats_provider": "ashby",
+    "slug": "runway",
+    "domain": "runwayml.com",
+    "active": true,
+    "industry": "Generative Video AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Stability AI",
+    "ats_provider": "greenhouse",
+    "slug": "stabilityai",
+    "domain": "stabilityai.com",
+    "active": true,
+    "industry": "Open Generative AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Midjourney",
+    "ats_provider": "ashby",
+    "slug": "midjourney",
+    "domain": "midjourney.com",
+    "active": true,
+    "industry": "Generative Visual AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Writer",
+    "ats_provider": "ashby",
+    "slug": "writer",
+    "domain": "writer.com",
+    "active": true,
+    "industry": "Full-Stack Generative AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Glean",
+    "ats_provider": "greenhouse",
+    "slug": "gleanwork",
+    "domain": "gleanwork.com",
+    "active": true,
+    "industry": "Enterprise Work AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Harvey",
+    "ats_provider": "ashby",
+    "slug": "harvey",
+    "domain": "harvey.com",
+    "active": true,
+    "industry": "Legal AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Character.AI",
+    "ats_provider": "ashby",
+    "slug": "character",
+    "domain": "character.com",
+    "active": true,
+    "industry": "Conversational AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Pinecone",
+    "ats_provider": "ashby",
+    "slug": "pinecone",
+    "domain": "pinecone.com",
+    "active": true,
+    "industry": "Vector Database",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Weaviate",
+    "ats_provider": "ashby",
+    "slug": "weaviate",
+    "domain": "weaviate.com",
+    "active": true,
+    "industry": "AI Native Vector DB",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Milvus / Zilliz",
+    "ats_provider": "lever",
+    "slug": "zilliz",
+    "domain": "zilliz.com",
+    "active": true,
+    "industry": "Vector Database",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Chroma",
+    "ats_provider": "ashby",
+    "slug": "trychroma",
+    "domain": "trychroma.com",
+    "active": true,
+    "industry": "AI-Native Embedding DB",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "SingleStore",
+    "ats_provider": "greenhouse",
+    "slug": "singlestore",
+    "domain": "singlestore.com",
+    "active": true,
+    "industry": "Real-Time Unified DB",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "ClickHouse",
+    "ats_provider": "ashby",
+    "slug": "clickhouse",
+    "domain": "clickhouse.com",
+    "active": true,
+    "industry": "Real-Time OLAP DB",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Starburst",
+    "ats_provider": "greenhouse",
+    "slug": "starburst",
+    "domain": "starburst.com",
+    "active": true,
+    "industry": "Trino Lakehouse Engine",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Dremio",
+    "ats_provider": "greenhouse",
+    "slug": "dremio",
+    "domain": "dremio.com",
+    "active": true,
+    "industry": "Data Lakehouse",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Imply",
+    "ats_provider": "greenhouse",
+    "slug": "imply",
+    "domain": "imply.com",
+    "active": true,
+    "industry": "Real-Time Druid Analytics",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "PlanetScale",
+    "ats_provider": "greenhouse",
+    "slug": "planetscale",
+    "domain": "planetscale.com",
+    "active": true,
+    "industry": "Serverless MySQL",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Neon",
+    "ats_provider": "ashby",
+    "slug": "neon",
+    "domain": "neondb.com",
+    "active": true,
+    "industry": "Serverless Postgres",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Yugabyte",
+    "ats_provider": "greenhouse",
+    "slug": "yugabyte",
+    "domain": "yugabyte.com",
+    "active": true,
+    "industry": "Distributed PostgreSQL",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Couchbase",
+    "ats_provider": "greenhouse",
+    "slug": "couchbaseinc",
+    "domain": "couchbase.com",
+    "active": true,
+    "industry": "NoSQL Cloud DB",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Redis",
+    "ats_provider": "ashby",
+    "slug": "redis",
+    "domain": "redis.com",
+    "active": true,
+    "industry": "Real-Time Data Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Neo4j",
+    "ats_provider": "greenhouse",
+    "slug": "neo4j",
+    "domain": "neo4j.com",
+    "active": true,
+    "industry": "Graph Database",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "InfluxData",
+    "ats_provider": "ashby",
+    "slug": "influxdata",
+    "domain": "influxdata.com",
+    "active": true,
+    "industry": "Time Series Data",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Monte Carlo",
+    "ats_provider": "ashby",
+    "slug": "montecarlodata",
+    "domain": "montecarlodata.com",
+    "active": true,
+    "industry": "Data Observability",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Atlan",
+    "ats_provider": "ashby",
+    "slug": "atlan",
+    "domain": "atlan.com",
+    "active": true,
+    "industry": "Active Data Governance",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Collibra",
+    "ats_provider": "greenhouse",
+    "slug": "collibra",
+    "domain": "collibra.com",
+    "active": true,
+    "industry": "Data Intelligence Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Matillion",
+    "ats_provider": "lever",
+    "slug": "matillion",
+    "domain": "matillion.com",
+    "active": true,
+    "industry": "Cloud Data Productivity",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Prefect",
+    "ats_provider": "ashby",
+    "slug": "prefect",
+    "domain": "prefect.com",
+    "active": true,
+    "industry": "Workflow Orchestration",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Astronomer",
+    "ats_provider": "ashby",
+    "slug": "astronomer",
+    "domain": "astronomer.com",
+    "active": true,
+    "industry": "Managed Apache Airflow",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Domino Data Lab",
+    "ats_provider": "greenhouse",
+    "slug": "dominodatalab",
+    "domain": "dominodatalab.com",
+    "active": true,
+    "industry": "Enterprise MLOps",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Dataiku",
+    "ats_provider": "greenhouse",
+    "slug": "dataiku",
+    "domain": "dataiku.com",
+    "active": true,
+    "industry": "Everyday AI Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "C3 AI",
+    "ats_provider": "greenhouse",
+    "slug": "c3iot",
+    "domain": "c3iot.com",
+    "active": true,
+    "industry": "Enterprise AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Cerebras",
+    "ats_provider": "ashby",
+    "slug": "cerebras",
+    "domain": "cerebras.com",
+    "active": true,
+    "industry": "Wafer-Scale AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Tenstorrent",
+    "ats_provider": "greenhouse",
+    "slug": "tenstorrent",
+    "domain": "tenstorrent.com",
+    "active": true,
+    "industry": "AI Processors",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Wise",
+    "ats_provider": "greenhouse",
+    "slug": "wise",
+    "domain": "transferwise.com",
+    "active": true,
+    "industry": "Cross-Border Payments",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Monzo",
+    "ats_provider": "greenhouse",
+    "slug": "monzo",
+    "domain": "monzo.com",
+    "active": true,
+    "industry": "Digital Banking",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "N26",
+    "ats_provider": "greenhouse",
+    "slug": "n26",
+    "domain": "n26.com",
+    "active": true,
+    "industry": "Mobile Banking",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Chime",
+    "ats_provider": "greenhouse",
+    "slug": "chime",
+    "domain": "chime.com",
+    "active": true,
+    "industry": "Consumer Fintech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "SoFi",
+    "ats_provider": "greenhouse",
+    "slug": "sofi",
+    "domain": "sofi.com",
+    "active": true,
+    "industry": "Digital Personal Finance",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Affirm",
+    "ats_provider": "greenhouse",
+    "slug": "affirm",
+    "domain": "affirm.com",
+    "active": true,
+    "industry": "Buy Now Pay Later",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mollie",
+    "ats_provider": "ashby",
+    "slug": "mollie",
+    "domain": "mollie.com",
+    "active": true,
+    "industry": "European Payments",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "GoCardless",
+    "ats_provider": "greenhouse",
+    "slug": "gocardless",
+    "domain": "gocardless.com",
+    "active": true,
+    "industry": "Bank Payment Network",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Lithic",
+    "ats_provider": "greenhouse",
+    "slug": "lithic",
+    "domain": "lithic.com",
+    "active": true,
+    "industry": "Card Issuing API",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Highnote",
+    "ats_provider": "greenhouse",
+    "slug": "highnote",
+    "domain": "highnote.com",
+    "active": true,
+    "industry": "Embedded Card Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Unit",
+    "ats_provider": "ashby",
+    "slug": "unit",
+    "domain": "unit.com",
+    "active": true,
+    "industry": "Banking-as-a-Service",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Treasury Prime",
+    "ats_provider": "greenhouse",
+    "slug": "treasuryprime",
+    "domain": "treasuryprime.com",
+    "active": true,
+    "industry": "Embedded Banking",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Column",
+    "ats_provider": "ashby",
+    "slug": "column",
+    "domain": "column.com",
+    "active": true,
+    "industry": "Developer Infrastructure Bank",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mercury",
+    "ats_provider": "greenhouse",
+    "slug": "mercury",
+    "domain": "mercury.com",
+    "active": true,
+    "industry": "Startup Banking",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Navan",
+    "ats_provider": "greenhouse",
+    "slug": "tripactions",
+    "domain": "tripactions.com",
+    "active": true,
+    "industry": "Travel & Expense Management",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Bill.com",
+    "ats_provider": "greenhouse",
+    "slug": "billcom",
+    "domain": "bill.com",
+    "active": true,
+    "industry": "Financial Operations",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Coupa",
+    "ats_provider": "lever",
+    "slug": "coupa",
+    "domain": "coupa.com",
+    "active": true,
+    "industry": "Business Spend Management",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "AvidXchange",
+    "ats_provider": "greenhouse",
+    "slug": "avidxchangeinc",
+    "domain": "avidxchange.com",
+    "active": true,
+    "industry": "AP Automation",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Zuora",
+    "ats_provider": "greenhouse",
+    "slug": "zuora",
+    "domain": "zuora.com",
+    "active": true,
+    "industry": "Monetization Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Paddle",
+    "ats_provider": "ashby",
+    "slug": "paddle",
+    "domain": "paddle.com",
+    "active": true,
+    "industry": "Merchant of Record Billing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Trulioo",
+    "ats_provider": "ashby",
+    "slug": "trulioo",
+    "domain": "trulioo.com",
+    "active": true,
+    "industry": "Global Identity Verification",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Persona",
+    "ats_provider": "ashby",
+    "slug": "persona",
+    "domain": "withpersona.com",
+    "active": true,
+    "industry": "Verified Identity Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Socure",
+    "ats_provider": "ashby",
+    "slug": "socure",
+    "domain": "socure.com",
+    "active": true,
+    "industry": "Digital Identity Verification",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Alloy",
+    "ats_provider": "greenhouse",
+    "slug": "alloy",
+    "domain": "alloy.com",
+    "active": true,
+    "industry": "Identity Risk Decisioning",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sardine",
+    "ats_provider": "ashby",
+    "slug": "sardine",
+    "domain": "sardine.com",
+    "active": true,
+    "industry": "Fraud Prevention & Compliance",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Feedzai",
+    "ats_provider": "greenhouse",
+    "slug": "feedzai",
+    "domain": "feedzai.com",
+    "active": true,
+    "industry": "RiskOps Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sift",
+    "ats_provider": "ashby",
+    "slug": "sift",
+    "domain": "sift.com",
+    "active": true,
+    "industry": "Digital Trust & Safety",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Forter",
+    "ats_provider": "greenhouse",
+    "slug": "forter",
+    "domain": "forter.com",
+    "active": true,
+    "industry": "E-Commerce Fraud Prevention",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Riskified",
+    "ats_provider": "greenhouse",
+    "slug": "riskified",
+    "domain": "riskified.com",
+    "active": true,
+    "industry": "E-Commerce Fraud Management",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "TRM Labs",
+    "ats_provider": "ashby",
+    "slug": "trm-labs",
+    "domain": "trmlabs.com",
+    "active": true,
+    "industry": "Crypto Threat Intelligence",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Elliptic",
+    "ats_provider": "ashby",
+    "slug": "elliptic",
+    "domain": "elliptic.com",
+    "active": true,
+    "industry": "Crypto Compliance",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Fireblocks",
+    "ats_provider": "greenhouse",
+    "slug": "fireblocks",
+    "domain": "fireblocks.com",
+    "active": true,
+    "industry": "Digital Asset Infrastructure",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Anchorage Digital",
+    "ats_provider": "lever",
+    "slug": "anchorage",
+    "domain": "anchorage.com",
+    "active": true,
+    "industry": "Regulated Crypto Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Paxos",
+    "ats_provider": "ashby",
+    "slug": "paxos",
+    "domain": "paxos.com",
+    "active": true,
+    "industry": "Blockchain Infrastructure",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Circle",
+    "ats_provider": "ashby",
+    "slug": "circle",
+    "domain": "circle.com",
+    "active": true,
+    "industry": "USDC & Stablecoin Finance",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Ripple",
+    "ats_provider": "greenhouse",
+    "slug": "ripple",
+    "domain": "ripple.com",
+    "active": true,
+    "industry": "Enterprise Crypto Solutions",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Consensys",
+    "ats_provider": "greenhouse",
+    "slug": "consensys",
+    "domain": "consensys.com",
+    "active": true,
+    "industry": "Ethereum Software",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Alchemy",
+    "ats_provider": "ashby",
+    "slug": "alchemy",
+    "domain": "alchemy.com",
+    "active": true,
+    "industry": "Web3 Developer Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "QuickNode",
+    "ats_provider": "ashby",
+    "slug": "quicknode",
+    "domain": "quicknode.com",
+    "active": true,
+    "industry": "Blockchain Infrastructure",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Immutable",
+    "ats_provider": "lever",
+    "slug": "immutable",
+    "domain": "immutable.com",
+    "active": true,
+    "industry": "Web3 Gaming",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sky Mavis",
+    "ats_provider": "ashby",
+    "slug": "skymavis",
+    "domain": "skymavis.com",
+    "active": true,
+    "industry": "Blockchain Gaming",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Dapper Labs",
+    "ats_provider": "ashby",
+    "slug": "dapper",
+    "domain": "dapperlabs.com",
+    "active": true,
+    "industry": "Web3 Consumer",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Magic Eden",
+    "ats_provider": "ashby",
+    "slug": "magiceden",
+    "domain": "magiceden.com",
+    "active": true,
+    "industry": "Cross-Chain NFT",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Uniswap Labs",
+    "ats_provider": "ashby",
+    "slug": "uniswap",
+    "domain": "uniswaplabs.com",
+    "active": true,
+    "industry": "DeFi Protocol",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Tailscale",
+    "ats_provider": "greenhouse",
+    "slug": "tailscale",
+    "domain": "tailscale.com",
+    "active": true,
+    "industry": "Zero Config Mesh VPN",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Teleport",
+    "ats_provider": "ashby",
+    "slug": "goteleport",
+    "domain": "goteleport.com",
+    "active": true,
+    "industry": "Infrastructure Access",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Buildkite",
+    "ats_provider": "greenhouse",
+    "slug": "buildkite",
+    "domain": "buildkite.com",
+    "active": true,
+    "industry": "CI/CD Pipelines",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "CircleCI",
+    "ats_provider": "greenhouse",
+    "slug": "circleci",
+    "domain": "circleci.com",
+    "active": true,
+    "industry": "Continuous Integration",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Depot",
+    "ats_provider": "ashby",
+    "slug": "depot",
+    "domain": "depot.com",
+    "active": true,
+    "industry": "Accelerated Container Builds",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Chainguard",
+    "ats_provider": "greenhouse",
+    "slug": "chainguard",
+    "domain": "chainguard.com",
+    "active": true,
+    "industry": "Secure Software Supply Chain",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sonatype",
+    "ats_provider": "lever",
+    "slug": "sonatype",
+    "domain": "sonatype.com",
+    "active": true,
+    "industry": "Software Supply Chain",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "JFrog",
+    "ats_provider": "greenhouse",
+    "slug": "jfrog",
+    "domain": "jfrog.com",
+    "active": true,
+    "industry": "Liquid Software & Artifactory",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Octopus Deploy",
+    "ats_provider": "greenhouse",
+    "slug": "octopusdeploy",
+    "domain": "octopusdeploy.com",
+    "active": true,
+    "industry": "Deployment Automation",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Argo / Akuity",
+    "ats_provider": "greenhouse",
+    "slug": "akuity",
+    "domain": "akuity.com",
+    "active": true,
+    "industry": "Enterprise GitOps",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Solo.io",
+    "ats_provider": "greenhouse",
+    "slug": "soloioinc",
+    "domain": "soloio.com",
+    "active": true,
+    "industry": "Service Mesh & API Gateway",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Kong",
+    "ats_provider": "ashby",
+    "slug": "kong",
+    "domain": "kong.com",
+    "active": true,
+    "industry": "Cloud Native API Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "WorkOS",
+    "ats_provider": "ashby",
+    "slug": "workos",
+    "domain": "workos.com",
+    "active": true,
+    "industry": "Enterprise Readiness APIs",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Clerk",
+    "ats_provider": "ashby",
+    "slug": "clerk",
+    "domain": "clerk.com",
+    "active": true,
+    "industry": "User Management for React",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Descope",
+    "ats_provider": "greenhouse",
+    "slug": "descope",
+    "domain": "descope.com",
+    "active": true,
+    "industry": "Drag-and-Drop CIAM",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Resend",
+    "ats_provider": "ashby",
+    "slug": "resend",
+    "domain": "resend.com",
+    "active": true,
+    "industry": "Email API for Developers",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Customer.io",
+    "ats_provider": "greenhouse",
+    "slug": "customerio",
+    "domain": "customerio.com",
+    "active": true,
+    "industry": "Automated Messaging",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Iterable",
+    "ats_provider": "ashby",
+    "slug": "iterable",
+    "domain": "iterable.com",
+    "active": true,
+    "industry": "Cross-Channel Marketing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Knock",
+    "ats_provider": "greenhouse",
+    "slug": "knock",
+    "domain": "knock.com",
+    "active": true,
+    "industry": "Notification Infrastructure",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Inngest",
+    "ats_provider": "ashby",
+    "slug": "inngest",
+    "domain": "inngest.com",
+    "active": true,
+    "industry": "Durable Serverless Queues",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Trigger.dev",
+    "ats_provider": "ashby",
+    "slug": "triggerdev",
+    "domain": "triggerdev.com",
+    "active": true,
+    "industry": "Background Jobs for TS",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Apollo GraphQL",
+    "ats_provider": "ashby",
+    "slug": "apollo-graphql",
+    "domain": "apollographql.com",
+    "active": true,
+    "industry": "GraphOS Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Speakeasy",
+    "ats_provider": "ashby",
+    "slug": "speakeasy",
+    "domain": "speakeasy.com",
+    "active": true,
+    "industry": "API SDK Generation",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "ReadMe",
+    "ats_provider": "ashby",
+    "slug": "readme",
+    "domain": "readme.com",
+    "active": true,
+    "industry": "Interactive Developer Hubs",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mintlify",
+    "ats_provider": "ashby",
+    "slug": "mintlify",
+    "domain": "mintlify.com",
+    "active": true,
+    "industry": "Modern Documentation",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "GitBook",
+    "ats_provider": "ashby",
+    "slug": "gitbook",
+    "domain": "gitbook.com",
+    "active": true,
+    "industry": "Technical Knowledge Sharing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Ghost",
+    "ats_provider": "greenhouse",
+    "slug": "ghost",
+    "domain": "ghost.com",
+    "active": true,
+    "industry": "Independent Publishing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mattermost",
+    "ats_provider": "greenhouse",
+    "slug": "mattermost",
+    "domain": "mattermost.com",
+    "active": true,
+    "industry": "Secure Collaboration",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Rocket.Chat",
+    "ats_provider": "greenhouse",
+    "slug": "rocketchat",
+    "domain": "rocketchat.com",
+    "active": true,
+    "industry": "Open Source Communications",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Element / Matrix",
+    "ats_provider": "rippling",
+    "slug": "element",
+    "domain": "element.com",
+    "active": true,
+    "industry": "Decentralized Secure Chat",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Proton",
+    "ats_provider": "greenhouse",
+    "slug": "proton",
+    "domain": "proton.com",
+    "active": true,
+    "industry": "Privacy-First Cloud & Mail",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Brave",
+    "ats_provider": "greenhouse",
+    "slug": "brave",
+    "domain": "brave.com",
+    "active": true,
+    "industry": "Privacy Browser & Search",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mozilla",
+    "ats_provider": "greenhouse",
+    "slug": "mozilla",
+    "domain": "mozilla.com",
+    "active": true,
+    "industry": "Open Web & Firefox",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Wikimedia Foundation",
+    "ats_provider": "greenhouse",
+    "slug": "wikimedia",
+    "domain": "wikimedia.com",
+    "active": true,
+    "industry": "Wikipedia Infrastructure",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Canonical",
+    "ats_provider": "greenhouse",
+    "slug": "canonical",
+    "domain": "canonical.com",
+    "active": true,
+    "industry": "Ubuntu Linux & Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mirantis",
+    "ats_provider": "smartrecruiters",
+    "slug": "mirantis",
+    "domain": "mirantis.com",
+    "active": true,
+    "industry": "Kubernetes Cloud",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Tigera",
+    "ats_provider": "greenhouse",
+    "slug": "tigera",
+    "domain": "tigera.com",
+    "active": true,
+    "industry": "Calico Container Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sysdig Cloud",
+    "ats_provider": "lever",
+    "slug": "sysdig",
+    "domain": "sysdig.com",
+    "active": true,
+    "industry": "Cloud Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Benchling",
+    "ats_provider": "ashby",
+    "slug": "benchling",
+    "domain": "benchling.com",
+    "active": true,
+    "industry": "Biotech R&D Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Veeva Systems",
+    "ats_provider": "lever",
+    "slug": "veeva",
+    "domain": "veeva.com",
+    "active": true,
+    "industry": "Life Sciences Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Flatiron Health",
+    "ats_provider": "greenhouse",
+    "slug": "flatironhealth",
+    "domain": "flatironhealth.com",
+    "active": true,
+    "industry": "Oncology Healthtech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Oscar Health",
+    "ats_provider": "greenhouse",
+    "slug": "oscar",
+    "domain": "oscar.com",
+    "active": true,
+    "industry": "Health Insurance Tech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Ro",
+    "ats_provider": "lever",
+    "slug": "ro",
+    "domain": "ro.com",
+    "active": true,
+    "industry": "Direct-to-Patient Healthcare",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Zocdoc",
+    "ats_provider": "greenhouse",
+    "slug": "zocdoc",
+    "domain": "zocdoc.com",
+    "active": true,
+    "industry": "Healthcare Marketplace",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Doximity",
+    "ats_provider": "greenhouse",
+    "slug": "doximity",
+    "domain": "doximity.com",
+    "active": true,
+    "industry": "Medical Network",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Samsara",
+    "ats_provider": "greenhouse",
+    "slug": "samsara",
+    "domain": "samsara.com",
+    "active": true,
+    "industry": "Connected Operations Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Motive",
+    "ats_provider": "greenhouse",
+    "slug": "gomotive",
+    "domain": "gomotive.com",
+    "active": true,
+    "industry": "Automated Operations Fleet",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Toast",
+    "ats_provider": "greenhouse",
+    "slug": "toast",
+    "domain": "toast.com",
+    "active": true,
+    "industry": "Restaurant POS & SaaS",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Olo",
+    "ats_provider": "lever",
+    "slug": "olo",
+    "domain": "olo.com",
+    "active": true,
+    "industry": "Restaurant Digital Commerce",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mindbody",
+    "ats_provider": "greenhouse",
+    "slug": "mindbody",
+    "domain": "mindbody.com",
+    "active": true,
+    "industry": "Wellness Experience Tech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Jobber",
+    "ats_provider": "ashby",
+    "slug": "jobber",
+    "domain": "getjobber.com",
+    "active": true,
+    "industry": "Home Service SaaS",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Housecall Pro",
+    "ats_provider": "greenhouse",
+    "slug": "housecall",
+    "domain": "housecallpro.com",
+    "active": true,
+    "industry": "Field Service SaaS",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "AppFolio",
+    "ats_provider": "ashby",
+    "slug": "appfolio",
+    "domain": "appfolio.com",
+    "active": true,
+    "industry": "Real Estate Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Yardi",
+    "ats_provider": "smartrecruiters",
+    "slug": "yardi",
+    "domain": "yardi.com",
+    "active": true,
+    "industry": "Real Estate Software",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Opendoor",
+    "ats_provider": "rippling",
+    "slug": "opendoor",
+    "domain": "opendoor.com",
+    "active": true,
+    "industry": "Digital Real Estate",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Airbnb Org",
+    "ats_provider": "greenhouse",
+    "slug": "airbnb",
+    "domain": "airbnb.com",
+    "active": true,
+    "industry": "Global Travel",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Agoda",
+    "ats_provider": "greenhouse",
+    "slug": "agoda",
+    "domain": "agoda.com",
+    "active": true,
+    "industry": "APAC Travel Tech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "TripAdvisor",
+    "ats_provider": "greenhouse",
+    "slug": "tripadvisor",
+    "domain": "tripadvisor.com",
+    "active": true,
+    "industry": "Travel Guidance",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "GetYourGuide",
+    "ats_provider": "greenhouse",
+    "slug": "getyourguide",
+    "domain": "getyourguide.com",
+    "active": true,
+    "industry": "Travel Experiences",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Grab",
+    "ats_provider": "smartrecruiters",
+    "slug": "grab",
+    "domain": "grab.com",
+    "active": true,
+    "industry": "Southeast Asia Superapp",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Coupang",
+    "ats_provider": "greenhouse",
+    "slug": "coupang",
+    "domain": "coupang.com",
+    "active": true,
+    "industry": "E-Commerce Logistics",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Nubank",
+    "ats_provider": "ashby",
+    "slug": "nubank",
+    "domain": "nubank.com",
+    "active": true,
+    "industry": "Digital Banking Leader",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Delivery Hero",
+    "ats_provider": "smartrecruiters",
+    "slug": "deliveryhero",
+    "domain": "deliveryhero.com",
+    "active": true,
+    "industry": "Global Local Delivery",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Wolt",
+    "ats_provider": "greenhouse",
+    "slug": "wolt",
+    "domain": "wolt.com",
+    "active": true,
+    "industry": "Local Commerce Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Instacart Tech",
+    "ats_provider": "greenhouse",
+    "slug": "instacart",
+    "domain": "instacart.com",
+    "active": true,
+    "industry": "Grocery Delivery",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Gopuff",
+    "ats_provider": "lever",
+    "slug": "gopuff",
+    "domain": "gopuff.com",
+    "active": true,
+    "industry": "Instant Commerce",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Freshservice",
+    "ats_provider": "smartrecruiters",
+    "slug": "freshworks",
+    "domain": "freshworks.com",
+    "active": true,
+    "industry": "ITSM",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Help Scout",
+    "ats_provider": "ashby",
+    "slug": "helpscout",
+    "domain": "helpscout.com",
+    "active": true,
+    "industry": "Customer Support",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Gorgias",
+    "ats_provider": "ashby",
+    "slug": "gorgias",
+    "domain": "gorgias.com",
+    "active": true,
+    "industry": "E-Commerce Helpdesk",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sierra",
+    "ats_provider": "ashby",
+    "slug": "sierra",
+    "domain": "sierra.com",
+    "active": true,
+    "industry": "Conversational AI Agents",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Decagon",
+    "ats_provider": "ashby",
+    "slug": "decagon",
+    "domain": "decagon.com",
+    "active": true,
+    "industry": "Enterprise AI Support",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Gong",
+    "ats_provider": "greenhouse",
+    "slug": "gongio",
+    "domain": "gongio.com",
+    "active": true,
+    "industry": "Revenue Intelligence",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Outreach",
+    "ats_provider": "lever",
+    "slug": "outreach",
+    "domain": "outreach.com",
+    "active": true,
+    "industry": "Sales Execution Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Salesloft",
+    "ats_provider": "greenhouse",
+    "slug": "salesloft",
+    "domain": "salesloft.com",
+    "active": true,
+    "industry": "Revenue Workflow",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Apollo.io",
+    "ats_provider": "greenhouse",
+    "slug": "apolloio",
+    "domain": "apolloio.com",
+    "active": true,
+    "industry": "Go-To-Market Intelligence",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "ZoomInfo",
+    "ats_provider": "greenhouse",
+    "slug": "zoominfo",
+    "domain": "zoominfo.com",
+    "active": true,
+    "industry": "B2B Intelligence",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "6sense",
+    "ats_provider": "greenhouse",
+    "slug": "6sense",
+    "domain": "6sense.com",
+    "active": true,
+    "industry": "Account Engagement AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Demandbase",
+    "ats_provider": "ashby",
+    "slug": "demandbase",
+    "domain": "demandbase.com",
+    "active": true,
+    "industry": "ABM Cloud",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Calendly",
+    "ats_provider": "greenhouse",
+    "slug": "calendly",
+    "domain": "calendly.com",
+    "active": true,
+    "industry": "Scheduling Automation",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "PandaDoc",
+    "ats_provider": "greenhouse",
+    "slug": "pandadoc",
+    "domain": "pandadoc.com",
+    "active": true,
+    "industry": "Document Workflow",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Ironclad",
+    "ats_provider": "ashby",
+    "slug": "ironcladhq",
+    "domain": "ironclad.com",
+    "active": true,
+    "industry": "Digital Contracting",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "LinkSquares",
+    "ats_provider": "greenhouse",
+    "slug": "linksquaresinc",
+    "domain": "linksquares.com",
+    "active": true,
+    "industry": "AI Contract Lifecycle",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Lattice",
+    "ats_provider": "greenhouse",
+    "slug": "lattice",
+    "domain": "lattice.com",
+    "active": true,
+    "industry": "People Success Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Culture Amp",
+    "ats_provider": "greenhouse",
+    "slug": "cultureamp",
+    "domain": "cultureamp.com",
+    "active": true,
+    "industry": "Employee Experience",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "15Five",
+    "ats_provider": "lever",
+    "slug": "15five",
+    "domain": "15five.com",
+    "active": true,
+    "industry": "Performance Management",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "HiBob",
+    "ats_provider": "smartrecruiters",
+    "slug": "hibob",
+    "domain": "hibob.com",
+    "active": true,
+    "industry": "Modern HR Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Personio",
+    "ats_provider": "recruitee",
+    "slug": "personio",
+    "domain": "personio.com",
+    "active": true,
+    "industry": "HR Operating System",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Remote",
+    "ats_provider": "greenhouse",
+    "slug": "remote",
+    "domain": "remote.com",
+    "active": true,
+    "industry": "Global HR & Payroll",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Oyster",
+    "ats_provider": "ashby",
+    "slug": "oyster",
+    "domain": "oysterhr.com",
+    "active": true,
+    "industry": "Global Employment Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Velocity Global",
+    "ats_provider": "ashby",
+    "slug": "velocity",
+    "domain": "velocityglobal.com",
+    "active": true,
+    "industry": "Global EOR",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Multiplier",
+    "ats_provider": "rippling",
+    "slug": "multiplier",
+    "domain": "usemultiplier.com",
+    "active": true,
+    "industry": "Global Employment",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Ashby",
+    "ats_provider": "ashby",
+    "slug": "ashby",
+    "domain": "ashby.com",
+    "active": true,
+    "industry": "All-in-One Recruiting",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Greenhouse",
+    "ats_provider": "greenhouse",
+    "slug": "greenhouse",
+    "domain": "greenhouse.com",
+    "active": true,
+    "industry": "Hiring Operating System",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Checkr",
+    "ats_provider": "greenhouse",
+    "slug": "checkr",
+    "domain": "checkr.com",
+    "active": true,
+    "industry": "Background Check API",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Guild",
+    "ats_provider": "greenhouse",
+    "slug": "guild",
+    "domain": "guild.com",
+    "active": true,
+    "industry": "Career Opportunity Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Handshake",
+    "ats_provider": "ashby",
+    "slug": "handshake",
+    "domain": "joinhandshake.com",
+    "active": true,
+    "industry": "Early Career Network",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Coursera",
+    "ats_provider": "greenhouse",
+    "slug": "coursera",
+    "domain": "coursera.com",
+    "active": true,
+    "industry": "Online Learning Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Udemy",
+    "ats_provider": "greenhouse",
+    "slug": "udemy",
+    "domain": "udemy.com",
+    "active": true,
+    "industry": "Skills Marketplace",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Duolingo",
+    "ats_provider": "greenhouse",
+    "slug": "duolingo",
+    "domain": "duolingo.com",
+    "active": true,
+    "industry": "Mobile Learning Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "QuillBot",
+    "ats_provider": "greenhouse",
+    "slug": "quillbot",
+    "domain": "quillbot.com",
+    "active": true,
+    "industry": "AI Writing",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Descript",
+    "ats_provider": "greenhouse",
+    "slug": "descript",
+    "domain": "descript.com",
+    "active": true,
+    "industry": "AI Audio & Video Editing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "CapCut / ByteDance",
+    "ats_provider": "smartrecruiters",
+    "slug": "bytedance",
+    "domain": "bytedance.com",
+    "active": true,
+    "industry": "Creative Tools",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Patreon",
+    "ats_provider": "ashby",
+    "slug": "patreon",
+    "domain": "patreon.com",
+    "active": true,
+    "industry": "Creator Economy",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Substack Media",
+    "ats_provider": "ashby",
+    "slug": "substack",
+    "domain": "substack.com",
+    "active": true,
+    "industry": "Subscription Publishing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "ConvertKit / Kit",
+    "ats_provider": "ashby",
+    "slug": "kit",
+    "domain": "kit.com",
+    "active": true,
+    "industry": "Creator Marketing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Kajabi",
+    "ats_provider": "rippling",
+    "slug": "kajabi",
+    "domain": "kajabi.com",
+    "active": true,
+    "industry": "Creator Business",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Eventbrite",
+    "ats_provider": "greenhouse",
+    "slug": "eventbriteinc",
+    "domain": "eventbrite.com",
+    "active": true,
+    "industry": "Event Marketplace",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Dialpad",
+    "ats_provider": "greenhouse",
+    "slug": "dialpad",
+    "domain": "dialpad.com",
+    "active": true,
+    "industry": "AI Customer Intelligence",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Five9",
+    "ats_provider": "greenhouse",
+    "slug": "five9",
+    "domain": "five9.com",
+    "active": true,
+    "industry": "Intelligent CX Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Nice",
+    "ats_provider": "greenhouse",
+    "slug": "nice",
+    "domain": "nice.com",
+    "active": true,
+    "industry": "CX & Financial Crime",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Bandwidth",
+    "ats_provider": "greenhouse",
+    "slug": "bandwidth",
+    "domain": "bandwidth.com",
+    "active": true,
+    "industry": "Enterprise CPaaS",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Vonage",
+    "ats_provider": "greenhouse",
+    "slug": "vonage",
+    "domain": "vonage.com",
+    "active": true,
+    "industry": "Cloud Communications",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "MessageBird / Bird",
+    "ats_provider": "greenhouse",
+    "slug": "bird",
+    "domain": "bird.com",
+    "active": true,
+    "industry": "CRM & Messaging",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sendbird",
+    "ats_provider": "greenhouse",
+    "slug": "sendbird",
+    "domain": "sendbird.com",
+    "active": true,
+    "industry": "Conversations API",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Stream",
+    "ats_provider": "ashby",
+    "slug": "stream",
+    "domain": "getstream.com",
+    "active": true,
+    "industry": "Chat & Activity Feeds API",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "PubNub",
+    "ats_provider": "greenhouse",
+    "slug": "pubnub",
+    "domain": "pubnub.com",
+    "active": true,
+    "industry": "Real-Time Communication Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "LiveKit",
+    "ats_provider": "ashby",
+    "slug": "livekit",
+    "domain": "livekit.com",
+    "active": true,
+    "industry": "Real-Time Multimodal AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Agora",
+    "ats_provider": "rippling",
+    "slug": "agora",
+    "domain": "agora.com",
+    "active": true,
+    "industry": "Real-Time Engagement",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mux",
+    "ats_provider": "ashby",
+    "slug": "mux",
+    "domain": "mux.com",
+    "active": true,
+    "industry": "Video Infrastructure API",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Cloudinary",
+    "ats_provider": "lever",
+    "slug": "cloudinary",
+    "domain": "cloudinary.com",
+    "active": true,
+    "industry": "Image & Video API",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Roblox",
+    "ats_provider": "greenhouse",
+    "slug": "roblox",
+    "domain": "roblox.com",
+    "active": true,
+    "industry": "Immersive 3D Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Epic Games",
+    "ats_provider": "greenhouse",
+    "slug": "epicgames",
+    "domain": "epicgames.com",
+    "active": true,
+    "industry": "Unreal Engine & Gaming",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Riot Games",
+    "ats_provider": "greenhouse",
+    "slug": "riotgames",
+    "domain": "riotgames.com",
+    "active": true,
+    "industry": "Competitive Gaming",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Scopely",
+    "ats_provider": "greenhouse",
+    "slug": "scopely",
+    "domain": "scopely.com",
+    "active": true,
+    "industry": "Mobile Gaming",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Twitch",
+    "ats_provider": "greenhouse",
+    "slug": "twitch",
+    "domain": "twitch.com",
+    "active": true,
+    "industry": "Live Streaming",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Peloton",
+    "ats_provider": "greenhouse",
+    "slug": "peloton",
+    "domain": "peloton.com",
+    "active": true,
+    "industry": "Connected Fitness",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Strava",
+    "ats_provider": "ashby",
+    "slug": "strava",
+    "domain": "strava.com",
+    "active": true,
+    "industry": "Athletic Social Network",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Whoop",
+    "ats_provider": "ashby",
+    "slug": "whoop",
+    "domain": "whoop.com",
+    "active": true,
+    "industry": "Human Performance Wearable",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Oura",
+    "ats_provider": "greenhouse",
+    "slug": "oura",
+    "domain": "ouraring.com",
+    "active": true,
+    "industry": "Smart Ring Health",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Waymo",
+    "ats_provider": "greenhouse",
+    "slug": "waymo",
+    "domain": "waymo.com",
+    "active": true,
+    "industry": "Autonomous Driving",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Zoox",
+    "ats_provider": "lever",
+    "slug": "zoox",
+    "domain": "zoox.com",
+    "active": true,
+    "industry": "Autonomous Mobility",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Nuro",
+    "ats_provider": "greenhouse",
+    "slug": "nuro",
+    "domain": "nuro.com",
+    "active": true,
+    "industry": "Autonomous Delivery Robotics",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Lucid Motors",
+    "ats_provider": "greenhouse",
+    "slug": "lucidmotors",
+    "domain": "lucidmotors.com",
+    "active": true,
+    "industry": "Luxury EV",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "SpaceX",
+    "ats_provider": "greenhouse",
+    "slug": "spacex",
+    "domain": "spacex.com",
+    "active": true,
+    "industry": "Aerospace & Starlink",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Relativity Space",
+    "ats_provider": "greenhouse",
+    "slug": "relativity",
+    "domain": "relativityspace.com",
+    "active": true,
+    "industry": "Aerospace Manufacturing",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Shield AI",
+    "ats_provider": "ashby",
+    "slug": "shieldai",
+    "domain": "shieldai.com",
+    "active": true,
+    "industry": "Autonomous AI Pilot",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Skydio",
+    "ats_provider": "ashby",
+    "slug": "skydio",
+    "domain": "skydio.com",
+    "active": true,
+    "industry": "Autonomous Drones",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Zipline",
+    "ats_provider": "greenhouse",
+    "slug": "flyzipline",
+    "domain": "flyzipline.com",
+    "active": true,
+    "industry": "Autonomous Instant Logistics",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Flexport",
+    "ats_provider": "greenhouse",
+    "slug": "flexport",
+    "domain": "flexport.com",
+    "active": true,
+    "industry": "Global Supply Chain Tech",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Project44",
+    "ats_provider": "greenhouse",
+    "slug": "project44",
+    "domain": "project44.com",
+    "active": true,
+    "industry": "Supply Chain Visibility",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "FourKites",
+    "ats_provider": "greenhouse",
+    "slug": "fourkites",
+    "domain": "fourkites.com",
+    "active": true,
+    "industry": "Real-Time Supply Chain",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Uber Freight",
+    "ats_provider": "greenhouse",
+    "slug": "uberfreight",
+    "domain": "uberfreight.com",
+    "active": true,
+    "industry": "Logistics Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "ShipBob",
+    "ats_provider": "greenhouse",
+    "slug": "shipbobinc",
+    "domain": "shipbob.com",
+    "active": true,
+    "industry": "Global E-Commerce Fulfillment",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   }
 ]

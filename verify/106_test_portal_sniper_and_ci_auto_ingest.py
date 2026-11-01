@@ -240,18 +240,39 @@ def test_ci_sync_ingestor_to_local_db_and_queue():
 
 
 def test_org_researcher_classification():
-    print("🧪 [4/5] Testing OrgResearcher Watchlist Coverage & Endpoint Fingerprinting...")
+    print("🧪 [4/5] Testing OrgResearcher Watchlist Coverage, Catalog & URL Auto-Banking...")
     researcher = OrgResearcher()
     companies = researcher.load_watchlist()
-    assert len(companies) >= 100, f"Expected 100+ explicit target companies in watchlist, found {len(companies)}"
+    assert len(companies) >= 400, f"Expected 400+ verified active companies in watchlist, found {len(companies)}"
 
     summary = researcher.get_watchlist_Breakdown(companies)
-    assert summary["total_companies"] >= 100
-    assert summary["dream_orgs"] >= 45
+    assert summary["total_companies"] >= 400
+    assert summary["master_catalog_size"] >= 700
+    assert summary["dream_orgs"] >= 350
     assert "smartrecruiters" in summary["by_provider"]
     assert "rippling" in summary["by_provider"]
+
+    # Test continuous URL auto-banking across providers (save=False so we don't mutate production file in test)
+    gh_banked = researcher.extract_and_bank_ats_url(
+        "https://job-boards.greenhouse.io/acmecloud/jobs/12345", company_name="Acme Cloud", save=False
+    )
+    assert gh_banked is not None and gh_banked.ats_provider == "greenhouse" and gh_banked.slug == "acmecloud"
+
+    wd_banked = researcher.extract_and_bank_ats_url(
+        "https://mastercard.wd1.myworkdayjobs.com/en-US/CorporateCareers/job/Pune/SDET_R-100",
+        company_name="Mastercard",
+        save=False,
+    )
+    assert (
+        wd_banked is not None
+        and wd_banked.ats_provider == "workday"
+        and wd_banked.slug == "mastercard"
+        and wd_banked.datacenter == "wd1"
+        and wd_banked.site == "CorporateCareers"
+    )
+
     print(
-        f"   ✅ Watchlist verified: {summary['total_companies']} explicit organizations across {len(summary['by_provider'])} providers."
+        f"   ✅ Watchlist verified: {summary['total_companies']} verified live boards (from {summary['master_catalog_size']} catalog orgs) across {len(summary['by_provider'])} providers + URL auto-banking."
     )
 
 
