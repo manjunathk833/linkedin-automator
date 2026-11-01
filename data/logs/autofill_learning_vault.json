@@ -481,6 +481,22 @@
       "root_cause": "Simulated collision test",
       "fix_rule": "Strictly target data-automation-id",
       "date_banked": "2026-10-31T13:05:04.676383+00:00"
+    },
+    {
+      "id": "LESSON-061",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-11-01T12:12:29.917939+00:00"
+    },
+    {
+      "id": "LESSON-062",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Gate 57 simulated selector collision",
+      "root_cause": "Simulated collision test",
+      "fix_rule": "Strictly target data-automation-id",
+      "date_banked": "2026-11-01T12:41:03.764165+00:00"
     }
   ]
 }
