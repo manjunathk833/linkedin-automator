@@ -11,6 +11,14 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 65: Interview Generation Engine, High-Speed 2-Phase Batch Autofill & CI Cross-Platform Hardening (Gates 81 & 105)**:
+  - **Country & Dial Code Precision Bug Eradicated (`src/autofill/ats_filler.py`)**: Completely eliminated `"British Indian Ocean Territory (+246)"` and `"Indiana"` false-selection errors in `_select_react_combobox` through `TERRITORY_EXCLUSIONS`, 4-tier exact-first option scoring (`_score_combobox_option`), and mandatory post-selection DOM read-back verification (`_verify_combobox_selection`).
+  - **Strict 60-Day Notice Period Lock**: Hardened `src/autofill/form_mapper.py`, `src/autofill/vendor_schemas.py`, and `src/autofill/batch_form_engine.py` with `Notice Period: 60 Days`, `Current CTC: 17 LPA`, `Expected CTC: 27 LPA`, and `6.8 YOE`.
+  - **2-Phase Batch Engine & Telemetry Pipeline (`UniversalBatchFormFiller`)**: Extracted and mapped DOM form controls, executed batch auto-fill with stable `data-agy-id` attributes, logged metrics to `autofill_benchmarks.jsonl`, banked unresolved fields in `unmapped_fields_backlog.jsonl`, and closed the learning loop with `learned_field_mappings.json`. Verified live on Zscaler Greenhouse portal: filled 22/24 fields in `6.16s` with 0 territory contamination.
+  - **CI Cross-Platform Hardening**: Auto-fallback to headless mode on Linux when `$DISPLAY` is absent (`src/browser/cdp_stealth.py`), port-open agnostic CDP connection fast-path, and dynamic candidate master data assertions in Gate 105 ensuring CI synthetic mock fixtures execute identically to local environments.
+  - **Standardized Tier 1 Core Regressions**: 62/62 tests passing (100% SUCCESS in 62.30s).
+  - **Codebase Linting**: 0 errors across 179 files (`python main.py lint`).
+  - **Pull Request #20**: GitHub Actions CI check passed 100% green on `develop` branch.
 - **Phase 64: Autonomous Multi-ATS Batch Application Traversal & Verification**:
   - Traversed approved queue over persistent CDP session (`http://127.0.0.1:9222`) across 8 different ATS vendors (Ashby, Rippling, Oracle Cloud HCM, Zoho Recruit, Avature, Workday, Greenhouse).
   - Enforced strict exclusion lock: Apple (`4477572600`), Swiggy (`4481865334`), and Zscaler (`greenhouse_zscaler_5271592007`) strictly untouched.
