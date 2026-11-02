@@ -217,11 +217,25 @@ class DailyPipelineRunner:
                     details={"warning": str(e)},
                 )
 
-            # 3. Unified Job Discovery & AI Tailoring (Tracks 1, 2 & 3)
+            # 3. Unified Job Discovery & AI Tailoring (Tracks 1, 2, 3 & Cloud CI Drops)
             print("\n" + "=" * 60)
-            print("  STEP 3: MULTI-TRACK JOB & LEAD DISCOVERY (Tracks 1, 2 & 3)")
+            print("  STEP 3: MULTI-TRACK JOB & LEAD DISCOVERY (Tracks 1, 2, 3 & Cloud CI Drops)")
             print("=" * 60)
+            ci_res = {"ingested_count": 0, "skipped_duplicates": 0}
             try:
+                # 3a. Ingest <24h fresh career drops from Cloud CI branch (origin/ci-job-drops)
+                try:
+                    from src.ingestion.ci_sync import CISyncIngestor
+
+                    ci_sync = CISyncIngestor(use_ai=getattr(self.pipeline_runner, "use_ai", True))
+                    ci_res = ci_sync.sync_latest_drops(fetch_remote=True)
+                    print(
+                        f"   ☁️ Cloud CI Sync: {ci_res.get('ingested_count', 0)} new drops staged, "
+                        f"{ci_res.get('skipped_duplicates', 0)} duplicates skipped. ({ci_res.get('message', '')})"
+                    )
+                except Exception as ci_err:
+                    print(f"⚠️ Cloud CI sync non-blocking warning: {ci_err}")
+
                 await self.pipeline_runner.run_search_stage(source="all", headless=headless)
                 self.pipeline_runner.run_filter_stage()
                 staged_jobs = self.get_staged_jobs()
@@ -233,7 +247,8 @@ class DailyPipelineRunner:
                     discovered_posts = ApplicationDatabase().get_hiring_posts(limit=10)
 
                 print(
-                    f"\n📊 Discovery Summary: {len(staged_jobs)} role(s) staged ({len(dream_orgs)} Dream Orgs) | {len(discovered_posts)} social lead(s) banked."
+                    f"\n📊 Discovery Summary: {len(staged_jobs)} role(s) staged ({len(dream_orgs)} Dream Orgs) | "
+                    f"{ci_res.get('ingested_count', 0)} CI drop(s) | {len(discovered_posts)} social lead(s) banked."
                 )
                 self.logger.log_phase(
                     run_id=run_id,
@@ -242,6 +257,8 @@ class DailyPipelineRunner:
                     details={
                         "staged_total": len(staged_jobs),
                         "dream_orgs": len(dream_orgs),
+                        "ci_drops_ingested": ci_res.get("ingested_count", 0),
+                        "ci_duplicates_skipped": ci_res.get("skipped_duplicates", 0),
                         "social_leads": len(discovered_posts),
                     },
                 )
