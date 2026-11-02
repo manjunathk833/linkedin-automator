@@ -522,7 +522,13 @@
     - External ATS Integration: Wired `SubmissionVerifier.record_submission_confirmed` into `ATSAssistedFiller` in `src/autofill/ats_filler.py`.
     - Governance Synchronization: Updated `.agents/agents/apply_agent.md`, `.agents/skills/apply/SKILL.md`, and `.agents/rules/02-agent-review-protocol.md` (Lens 5) establishing mandatory log-audit gates.
     - Authored and Passed Verification Gate 80 (`verify/80_test_submission_verifier_and_guardrails.py`): Rejection of unconfirmed calls with HTTP 412, successful verification and tracking, and human override with `force=true`. Suite expanded to 60 tests.
-  - **Autonomous Multi-ATS Batch Application Traversal & Verification Complete (Milestone 64):**
+  - **Milestone 68: Daily Pipeline Cloud CI Drop Auto-Ingest & Environment Sourcing Stabilization (Gate 108):**
+    - Diagnosed macOS launchd service `com.linkedin.automator.daily` failure (exit status 127). Discovered unquoted `GMAIL_APP_PASSWORD=aioe qnyk brps nlyb` in `.env` caused bash `source .env` syntax crash (`qnyk: command not found`). Quoted password across workspaces.
+    - Reconfigured GitHub Actions CI schedule (`.github/workflows/daily_portal_sniper.yml`) to `0 2,13 * * *` (07:30 AM IST & 06:30 PM IST), establishing a tight 30-minute staging window right before the local 08:00 AM IST morning run.
+    - Wired `CISyncIngestor(use_ai=True).sync_latest_drops(fetch_remote=True)` directly into Step 3 of `DailyPipelineRunner.execute_daily_run()`, automatically pulling and tailoring fresh drops from `origin/ci-job-drops`, banking to SQLite, and including them in the daily email briefing.
+    - Authored and verified Gate 108 (`verify/108_test_daily_ci_sync_and_env_sourcing.py`). Reloaded launchd service with clean exit code 0 (`launchctl list | grep com.linkedin.automator.daily`).
+    - Standardized Tier 1 Core regression suite 100% passing (64/64 tests) and Ruff linter clean (0 errors).
+
     - Executed deterministic queue traversal of approved applications staged in `data/approved_queue/` adhering to CDP Session Reuse (Milestone 63 / Gate 81) and Log-Grounded Submission Verification Guardrails (Milestone 62 / Gate 80).
     - Enforced strict exclusion lock: protected Apple (`4477572600`), Swiggy (`4481865334`), and Zscaler (`greenhouse_zscaler_5271592007`) from ever being applied.
     - Verified and completed authentic submissions across 8 distinct ATS architectures:
