@@ -22,6 +22,15 @@ class LinkedInJobFinder:
         self.use_ai = use_ai
         self.db_file = db_file
         self.tailorer = ResumeTailorer(use_ai=use_ai)
+        # Raw card counts per LinkedIn surface (pre-dedup) + live auth status of the last run.
+        # Consumed by the daily runner to detect logged-out / zero-yield runs instead of reporting SUCCESS.
+        self.channel_yield: dict[str, int] = {}
+        self.last_auth_status: dict[str, Any] = {}
+        self.last_yield_verdict: str = "NOT_RUN"
+
+    def _record_yield(self, surface: str, count: int) -> None:
+        """Accumulates raw card counts per LinkedIn surface for zero-yield diagnostics."""
+        self.channel_yield[surface] = self.channel_yield.get(surface, 0) + int(count)
 
     def load_processed_jobs(self) -> dict[str, Any]:
         """Loads master deduplication index from data/processed_jobs.json."""
@@ -242,6 +251,7 @@ class LinkedInJobFinder:
                 ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id]"
             ).all()
             print(f"   Found {len(hub_cards)} card(s) on main /jobs/ hub.")
+            self._record_yield("jobs_hub", len(hub_cards))
             for c_idx, card in enumerate(hub_cards):
                 if len(extracted) >= max_jobs:
                     break
@@ -277,6 +287,7 @@ class LinkedInJobFinder:
                         ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], .jobs-job-board-list__item"
                     ).all()
                     print(f"   Found {len(cards)} card(s) in collection [{col}] on Page {page_num + 1}.")
+                    self._record_yield(f"collection:{col}", len(cards))
 
                     if len(cards) == 0:
                         print(f"ℹ️ Collection [{col}] Page {page_num + 1} returned 0 cards. Moving to next collection.")
@@ -336,6 +347,7 @@ class LinkedInJobFinder:
                     ".job-card-container, div[data-job-id], .org-jobs-job-search-results-list__list-item, section.job-card-square, div[data-view-name*='recommended-jobs-card']"
                 ).all()
                 print(f"   Found {len(cards)} card(s) for [{clean_slug}].")
+                self._record_yield("company_pages", len(cards))
 
                 comp_new_count = 0
                 for card_idx, card in enumerate(cards):
@@ -399,6 +411,7 @@ class LinkedInJobFinder:
 
             posts = await page.locator(".feed-shared-update-v2, .search-results-container .artdeco-card").all()
             print(f"🔍 Found {len(posts)} hiring post(s).")
+            self._record_yield("recruiter_posts", len(posts))
 
             for idx, post in enumerate(posts[:max_posts]):
                 try:
@@ -449,6 +462,79 @@ class LinkedInJobFinder:
         except Exception as e:
             print(f"⚠️ Error scraping recruiter posts: {e}")
 
+        return extracted
+
+    async def scrape_similar_jobs(
+        self,
+        page: Any,
+        seed_job_ids: list[str] | None = None,
+        max_seeds: int = 3,
+        max_per_seed: int = 3,
+    ) -> list[dict[str, Any]]:
+        """Channel 4: Scrapes LinkedIn's 'Similar jobs' / 'More jobs' sidebar module from seed job view pages."""
+        print("\n" + "=" * 50)
+        print("🔗 CHANNEL 4: SCRAPING SIMILAR JOBS SIDEBAR MODULE")
+        print("=" * 50)
+
+        seeds = [str(jid) for jid in (seed_job_ids or []) if str(jid).isdigit()]
+        if not seeds:
+            processed = self.load_processed_jobs().get("job_ids", {})
+            seeds = [str(jid) for jid in reversed(list(processed.keys())) if str(jid).isdigit()]
+        seeds = seeds[:max_seeds]
+
+        if not seeds:
+            print("ℹ️ No numeric LinkedIn seed job IDs available yet for Similar Jobs traversal.")
+            self._record_yield("similar_jobs", 0)
+            return []
+
+        extracted: list[dict[str, Any]] = []
+        seen_ids: set[str] = set()
+
+        for seed_id in seeds:
+            view_url = f"https://www.linkedin.com/jobs/view/{seed_id}/"
+            print(f"\n🌐 Navigating to Seed Job View [{seed_id}]: {view_url}")
+            try:
+                await page.goto(view_url, wait_until="domcontentloaded")
+                await asyncio.sleep(2.5)
+                for _ in range(3):
+                    await page.evaluate("window.scrollBy(0, 900)")
+                    await asyncio.sleep(0.8)
+
+                cards = await page.locator(
+                    "section:has(h2:has-text('Similar jobs')) .job-card-container, "
+                    "section:has(h2:has-text('More jobs')) .job-card-container, "
+                    ".jobs-similar-jobs .job-card-container, "
+                    ".jobs-similar-jobs div[data-job-id], "
+                    "aside .job-card-container, "
+                    "div[data-view-name*='similar-jobs'] a[href*='/jobs/view/']"
+                ).all()
+                print(f"   Found {len(cards)} similar job card(s) for seed [{seed_id}].")
+                self._record_yield("similar_jobs", len(cards))
+
+                seed_extracted = 0
+                for c_idx, card in enumerate(cards):
+                    if seed_extracted >= max_per_seed:
+                        break
+                    try:
+                        raw_text = (await card.text_content() or "").lower()
+                        if raw_text and not any(
+                            k in raw_text for k in ("sdet", "qa", "test", "quality", "automation", "qe")
+                        ):
+                            continue
+                    except Exception:
+                        pass
+
+                    job = await self._extract_card_payload(page, card, c_idx, default_prefix=f"sim_{seed_id}")
+                    if job:
+                        jid = str(job.get("job_id", ""))
+                        if jid and jid not in seen_ids:
+                            seen_ids.add(jid)
+                            extracted.append(job)
+                            seed_extracted += 1
+            except Exception as e:
+                print(f"⚠️ Error scraping similar jobs for seed [{seed_id}]: {e}")
+
+        print(f"\n✅ Total unique similar jobs extracted: {len(extracted)}")
         return extracted
 
     async def _extract_card_payload(
@@ -627,6 +713,10 @@ class LinkedInJobFinder:
         sort_by_default = discovery_config.get("sort_by", "relevance")
         enable_rec = discovery_config.get("enable_recommended_feed", True)
         enable_posts = discovery_config.get("enable_recruiter_posts", True)
+        enable_similar = bool(discovery_config.get("enable_similar_jobs", True))
+        enable_sniper = bool(discovery_config.get("enable_sniper_fresh_drops", True))
+        sniper_time_posted = discovery_config.get("sniper_time_posted", "past_24h")
+        sniper_sort_by = discovery_config.get("sniper_sort_by", "date")
         enable_company_pages = bool(discovery_config.get("enable_target_company_pages", True))
         company_slugs = discovery_config.get(
             "target_company_slugs",
@@ -634,10 +724,17 @@ class LinkedInJobFinder:
         )
         is_headless = bool(discovery_config.get("headless", False))
 
+        self.channel_yield = {}
         all_jobs = []
 
         async with async_playwright() as p:
             from src.browser.cdp_connector import connect_cdp, launch_persistent_browser
+            from src.browser.linkedin_auth import (
+                capture_zero_yield_evidence,
+                check_profile_session,
+                summarize_yield,
+                verify_live_session,
+            )
 
             context = None
             try:
@@ -652,6 +749,60 @@ class LinkedInJobFinder:
                 except Exception as e2:
                     print(f"⚠️ CDP fallback also failed: {e2}")
                     return all_jobs
+
+            # -------------------------------------------------------------
+            # PRE-FLIGHT: LINKEDIN SESSION & AUTHWALL VERIFICATION
+            # -------------------------------------------------------------
+            offline_auth = check_profile_session()
+            live_auth = await verify_live_session(page)
+            self.last_auth_status = {**offline_auth, **live_auth}
+            if live_auth.get("status") == "AUTHWALL" or not offline_auth.get("is_authenticated"):
+                print(f"🚨 LINKEDIN AUTH PREFLIGHT FAILED: {self.last_auth_status.get('message')}")
+                await capture_zero_yield_evidence(page, "linkedin_auth_preflight")
+                self.last_yield_verdict = "AUTH_FAILED"
+                if context is not None:
+                    await context.close()
+                return all_jobs
+
+            # -------------------------------------------------------------
+            # STEP 0: SNIPER FRESH DROPS PASS (<24h, Sort by Date)
+            # -------------------------------------------------------------
+            if enable_sniper and search_profiles:
+                print("\n" + "=" * 50)
+                print(f"🎯 STEP 0: LINKEDIN SNIPER FRESH DROPS PASS ({sniper_time_posted}, sort={sniper_sort_by})")
+                print("=" * 50)
+                for s_idx, sp in enumerate(search_profiles):
+                    s_kw = sp.get("keywords", "Senior SDET")
+                    s_loc = sp.get("location", "Remote")
+                    s_url = self.build_search_url(
+                        keywords=s_kw,
+                        location=s_loc,
+                        work_types=sp.get("work_types"),
+                        experience_levels=sp.get("experience_levels"),
+                        time_posted=sniper_time_posted,
+                        start=0,
+                        easy_apply_only=sp.get("easy_apply_only", discovery_config.get("easy_apply_only", False)),
+                        distance=sp.get("distance", discovery_config.get("distance")),
+                        sort_by=sniper_sort_by,
+                    )
+                    print(f"🎯 Sniper Profile #{s_idx + 1}: {s_url}")
+                    try:
+                        await page.goto(s_url, wait_until="domcontentloaded")
+                        await asyncio.sleep(2.5)
+                        await self.scroll_results_pane(page, scrolls=3)
+                        s_cards = await page.locator(
+                            ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id]"
+                        ).all()
+                        print(f"   Found {len(s_cards)} fresh <24h card(s) on Sniper Profile #{s_idx + 1}.")
+                        self._record_yield("sniper_fresh_24h", len(s_cards))
+                        for c_idx, card in enumerate(s_cards[:15]):
+                            job = await self._extract_card_payload(
+                                page, card, c_idx, default_prefix=f"sniper_{s_idx + 1}"
+                            )
+                            if job:
+                                all_jobs.append(job)
+                    except Exception as e:
+                        print(f"⚠️ Sniper pass warning on profile #{s_idx + 1}: {e}")
 
             # -------------------------------------------------------------
             # STEP 1: DEEP PAGINATED SEARCH (Pages 1, 2, 3 + Early Break)
@@ -700,6 +851,7 @@ class LinkedInJobFinder:
                             ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id]"
                         ).all()
                         print(f"   Found {len(cards)} job card(s) on Page {page_num + 1}.")
+                        self._record_yield("search", len(cards))
 
                         if len(cards) == 0:
                             print(
@@ -745,7 +897,28 @@ class LinkedInJobFinder:
                 )
                 all_jobs.extend(post_jobs)
 
-            # Close single browser session ONCE at the end of all 4 channels
+            # -------------------------------------------------------------
+            # STEP 4: SIMILAR JOBS SIDEBAR MODULE (CHANNEL 4)
+            # -------------------------------------------------------------
+            if enable_similar:
+                seed_ids = [str(j.get("job_id")) for j in all_jobs if str(j.get("job_id", "")).isdigit()]
+                sim_jobs = await self.scrape_similar_jobs(page, seed_job_ids=seed_ids, max_seeds=3, max_per_seed=3)
+                all_jobs.extend(sim_jobs)
+
+            # -------------------------------------------------------------
+            # ZERO-YIELD VERDICT ON AUTH-ONLY SURFACES
+            # -------------------------------------------------------------
+            auth_surfaces = tuple(
+                ["jobs_hub", "company_pages", "recruiter_posts"] + [f"collection:{c}" for c in rec_collections]
+            )
+            self.last_yield_verdict = summarize_yield(self.channel_yield, auth_surfaces)
+            if self.last_yield_verdict == "ZERO_YIELD_SUSPECT":
+                print(f"⚠️ ZERO-YIELD SUSPECT: All auth-only LinkedIn surfaces returned 0 cards ({self.channel_yield}).")
+                await capture_zero_yield_evidence(page, "linkedin_channels_zero_yield")
+            else:
+                print(f"📊 LinkedIn Channel Raw Card Yield: {self.channel_yield} (Verdict: {self.last_yield_verdict})")
+
+            # Close single browser session ONCE at the end of all channels
             if context is not None:
                 await context.close()
                 print("\n🔒 Closed multi-channel batch Chrome session successfully.")
@@ -761,8 +934,19 @@ class LinkedInJobFinder:
         return await self.search_all_channels([{"keywords": keywords, "location": location, "max_jobs": max_jobs}])
 
     def save_job_to_queue(self, job_payload: dict[str, Any], queue_dir: str = "data/pending_queue") -> str:
-        """Saves a job payload into data/pending_queue/{job_id}.json."""
+        """Saves a job payload into data/pending_queue/{job_id}.json (enriched with 3-Tier InterviewRouter strategy)."""
         os.makedirs(queue_dir, exist_ok=True)
+        if "routing_strategy" not in job_payload:
+            try:
+                from src.posts.post_tracker import LinkedInPostTracker
+                from src.tailor.referral_generator import InterviewRouter
+
+                matched = LinkedInPostTracker().find_matching_posts_for_job(job_payload)
+                job_payload["routing_strategy"] = InterviewRouter.classify_job_strategy(
+                    job_payload, matched_posts=matched
+                )
+            except Exception:
+                pass
         job_id = job_payload.get("job_id", "job_sample")
         filepath = os.path.join(queue_dir, f"{job_id}.json")
         with open(filepath, "w") as f:

@@ -436,12 +436,30 @@ class LinkedInPostTracker:
         """
         target_queries = queries or DEFAULT_SEARCH_QUERIES
         discovered_leads: list[dict[str, Any]] = []
+        self.last_raw_updates_scanned = 0
+        self.last_auth_status: dict[str, Any] = {}
+        self.last_yield_verdict = "NOT_RUN"
+
+        from src.browser.linkedin_auth import (
+            capture_zero_yield_evidence,
+            check_profile_session,
+            verify_live_session,
+        )
 
         async with async_playwright() as p:
             context, page = await launch_persistent_browser(p, profile_dir=str(DEFAULT_PROFILE_DIR), headless=headless)
             print(f"🚀 Launching LinkedIn Posts Tracker (Headless: {headless})")
 
             try:
+                offline_auth = check_profile_session(DEFAULT_PROFILE_DIR)
+                live_auth = await verify_live_session(page)
+                self.last_auth_status = {**offline_auth, **live_auth}
+                if live_auth.get("status") == "AUTHWALL" or not offline_auth.get("is_authenticated"):
+                    print(f"🚨 TRACK 3 LINKEDIN AUTH PREFLIGHT FAILED: {self.last_auth_status.get('message')}")
+                    await capture_zero_yield_evidence(page, "posts_tracker_auth_preflight")
+                    self.last_yield_verdict = "AUTH_FAILED"
+                    return discovered_leads
+
                 for q_idx, query in enumerate(target_queries):
                     encoded_query = urllib.parse.quote(query)
                     url = (
@@ -468,6 +486,7 @@ class LinkedInPostTracker:
                             ".artdeco-card:has(.feed-shared-text, .update-components-text)"
                         )
                         card_count = await cards_loc.count()
+                        self.last_raw_updates_scanned += int(card_count)
                         print(f"📦 Scanned {card_count} raw feed update(s).")
 
                         for c_idx in range(card_count):
@@ -486,8 +505,18 @@ class LinkedInPostTracker:
                                     print(f"  ✨ [Saved Post] {author} ({role_cat}) @ {company} [Score: {score}]")
                     except Exception as e:
                         print(f"⚠️ Error running post query '{query[:30]}': {e}")
+
+                if self.last_raw_updates_scanned == 0:
+                    self.last_yield_verdict = "ZERO_YIELD_SUSPECT"
+                    print("⚠️ TRACK 3 ZERO-YIELD SUSPECT: All post search queries returned 0 feed updates.")
+                    await capture_zero_yield_evidence(page, "posts_tracker_zero_yield")
+                else:
+                    self.last_yield_verdict = "OK"
             finally:
                 await context.close()
 
-        print(f"\n✅ Post Discovery completed. Added {len(discovered_leads)} new qualified lead(s).")
+        print(
+            f"\n✅ Post Discovery completed. Scanned {self.last_raw_updates_scanned} raw update(s), "
+            f"added {len(discovered_leads)} new qualified lead(s). (Verdict: {self.last_yield_verdict})"
+        )
         return discovered_leads
