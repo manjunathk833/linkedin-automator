@@ -52,6 +52,7 @@ class EmailReporter:
         run_date: str | None = None,
         hiring_posts: list[dict[str, Any]] | None = None,
         naukri_status: dict[str, Any] | None = None,
+        linkedin_telemetry: dict[str, Any] | None = None,
     ) -> str:
         """Generates modern, responsive Glassmorphic HTML email body."""
         date_str = run_date or datetime.date.today().strftime("%B %d, %Y")
@@ -63,6 +64,28 @@ class EmailReporter:
 
         status_badge_color = "#10b981" if regression_passed else "#ef4444"
         status_text = "HEALTHY (100% REGRESSION PASS)" if regression_passed else "REGRESSION FAILURE"
+
+        # LinkedIn Auth & Yield Banner
+        lt = linkedin_telemetry or {}
+        t2_verdict = lt.get("track2_verdict", "OK")
+        t3_verdict = lt.get("track3_verdict", "OK")
+        is_auth = lt.get("is_authenticated", True)
+        if not is_auth or t2_verdict == "AUTH_FAILED" or t3_verdict == "AUTH_FAILED":
+            linkedin_banner = (
+                '<div style="background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; padding: 10px 14px; '
+                'border-radius: 6px; font-size: 12px; font-weight: 700; margin-bottom: 12px;">'
+                "🚨 LinkedIn Session Expired / Logged Out: Track 2 & 3 skipped. "
+                "Run `python main.py login` in terminal to re-authenticate.</div>"
+            )
+        elif t2_verdict == "ZERO_YIELD_SUSPECT" or t3_verdict == "ZERO_YIELD_SUSPECT":
+            linkedin_banner = (
+                '<div style="background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 10px 14px; '
+                'border-radius: 6px; font-size: 12px; font-weight: 700; margin-bottom: 12px;">'
+                "⚠️ LinkedIn Zero-Yield Warning: Auth-only surfaces returned 0 cards. "
+                "Investigate rate limits, selector shifts, or re-run `python main.py login`.</div>"
+            )
+        else:
+            linkedin_banner = ""
 
         # Naukri status badge
         n_st = (naukri_status or {}).get("status", "NOT_CONFIGURED")
@@ -225,6 +248,7 @@ class EmailReporter:
   </div>
 
   <div class="content">
+    {linkedin_banner}
     <p style="margin-top: 0; font-size: 13px; color: #475569;">
       <strong>Regression Health:</strong> {regression_summary}. All newly scraped roles have been deduplicated, experience-filtered, and enriched with AI-grounded STAR achievements.
     </p>
@@ -267,6 +291,7 @@ class EmailReporter:
         execution_duration_sec: float = 0.0,
         hiring_posts: list[dict[str, Any]] | None = None,
         naukri_status: dict[str, Any] | None = None,
+        linkedin_telemetry: dict[str, Any] | None = None,
     ) -> bool:
         """
         Builds report, saves fallback HTML to disk, and attempts SSL dispatch via Gmail SMTP.
@@ -279,6 +304,7 @@ class EmailReporter:
             execution_duration_sec=execution_duration_sec,
             hiring_posts=hiring_posts,
             naukri_status=naukri_status,
+            linkedin_telemetry=linkedin_telemetry,
         )
 
         # 1. Always save fallback archive HTML to disk

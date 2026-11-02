@@ -300,6 +300,7 @@ class DailyPipelineRunner:
                 print("  STEP 5: DISPATCHING MORNING EXECUTIVE EMAIL BRIEFING")
                 print("=" * 60)
                 duration_sec = time.time() - t0
+                linkedin_tel = getattr(self.pipeline_runner, "last_linkedin_telemetry", {})
                 try:
                     email_sent = self.reporter.send_report(
                         staged_jobs=staged_jobs,
@@ -308,6 +309,7 @@ class DailyPipelineRunner:
                         execution_duration_sec=duration_sec,
                         hiring_posts=discovered_posts,
                         naukri_status=naukri_res,
+                        linkedin_telemetry=linkedin_tel,
                     )
                     self.logger.log_phase(
                         run_id=run_id,
@@ -350,7 +352,20 @@ class DailyPipelineRunner:
             self.logger.log_exception(run_id, fatal_e, phase="PIPELINE_FATAL")
 
         total_duration = time.time() - t0
-        run_status = "FAILED" if fatal_error else ("SUCCESS" if reg_passed else "PARTIAL_REGRESSION_FAIL")
+        linkedin_tel = getattr(self.pipeline_runner, "last_linkedin_telemetry", {})
+        t2_verdict = linkedin_tel.get("track2_verdict", "OK")
+        t3_verdict = linkedin_tel.get("track3_verdict", "OK")
+
+        if fatal_error:
+            run_status = "FAILED"
+        elif not reg_passed:
+            run_status = "PARTIAL_REGRESSION_FAIL"
+        elif t2_verdict == "AUTH_FAILED" or t3_verdict == "AUTH_FAILED":
+            run_status = "LINKEDIN_AUTH_FAILED"
+        elif t2_verdict == "ZERO_YIELD_SUSPECT" or t3_verdict == "ZERO_YIELD_SUSPECT":
+            run_status = "PARTIAL_ZERO_YIELD"
+        else:
+            run_status = "SUCCESS"
 
         self.logger.log_run_complete(
             run_id=run_id,
