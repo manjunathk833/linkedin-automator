@@ -561,19 +561,35 @@ async def _run_referral_scout_async(
     recon_data: dict[str, Any] = {}
     if recon_path.exists():
         try:
-            recon_data = json.loads(recon_path.read_text(encoding="utf-8"))
+            raw = json.loads(recon_path.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                recon_data = raw
+            elif isinstance(raw, list):
+                # Backwards compatible migration if previous file saved as list
+                for item in raw:
+                    cname = item.get("company") or item.get("company_name")
+                    if cname:
+                        recon_data[cname] = item
         except Exception:
             recon_data = {}
 
     async with async_playwright() as p:
-        _ensure_cdp_page_target(cdp_url)
-        browser = await p.chromium.connect_over_cdp(cdp_url)
-        context = browser.contexts[0]
-        page = context.pages[0]
+        from src.browser.cdp_connector import launch_persistent_browser
+
+        try:
+            _ensure_cdp_page_target(cdp_url)
+            browser = await p.chromium.connect_over_cdp(cdp_url)
+            context = browser.contexts[0]
+            page = context.pages[0]
+        except Exception as cdp_err:
+            print(
+                f"ℹ️ Direct CDP port 9222 not reachable ({cdp_err}). Launching persistent session via .browser_data..."
+            )
+            context, page = await launch_persistent_browser(p, profile_dir=".browser_data", headless=False)
 
         for t in targets:
             comp = t["company"]
-            urls = ReferralNoteGenerator.build_linkedin_people_search_urls(comp)
+            urls = ReferralNoteGenerator.build_linkedin_search_urls(comp)
             people_url = urls["company_people_sdet"]
             print(f"🔍 Scouting verified SDET/QE peers for {comp} -> {people_url}")
             await page.goto(people_url, wait_until="domcontentloaded", timeout=30000)
@@ -611,7 +627,9 @@ async def _run_referral_scout_async(
                         ln
                         for ln in lines[1:]
                         if not re.search(
-                            r"(degree connection|mutual connection|^Connect$|^Message$|^Follow$)", ln, re.IGNORECASE
+                            r"(degree connection|mutual connection|^Connect$|^Message$|^Follow$|^[·•\s]*(1st|2nd|3rd)\b)",
+                            ln,
+                            re.IGNORECASE,
                         )
                     ),
                     lines[1],
@@ -633,7 +651,7 @@ async def _run_referral_scout_async(
                     },
                     target_company=comp,
                 )
-                if score_info["excluded"]:
+                if not score_info.get("eligible", True):
                     continue
 
                 payload = {
@@ -650,9 +668,9 @@ async def _run_referral_scout_async(
                         "url": href,
                         "connection_degree": deg,
                         "headline": headline,
-                        "reply_score": score_info["score"],
-                        "tier": score_info["tier"],
-                        "reasons": score_info["reasons"],
+                        "reply_score": score_info.get("responder_score", 0),
+                        "tier": score_info.get("tier", "TIER_C_GENERAL_EMPLOYEE"),
+                        "reasons": score_info.get("reasons", []),
                         "connection_note": ReferralNoteGenerator.generate_connection_note(
                             payload, recipient_name=fname
                         ),
