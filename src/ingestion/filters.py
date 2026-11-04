@@ -7,6 +7,7 @@ and strict geographical/remote location matching across all ATS providers.
 from __future__ import annotations
 
 import re
+from typing import Any
 
 # Positive matches for Software Development Engineer in Test & QA roles
 POSITIVE_SDET_REGEX = re.compile(
@@ -24,7 +25,19 @@ POSITIVE_SDET_REGEX = re.compile(
     r"test engineer|"
     r"testing engineer|"
     r"test infrastructure|"
-    r"mobile qa"
+    r"mobile qa|"
+    r"ai qa|"
+    r"ai test|"
+    r"llm evaluation|"
+    r"ai quality|"
+    r"genai qa|"
+    r"ml quality|"
+    r"agentic qa|"
+    r"qa lead\s*[-,\s]\s*ai|"
+    r"devsecops qa|"
+    r"security automation engineer|"
+    r"ai red team|"
+    r"browser automation engineer"
     r")\b",
     re.IGNORECASE,
 )
@@ -64,7 +77,19 @@ NEGATIVE_TITLE_REGEX = re.compile(
     r"database automation|"
     r"automation specialist|"
     r"operations specialist|"
-    r"dcsc"
+    r"dcsc|"
+    r"soc analyst|"
+    r"soc l1|"
+    r"soc l2|"
+    r"grc|"
+    r"information security auditor|"
+    r"iam administrator|"
+    r"penetration tester|"
+    r"ethical hacker|"
+    r"dataset reviewer|"
+    r"data annotator|"
+    r"ai trainer|"
+    r"manual tester"
     r")\b",
     re.IGNORECASE,
 )
@@ -191,13 +216,17 @@ JURISDICTION_RESTRICTIONS_REGEX = re.compile(
     r"us or canada only|"
     r"must be located in the us|"
     r"must be based in the us|"
-    r"must reside in the united states|"
+    r"must reside in (?:the )?(?:us|usa|united states|canada|uk|eu)|"
     r"us resident only|"
     r"us residency required|"
     r"authorized to work in the us without sponsorship|"
     r"authorized to work in the us only|"
-    r"w2 only|"
+    r"w-?2 only|"
     r"c2c not allowed|"
+    r"no c2c|"
+    r"no corp-to-corp|"
+    r"itar|"
+    r"fedramp|"
     r"must be based in north america|"
     r"north america only|"
     r"latin america only|"
@@ -206,6 +235,36 @@ JURISDICTION_RESTRICTIONS_REGEX = re.compile(
     r"uk residents? only|"
     r"eu residents? only|"
     r"european union only"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Foreign Currency Regex for global remote compensation detection
+FOREIGN_CURRENCY_REGEX = re.compile(
+    r"(?:"
+    r"\$\s?\d{2,3}(?:,\d{3})+(?:\s?-\s?\$\s?\d{2,3}(?:,\d{3})+)?|"
+    r"\$\d{2,3}[kK]\s?-\s?\$\d{2,3}[kK]|"
+    r"\bUSD\s?\d{2,3}[kK]?|"
+    r"\b(?:EUR|€|GBP|£)\s?\d{2,3}[kK,]+|"
+    r"\$\d{2,3}\s?/\s?(?:hr|hour)"
+    r")",
+    re.IGNORECASE,
+)
+
+# Cross-Border EOR & B2B Signal Regex
+EOR_B2B_REGEX = re.compile(
+    r"\b("
+    r"deel|"
+    r"oyster\s?hr|"
+    r"remote\.com|"
+    r"multiplier|"
+    r"papaya\s?global|"
+    r"b2b\s+contract(?:or)?|"
+    r"independent\s+contractor|"
+    r"work\s+from\s+anywhere|"
+    r"global\s+remote|"
+    r"async-first|"
+    r"anywhere in the world"
     r")\b",
     re.IGNORECASE,
 )
@@ -219,7 +278,22 @@ def has_jurisdiction_restriction(text: str | None) -> bool:
     """
     if not text or not text.strip():
         return False
-    return bool(JURISDICTION_RESTRICTIONS_REGEX.search(text))
+    if not JURISDICTION_RESTRICTIONS_REGEX.search(text):
+        return False
+
+    # Check for hard legal/clearance locks (citizenship, clearance, ITAR, FedRAMP, W2 only, C2C exclusion)
+    is_hard_lock = bool(
+        re.search(
+            r"\b(us citizens? only|u\.s\. citizens? only|security clearance|ts/sci|polygraph|itar|fedramp|w-?2 only|no c2c|no corp-to-corp)\b",
+            text,
+            re.IGNORECASE,
+        )
+    )
+    if is_hard_lock:
+        return True
+
+    # If general location restriction exists (e.g. must reside in US/EU) but India or Bengaluru is co-listed
+    return not re.search(r"\b(india|bengaluru|bangalore)\b", text, re.IGNORECASE)
 
 
 def is_sdet_title(title: str | None) -> bool:
@@ -237,7 +311,11 @@ def is_sdet_title(title: str | None) -> bool:
     return bool(POSITIVE_SDET_REGEX.search(clean_title))
 
 
-def is_india_or_remote_location(location_str: str | None, allow_unspecified: bool = False) -> bool:
+def is_india_or_remote_location(
+    location_str: str | None,
+    allow_unspecified: bool = False,
+    text_snippet: str | None = None,
+) -> bool:
     """
     Evaluates whether a location string corresponds to an Indian tech hub or a viable Global Remote role,
     strictly rejecting explicit US, UK, Canada, and overseas regions while avoiding blind 'Hybrid' traps.
@@ -245,6 +323,15 @@ def is_india_or_remote_location(location_str: str | None, allow_unspecified: boo
     if not location_str or not location_str.strip():
         return allow_unspecified
     loc = location_str.strip().lower()
+
+    # Priority 0: Cross-border EOR/B2B override if remote context is present without jurisdiction lock
+    if (
+        text_snippet
+        and re.search(r"\bremote\b", loc, re.IGNORECASE)
+        and EOR_B2B_REGEX.search(text_snippet)
+        and not has_jurisdiction_restriction(text_snippet)
+    ):
+        return True
 
     # Priority 1: Indian tech hub or explicit India reference
     if INDIAN_LOCATIONS_REGEX.search(loc):
@@ -262,6 +349,51 @@ def is_india_or_remote_location(location_str: str | None, allow_unspecified: boo
     return bool(re.search(r"\bremote\b", loc, re.IGNORECASE))
 
 
+def evaluate_global_remote_signal(
+    title: str | None,
+    location: str | None,
+    description: str | None,
+    compensation_str: str | None = "",
+) -> dict[str, Any]:
+    """
+    Evaluates 3-stage global remote eligibility:
+    1. Foreign Currency / High USD compensation
+    2. Cross-Border EOR / B2B Contractor signal
+    3. Absence of hard jurisdiction / residency lock
+    """
+    title_str = str(title or "")
+    loc_str = str(location or "").lower()
+    full_text = f"{title_str} {location or ''} {description or ''} {compensation_str or ''}"
+
+    has_currency = bool(FOREIGN_CURRENCY_REGEX.search(full_text))
+    has_eor = bool(EOR_B2B_REGEX.search(full_text))
+    has_jurisdiction = has_jurisdiction_restriction(full_text)
+
+    is_remote_context = "remote" in loc_str or bool(GLOBAL_REMOTE_REGEX.search(loc_str))
+
+    reasons: list[str] = []
+    if has_currency:
+        reasons.append("Matches USD/EUR foreign currency compensation")
+    if has_eor:
+        reasons.append("Matches EOR / B2B contractor signal (Deel/Oyster/B2B/global remote)")
+    if has_jurisdiction:
+        reasons.append("Flagged with jurisdiction or residency restriction")
+
+    # Global remote override rule:
+    # If remote context is present, has EOR/B2B signal, and NO jurisdiction lock
+    is_usd_eor = is_remote_context and has_eor and not has_jurisdiction
+    eligible = is_usd_eor or is_india_or_remote_location(location, text_snippet=full_text)
+
+    return {
+        "is_usd_eor_remote": is_usd_eor,
+        "has_foreign_currency": has_currency,
+        "has_eor_signal": has_eor,
+        "has_jurisdiction_lock": has_jurisdiction,
+        "eligible": eligible,
+        "reasons": reasons,
+    }
+
+
 def is_global_remote_eligible(
     location_str: str | None,
     text_snippet: str | None = None,
@@ -276,5 +408,14 @@ def is_global_remote_eligible(
     if text_snippet and has_jurisdiction_restriction(text_snippet):
         return False
 
-    # 2. Evaluate location viability
-    return is_india_or_remote_location(location_str, allow_unspecified=allow_unspecified)
+    # 2. Check for EOR / B2B global remote override
+    if (
+        text_snippet
+        and location_str
+        and re.search(r"\bremote\b", location_str, re.IGNORECASE)
+        and EOR_B2B_REGEX.search(text_snippet)
+    ):
+        return True
+
+    # 3. Evaluate location viability
+    return is_india_or_remote_location(location_str, allow_unspecified=allow_unspecified, text_snippet=text_snippet)

@@ -169,15 +169,29 @@ class LinkedInJobFilter:
                         f"Requires {req_max} years exp (below min threshold of {self.min_exp_years} years)"
                     )
 
-            # 4. Strict Jurisdiction & Citizen / Clearance Restrictions
-            from src.ingestion.filters import has_jurisdiction_restriction, is_india_or_remote_location
+            # 4. Strict Jurisdiction & Citizen / Clearance Restrictions + USD/EOR Global Remote
+            from src.ingestion.filters import (
+                evaluate_global_remote_signal,
+                has_jurisdiction_restriction,
+                is_india_or_remote_location,
+            )
 
             if not rejection_reason:
+                loc = details.get("location", "")
                 full_text = f"{requirements} {details.get('description', '')}"
-                if has_jurisdiction_restriction(full_text):
+                remote_eval = evaluate_global_remote_signal(
+                    title=title,
+                    location=loc,
+                    description=full_text,
+                    compensation_str=details.get("salary") or details.get("compensation", ""),
+                )
+                if remote_eval.get("is_usd_eor_remote"):
+                    payload["is_usd_eor_remote"] = True
+                    details["is_usd_eor_remote"] = True
+                elif has_jurisdiction_restriction(full_text):
                     rejection_reason = "Ineligible due to jurisdiction / US-citizen / security clearance restriction"
-                elif details.get("location") and not is_india_or_remote_location(details.get("location")):
-                    rejection_reason = f"Location '{details.get('location')}' is not India or Global Remote eligible"
+                elif loc and not is_india_or_remote_location(loc, text_snippet=full_text):
+                    rejection_reason = f"Location '{loc}' is not India or Global Remote eligible"
 
             if rejection_reason:
                 print(f"❌ FILTERED OUT: {title} @ {company} (ID: {job_id}) -> Reason: {rejection_reason}")
@@ -186,6 +200,12 @@ class LinkedInJobFilter:
                 status_updates[job_id] = "FILTERED_OUT"
             else:
                 print(f"✅ RETAINED: {title} @ {company} (ID: {job_id})")
+                if payload.get("is_usd_eor_remote"):
+                    try:
+                        with open(filepath, "w") as f:
+                            json.dump(payload, f, indent=2)
+                    except Exception:
+                        pass
                 retained.append({"job_id": job_id, "title": title, "company": company})
                 status_updates[job_id] = "RETAINED"
 

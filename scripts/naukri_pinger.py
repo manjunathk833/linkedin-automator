@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import sys
 from datetime import datetime, timezone
@@ -27,7 +28,40 @@ sys.path.insert(0, PROJECT_ROOT)
 
 BROWSER_DATA_DIR = os.path.join(PROJECT_ROOT, ".browser_data")
 LOG_FILE = os.path.join(PROJECT_ROOT, "data", "logs", "naukri_pinger.log")
+DAILY_RUNS_LOG = os.path.join(PROJECT_ROOT, "data", "logs", "daily_runs.jsonl")
 NAUKRI_PROFILE_URL = "https://www.naukri.com/mnjuser/profile"
+
+# High-converting Naukri Resdex Headline Variants (<= 250 chars)
+HEADLINE_VARIANT_A = (
+    "Senior SDET (7 YOE) | Playwright, Java, Python, AI & LLM Evaluation (DeepEval, RAGAS) | "
+    "Ex-Dunzo, Tata Elxsi | Notice: 60 Days (Negotiable to 30d / Buyout)"
+)
+HEADLINE_VARIANT_B = (
+    "Senior SDET & AI QA Architect | Playwright, REST Assured, Python, Agentic AI & CI/CD | "
+    "Ex-Dunzo, Tata Elxsi | Notice: 60 Days (Early Release / 30d Buyout)"
+)
+
+
+def get_next_headline(current_headline: str) -> str:
+    """
+    Deterministically rotates between high-signal headline variants to ensure
+    the profile text meaningfully updates and forces Resdex re-indexing.
+    """
+    if "Agentic AI" in current_headline or "REST Assured" in current_headline:
+        return HEADLINE_VARIANT_A
+    return HEADLINE_VARIANT_B
+
+
+def record_daily_run_event(event_type: str, details: dict[str, Any]) -> None:
+    """Appends structured audit record to data/logs/daily_runs.jsonl."""
+    os.makedirs(os.path.dirname(DAILY_RUNS_LOG), exist_ok=True)
+    record = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "event": event_type,
+        "details": details,
+    }
+    with open(DAILY_RUNS_LOG, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record) + "\n")
 
 
 def log_event(status: str, message: str, details: dict[str, Any] | None = None) -> None:
@@ -66,8 +100,20 @@ async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, A
     Touches candidate profile headline or summary to refresh the last-updated timestamp.
     """
     if dry_run:
-        log_event("DRY_RUN", "Dry-run mode active. Profile update simulated successfully.")
-        return {"status": "SUCCESS", "mode": "dry_run", "message": "Dry-run simulated"}
+        target_headline = get_next_headline("")
+        record_daily_run_event(
+            "NAUKRI_RESDEX_TOUCH_SUCCESS",
+            {
+                "mode": "dry_run",
+                "headline": target_headline,
+                "char_count": len(target_headline),
+            },
+        )
+        log_event(
+            "DRY_RUN",
+            f"Dry-run mode active. Target headline: {target_headline[:60]}... ({len(target_headline)} chars)",
+        )
+        return {"status": "SUCCESS", "mode": "dry_run", "headline": target_headline, "message": "Dry-run simulated"}
 
     # 1. Locate Resume Headline Widget
     headline_widget = page.locator(".resumeHeadline, .widgetHead:has-text('Resume Headline')").first
@@ -86,18 +132,9 @@ async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, A
         if await text_area.is_visible():
             current_text = await text_area.input_value()
             current_text = current_text.strip()
-
-            # Non-destructive 1-character toggle (trailing space / period toggle)
-            if current_text.endswith("."):
-                new_text = current_text[:-1]
-            else:
-                new_text = current_text + "."
+            new_text = get_next_headline(current_text)
 
             await text_area.fill(new_text)
-            await page.wait_for_timeout(500)
-
-            # Revert to original clean text to preserve pristine wording
-            await text_area.fill(current_text)
             await page.wait_for_timeout(500)
 
             # Click Save button
@@ -105,8 +142,20 @@ async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, A
             if await save_btn.is_visible():
                 await save_btn.click()
                 await page.wait_for_timeout(2000)
-                log_event("SUCCESS", "Successfully refreshed Naukri Resdex profile timestamp via headline touch.")
-                return {"status": "SUCCESS", "message": "Profile headline touched and saved"}
+                record_daily_run_event(
+                    "NAUKRI_RESDEX_TOUCH_SUCCESS",
+                    {
+                        "mode": "live",
+                        "headline": new_text,
+                        "previous_headline": current_text,
+                        "char_count": len(new_text),
+                    },
+                )
+                log_event(
+                    "SUCCESS",
+                    f"Successfully refreshed Naukri Resdex profile timestamp via rotated headline ({len(new_text)} chars).",
+                )
+                return {"status": "SUCCESS", "headline": new_text, "message": "Profile headline touched and saved"}
 
     # Fallback: general profile page refresh
     await page.reload()

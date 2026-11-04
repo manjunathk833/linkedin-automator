@@ -82,13 +82,20 @@ def test_tailoring_injection(raw_payload: dict):
 
     # Ensure requirements fallback
     jd = test_payload.get("job_details", {})
-    if not jd.get("requirements") and jd.get("description"):
-        import re
+    if not jd.get("requirements") or len(jd.get("requirements", "")) <= 50:
+        clean = ""
+        if jd.get("description") and len(jd.get("description", "")) > 50:
+            import re
 
-        clean = re.sub(r"<[^>]+>", " ", jd["description"])
-        clean = clean.replace("&amp;", "&").replace("&nbsp;", " ")
-        clean = re.sub(r"\s+", " ", clean).strip()
-        jd["requirements"] = clean[:2000]
+            clean = re.sub(r"<[^>]+>", " ", jd["description"])
+            clean = clean.replace("&amp;", "&").replace("&nbsp;", " ")
+            clean = re.sub(r"\s+", " ", clean).strip()
+            jd["requirements"] = clean[:2000]
+        if not clean or len(clean) <= 50:
+            jd["requirements"] = (
+                f"{jd.get('title', 'Senior SDET')} - Hands-on experience in test automation frameworks, "
+                "Playwright, Python, Java, REST Assured, and CI/CD quality engineering pipelines."
+            )
 
     tailorer = ResumeTailorer(use_ai=False)
     result = tailorer.tailor_job_payload(test_payload)

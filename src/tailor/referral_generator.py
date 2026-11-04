@@ -286,6 +286,30 @@ class InterviewRouter:
                 "rationale": "Direct hiring/referral post found -> message post author immediately.",
             }
 
+        # Fast-moving AI Evaluation or USD/EOR remote roles on non-Workday boards (<24h old) -> Fast-Snipe Immediately
+        role_title = str(job_payload.get("title") or details.get("title") or "").lower()
+        is_usd_remote = bool(job_payload.get("is_usd_eor_remote") or details.get("is_usd_eor_remote"))
+        is_ai_eval_role = bool(
+            re.search(
+                r"\b(ai\s*qa|ai\s*test|llm\s*evaluation|genai\s*qa|ai\s*quality|ml\s*quality|agentic\s*qa|ai\s*red\s*team|browser\s*automation)\b",
+                role_title,
+            )
+        )
+        if not is_workday and (is_usd_remote or is_ai_eval_role) and (age_hours is None or age_hours <= 24.0):
+            reason_tag = "USD/EOR global remote" if is_usd_remote else "High-priority AI Evaluation / QA"
+            return {
+                "routing_tier": "TIER_1_SNIPER_APPLY",
+                "allow_immediate_apply": True,
+                "referral_sla_hours": 0.0,
+                "age_hours": age_hours,
+                "freshness_badge": freshness_badge,
+                "priority_boost": priority_boost + 20,
+                "associated_post_url": "",
+                "post_author_name": "",
+                "post_author_url": "",
+                "rationale": f"Fast-moving {reason_tag} role (<24h old) -> Fast-snipe immediately to prevent requisition closure.",
+            }
+
         # Tier 2: Dream Enterprise or Workday ATS -> Hold for 36h Referral SLA (preserves Workday bonus attribution)
         if is_dream or is_workday:
             return {

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import os
 import re
 from typing import Any, ClassVar
 
 from src.resume_store.models import ResumeProfile
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 class FabricationDetector:
@@ -29,6 +32,17 @@ class FabricationDetector:
         "Swift",
         "GraphQL",
         "Kubernetes",
+        "DeepEval",
+        "RAGAS",
+        "Promptfoo",
+        "Garak",
+        "PyRIT",
+        "OWASP LLM",
+        "LangSmith",
+        "Langfuse",
+        "CDP",
+        "FastAPI",
+        "Pydantic",
     ]
 
     COMPANY_EXCLUSIVE_MARKERS: ClassVar[dict[str, list[str]]] = {
@@ -41,6 +55,18 @@ class FabricationDetector:
             "burp suite",
             "ott app",
             "app store",
+        ],
+        "Technical Projects": [
+            "deepeval",
+            "ragas",
+            "promptfoo",
+            "garak",
+            "pyrit",
+            "owasp llm",
+            "langsmith",
+            "langfuse",
+            "cdp",
+            "chrome devtools protocol",
         ],
     }
 
@@ -75,6 +101,19 @@ class FabricationDetector:
             if isinstance(cat_list, list):
                 for t in cat_list:
                     tools.add(t.strip().lower())
+
+        # 4. Canonical tools whitelist
+        whitelist_path = os.path.join(PROJECT_ROOT, "data", "profile", "allowed_tools_whitelist.json")
+        if os.path.exists(whitelist_path):
+            try:
+                import json
+
+                with open(whitelist_path, "r", encoding="utf-8") as wf:
+                    wdata = json.load(wf)
+                for wt in wdata.get("allowed_tools", []):
+                    tools.add(wt.strip().lower())
+            except Exception:
+                pass
 
         return tools
 
@@ -118,17 +157,25 @@ class FabricationDetector:
     def check_company_contamination(self, company: str, bullet: str) -> dict[str, Any]:
         """
         Validates that a bullet assigned to a specific company does not claim achievements
-        or exclusive tools that belong to another company.
+        or exclusive tools that belong to another company or project boundary.
         """
         bullet_lower = bullet.lower()
         violating_companies = []
+        norm_company = company.lower().replace(" ", "").replace("_", "")
         for other_comp, markers in self.COMPANY_EXCLUSIVE_MARKERS.items():
-            if other_comp.lower().replace(" ", "") != company.lower().replace(" ", ""):
-                for marker in markers:
+            norm_other = other_comp.lower().replace(" ", "").replace("_", "")
+            if norm_other == norm_company or (norm_other in norm_company or norm_company in norm_other):
+                continue
+            if "project" in norm_other and ("project" in norm_company or "personal" in norm_company):
+                continue
+            for marker in markers:
+                if marker == "harness":
+                    pattern = r"(?<!test\s)\bharness\b"
+                else:
                     pattern = rf"\b{re.escape(marker)}\b"
-                    if re.search(pattern, bullet_lower):
-                        violating_companies.append(f"{other_comp} (marker: '{marker}')")
-                        break
+                if re.search(pattern, bullet_lower):
+                    violating_companies.append(f"{other_comp} (marker: '{marker}')")
+                    break
 
         is_clean = len(violating_companies) == 0
         return {

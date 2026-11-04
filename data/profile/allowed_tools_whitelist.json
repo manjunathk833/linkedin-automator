@@ -67,7 +67,19 @@
     "k8s",
     "kafka",
     "wiremock",
-    "pact"
+    "pact",
+    "deepeval",
+    "ragas",
+    "promptfoo",
+    "langsmith",
+    "langfuse",
+    "owasp llm",
+    "garak",
+    "pyrit",
+    "cdp",
+    "chrome devtools protocol",
+    "pydantic",
+    "fastapi"
   ],
   "disallowed_hallucinations": [
     "cypress",

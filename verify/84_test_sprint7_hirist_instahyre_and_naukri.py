@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+"""
+Verification Gate 84: Sprint 7 Hirist & Instahyre Collectors + 2x Daily Naukri Resdex Trap.
+
+Asserts:
+1. HiristCollector parses structured payloads and Next.js HTML state into valid JobListing objects (source="hirist").
+2. InstahyreCollector parses structured payloads and LD+JSON / HTML into valid JobListing objects (source="instahyre").
+3. classify_ats_pattern() correctly maps hirist.tech job URLs to ATSVendorPattern.HIRIST_TECH_STANDARD.
+4. normalize_job_source_metadata() properly attributes "hirist" and "instahyre" sources and application types.
+5. scripts/naukri_pinger.py rotates headlines within Naukri character limit (<= 250 chars) with 30d buyout notice framing.
+6. ATSDiscoveryCoordinator integrates HiristCollector and InstahyreCollector.
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from scripts.naukri_pinger import (
+    HEADLINE_VARIANT_A,
+    HEADLINE_VARIANT_B,
+    get_next_headline,
+)
+from src.autofill.vendor_schemas import ATSVendorPattern, classify_ats_pattern
+from src.ingestion.ats_discovery import ATSDiscoveryCoordinator
+from src.ingestion.hirist import HiristCollector
+from src.ingestion.instahyre import InstahyreCollector
+from src.storage.models import JobListing
+from src.ui.app import normalize_job_source_metadata
+
+
+def test_hirist_collector_parsing():
+    print("🔍 Step 1: Validating HiristCollector parsing...")
+    collector = HiristCollector()
+
+    # Case A: Structured JSON payload parsing
+    mock_payload = {
+        "id": 984512,
+        "title": "Lead SDET - Playwright & AI Automation",
+        "cname": "Swiggy",
+        "location": "Bengaluru",
+        "minSal": "28",
+        "maxSal": "38",
+        "slug": "lead-sdet-playwright-ai-984512.html",
+        "description": "Looking for Lead SDET with Playwright, Python, and LLM evaluation experience.",
+        "createdDate": 1730000000000,
+    }
+    listing = collector.parse_job_payload(mock_payload, filter_sdet=True)
+    assert listing is not None, "Expected HiristCollector to parse valid SDET payload"
+    assert isinstance(listing, JobListing)
+    assert listing.source == "hirist"
+    assert listing.id == "hirist_984512"
+    assert listing.company_name == "Swiggy"
+    assert "Playwright" in listing.job_title
+    assert listing.salary_range == "₹28 - ₹38 LPA"
+    assert listing.url == "https://www.hirist.tech/j/lead-sdet-playwright-ai-984512.html"
+
+    # Case B: Rejection of non-SDET title
+    pm_payload = {
+        "id": 984513,
+        "title": "Product Manager - Growth",
+        "cname": "Dunzo",
+        "location": "Bengaluru",
+    }
+    assert collector.parse_job_payload(pm_payload, filter_sdet=True) is None
+
+    # Case C: Rejection of foreign non-remote location
+    us_payload = {
+        "id": 984514,
+        "title": "Senior SDET",
+        "cname": "Tech Corp",
+        "location": "Dallas, Texas",
+    }
+    assert collector.parse_job_payload(us_payload, filter_sdet=True) is None
+
+    print("   ✅ HiristCollector parsing, qualification, and filtering verified.")
+
+
+def test_instahyre_collector_parsing():
+    print("\n🔍 Step 2: Validating InstahyreCollector parsing...")
+    collector = InstahyreCollector()
+
+    # Case A: Structured JSON payload parsing
+    mock_payload = {
+        "id": "78129",
+        "title": "Senior QA Automation Engineer (Playwright / AI)",
+        "company_name": "Razorpay",
+        "location": "Bengaluru, India",
+        "salary": "₹26 - ₹36 LPA",
+        "description": "Architect end-to-end automation test suites using Playwright, TypeScript, and Docker.",
+    }
+    listing = collector.parse_job_payload(mock_payload, filter_sdet=True)
+    assert listing is not None, "Expected InstahyreCollector to parse valid SDET payload"
+    assert isinstance(listing, JobListing)
+    assert listing.source == "instahyre"
+    assert listing.id == "instahyre_78129"
+    assert listing.company_name == "Razorpay"
+    assert listing.url == "https://www.instahyre.com/job-78129"
+    assert listing.salary_range == "₹26 - ₹36 LPA"
+
+    # Case B: Rejection of non-SDET title
+    sec_payload = {
+        "id": "78130",
+        "title": "SOC Analyst L1",
+        "company_name": "Security Inc",
+        "location": "Bengaluru",
+    }
+    assert collector.parse_job_payload(sec_payload, filter_sdet=True) is None
+    print("   ✅ InstahyreCollector parsing, qualification, and filtering verified.")
+
+
+def test_vendor_schema_and_ats_pattern_matching():
+    print("\n🔍 Step 3: Validating vendor pattern classification for Hirist URLs...")
+    hirist_url_a = "https://www.hirist.tech/j/senior-sdet-playwright-984512.html"
+    pattern_a = classify_ats_pattern(hirist_url_a)
+    assert pattern_a == ATSVendorPattern.HIRIST_TECH_STANDARD, f"Expected HIRIST_TECH_STANDARD, got {pattern_a}"
+
+    hirist_url_b = "https://www.hirist.com/j/lead-qa-engineer-12345"
+    pattern_b = classify_ats_pattern(hirist_url_b)
+    assert pattern_b == ATSVendorPattern.HIRIST_TECH_STANDARD, f"Expected HIRIST_TECH_STANDARD, got {pattern_b}"
+    print("   ✅ classify_ats_pattern() correctly routes Hirist URLs to HIRIST_TECH_STANDARD.")
+
+
+def test_source_metadata_normalization():
+    print("\n🔍 Step 4: Validating normalize_job_source_metadata in src/ui/app.py...")
+    # Hirist payload
+    hirist_payload = {
+        "id": "hirist_984512",
+        "job_url": "https://www.hirist.tech/j/984512.html",
+        "company": "Swiggy",
+    }
+    src_h, app_h = normalize_job_source_metadata(hirist_payload)
+    assert src_h == "hirist", f"Expected 'hirist', got '{src_h}'"
+    assert app_h == "ATS_HIRIST", f"Expected 'ATS_HIRIST', got '{app_h}'"
+
+    # Instahyre payload
+    instahyre_payload = {
+        "id": "instahyre_78129",
+        "url": "https://www.instahyre.com/job-78129",
+        "company": "Razorpay",
+    }
+    src_i, app_i = normalize_job_source_metadata(instahyre_payload)
+    assert src_i == "instahyre", f"Expected 'instahyre', got '{src_i}'"
+    assert app_i == "ATS_INSTAHYRE", f"Expected 'ATS_INSTAHYRE', got '{app_i}'"
+    print("   ✅ UI source normalization accurately recognizes 'hirist' and 'instahyre'.")
+
+
+def test_naukri_pinger_headline_rotation():
+    print("\n🔍 Step 5: Validating Naukri headline rotation and Resdex notice framing...")
+    # 1. Check length constraints (Naukri max is 250 characters)
+    assert len(HEADLINE_VARIANT_A) <= 250, f"Variant A too long: {len(HEADLINE_VARIANT_A)}"
+    assert len(HEADLINE_VARIANT_B) <= 250, f"Variant B too long: {len(HEADLINE_VARIANT_B)}"
+
+    # 2. Check essential high-converting keywords
+    assert "Playwright" in HEADLINE_VARIANT_A and "DeepEval" in HEADLINE_VARIANT_A
+    assert "30d" in HEADLINE_VARIANT_A or "Buyout" in HEADLINE_VARIANT_A
+
+    assert "Playwright" in HEADLINE_VARIANT_B and "Agentic AI" in HEADLINE_VARIANT_B
+    assert "30d" in HEADLINE_VARIANT_B or "Buyout" in HEADLINE_VARIANT_B
+
+    # 3. Deterministic rotation check
+    next_from_empty = get_next_headline("")
+    assert next_from_empty == HEADLINE_VARIANT_B
+
+    next_from_b = get_next_headline(HEADLINE_VARIANT_B)
+    assert next_from_b == HEADLINE_VARIANT_A
+
+    next_from_a = get_next_headline(HEADLINE_VARIANT_A)
+    assert next_from_a == HEADLINE_VARIANT_B
+
+    print(
+        f"   ✅ Headline rotation verified (Variant A: {len(HEADLINE_VARIANT_A)} chars, Variant B: {len(HEADLINE_VARIANT_B)} chars)."
+    )
+
+
+def test_coordinator_integration():
+    print("\n🔍 Step 6: Validating ATSDiscoveryCoordinator integration...")
+    coordinator = ATSDiscoveryCoordinator()
+    assert hasattr(coordinator, "hirist"), "Coordinator missing hirist collector"
+    assert hasattr(coordinator, "instahyre"), "Coordinator missing instahyre collector"
+    assert hasattr(coordinator, "ingest_direct_portals"), "Coordinator missing ingest_direct_portals method"
+    print("   ✅ ATSDiscoveryCoordinator properly wired with Hirist & Instahyre collectors.")
+
+
+def main():
+    print("=" * 70)
+    print("  VERIFICATION GATE 84: SPRINT 7 HIRIST, INSTAHYRE & NAUKRI TRAP")
+    print("=" * 70)
+
+    test_hirist_collector_parsing()
+    test_instahyre_collector_parsing()
+    test_vendor_schema_and_ats_pattern_matching()
+    test_source_metadata_normalization()
+    test_naukri_pinger_headline_rotation()
+    test_coordinator_integration()
+
+    print("\n" + "=" * 70)
+    print("  🎉 ALL GATE 84 SPECIFICATIONS VERIFIED: 100% PASS RATE")
+    print("=" * 70)
+
+
+if __name__ == "__main__":
+    main()
