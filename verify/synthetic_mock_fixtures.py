@@ -236,6 +236,18 @@ def get_mock_resume_profile() -> dict:
                 ],
                 "tech_tags": ["Appium", "Python", "Charles Proxy", "Postman"],
             },
+            {
+                "name": "AI Quality & Red-Teaming CI/CD (Technical Projects)",
+                "description": "Architected an automated AI Quality and Security CI/CD evaluation gate measuring Faithfulness and Context Recall.",
+                "url": None,
+                "start_date": "2024-01-01",
+                "end_date": None,
+                "highlights": [
+                    "Engineered automated LLM-as-a-Judge test suites using DeepEval and RAGAS.",
+                    "Automated adversarial security red-teaming with Promptfoo and Garak against OWASP LLM Top 10.",
+                ],
+                "tech_tags": ["Python", "DeepEval", "RAGAS", "Promptfoo", "Garak", "GitHub Actions"],
+            },
         ],
         "skills_matrix": {
             "API Automation": [
@@ -255,6 +267,15 @@ def get_mock_resume_profile() -> dict:
                 "Selenium",
                 "Playwright",
                 "Appium",
+                "Chrome DevTools Protocol",
+            ],
+            "AI & Evaluation": [
+                "DeepEval",
+                "RAGAS",
+                "Promptfoo",
+                "OWASP LLM",
+                "Garak",
+                "CDP",
             ],
             "CI/CD & Infra": [
                 "Jenkins",
@@ -422,6 +443,29 @@ def get_mock_master_knowledge_bank() -> dict:
                 "star_achievement": "Containerized ephemeral test runners using Docker and Kubernetes across GitHub Actions CI workflows.",
                 "tools": ["Docker", "Kubernetes", "CI/CD", "GitHub Actions"],
                 "metric": "75% faster feedback cycles via ephemeral containerized test runners",
+            },
+            {
+                "domain": "AI Quality and Security CI/CD",
+                "company": "Technical Projects",
+                "star_achievement": "Architected an automated 2-stage AI Quality and Security CI/CD evaluation gate using Python, PyTest, GitHub Actions, Promptfoo, Garak, DeepEval, and RAGAS, successfully blocking staging builds on hallucination regressions and measuring Faithfulness, Answer Relevancy, and Context Recall.",
+                "tools": ["Python", "PyTest", "GitHub Actions", "Promptfoo", "Garak", "DeepEval", "RAGAS"],
+                "metric": "100% automated blocking of staging builds on hallucination regressions",
+            },
+            {
+                "domain": "Autonomous Browser Automation and LLM Orchestration",
+                "company": "Technical Projects",
+                "star_achievement": "Engineered a production-grade autonomous browser automation and LLM orchestration platform using Python, Playwright, Chrome DevTools Protocol, FastAPI, Gemini, Ollama, and Pydantic, implementing cubic Bézier cursor kinematics, closed-loop DOM self-healing, and a deterministic anti-hallucination verification gate.",
+                "tools": [
+                    "Python",
+                    "Playwright",
+                    "Chrome DevTools Protocol",
+                    "CDP",
+                    "FastAPI",
+                    "Gemini",
+                    "Ollama",
+                    "Pydantic",
+                ],
+                "metric": "Production-grade autonomous execution with closed-loop DOM self-healing and deterministic anti-hallucination verification",
             },
         ],
     }

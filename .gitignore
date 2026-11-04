@@ -23,6 +23,7 @@ data/profile/*
 scripts/regenerate_profile_and_knowledge.py
 TODOS.md
 debugging.md
+upcomingsprints.md
 
 # Databases, SQLite & Application Execution History
 *.db
