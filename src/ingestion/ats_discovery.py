@@ -220,9 +220,14 @@ class ATSDiscoveryCoordinator:
             print(f"⚠️ Hirist portal ingestion error: {e}")
 
         try:
-            for slug in self.instahyre.CURATED_SLUGS[:2]:
-                i_jobs = await self.instahyre.fetch_feed_jobs(slug=slug, filter_sdet=filter_sdet)
-                all_portal_jobs.extend(i_jobs)
+            i_jobs = await self.instahyre.fetch_opportunities_via_browser(
+                headless=True, limit=25, filter_sdet=filter_sdet
+            )
+            if not i_jobs:
+                for slug in self.instahyre.CURATED_SLUGS[:2]:
+                    feed_jobs = await self.instahyre.fetch_feed_jobs(slug=slug, filter_sdet=filter_sdet)
+                    i_jobs.extend(feed_jobs)
+            all_portal_jobs.extend(i_jobs)
         except Exception as e:
             print(f"⚠️ Instahyre portal ingestion error: {e}")
 

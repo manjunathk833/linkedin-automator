@@ -86,9 +86,14 @@ class JobSearchPipelineRunner:
                         query="SDET", location="bangalore", filter_sdet=True
                     )
                 else:
-                    portal_listings = []
-                    for slug in coordinator.instahyre.CURATED_SLUGS[:2]:
-                        portal_listings.extend(await coordinator.instahyre.fetch_feed_jobs(slug=slug, filter_sdet=True))
+                    portal_listings = await coordinator.instahyre.fetch_opportunities_via_browser(
+                        headless=True, limit=25, filter_sdet=True
+                    )
+                    if not portal_listings:
+                        for slug in coordinator.instahyre.CURATED_SLUGS[:2]:
+                            portal_listings.extend(
+                                await coordinator.instahyre.fetch_feed_jobs(slug=slug, filter_sdet=True)
+                            )
                 ats_saved_paths = coordinator.save_listings_to_queue(portal_listings, tailor=True)
                 print(
                     f"✅ {target_source.capitalize()} Portal Ingestion Complete: {len(ats_saved_paths)} role(s) queued.\n"

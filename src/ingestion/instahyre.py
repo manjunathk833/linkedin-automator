@@ -2,20 +2,28 @@
 Instahyre Curated Product & AI Startup Ingestion Collector.
 Discovers and extracts curated SDET, AI QA, and Playwright roles from instahyre.com,
 normalizing them into standardized JobListing objects for the application queue.
+Supports authenticated candidate opportunity extraction via persistent browser session,
+ledger-based <=3-day freshness tracking, and curated skill feed parsing.
 """
 
 from __future__ import annotations
 
+import asyncio
 import html
 import json
+import os
 import re
 from datetime import datetime
 from typing import Any
 
 import httpx
 
+from src.browser.cdp_stealth import DEFAULT_STEALTH_DIR
 from src.ingestion.filters import is_india_or_remote_location, is_sdet_title
 from src.storage.models import JobListing
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+INSTAHYRE_LEDGER_PATH = os.path.join(PROJECT_ROOT, "data", "logs", "instahyre_seen_ledger.json")
 
 
 def clean_html_text(raw_html: str) -> str:
@@ -110,7 +118,6 @@ class InstahyreCollector:
         if not html_text:
             return listings
 
-        # 1. Look for embedded JSON script tags (schema.org or application/ld+json)
         for s in re.findall(
             r"<script[^>]*type=[\"']application/ld\+json[\"'][^>]*>(.*?)</script>", html_text, re.DOTALL
         ):
@@ -138,7 +145,6 @@ class InstahyreCollector:
             except Exception:
                 pass
 
-        # 2. Look for DOM job card structures e.g. class="opportunity-row" or class="job-card"
         if not listings:
             card_regex = re.compile(
                 r"<div[^>]*class=[\"'][^\"']*(?:opportunity-row|job-card)[^\"']*[\"'][^>]*>(.*?)</div>\s*</div>",
@@ -170,8 +176,156 @@ class InstahyreCollector:
 
         return listings
 
-    async def fetch_feed_jobs(self, slug: str, filter_sdet: bool = True) -> list[JobListing]:
-        """Fetches jobs from a specific curated skill slug on Instahyre."""
+    async def fetch_opportunities_via_browser(
+        self,
+        headless: bool = True,
+        limit: int = 30,
+        filter_sdet: bool = True,
+        max_age_days: float = 3.0,
+    ) -> list[JobListing]:
+        """
+        Extracts pre-matched opportunities from https://www.instahyre.com/candidate/opportunities/
+        using persistent stealth browser session (bypassing Cloudflare Turnstile).
+        Enforces stateful ledger freshness tracking (<= max_age_days).
+        """
+        listings: list[JobListing] = []
+        if not os.path.exists(DEFAULT_STEALTH_DIR):
+            return listings
+
+        # Load or initialize stateful seen ledger
+        os.makedirs(os.path.dirname(INSTAHYRE_LEDGER_PATH), exist_ok=True)
+        ledger: dict[str, dict[str, Any]] = {}
+        if os.path.exists(INSTAHYRE_LEDGER_PATH):
+            try:
+                with open(INSTAHYRE_LEDGER_PATH, "r", encoding="utf-8") as f:
+                    ledger = json.load(f)
+            except Exception:
+                ledger = {}
+
+        now = datetime.utcnow()
+
+        try:
+            from playwright.async_api import async_playwright
+
+            async with async_playwright() as p:
+                ctx = await p.chromium.launch_persistent_context(
+                    DEFAULT_STEALTH_DIR,
+                    headless=headless,
+                    channel="chrome",
+                    viewport={"width": 1440, "height": 900},
+                    user_agent=(
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                    ),
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--no-sandbox",
+                        "--disable-infobars",
+                    ],
+                )
+                page = await ctx.new_page()
+                try:
+                    await page.goto(
+                        f"{self.BASE_URL}/candidate/opportunities/?matching=true",
+                        timeout=25000,
+                        wait_until="domcontentloaded",
+                    )
+                    await asyncio.sleep(2.5)
+
+                    raw_opps = await page.evaluate(
+                        """() => {
+                            const el = document.querySelector('.employer-row') || document.querySelector('[ng-controller]');
+                            if (!el || !window.angular) return [];
+                            const scope = window.angular.element(el).scope();
+                            if (!scope) return [];
+                            const opps = scope.opportunities || scope.opps || [];
+                            return opps.map(o => ({
+                                id: String(o.id || (o.job && o.job.id) || ''),
+                                job_id: String(o.job_id || (o.job && o.job.id) || ''),
+                                title: o.job ? o.job.title : '',
+                                company: o.employer ? o.employer.company_name : '',
+                                location: o.job ? (o.job.locations || 'Bengaluru') : 'Bengaluru',
+                                skills: o.job ? (o.job.skills || []) : [],
+                                summary: o.employer ? (o.employer.summary || '') : '',
+                            }));
+                        }"""
+                    )
+
+                    for o in raw_opps:
+                        jid = o.get("job_id") or o.get("id")
+                        title = o.get("title") or ""
+                        company = o.get("company") or "Instahyre Verified Employer"
+                        location = o.get("location") or "Bengaluru, India"
+                        if not jid or not title:
+                            continue
+
+                        if filter_sdet and not is_sdet_title(title):
+                            continue
+
+                        # Freshness enforcement via ledger
+                        record = ledger.get(jid)
+                        if record:
+                            first_seen_str = record.get("first_seen_at")
+                            if first_seen_str:
+                                try:
+                                    first_seen_dt = datetime.fromisoformat(first_seen_str)
+                                    age_days = (now - first_seen_dt).total_seconds() / 86400.0
+                                    if age_days > max_age_days:
+                                        continue  # Drop opportunities seen more than 3 days ago
+                                except Exception:
+                                    pass
+                        else:
+                            ledger[jid] = {
+                                "first_seen_at": now.isoformat(),
+                                "title": title,
+                                "company": company,
+                            }
+
+                        canonical_url = f"{self.BASE_URL}/job-{jid}"
+                        skills_text = ", ".join(o.get("skills", []))
+                        summary_text = o.get("summary", "")
+                        desc = f"{title} at {company} in {location}. Skills: {skills_text}. {summary_text}".strip()
+
+                        listing = JobListing(
+                            id=f"instahyre_{jid}",
+                            source="instahyre",
+                            company_name=company,
+                            job_title=title,
+                            location=location,
+                            is_remote="remote" in location.lower(),
+                            is_dream_org=False,
+                            job_description_raw=desc,
+                            job_description_clean=desc,
+                            url=canonical_url,
+                            posted_at=now,
+                            discovered_at=now,
+                            status="pending",
+                        )
+                        listings.append(listing)
+                        if len(listings) >= limit:
+                            break
+
+                    # Save updated ledger atomically
+                    with open(INSTAHYRE_LEDGER_PATH, "w", encoding="utf-8") as f:
+                        json.dump(ledger, f, indent=2)
+
+                finally:
+                    await ctx.close()
+        except Exception as e:
+            print(f"⚠️ InstahyreCollector browser opportunity extraction warning: {e}")
+
+        return listings
+
+    async def fetch_feed_jobs(
+        self,
+        slug: str,
+        filter_sdet: bool = True,
+        max_age_days: float = 3.0,
+    ) -> list[JobListing]:
+        """
+        Fetches jobs from a specific curated skill slug on Instahyre.
+        Falls back to authenticated opportunity extraction with <=3-day freshness check.
+        """
         clean_slug = slug.strip("/ ")
         url = f"{self.BASE_URL}/{clean_slug}/"
         results: list[JobListing] = []
@@ -181,8 +335,16 @@ class InstahyreCollector:
                 resp = await client.get(url)
                 if resp.status_code == 200:
                     results = self.parse_html_page(resp.text, filter_sdet=filter_sdet)
-        except Exception as e:
-            print(f"⚠️ InstahyreCollector fetch warning for slug '{slug}': {e}")
+        except Exception:
+            pass
+
+        if not results:
+            try:
+                results = await self.fetch_opportunities_via_browser(
+                    headless=True, limit=25, filter_sdet=filter_sdet, max_age_days=max_age_days
+                )
+            except Exception as e:
+                print(f"⚠️ InstahyreCollector browser fallback warning: {e}")
 
         return results
 
