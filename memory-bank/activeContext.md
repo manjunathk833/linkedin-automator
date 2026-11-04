@@ -6,7 +6,7 @@
 - **Milestone 71 — Direct ATS Routing Strategy Optimization & Sprint 6 Multi-Module Verification Complete:**
   - **ATS Payload Routing Optimization (`src/ingestion/ats_discovery.py`):** Enriched `save_listings_to_queue()` with `InterviewRouter.classify_job_strategy(payload)` and `payload["freshness_badge"] = routing.get("freshness_badge")`, ensuring all direct ATS jobs (Greenhouse, Lever, Ashby, Workday, Hirist, Instahyre) carry pre-calculated 3-tier routing metadata in their JSON files.
   - **Regression Gate 77 Hardening (`verify/77_test_daily_pipeline_comprehensive_wiring.py`):** Added mock for `ingest_direct_portals` in `test_track3_wired_in_pipeline_runner`, eliminating timeout flakes and accelerating execution from 35s to 1.41s.
-  - **Sprint 6 Multi-Module Verification Suite (`verify/verify_sprint6_wider_range.py`):**
+  - **Sprint 6 Multi-Module Verification & Dry Run (Gate 83):**
     * *Title Taxonomy Expansion:* Verified 100% precision across positive AI SDET patterns (`"ai qa"`, `"llm evaluation"`, `"devsecops qa"`, `"ai red team"`, etc.) and negative exclusions (`"soc analyst"`, `"grc"`, `"manual tester"`, etc.).
     * *Target GCCs & AI Orgs:* Validated 434 active enterprise job boards (389 tagged `is_dream_org`), including all 19 Tier-1 AI GCCs and Global AI Orgs (`Microsoft IDC`, `Walmart Global Tech`, `Deel`, `LangChain`, `GitLab`, `PostHog`, `Autodesk`, `Bosch`, etc.).
     * *3-Tier Routing Boost:* Verified correct classification into `TIER_0_POST_AUTHOR` (+30 to +55 boost), `TIER_1_SNIPER_APPLY` (+20 to +45 boost for fresh AI QA and USD/EOR remote), and `TIER_2_REFERRAL_SLA` (36h referral window for Dream Orgs and Workday).
