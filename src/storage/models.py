@@ -35,7 +35,7 @@ class JobListing(BaseModel):
 class TargetCompany(BaseModel):
     name: str
     ats_provider: str = Field(
-        description="greenhouse | lever | ashby | workday | smartrecruiters | rippling | workable | recruitee"
+        description="greenhouse | lever | ashby | workday | smartrecruiters | rippling | workable | recruitee | hirist | instahyre"
     )
     slug: str
     domain: str | None = None

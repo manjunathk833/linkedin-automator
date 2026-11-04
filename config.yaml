@@ -59,6 +59,16 @@ search_profiles:
     easy_apply_only: false
     max_jobs: 25
 
+  - name: "AI QA, LLM Evaluation & DevSecOps Automation"
+    keywords: '("AI QA" OR "LLM Evaluation" OR "GenAI QA" OR "AI Test Engineer" OR "DevSecOps QA" OR "Security Automation Engineer" OR "Browser Automation Engineer" OR "AI Red Team") NOT (Intern OR Junior OR Fresher OR "SOC Analyst" OR "Data Annotator")'
+    location: "Bengaluru"
+    distance: 25
+    work_types: ["remote", "hybrid", "onsite"]
+    experience_levels: ["mid_senior"]
+    time_posted: "past_week"
+    easy_apply_only: false
+    max_jobs: 25
+
 resume_path: "data/resume_profile.json"
 browser_profile_dir: ".browser_data"
 

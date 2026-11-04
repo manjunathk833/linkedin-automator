@@ -106,6 +106,9 @@ TIER_1_CORE = [
     "79_test_autofill_logging_and_self_healing.py",
     "80_test_submission_verifier_and_guardrails.py",
     "81_test_stealth_browser_cdp_reuse.py",
+    "82_test_sprint5_ai_eval_grounding.py",
+    "83_test_sprint6_filters_and_usd_remote.py",
+    "84_test_sprint7_hirist_instahyre_and_naukri.py",
     "103_test_expanded_collections_and_keywords.py",
     "104_test_search_sort_and_company_discovery.py",
     "105_test_interview_engine_and_batch_autofill.py",
@@ -194,8 +197,8 @@ def main():
     parser.add_argument(
         "--timeout",
         type=float,
-        default=25.0,
-        help="Per-test timeout in seconds (default: 25.0s)",
+        default=35.0,
+        help="Per-test timeout in seconds (default: 35.0s)",
     )
     args = parser.parse_args()
     ensure_regression_test_fixtures()

@@ -102,7 +102,18 @@ class EmailReporter:
             title = job.get("job_details", {}).get("title") or job.get("title", "SDET Role")
             company = job.get("job_details", {}).get("company") or job.get("company", "Tech Company")
             location = job.get("job_details", {}).get("location") or job.get("location", "Bengaluru / Remote")
-            source = str(job.get("source", "ATS")).upper()
+            raw_source = str(job.get("source", "ATS"))
+            source = raw_source.upper()
+            src_lower = raw_source.lower()
+            if "hirist" in src_lower:
+                badge_bg, badge_fg, badge_text = "#fee2e2", "#dc2626", "🔴 Hirist"
+            elif "instahyre" in src_lower:
+                badge_bg, badge_fg, badge_text = "#e0e7ff", "#4338ca", "🔷 Instahyre"
+            elif "linkedin" in src_lower:
+                badge_bg, badge_fg, badge_text = "#dbeafe", "#1d4ed8", "LinkedIn"
+            else:
+                badge_bg, badge_fg, badge_text = "#f1f5f9", "#475569", source
+
             is_dream = job.get("is_dream_org", False)
             dream_tag = '<span style="color:#f59e0b;font-weight:700;"> ⭐ DREAM ORG</span>' if is_dream else ""
             job_link = (
@@ -119,8 +130,8 @@ class EmailReporter:
                 </td>
                 <td style="padding: 10px 12px; color: #334155; font-weight: 500;">{company}</td>
                 <td style="padding: 10px 12px;">
-                    <span style="font-size: 10px; background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-weight: 700;">
-                        {source}
+                    <span style="font-size: 10px; background: {badge_bg}; color: {badge_fg}; padding: 2px 6px; border-radius: 4px; font-weight: 700;">
+                        {badge_text}
                     </span>
                 </td>
                 <td style="padding: 10px 12px; text-align: right;">

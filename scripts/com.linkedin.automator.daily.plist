@@ -11,14 +11,22 @@
         <string>/Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/run_daily_prod.sh</string>
     </array>
 
-    <!-- Schedule to trigger every morning at 8:00 AM IST -->
+    <!-- Dual Schedule: Morning Full Pipeline (08:00 IST) & Afternoon Resdex Touch (14:15 IST) -->
     <key>StartCalendarInterval</key>
-    <dict>
-        <key>Hour</key>
-        <integer>8</integer>
-        <key>Minute</key>
-        <integer>0</integer>
-    </dict>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>8</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>14</integer>
+            <key>Minute</key>
+            <integer>15</integer>
+        </dict>
+    </array>
 
     <key>WorkingDirectory</key>
     <string>/Users/yeshwinmanjunath/development/linkedinjobsearchautomation</string>

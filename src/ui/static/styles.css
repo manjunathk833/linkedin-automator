@@ -589,6 +589,20 @@ h1 {
     border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
+.source-pill.hirist,
+.badge-hirist {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.source-pill.instahyre,
+.badge-instahyre {
+    background: rgba(59, 130, 246, 0.18);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
 .source-pill.linkedin,
 .badge-linkedin-easy {
     background: rgba(59, 130, 246, 0.18);

@@ -106,7 +106,7 @@
     "domain": "instacart.com",
     "active": true,
     "industry": "E-Commerce",
-    "is_dream_org": false,
+    "is_dream_org": true,
     "datacenter": "wd3"
   },
   {
@@ -156,7 +156,7 @@
     "domain": "twilio.com",
     "active": true,
     "industry": "Communications API",
-    "is_dream_org": false,
+    "is_dream_org": true,
     "datacenter": "wd3"
   },
   {
@@ -583,13 +583,13 @@
     "datacenter": "wd3"
   },
   {
-    "name": "Bosch",
+    "name": "Bosch Global Software",
     "ats_provider": "smartrecruiters",
     "slug": "BoschGroup",
     "domain": "bosch.com",
     "active": true,
     "industry": "Automotive & IoT GCC",
-    "is_dream_org": false,
+    "is_dream_org": true,
     "datacenter": "wd3"
   },
   {
@@ -674,7 +674,7 @@
   },
   {
     "name": "Substack",
-    "ats_provider": "rippling",
+    "ats_provider": "ashby",
     "slug": "substack",
     "domain": "substack.com",
     "active": true,
@@ -3203,16 +3203,6 @@
     "datacenter": "wd3"
   },
   {
-    "name": "Sysdig Cloud",
-    "ats_provider": "lever",
-    "slug": "sysdig",
-    "domain": "sysdig.com",
-    "active": true,
-    "industry": "Cloud Security",
-    "is_dream_org": true,
-    "datacenter": "wd3"
-  },
-  {
     "name": "Benchling",
     "ats_provider": "ashby",
     "slug": "benchling",
@@ -3383,16 +3373,6 @@
     "datacenter": "wd3"
   },
   {
-    "name": "Airbnb Org",
-    "ats_provider": "greenhouse",
-    "slug": "airbnb",
-    "domain": "airbnb.com",
-    "active": true,
-    "industry": "Global Travel",
-    "is_dream_org": true,
-    "datacenter": "wd3"
-  },
-  {
     "name": "Agoda",
     "ats_provider": "greenhouse",
     "slug": "agoda",
@@ -3469,16 +3449,6 @@
     "domain": "wolt.com",
     "active": true,
     "industry": "Local Commerce Platform",
-    "is_dream_org": true,
-    "datacenter": "wd3"
-  },
-  {
-    "name": "Instacart Tech",
-    "ats_provider": "greenhouse",
-    "slug": "instacart",
-    "domain": "instacart.com",
-    "active": true,
-    "industry": "Grocery Delivery",
     "is_dream_org": true,
     "datacenter": "wd3"
   },
@@ -3859,16 +3829,6 @@
     "domain": "patreon.com",
     "active": true,
     "industry": "Creator Economy",
-    "is_dream_org": true,
-    "datacenter": "wd3"
-  },
-  {
-    "name": "Substack Media",
-    "ats_provider": "ashby",
-    "slug": "substack",
-    "domain": "substack.com",
-    "active": true,
-    "industry": "Subscription Publishing",
     "is_dream_org": true,
     "datacenter": "wd3"
   },
@@ -4259,6 +4219,141 @@
     "domain": "shipbob.com",
     "active": true,
     "industry": "Global E-Commerce Fulfillment",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "JumpCloud",
+    "ats_provider": "lever",
+    "slug": "jumpcloud",
+    "domain": "jumpcloud.com",
+    "active": true,
+    "industry": "Auto-Discovered Target",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Experity",
+    "ats_provider": "workday",
+    "slug": "experity",
+    "domain": "experity.com",
+    "active": true,
+    "industry": "Auto-Discovered Target",
+    "is_dream_org": false,
+    "site": "Experity_Careers",
+    "datacenter": "wd108"
+  },
+  {
+    "name": "Dover India",
+    "ats_provider": "workday",
+    "slug": "dover",
+    "domain": "dover.com",
+    "active": true,
+    "industry": "Auto-Discovered Target",
+    "is_dream_org": false,
+    "site": "Dover",
+    "datacenter": "wd103"
+  },
+  {
+    "name": "GreenWave\u2122 Radios",
+    "ats_provider": "greenhouse",
+    "slug": "greenwaveradios",
+    "domain": "greenwaveradios.com",
+    "active": true,
+    "industry": "Auto-Discovered Target",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Microsoft IDC",
+    "ats_provider": "workday",
+    "slug": "microsoft",
+    "domain": "microsoft.com",
+    "active": true,
+    "industry": "Cloud & Enterprise AI GCC",
+    "is_dream_org": true,
+    "site": "Microsoft_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Goldman Sachs",
+    "ats_provider": "workday",
+    "slug": "goldmansachs",
+    "domain": "goldmansachs.com",
+    "active": true,
+    "industry": "Investment Banking & Quantitative AI",
+    "is_dream_org": true,
+    "site": "GS_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "JPMorgan Chase",
+    "ats_provider": "workday",
+    "slug": "jpmorganchase",
+    "domain": "jpmorganchase.com",
+    "active": true,
+    "industry": "Financial Technology & GCC",
+    "is_dream_org": true,
+    "site": "JPMC_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "SAP Labs",
+    "ats_provider": "smartrecruiters",
+    "slug": "SAP",
+    "domain": "sap.com",
+    "active": true,
+    "industry": "Enterprise Software & Cloud AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Penguin Solutions",
+    "ats_provider": "lever",
+    "slug": "penguinsolutions",
+    "domain": "penguinsolutions.com",
+    "active": true,
+    "industry": "AI Infrastructure & HPC",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Weights & Biases",
+    "ats_provider": "greenhouse",
+    "slug": "wandb",
+    "domain": "wandb.ai",
+    "active": true,
+    "industry": "MLOps & LLM Evaluation",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Arize AI",
+    "ats_provider": "greenhouse",
+    "slug": "arizeai",
+    "domain": "arize.com",
+    "active": true,
+    "industry": "AI Observability & LLM Evaluation",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Sprinto HQ",
+    "ats_provider": "lever",
+    "slug": "sprinto",
+    "domain": "sprinto.com",
+    "active": true,
+    "industry": "AI Security & Compliance Automation",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "HighLevel",
+    "ats_provider": "lever",
+    "slug": "gohighlevel",
+    "domain": "gohighlevel.com",
+    "active": true,
+    "industry": "Marketing Automation & CRM",
     "is_dream_org": true,
     "datacenter": "wd3"
   }

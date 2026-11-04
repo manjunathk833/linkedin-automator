@@ -22,6 +22,8 @@ from src.ingestion.extended_providers import (
     WorkableCollector,
 )
 from src.ingestion.greenhouse import GreenhouseCollector
+from src.ingestion.hirist import HiristCollector
+from src.ingestion.instahyre import InstahyreCollector
 from src.ingestion.lever import LeverCollector
 from src.ingestion.workday import WorkdayCollector
 from src.storage.models import JobListing, TargetCompany
@@ -58,6 +60,8 @@ class ATSDiscoveryCoordinator:
         self.rippling = RipplingCollector()
         self.workable = WorkableCollector()
         self.recruitee = RecruiteeCollector()
+        self.hirist = HiristCollector()
+        self.instahyre = InstahyreCollector()
 
     def load_processed_jobs(self) -> dict[str, Any]:
         """Loads master deduplication index from data/processed_jobs.json."""
@@ -172,6 +176,10 @@ class ATSDiscoveryCoordinator:
                 listings = await self.workable.fetch_board_jobs(company.name, company.slug)
             elif provider == "recruitee":
                 listings = await self.recruitee.fetch_board_jobs(company.name, company.slug)
+            elif provider == "hirist":
+                listings = await self.hirist.fetch_board_jobs(company.name, company.slug)
+            elif provider == "instahyre":
+                listings = await self.instahyre.fetch_board_jobs(company.name, company.slug)
             for item in listings:
                 item.is_dream_org = company.is_dream_org
             return listings
@@ -199,6 +207,31 @@ class ATSDiscoveryCoordinator:
 
         print(f"✅ Ingestion complete: {len(all_listings)} relevant SDET/QA role(s) discovered.")
         return all_listings
+
+    async def ingest_direct_portals(self, filter_sdet: bool = True) -> list[JobListing]:
+        """
+        Ingests curated direct technology portal listings from Hirist and Instahyre.
+        """
+        all_portal_jobs: list[JobListing] = []
+        try:
+            h_jobs = await self.hirist.fetch_jobs(query="SDET", location="bangalore", filter_sdet=filter_sdet)
+            all_portal_jobs.extend(h_jobs)
+        except Exception as e:
+            print(f"⚠️ Hirist portal ingestion error: {e}")
+
+        try:
+            i_jobs = await self.instahyre.fetch_opportunities_via_browser(
+                headless=True, limit=25, filter_sdet=filter_sdet
+            )
+            if not i_jobs:
+                for slug in self.instahyre.CURATED_SLUGS[:2]:
+                    feed_jobs = await self.instahyre.fetch_feed_jobs(slug=slug, filter_sdet=filter_sdet)
+                    i_jobs.extend(feed_jobs)
+            all_portal_jobs.extend(i_jobs)
+        except Exception as e:
+            print(f"⚠️ Instahyre portal ingestion error: {e}")
+
+        return all_portal_jobs
 
     @staticmethod
     def _extract_requirements_text(html_description: str) -> str:

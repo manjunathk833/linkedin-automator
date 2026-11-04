@@ -103,6 +103,17 @@ class KnowledgeBankTranslator:
                         "Kubernetes",
                         "WireMock",
                         "Pact",
+                        "DeepEval",
+                        "RAGAS",
+                        "Promptfoo",
+                        "Garak",
+                        "PyRIT",
+                        "OWASP LLM",
+                        "LangSmith",
+                        "Langfuse",
+                        "CDP",
+                        "Pydantic",
+                        "FastAPI",
                     ]:
                         if kw.lower() in b.lower():
                             tools.append(kw)
@@ -119,7 +130,24 @@ class KnowledgeBankTranslator:
             for item in parsed_items:
                 # Rule 02 Employment Boundary Isolation:
                 # Modern project tools must NOT leak into Value Labs, Dunzo, or Tata Elxsi.
-                modern_tools = {"playwright", "typescript", "kubernetes", "docker", "pact", "wiremock", "kafka"}
+                modern_tools = {
+                    "playwright",
+                    "typescript",
+                    "kubernetes",
+                    "docker",
+                    "pact",
+                    "wiremock",
+                    "kafka",
+                    "deepeval",
+                    "ragas",
+                    "promptfoo",
+                    "garak",
+                    "pyrit",
+                    "owasp llm",
+                    "langsmith",
+                    "langfuse",
+                    "cdp",
+                }
                 star_lower = item.get("star_achievement", "").lower()
                 tools_lower = {t.lower() for t in item.get("tools", [])}
                 if (any(t in star_lower for t in modern_tools) or (tools_lower & modern_tools)) and item.get(

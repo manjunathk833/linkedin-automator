@@ -153,6 +153,20 @@ function formatSourceBadge(source, appType) {
             icon: '🟠'
         };
     }
+    if (s.includes('hirist') || a.includes('HIRIST')) {
+        return {
+            label: '🔴 Hirist Tech',
+            cssClass: 'badge-hirist',
+            icon: '🔴'
+        };
+    }
+    if (s.includes('instahyre') || a.includes('INSTAHYRE')) {
+        return {
+            label: '🔷 Instahyre',
+            cssClass: 'badge-instahyre',
+            icon: '🔷'
+        };
+    }
     const fallbackText = (source || 'ATS').toUpperCase();
     return {
         label: `💼 ${fallbackText} ATS`,

@@ -372,7 +372,7 @@ def normalize_job_source_metadata(payload: dict[str, Any]) -> tuple[str, str]:
     url = str(payload.get("url") or payload.get("job_url") or "").strip().lower()
 
     # 1. Infer platform source
-    if raw_source in ("greenhouse", "lever", "ashby", "workday"):
+    if raw_source in ("greenhouse", "lever", "ashby", "workday", "hirist", "instahyre"):
         source = raw_source
     elif raw_source == "linkedin":
         source = "linkedin"
@@ -395,6 +395,21 @@ def normalize_job_source_metadata(payload: dict[str, Any]) -> tuple[str, str]:
         or app_type == "ATS_WORKDAY"
     ):
         source = "workday"
+    elif (
+        "hirist" in raw_source
+        or job_id.startswith("hirist_")
+        or "hirist.tech" in url
+        or "hirist.com" in url
+        or app_type == "ATS_HIRIST"
+    ):
+        source = "hirist"
+    elif (
+        "instahyre" in raw_source
+        or job_id.startswith("instahyre_")
+        or "instahyre.com" in url
+        or app_type == "ATS_INSTAHYRE"
+    ):
+        source = "instahyre"
     elif (
         "linkedin" in raw_source
         or job_id.startswith("p1_job_")
@@ -422,6 +437,12 @@ def normalize_job_source_metadata(payload: dict[str, Any]) -> tuple[str, str]:
     elif source == "workday":
         if not app_type or app_type in ("ATS", "UNKNOWN"):
             app_type = "ATS_WORKDAY"
+    elif source == "hirist":
+        if not app_type or app_type in ("ATS", "UNKNOWN"):
+            app_type = "ATS_HIRIST"
+    elif source == "instahyre":
+        if not app_type or app_type in ("ATS", "UNKNOWN"):
+            app_type = "ATS_INSTAHYRE"
     elif not app_type:
         app_type = "ATS"
 
