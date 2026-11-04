@@ -3,7 +3,7 @@ Instahyre Curated Product & AI Startup Ingestion Collector.
 Discovers and extracts curated SDET, AI QA, and Playwright roles from instahyre.com,
 normalizing them into standardized JobListing objects for the application queue.
 Supports authenticated candidate opportunity extraction via persistent browser session,
-ledger-based <=3-day freshness tracking, and curated skill feed parsing.
+real JSON-LD <=3-day datePosted freshness verification, and curated skill feed parsing.
 """
 
 from __future__ import annotations
@@ -23,7 +23,6 @@ from src.ingestion.filters import is_india_or_remote_location, is_sdet_title
 from src.storage.models import JobListing
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-INSTAHYRE_LEDGER_PATH = os.path.join(PROJECT_ROOT, "data", "logs", "instahyre_seen_ledger.json")
 
 
 def clean_html_text(raw_html: str) -> str:
@@ -186,21 +185,12 @@ class InstahyreCollector:
         """
         Extracts pre-matched opportunities from https://www.instahyre.com/candidate/opportunities/
         using persistent stealth browser session (bypassing Cloudflare Turnstile).
-        Enforces stateful ledger freshness tracking (<= max_age_days).
+        Strictly verifies authentic Schema.org JSON-LD datePosted on each requisition
+        and enforces <= max_age_days (default: 3 days), eliminating historical stale mandates.
         """
         listings: list[JobListing] = []
         if not os.path.exists(DEFAULT_STEALTH_DIR):
             return listings
-
-        # Load or initialize stateful seen ledger
-        os.makedirs(os.path.dirname(INSTAHYRE_LEDGER_PATH), exist_ok=True)
-        ledger: dict[str, dict[str, Any]] = {}
-        if os.path.exists(INSTAHYRE_LEDGER_PATH):
-            try:
-                with open(INSTAHYRE_LEDGER_PATH, "r", encoding="utf-8") as f:
-                    ledger = json.load(f)
-            except Exception:
-                ledger = {}
 
         now = datetime.utcnow()
 
@@ -247,6 +237,7 @@ class InstahyreCollector:
                                 location: o.job ? (o.job.locations || 'Bengaluru') : 'Bengaluru',
                                 skills: o.job ? (o.job.skills || []) : [],
                                 summary: o.employer ? (o.employer.summary || '') : '',
+                                opportunity_url: o.job ? o.job.opportunity_url : '',
                             }));
                         }"""
                     )
@@ -256,32 +247,48 @@ class InstahyreCollector:
                         title = o.get("title") or ""
                         company = o.get("company") or "Instahyre Verified Employer"
                         location = o.get("location") or "Bengaluru, India"
+                        opp_path = o.get("opportunity_url") or f"/job-{jid}"
                         if not jid or not title:
                             continue
 
                         if filter_sdet and not is_sdet_title(title):
                             continue
 
-                        # Freshness enforcement via ledger
-                        record = ledger.get(jid)
-                        if record:
-                            first_seen_str = record.get("first_seen_at")
-                            if first_seen_str:
-                                try:
-                                    first_seen_dt = datetime.fromisoformat(first_seen_str)
-                                    age_days = (now - first_seen_dt).total_seconds() / 86400.0
-                                    if age_days > max_age_days:
-                                        continue  # Drop opportunities seen more than 3 days ago
-                                except Exception:
-                                    pass
-                        else:
-                            ledger[jid] = {
-                                "first_seen_at": now.isoformat(),
-                                "title": title,
-                                "company": company,
-                            }
+                        canonical_url = f"{self.BASE_URL}{opp_path}" if opp_path.startswith("/") else opp_path
 
-                        canonical_url = f"{self.BASE_URL}/job-{jid}"
+                        # STRICT DATE AUDIT: Inspect Schema.org JSON-LD datePosted on the actual job page
+                        posted_dt = None
+                        try:
+                            await page.goto(canonical_url, timeout=12000, wait_until="domcontentloaded")
+                            date_str = await page.evaluate(
+                                """() => {
+                                    const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+                                    for (const s of scripts) {
+                                        try {
+                                            const d = JSON.parse(s.innerText);
+                                            if (d.datePosted) return d.datePosted;
+                                        } catch(e) {}
+                                    }
+                                    return null;
+                                }"""
+                            )
+                            if date_str:
+                                dt = datetime.fromisoformat(date_str)
+                                age_days = (now - dt).total_seconds() / 86400.0
+                                if age_days > max_age_days:
+                                    # Stale historical mandate (>3d) — REJECT
+                                    continue
+                                posted_dt = dt
+                            else:
+                                # If datePosted cannot be verified on Instahyre, discard to prevent false positives
+                                continue
+                        except Exception as date_err:
+                            _ = date_err
+                            continue
+
+                        if not posted_dt:
+                            continue
+
                         skills_text = ", ".join(o.get("skills", []))
                         summary_text = o.get("summary", "")
                         desc = f"{title} at {company} in {location}. Skills: {skills_text}. {summary_text}".strip()
@@ -297,17 +304,13 @@ class InstahyreCollector:
                             job_description_raw=desc,
                             job_description_clean=desc,
                             url=canonical_url,
-                            posted_at=now,
+                            posted_at=posted_dt,
                             discovered_at=now,
                             status="pending",
                         )
                         listings.append(listing)
                         if len(listings) >= limit:
                             break
-
-                    # Save updated ledger atomically
-                    with open(INSTAHYRE_LEDGER_PATH, "w", encoding="utf-8") as f:
-                        json.dump(ledger, f, indent=2)
 
                 finally:
                     await ctx.close()
