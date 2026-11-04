@@ -307,6 +307,16 @@ class ATSDiscoveryCoordinator:
                 except Exception as e:
                     print(f"⚠️ Tailoring failed for {item.job_title} @ {item.company_name}: {e}")
 
+            # 3-Tier Interview Routing Classification & Freshness Stamping
+            try:
+                from src.tailor.referral_generator import InterviewRouter
+
+                routing = InterviewRouter.classify_job_strategy(payload)
+                payload["routing_strategy"] = routing
+                payload["freshness_badge"] = routing.get("freshness_badge", "📅 STANDARD")
+            except Exception:
+                pass
+
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2)
 

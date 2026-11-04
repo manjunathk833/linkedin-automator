@@ -35,7 +35,7 @@ class PDFGenerator:
             page = await browser.new_page()
 
             # Load the raw HTML
-            await page.set_content(html_with_styles, wait_until="networkidle")
+            await page.set_content(html_with_styles, wait_until="load")
 
             # Print to PDF
             await page.pdf(
