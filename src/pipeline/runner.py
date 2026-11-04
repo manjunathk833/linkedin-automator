@@ -54,19 +54,47 @@ class JobSearchPipelineRunner:
         linkedin_jobs: list[dict[str, Any]] = []
 
         # -------------------------------------------------------------
-        # TRACK 1: DIRECT KEYLESS ATS INGESTION (Greenhouse, Lever, Ashby, Workday)
+        # TRACK 1: DIRECT KEYLESS ATS & TECH PORTALS INGESTION
+        # (Greenhouse, Lever, Ashby, Workday, Hirist, Instahyre)
         # -------------------------------------------------------------
-        if target_source in ["all", "ats", "trio"]:
+        if target_source in ["all", "ats", "trio", "portals"]:
             print("\n" + "-" * 55)
-            print("  🌐 [TRACK 1] DIRECT KEYLESS ATS INGESTION (Greenhouse, Lever, Ashby, Workday)")
+            print("  🌐 [TRACK 1] DIRECT KEYLESS ATS & TECH PORTALS INGESTION")
             print("-" * 55)
             try:
                 coordinator = ATSDiscoveryCoordinator(use_ai=self.use_ai)
-                listings = await coordinator.ingest_all_sources(filter_sdet=True)
+                listings = []
+                if target_source in ["all", "ats", "trio"]:
+                    ats_listings = await coordinator.ingest_all_sources(filter_sdet=True)
+                    listings.extend(ats_listings)
+                if target_source in ["all", "ats", "trio", "portals"]:
+                    portal_listings = await coordinator.ingest_direct_portals(filter_sdet=True)
+                    listings.extend(portal_listings)
+
                 ats_saved_paths = coordinator.save_listings_to_queue(listings, tailor=True)
-                print(f"✅ Track 1 Complete: {len(ats_saved_paths)} enterprise role(s) queued.\n")
+                print(f"✅ Track 1 Complete: {len(ats_saved_paths)} enterprise & direct portal role(s) queued.\n")
             except Exception as e:
                 print(f"⚠️ Track 1 (ATS Ingestion) encountered warning: {e}\n")
+        elif target_source in ["hirist", "instahyre"]:
+            print("\n" + "-" * 55)
+            print(f"  🌐 DIRECT TECH PORTAL INGESTION ({target_source.upper()})")
+            print("-" * 55)
+            try:
+                coordinator = ATSDiscoveryCoordinator(use_ai=self.use_ai)
+                if target_source == "hirist":
+                    portal_listings = await coordinator.hirist.fetch_jobs(
+                        query="SDET", location="bangalore", filter_sdet=True
+                    )
+                else:
+                    portal_listings = []
+                    for slug in coordinator.instahyre.CURATED_SLUGS[:2]:
+                        portal_listings.extend(await coordinator.instahyre.fetch_feed_jobs(slug=slug, filter_sdet=True))
+                ats_saved_paths = coordinator.save_listings_to_queue(portal_listings, tailor=True)
+                print(
+                    f"✅ {target_source.capitalize()} Portal Ingestion Complete: {len(ats_saved_paths)} role(s) queued.\n"
+                )
+            except Exception as e:
+                print(f"⚠️ {target_source.capitalize()} Ingestion encountered warning: {e}\n")
 
         # -------------------------------------------------------------
         # TRACK 2: LINKEDIN MULTI-CHANNEL DISCOVERY (Search, Rec, Posts, Sim)

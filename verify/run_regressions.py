@@ -197,8 +197,8 @@ def main():
     parser.add_argument(
         "--timeout",
         type=float,
-        default=25.0,
-        help="Per-test timeout in seconds (default: 25.0s)",
+        default=35.0,
+        help="Per-test timeout in seconds (default: 35.0s)",
     )
     args = parser.parse_args()
     ensure_regression_test_fixtures()

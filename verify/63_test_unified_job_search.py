@@ -231,6 +231,9 @@ def test_unified_runner_orchestration():
     with (
         patch.object(ATSDiscoveryCoordinator, "ingest_all_sources", new_callable=AsyncMock) as mock_ats_ingest,
         patch.object(
+            ATSDiscoveryCoordinator, "ingest_direct_portals", new_callable=AsyncMock, return_value=[]
+        ) as mock_portal_ingest,
+        patch.object(
             ATSDiscoveryCoordinator, "save_listings_to_queue", return_value=["path1", "path2"]
         ) as mock_ats_save,
         patch.object(
@@ -245,12 +248,14 @@ def test_unified_runner_orchestration():
         # Case A: source = "all"
         asyncio.run(runner.run_search_stage(source="all"))
         assert mock_ats_ingest.called, "Track 1 (ATS) must be called for source='all'"
+        assert mock_portal_ingest.called, "Track 1 (Portals) must be called for source='all'"
         assert mock_ats_save.called, "Track 1 save must be called for source='all'"
         assert mock_li_search.called, "Track 2 (LinkedIn) must be called for source='all'"
         assert mock_posts.called, "Track 3 (Posts) must be called for source='all'"
 
         # Reset mocks
         mock_ats_ingest.reset_mock()
+        mock_portal_ingest.reset_mock()
         mock_li_search.reset_mock()
         mock_posts.reset_mock()
 
