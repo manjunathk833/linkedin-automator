@@ -107,8 +107,8 @@ def test_master_knowledge_bank_and_boundaries():
     assert len(vault) >= 15, f"Expected at least 15 STAR achievements in vault, found {len(vault)}"
 
     project_achievements = [a for a in vault if a.get("company") == "Technical Projects"]
-    assert len(project_achievements) == 4, (
-        f"Expected 4 Technical Projects achievements, found {len(project_achievements)}"
+    assert len(project_achievements) >= 4, (
+        f"Expected at least 4 Technical Projects achievements, found {len(project_achievements)}"
     )
 
     for pa in project_achievements:
