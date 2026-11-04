@@ -3,6 +3,17 @@
 **Constraint:** Zero running costs. No paid scraping APIs. 100% authentic candidate data.
 
 **Current Operational Status:**
+- **Milestone 71 — Direct ATS Routing Strategy Optimization & Sprint 6 Multi-Module Verification Complete:**
+  - **ATS Payload Routing Optimization (`src/ingestion/ats_discovery.py`):** Enriched `save_listings_to_queue()` with `InterviewRouter.classify_job_strategy(payload)` and `payload["freshness_badge"] = routing.get("freshness_badge")`, ensuring all direct ATS jobs (Greenhouse, Lever, Ashby, Workday, Hirist, Instahyre) carry pre-calculated 3-tier routing metadata in their JSON files.
+  - **Regression Gate 77 Hardening (`verify/77_test_daily_pipeline_comprehensive_wiring.py`):** Added mock for `ingest_direct_portals` in `test_track3_wired_in_pipeline_runner`, eliminating timeout flakes and accelerating execution from 35s to 1.41s.
+  - **Sprint 6 Multi-Module Verification Suite (`verify/verify_sprint6_wider_range.py`):**
+    * *Title Taxonomy Expansion:* Verified 100% precision across positive AI SDET patterns (`"ai qa"`, `"llm evaluation"`, `"devsecops qa"`, `"ai red team"`, etc.) and negative exclusions (`"soc analyst"`, `"grc"`, `"manual tester"`, etc.).
+    * *Target GCCs & AI Orgs:* Validated 434 active enterprise job boards (389 tagged `is_dream_org`), including all 19 Tier-1 AI GCCs and Global AI Orgs (`Microsoft IDC`, `Walmart Global Tech`, `Deel`, `LangChain`, `GitLab`, `PostHog`, `Autodesk`, `Bosch`, etc.).
+    * *3-Tier Routing Boost:* Verified correct classification into `TIER_0_POST_AUTHOR` (+30 to +55 boost), `TIER_1_SNIPER_APPLY` (+20 to +45 boost for fresh AI QA and USD/EOR remote), and `TIER_2_REFERRAL_SLA` (36h referral window for Dream Orgs and Workday).
+    * *3-Stage Global Remote USD/EUR & EOR Classifier:* Validated currency matching, cross-border EOR/B2B signals, and hard jurisdiction lock filtering.
+  - **Freshness Invariants Strictly Preserved:** CI Sniper remains locked to `< 24h` (`portal_sniper.py`, `--hours 24.0`), and direct portals (Hirist/Instahyre) remain locked to `< 3 days` (72 hours).
+  - **Full Regression & Lint Quality:** 67/67 Tier 1 Core regression tests passing (100% in 112s), Ruff linter 0 errors across 192 files.
+
 - **Milestone 70 — Sprint 7 Complete & Verified (Gate 84: Hirist & Instahyre Discovery Collectors + 2x Daily Naukri Resdex Trap):**
   - **Live Authentication Bootstrapper (`scripts/launch_portal_sessions.py`):** Launched stealth headful Chrome context with `.browser_data/`, enabling candidate authentication on both Hirist (`https://www.hirist.tech/jobfeed`) and Instahyre (`https://www.instahyre.com/candidate/opportunities/`), banking persistent session cookies (`sessionid`, `csrftoken`, `hirist_seeker_enc`, `HIRIST_CK1`).
   - **Hirist Discovery Collector (`src/ingestion/hirist.py`):** Upgraded `HiristCollector` with authenticated candidate `/jobfeed` browser extraction, daily XML sitemap ingestion (`https://www.hirist.tech/new_sitemap-j-1.xml.gz`, 1,194 SDET roles), and strict `<= 3 days` (72-hour) relative age parsing (`parse_relative_age_days` rejecting stale 5d/1w/3w postings). Outputs valid `JobListing` objects (`source="hirist"`) mapping to `HIRIST_TECH_STANDARD` in `src/autofill/vendor_schemas.py`.

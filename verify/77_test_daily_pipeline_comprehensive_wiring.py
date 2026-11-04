@@ -67,10 +67,14 @@ def test_track3_wired_in_pipeline_runner():
         patch(
             "src.ingestion.ats_discovery.ATSDiscoveryCoordinator.ingest_all_sources", new_callable=AsyncMock
         ) as m_ats,
+        patch(
+            "src.ingestion.ats_discovery.ATSDiscoveryCoordinator.ingest_direct_portals", new_callable=AsyncMock
+        ) as m_portals,
         patch("src.ingestion.ats_discovery.ATSDiscoveryCoordinator.save_listings_to_queue", return_value=["p1.json"]),
         patch("src.posts.post_tracker.LinkedInPostTracker.discover_posts", new_callable=AsyncMock) as m_posts,
     ):
         m_ats.return_value = []
+        m_portals.return_value = []
         m_posts.return_value = mock_posts
 
         asyncio.run(pipeline.run_search_stage(source="all", headless=True))
