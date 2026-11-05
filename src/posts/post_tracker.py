@@ -8,6 +8,7 @@ and Candidate Activity.
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 import urllib.parse
 from pathlib import Path
@@ -22,6 +23,8 @@ from src.storage.database import ApplicationDatabase
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 STORAGE_STATE = PROJECT_ROOT / ".browser_data" / "storage_state.json"
+CANDIDATE_MASTER_DATA = PROJECT_ROOT / "data" / "profile" / "candidate_master_data.json"
+DEFAULT_CANDIDATE_LINKEDIN = "https://www.linkedin.com/in/manjunath-h-k-ab30b1146/"
 
 DEFAULT_SEARCH_QUERIES = [
     '("SDET" OR "Software Engineer in Test") hiring (Bangalore OR Bengaluru OR India OR Remote)',
@@ -35,6 +38,7 @@ DEFAULT_SEARCH_QUERIES = [
 def sanitize_post_text(text: str, author_name: str = "") -> str:
     """
     Sanitizes post commentary text:
+    0. Removes candidate reaction banners ('Manjunath H K likes this', '<Name> reacted to this')
     1. Removes prepended author metadata header (<Name> • <Degree> <Headline> <Time> • (Follow|Connect))
     2. Strips trailing reaction junk ('… more5 reactions', '12 reactions • 3 comments', etc.)
     3. Strips residual '… see more' / 'Show less' expansion artifacts.
@@ -44,6 +48,14 @@ def sanitize_post_text(text: str, author_name: str = "") -> str:
         return ""
 
     cleaned = text.strip()
+
+    # Case 0: Strip leading reaction banner (e.g. "Feed post Manjunath H K likes this")
+    cleaned = re.sub(
+        r"^(?:Feed post\s+)?(?:[A-Z][a-zA-Z\s\.\-]{2,35}\s+(?:likes?|reacted\s+to|loves?|celebrates?|supports?|finds?\s+this\s+insightful)\s+this\s*)+",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    ).strip()
 
     # Case 1: Text starts with author name (e.g. "VISHAL PATIL • 2nd...")
     stripped = False
@@ -110,6 +122,29 @@ class LinkedInPostTracker:
         self.db = db or ApplicationDatabase()
         self.classifier = PostClassifier()
         self.composer = PostOutreachComposer()
+        self.candidate_linkedin_url = self._load_candidate_linkedin_url()
+        self.candidate_slug = (
+            self.candidate_linkedin_url.rstrip("/").split("/in/")[-1].lower()
+            if "/in/" in self.candidate_linkedin_url
+            else "manjunath-h-k-ab30b1146"
+        )
+
+    @staticmethod
+    def _load_candidate_linkedin_url() -> str:
+        """Loads candidate's canonical LinkedIn profile URL from candidate_master_data.json."""
+        try:
+            if CANDIDATE_MASTER_DATA.exists():
+                data = json.loads(CANDIDATE_MASTER_DATA.read_text(encoding="utf-8"))
+                li_url = str(data.get("profiles", {}).get("linkedin") or "").strip()
+                if li_url and "/in/" in li_url:
+                    return li_url.rstrip("/") + "/"
+        except Exception:
+            pass
+        return DEFAULT_CANDIDATE_LINKEDIN
+
+    def resolve_candidate_reactions_url(self) -> str:
+        """Returns the candidate's LinkedIn Recent Activity -> Reactions URL."""
+        return f"{self.candidate_linkedin_url.rstrip('/')}/recent-activity/reactions/"
 
     @staticmethod
     def build_company_hiring_post_query(
@@ -294,16 +329,25 @@ class LinkedInPostTracker:
                 except Exception:
                     pass
 
-            # 2. Extract Author details
+            # 2. Extract Author details (skipping candidate's own reaction header link on /recent-activity/reactions/)
             author_links = await card.locator("a[href*='/in/'], a[href*='/company/']").all()
             author_name = "Unknown"
             author_url = ""
             for al in author_links:
+                href_val = (await al.get_attribute("href") or "").split("?")[0]
+                if self.candidate_slug and self.candidate_slug in href_val.lower():
+                    continue
                 ltxt = (await al.text_content(timeout=1000) or "").strip()
                 clean_name = ltxt.split("•")[0].strip()
-                if clean_name and clean_name.lower() not in ["view profile", "follow", "connect", "feed post"]:
+                if clean_name and clean_name.lower() not in [
+                    "view profile",
+                    "follow",
+                    "connect",
+                    "feed post",
+                    "manjunath h k",
+                ]:
                     author_name = clean_name
-                    author_url = (await al.get_attribute("href") or "").split("?")[0]
+                    author_url = href_val
                     break
 
             if author_name == "Unknown":
@@ -457,19 +501,78 @@ class LinkedInPostTracker:
             return (float(m_mo.group(1)) * 30.0) <= max_days
         return True
 
+    async def scrape_liked_posts(
+        self,
+        page: Any,
+        max_scrolls: int = 4,
+        date_filter: str = "past-week",
+    ) -> list[dict[str, Any]]:
+        """
+        Scrapes the candidate's own LinkedIn Recent Activity -> Reactions feed
+        (e.g., https://www.linkedin.com/in/<slug>/recent-activity/reactions/)
+        to capture hiring/referral posts the user liked on their daily feed.
+        """
+        reactions_url = self.resolve_candidate_reactions_url()
+        liked_leads: list[dict[str, Any]] = []
+        print(f"\n❤️ [Step 0] Scanning Candidate Liked Posts / Reactions: {reactions_url}")
+        try:
+            await page.goto(reactions_url, wait_until="domcontentloaded", timeout=35000)
+            await asyncio.sleep(3.0)
+
+            for _ in range(max_scrolls):
+                await page.evaluate("window.scrollBy(0, 1000)")
+                await asyncio.sleep(1.2)
+
+            cards_loc = page.locator(
+                "div:has(> h2:has-text('Feed post')), div:has(> span:has-text('Feed post')), "
+                ".feed-shared-update-v2, .occludable-update, "
+                "div[data-view-name*='feed-full-update'], div[data-view-name*='search-entity-result'], "
+                ".artdeco-card:has(.feed-shared-text, .update-components-text, span.break-words)"
+            )
+            card_count = await cards_loc.count()
+            self.last_raw_updates_scanned = getattr(self, "last_raw_updates_scanned", 0) + int(card_count)
+            print(f"📦 Scanned {card_count} candidate-liked reaction card(s).")
+
+            for c_idx in range(card_count):
+                card = cards_loc.nth(c_idx)
+                post_lead = await self._extract_post_from_card(card, page)
+                if post_lead:
+                    rel_t = str(post_lead.get("posted_at_relative") or "")
+                    if date_filter and not self.is_post_within_age_limit(rel_t, date_filter):
+                        continue
+                    post_lead["source"] = "liked_activity"
+                    post_lead["is_candidate_liked"] = True
+                    post_lead["quality_score"] = min(100, int(post_lead.get("quality_score", 75)) + 20)
+                    post_id = post_lead["post_id"]
+                    if not self.db.is_hiring_post_saved(
+                        post_id, content_hash=post_lead.get("content_hash")
+                    ) and self.db.save_hiring_post(post_lead):
+                        liked_leads.append(post_lead)
+                        author = post_lead["author_name"]
+                        company = post_lead["company_name"]
+                        role_cat = post_lead["author_role_category"]
+                        score = post_lead["quality_score"]
+                        print(f"  ❤️ [Saved Liked Post] {author} ({role_cat}) @ {company} [Score: {score}]")
+        except Exception as e:
+            print(f"⚠️ Warning scanning candidate liked posts ({reactions_url}): {e}")
+
+        return liked_leads
+
     async def discover_posts(
         self,
         queries: list[str] | None = None,
         date_filter: str = "past-72h",
         max_scrolls: int = 12,
         headless: bool = False,
+        include_liked: bool = True,
     ) -> list[dict[str, Any]]:
         """
-        Executes search on LinkedIn /search/results/content/ and collects qualified posts.
+        Executes candidate liked-posts scan (/recent-activity/reactions/) followed by
+        keyword search on LinkedIn /search/results/content/ and collects qualified posts.
         Maps custom sub-week filters ('past-72h', 'past-48h') to LinkedIn's native 'past-week'
         URL enum while enforcing exact relative-age cutoff per card.
         """
-        target_queries = queries or DEFAULT_SEARCH_QUERIES
+        target_queries = queries if queries is not None else DEFAULT_SEARCH_QUERIES
         discovered_leads: list[dict[str, Any]] = []
         self.last_raw_updates_scanned = 0
         self.last_auth_status: dict[str, Any] = {}
@@ -500,6 +603,13 @@ class LinkedInPostTracker:
                     await capture_zero_yield_evidence(page, "posts_tracker_auth_preflight")
                     self.last_yield_verdict = "AUTH_FAILED"
                     return discovered_leads
+
+                # Step 0: Scan candidate's own Liked Posts / Reactions feed
+                if include_liked:
+                    liked_leads = await self.scrape_liked_posts(
+                        page, max_scrolls=min(max_scrolls, 4), date_filter="past-week"
+                    )
+                    discovered_leads.extend(liked_leads)
 
                 for q_idx, query in enumerate(target_queries):
                     encoded_query = urllib.parse.quote(query)

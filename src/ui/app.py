@@ -1474,6 +1474,24 @@ async def generate_referral_pack_endpoint(job_id: str, request: Request = None):
     pack = ReferralNoteGenerator.generate_referral_pack(payload, recipient_name=recipient_name)
     pack["job_id"] = job_id
     pack["is_dream_org"] = bool(payload.get("is_dream_org", True))
+
+    # Attach any pre-scouted verified contacts from data/logs/referral_reconnaissance.json
+    recon_file = os.path.join(DATA_DIR, "logs", "referral_reconnaissance.json")
+    scouted_leads: list[dict] = []
+    if os.path.exists(recon_file):
+        try:
+            with open(recon_file, "r", encoding="utf-8") as rf:
+                recon_data = json.load(rf)
+            comp_target = str(pack.get("company_name") or "").strip().lower()
+            if isinstance(recon_data, dict) and comp_target:
+                for comp_key, comp_entry in recon_data.items():
+                    if comp_key.lower() in comp_target or comp_target in comp_key.lower():
+                        if isinstance(comp_entry, dict):
+                            scouted_leads = comp_entry.get("leads", [])
+                        break
+        except Exception:
+            pass
+    pack["scouted_leads"] = scouted_leads
     return {"status": "success", "referral_pack": pack}
 
 

@@ -135,13 +135,20 @@ class AutofillSelfHealer:
         error_msg = str(original_error)
         page = getattr(target, "page", target)
         selector_str = str(locator)
+        matched_lesson = self.find_matching_lesson(vendor=vendor, field_name=field_name, error_msg=error_msg)
+        lesson_id = matched_lesson.get("id") if matched_lesson else None
 
         self.logger.log(
             event_type="SELF_HEALING_TRIGGERED",
-            message=f"Self-healing activated for '{field_name}': {error_msg[:80]}",
+            message=f"Self-healing activated for '{field_name}' (lesson={lesson_id or 'NONE'}): {error_msg[:80]}",
             vendor=vendor,
             state=stage,
-            details={"action_type": action_type, "locator": selector_str, "error": error_msg},
+            details={
+                "action_type": action_type,
+                "locator": selector_str,
+                "error": error_msg,
+                "matched_lesson_id": lesson_id,
+            },
         )
 
         # Attempt 1: Targeted Remediation Recipe based on Error Classification
