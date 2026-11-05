@@ -104,6 +104,22 @@ async def handle_apply(config: dict[str, Any], dry_run: bool = True):
         }
         history.append(log_entry)
 
+        # Persist non-dry-run completions into SQLite ApplicationDatabase
+        if not dry_run and result.get("status") in ("SUBMITTED", "APPLIED"):
+            try:
+                from src.storage.database import ApplicationDatabase
+
+                ApplicationDatabase().record_application(
+                    job_id=job_id,
+                    company_name=company,
+                    job_title=title,
+                    job_url=payload.get("url") or payload.get("job_url") or "",
+                    status="applied",
+                    application_mode="batch_auto",
+                )
+            except Exception as db_err:
+                print(f"⚠️ Warning recording application {job_id} to SQLite: {db_err}")
+
         # Write log back
         with open(history_file, "w") as f:
             json.dump(history, f, indent=2)
@@ -682,12 +698,37 @@ async def _run_referral_scout_async(
                 )
 
             scored_leads.sort(key=lambda x: x["reply_score"], reverse=True)
+            top_leads = scored_leads[:5]
             recon_data[comp] = {
                 "target_role": t["role"],
                 "target_req_id": t["req_id"],
                 "job_url": t["job_url"],
-                "leads": scored_leads[:5],
+                "leads": top_leads,
             }
+            try:
+                from src.storage.database import ApplicationDatabase
+
+                db = ApplicationDatabase()
+                existing_urls = {
+                    str(r.get("contact_linkedin_url") or "")
+                    for r in db.get_referral_outreach(job_id=str(t["req_id"]), limit=50)
+                }
+                for lead in top_leads:
+                    if lead.get("url") and lead["url"] not in existing_urls:
+                        db.log_referral_outreach(
+                            job_id=str(t["req_id"]),
+                            company_name=comp,
+                            job_title=t["role"],
+                            outreach_type="CONNECTION_NOTE",
+                            note_content=lead.get("connection_note", ""),
+                            requisition_id=str(t["req_id"]),
+                            contact_name=lead.get("name"),
+                            contact_title=lead.get("headline"),
+                            contact_linkedin_url=lead.get("url"),
+                            status="GENERATED",
+                        )
+            except Exception as db_e:
+                print(f"⚠️ Warning syncing referral leads to SQLite for {comp}: {db_e}")
             print(f"✅ Discovered {len(scored_leads)} high-probability contacts for {comp} (saved top 5).")
 
     recon_path.write_text(json.dumps(recon_data, indent=2), encoding="utf-8")
@@ -717,9 +758,9 @@ def main():
     )
     parser_run.add_argument(
         "--source",
-        choices=["all", "linkedin", "ats", "hirist", "instahyre", "portals"],
+        choices=["all", "linkedin", "ats", "hirist", "instahyre", "portals", "posts", "trio"],
         default="all",
-        help="Job discovery source: 'all', 'linkedin', 'ats', 'hirist', 'instahyre', or 'portals' (default: all)",
+        help="Job discovery source: 'all', 'linkedin', 'ats', 'hirist', 'instahyre', 'portals', 'posts', or 'trio' (default: all)",
     )
     parser_run.add_argument(
         "--headless",
@@ -734,9 +775,9 @@ def main():
     )
     parser_search.add_argument(
         "--source",
-        choices=["all", "linkedin", "ats", "hirist", "instahyre", "portals"],
+        choices=["all", "linkedin", "ats", "hirist", "instahyre", "portals", "posts", "trio"],
         default="all",
-        help="Job discovery source: 'all', 'linkedin', 'ats', 'hirist', 'instahyre', or 'portals' (default: all)",
+        help="Job discovery source: 'all', 'linkedin', 'ats', 'hirist', 'instahyre', 'portals', 'posts', or 'trio' (default: all)",
     )
     parser_search.add_argument(
         "--headless",
@@ -862,9 +903,9 @@ def main():
     )
     parser_posts.add_argument(
         "--date-filter",
-        choices=["past-24h", "past-week"],
-        default="past-week",
-        help="Date filter for LinkedIn content search: 'past-week' (default) or 'past-24h'",
+        choices=["past-24h", "past-48h", "past-72h", "past-week", "past-month"],
+        default="past-72h",
+        help="Date filter for LinkedIn content search: 'past-72h' (default), 'past-48h', 'past-24h', or 'past-week'",
     )
     parser_posts.add_argument(
         "--limit",
@@ -935,8 +976,14 @@ def main():
     parser_syncci.add_argument(
         "--fetch-remote",
         action="store_true",
-        default=False,
-        help="Fetch latest data/ci_inbox/latest_ci_drops.json from origin/ci-job-drops git branch first",
+        default=True,
+        help="Fetch latest data/ci_inbox/latest_ci_drops.json from origin/ci-job-drops git branch first (default: True)",
+    )
+    parser_syncci.add_argument(
+        "--local-only",
+        action="store_false",
+        dest="fetch_remote",
+        help="Skip remote git fetch and sync strictly from local data/ci_inbox/latest_ci_drops.json",
     )
 
     # 18. org-research (Cycle 1: Explicit Organization Watchlist Auditor & Endpoint Fingerprinter)

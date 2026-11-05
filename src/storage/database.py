@@ -577,12 +577,179 @@ class ApplicationDatabase:
             }
 
     def delete_application(self, job_id: str) -> bool:
-        """Deletes an application record by job_id."""
+        """Deletes an application record by job_id and cleans up processed_jobs.json & daily_submission_limits."""
+        comp_name = ""
+        title_name = ""
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            cursor.execute("SELECT company_name, job_title FROM job_applications WHERE id = ?", (job_id,))
+            row = cursor.fetchone()
+            if row:
+                comp_name = (row["company_name"] or "").strip()
+                title_name = (row["job_title"] or "").strip()
             cursor.execute("DELETE FROM job_applications WHERE id = ?", (job_id,))
+            deleted = cursor.rowcount > 0
+            if deleted and os.path.abspath(self.db_path) == os.path.abspath(DEFAULT_DB_PATH):
+                bucket = self._get_today_bucket()
+                cursor.execute(
+                    "SELECT COUNT(*) AS cnt FROM job_applications WHERE DATE(applied_at) = ?",
+                    (bucket,),
+                )
+                cnt = int(cursor.fetchone()["cnt"])
+                cursor.execute(
+                    "UPDATE daily_submission_limits SET submission_count = ? WHERE date_bucket = ?",
+                    (cnt, bucket),
+                )
             conn.commit()
-            return cursor.rowcount > 0
+
+        if deleted and os.path.abspath(self.db_path) == os.path.abspath(DEFAULT_DB_PATH):
+            proc_path = os.path.join(PROJECT_ROOT, "data", "processed_jobs.json")
+            if os.path.exists(proc_path):
+                try:
+                    with open(proc_path, "r", encoding="utf-8") as f:
+                        proc_data = json.load(f)
+                    modified = False
+                    job_ids_map = proc_data.get("job_ids", {})
+                    if job_id in job_ids_map:
+                        del job_ids_map[job_id]
+                        modified = True
+                    if comp_name and title_name:
+                        norm = f"{comp_name.lower()}_{title_name.lower()}"
+                        c_hash = hashlib.md5(norm.encode("utf-8")).hexdigest()
+                        comp_hashes = proc_data.get("composite_hashes", {})
+                        if c_hash in comp_hashes:
+                            del comp_hashes[c_hash]
+                            modified = True
+                    if modified:
+                        with open(proc_path, "w", encoding="utf-8") as f:
+                            json.dump(proc_data, f, indent=2)
+                except Exception:
+                    pass
+        return deleted
+
+    def prune_synthetic_and_polluted_records(self) -> dict[str, int]:
+        """
+        Surgically purges synthetic test records, early non-SDET/intern filter leaks,
+        polluted Hirist title-as-company requisitions, and synthetic processed_jobs.json keys
+        while preserving all authentic SDET applications.
+        """
+        summary = {
+            "deleted_applications": 0,
+            "deleted_requisitions": 0,
+            "resynced_limit_buckets": 0,
+            "pruned_processed_ids": 0,
+            "pruned_composite_hashes": 0,
+        }
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                DELETE FROM job_applications
+                WHERE id LIKE 'mark_endpoint_test_%'
+                   OR id LIKE 'test_%'
+                   OR id LIKE 'scraper_guard_%'
+                   OR id LIKE 'purge_test_%'
+                   OR id LIKE 'GATE60_%'
+                   OR id IN (
+                       'TEST-GATE60-CONFIRM',
+                       'p1_job_3',
+                       'p1_job_6',
+                       'postman_frontend_sdet',
+                       'greenhouse_coinbase_8031208',
+                       'greenhouse_instacart_8077510',
+                       'greenhouse_scopely_5448999008',
+                       '4467845446'
+                   );
+                """
+            )
+            summary["deleted_applications"] = cursor.rowcount
+
+            cursor.execute(
+                """
+                DELETE FROM tracked_requisitions
+                WHERE ats_provider = 'hirist'
+                  AND company_slug IN (
+                      'ai_test_architect',
+                      'qa_engineer',
+                      'quality_assurance_automation_engineer',
+                      'quality_assurance_automation_tester',
+                      'hirist_enterprise'
+                  );
+                """
+            )
+            summary["deleted_requisitions"] = cursor.rowcount
+
+            # Resync daily_submission_limits to authentic application counts per date_bucket
+            cursor.execute("SELECT date_bucket FROM daily_submission_limits;")
+            buckets = [r["date_bucket"] for r in cursor.fetchall()]
+            for b in buckets:
+                cursor.execute(
+                    "SELECT COUNT(*) AS cnt FROM job_applications WHERE DATE(applied_at) = ?",
+                    (b,),
+                )
+                true_cnt = int(cursor.fetchone()["cnt"])
+                cursor.execute(
+                    "UPDATE daily_submission_limits SET submission_count = ? WHERE date_bucket = ?",
+                    (true_cnt, b),
+                )
+                summary["resynced_limit_buckets"] += 1
+
+            conn.commit()
+
+        proc_path = os.path.join(PROJECT_ROOT, "data", "processed_jobs.json")
+        if os.path.exists(proc_path) and os.path.abspath(self.db_path) == os.path.abspath(DEFAULT_DB_PATH):
+            try:
+                with open(proc_path, "r", encoding="utf-8") as f:
+                    proc_data = json.load(f)
+                job_ids = proc_data.get("job_ids", {})
+                synthetic_prefixes = (
+                    "mark_endpoint_test_",
+                    "test_",
+                    "scraper_guard_",
+                    "purge_test_",
+                    "GATE60_",
+                    "TEST-GATE60",
+                    "p1_job_",
+                )
+                synthetic_exact = {
+                    "postman_frontend_sdet",
+                    "greenhouse_coinbase_8031208",
+                    "greenhouse_instacart_8077510",
+                    "greenhouse_scopely_5448999008",
+                    "4467845446",
+                    "hirist_1682386",
+                }
+                keys_to_drop = [k for k in job_ids if k.startswith(synthetic_prefixes) or k in synthetic_exact]
+                for k in keys_to_drop:
+                    del job_ids[k]
+                summary["pruned_processed_ids"] = len(keys_to_drop)
+
+                comp_hashes = proc_data.get("composite_hashes", {})
+                synthetic_company_tokens = (
+                    "tracking metrics corp_",
+                    "triggertest technologies_",
+                    "defense corp_",
+                    "autopurge inc_",
+                    "unit test tech_",
+                    "swiggy test_",
+                    "ai test architect_",
+                )
+                hashes_to_drop = [
+                    h
+                    for h, meta in comp_hashes.items()
+                    if isinstance(meta, dict)
+                    and str(meta.get("normalized", "")).lower().startswith(synthetic_company_tokens)
+                ]
+                for h in hashes_to_drop:
+                    del comp_hashes[h]
+                summary["pruned_composite_hashes"] = len(hashes_to_drop)
+
+                with open(proc_path, "w", encoding="utf-8") as f:
+                    json.dump(proc_data, f, indent=2)
+            except Exception:
+                pass
+
+        return summary
 
     @staticmethod
     def compute_requisition_hash(job_title: str, location: str, description_clean: str) -> str:
@@ -757,9 +924,7 @@ class ApplicationDatabase:
         status: str = "GENERATED",
     ) -> str:
         """Logs a generated referral connection note or InMail into SQLite."""
-        outreach_id = (
-            f"ref_{job_id}_{hashlib.md5(f'{outreach_type}:{datetime.datetime.utcnow()}'.encode()).hexdigest()[:8]}"
-        )
+        outreach_id = f"ref_{job_id}_{hashlib.md5(f'{outreach_type}:{contact_linkedin_url or contact_name}:{datetime.datetime.utcnow()}'.encode()).hexdigest()[:8]}"
         now = datetime.datetime.utcnow().isoformat() + "Z"
         with self._get_connection() as conn:
             cursor = conn.cursor()

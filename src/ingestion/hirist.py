@@ -244,13 +244,16 @@ class HiristCollector:
                         """els => els.map(el => {
                             const link = el.querySelector('a[href*="/j/"]');
                             const href = link ? link.getAttribute('href') : '';
-                            return { href, text: el.innerText };
+                            const compEl = el.querySelector('.company-name, .job-company-name, [class*="company"]');
+                            const domCompany = compEl ? compEl.innerText.trim() : '';
+                            return { href, text: el.innerText, domCompany };
                         })""",
                     )
 
                     for c in raw_cards:
                         href = c.get("href") or ""
                         full_text = c.get("text") or ""
+                        dom_company = (c.get("domCompany") or "").strip()
                         lines = [l.strip() for l in full_text.split("\n") if l.strip()]
                         raw_title = lines[0] if lines else ""
                         if not href or not raw_title:
@@ -266,13 +269,28 @@ class HiristCollector:
                             datetime.utcnow() - timedelta(days=age_days) if age_days is not None else datetime.utcnow()
                         )
 
-                        # 2. SDET Title Qualification
-                        company = "Hirist Enterprise"
+                        # 2. SDET Title & Company Qualification (prevent job title from being parsed as company)
+                        company = dom_company or "Hirist Tech Employer"
                         clean_title = raw_title
                         if " - " in raw_title:
                             parts = raw_title.split(" - ", 1)
-                            company = parts[0].strip()
-                            clean_title = parts[1].strip()
+                            prefix_cand = parts[0].strip()
+                            suffix_cand = parts[1].strip()
+                            role_tokens = (
+                                "sdet",
+                                "qa",
+                                "test",
+                                "quality",
+                                "automation",
+                                "engineer",
+                                "architect",
+                                "lead",
+                            )
+                            if not is_sdet_title(prefix_cand) and not any(
+                                t in prefix_cand.lower() for t in role_tokens
+                            ):
+                                company = prefix_cand
+                                clean_title = suffix_cand
 
                         if filter_sdet and not (is_sdet_title(raw_title) or is_sdet_title(clean_title)):
                             continue
@@ -376,11 +394,14 @@ class HiristCollector:
                     if filter_sdet and not is_sdet_title(raw_title):
                         continue
 
-                    company = "Hirist Enterprise"
+                    company = "Hirist Tech Employer"
                     if " - " in raw_title:
                         parts = raw_title.split(" - ", 1)
-                        company = parts[0].strip()
-                        raw_title = parts[1].strip()
+                        prefix_cand = parts[0].strip()
+                        role_tokens = ("sdet", "qa", "test", "quality", "automation", "engineer", "architect", "lead")
+                        if not is_sdet_title(prefix_cand) and not any(t in prefix_cand.lower() for t in role_tokens):
+                            company = prefix_cand
+                            raw_title = parts[1].strip()
 
                     listing = JobListing(
                         id=f"hirist_{jid}",

@@ -409,77 +409,67 @@ class LinkedInJobFinder:
         max_posts: int = 15,
         tpr_seconds: str = "r259200",
     ) -> list[dict[str, Any]]:
-        """Channel 3: Scrapes direct recruiter hiring posts from /search/results/content/ (default <=72h r259200)."""
-        posts_url = f"https://www.linkedin.com/search/results/content/?keywords={urllib.parse.quote(keywords)}&f_TPR={tpr_seconds}"
+        """
+        Channel 3: Scrapes direct recruiter hiring posts from /search/results/content/ (<=72h)
+        using LinkedInPostTracker SDUI selectors and banks leads directly into SQLite hiring_posts
+        (avoiding duplicate fake EASY_APPLY cards in pending_queue/).
+        """
+        url_date_filter = "past-24h" if tpr_seconds == "r86400" else "past-week"
+        age_cutoff = "past-24h" if tpr_seconds == "r86400" else "past-72h"
+        posts_url = (
+            f"https://www.linkedin.com/search/results/content/?"
+            f"datePosted=%22{url_date_filter}%22&keywords={urllib.parse.quote(keywords)}&sortBy=%22date_posted%22"
+        )
         print("\n" + "=" * 50)
-        print("📣 CHANNEL 3: SCRAPING RECRUITER HIRING POSTS FEED")
+        print("📣 CHANNEL 3: SCRAPING RECRUITER HIRING POSTS FEED (Delegating to Track 3 PostTracker)")
         print(f"🌐 Navigating to: {posts_url}")
         print("=" * 50)
 
-        extracted = []
         try:
+            from src.posts.post_tracker import LinkedInPostTracker
+            from src.storage.database import ApplicationDatabase
+
+            tracker = LinkedInPostTracker(db=ApplicationDatabase())
             await page.goto(posts_url, wait_until="domcontentloaded")
             await asyncio.sleep(3.0)
             for _ in range(4):
                 await page.evaluate("window.scrollBy(0, 1000)")
                 await asyncio.sleep(1.0)
 
-            posts = await page.locator(".feed-shared-update-v2, .search-results-container .artdeco-card").all()
-            print(f"🔍 Found {len(posts)} hiring post(s).")
-            self._record_yield("recruiter_posts", len(posts))
+            cards_loc = page.locator(
+                "div:has(> h2:has-text('Feed post')), div:has(> span:has-text('Feed post')), "
+                ".feed-shared-update-v2, .occludable-update, "
+                "div[data-view-name*='search-entity-result'], "
+                ".artdeco-card:has(.feed-shared-text, .update-components-text, span.break-words)"
+            )
+            card_count = await cards_loc.count()
+            print(f"🔍 Found {card_count} raw hiring post card(s).")
+            self._record_yield("recruiter_posts", card_count)
 
-            for idx, post in enumerate(posts[:max_posts]):
+            saved_count = 0
+            for idx in range(min(card_count, max_posts)):
                 try:
-                    text_elem = post.locator(".feed-shared-text, .update-components-text").first
-                    text = await text_elem.text_content() if await text_elem.count() > 0 else ""
-                    if not text or len(text.strip()) < 30:
-                        continue
-
-                    post_hash = hashlib.md5(text[:200].encode("utf-8")).hexdigest()[:10]
-                    job_id = f"post_hiring_{post_hash}"
-
-                    author_elem = post.locator(".update-components-actor__name, .feed-shared-actor__name").first
-                    author = await author_elem.text_content() if await author_elem.count() > 0 else "LinkedIn Recruiter"
-
-                    if self.is_duplicate(job_id, author.strip(), "Hiring Post"):
-                        continue
-
-                    # Check upfront if author or company is a categorized Dream Org
-                    is_dream = False
-                    try:
-                        from src.storage.database import ApplicationDatabase
-
-                        is_dream = ApplicationDatabase().is_dream_company(author.strip())
-                    except Exception:
-                        pass
-
-                    raw_job = {
-                        "job_id": job_id,
-                        "source": "linkedin",
-                        "discovery_track": "TRACK_2_LINKEDIN",
-                        "discovery_channel": "recruiter_posts",
-                        "is_dream_org": is_dream,
-                        "application_type": "EASY_APPLY",
-                        "job_details": {
-                            "title": f"Hiring Post by {author.strip()}",
-                            "company": author.strip(),
-                            "location": "Remote / India",
-                            "is_dream_org": is_dream,
-                            "requirements": text.strip()[:1000],
-                        },
-                    }
-
-                    tailored = self.tailorer.tailor_job_payload(raw_job)
-                    self.save_job_to_queue(tailored)
-                    self.mark_job_processed(job_id, author.strip(), f"Hiring Post by {author.strip()}")
-                    extracted.append(tailored)
-                    print(f"📣 Enqueued hiring post from: {author.strip()}")
+                    card = cards_loc.nth(idx)
+                    post_lead = await tracker._extract_post_from_card(card, page)
+                    if post_lead:
+                        rel_t = str(post_lead.get("posted_at_relative") or "")
+                        if not tracker.is_post_within_age_limit(rel_t, age_cutoff):
+                            continue
+                        post_id = post_lead["post_id"]
+                        if not tracker.db.is_hiring_post_saved(
+                            post_id, content_hash=post_lead.get("content_hash")
+                        ) and tracker.db.save_hiring_post(post_lead):
+                            saved_count += 1
+                            print(
+                                f"📣 Banked hiring post lead to Track 3 DB: {post_lead.get('author_name')} @ {post_lead.get('company_name')}"
+                            )
                 except Exception as e:
                     print(f"⚠️ Error parsing post {idx}: {e}")
+            print(f"✅ Channel 3 banked {saved_count} qualified hiring post lead(s) into SQLite hiring_posts.")
         except Exception as e:
             print(f"⚠️ Error scraping recruiter posts: {e}")
 
-        return extracted
+        return []
 
     async def scrape_similar_jobs(
         self,

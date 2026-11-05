@@ -62,7 +62,7 @@ class EasyApplyExecutor:
                     await self._human_type(field, profile.personal_details.location)
                     fields_filled += 1
             elif "notice" in label_lower:
-                await self._human_type(field, ea.notice_period or "2 weeks")
+                await self._human_type(field, ea.notice_period or "60 Days")
                 fields_filled += 1
             elif "experience" in label_lower or "years" in label_lower:
                 # Skill query heuristic

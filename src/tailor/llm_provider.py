@@ -92,19 +92,20 @@ Your task is to select and polish the candidate's authentic technical achievemen
 
 ### ABSOLUTE GROUNDING MANDATES (ZERO FABRICATION & ZERO HALLUCINATION):
 1. NO TOOL HALLUCINATION: You may ONLY use tools, frameworks, and languages that appear in the Candidate's Master Vault or Resume Profile.
-2. UNSUPPORTED JD KEYWORDS: If the Target JD asks for a tool the candidate has NOT used (e.g., Playwright, Cypress, Go, C#), NEVER claim experience with that tool. Instead, highlight the candidate's closest authentic equivalent (e.g. REST Assured, Selenium, Appium, Python, Java).
-3. FACTUAL METRICS & COMPANIES: Never invent companies, dates, or quantitative outcomes not present in the Candidate's Vault.
+2. UNSUPPORTED JD KEYWORDS: If the Target JD asks for a tool the candidate has NOT used (e.g., Cypress, Golang, C#, Rust, Tosca), NEVER claim experience with that tool. Instead, highlight the candidate's closest authentic equivalent (e.g. REST Assured, Selenium, Playwright, Appium, Python, Java).
+3. STRICT EMPLOYER BOUNDARY ISOLATION: Modern architecture & AI evaluation tools (Playwright, TypeScript, Docker, Kubernetes, Kafka, WireMock, Pact, DeepEval, RAGAS, Promptfoo, Garak) belong strictly to Technical Projects / Personal Architecture and must NEVER be attributed to historical employers (Value Labs, Dunzo, Tata Elxsi).
+4. FACTUAL METRICS & COMPANIES: Never invent companies, dates, or quantitative outcomes not present in the Candidate's Vault.
 
 ### GOOD vs BAD EXAMPLES:
 
 ❌ BAD (FABRICATED):
 - Raw Candidate Skill: REST Assured, Java, Postman
-- Target JD Requirement: Playwright, Cypress, TypeScript
-- Fabricated Output: "Spearheaded web UI automation using Playwright and Cypress..." <-- REJECTED! Candidate never used Playwright!
+- Target JD Requirement: Cypress, Golang, Rust
+- Fabricated Output: "Spearheaded web UI automation using Cypress and Golang..." <-- REJECTED! Candidate never used Cypress or Golang!
 
 ✅ GOOD (GROUNDED & TRUTHFUL):
 - Raw Candidate Skill: REST Assured, Java, Postman
-- Target JD Requirement: Playwright, Cypress, TypeScript
+- Target JD Requirement: Cypress, Golang, Microservices
 - Grounded Output: "PNR Linking & SSR [REST Assured · ReadyAPI · BDD · Java]: Architected scalable API test automation suites cutting execution effort by 93% across airline microservice domains." <-- VALID! Grounded in authentic experience!
 
 ### CANDIDATE PROFILE:

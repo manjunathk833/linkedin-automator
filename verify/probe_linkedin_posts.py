@@ -95,10 +95,11 @@ async def probe_posts():
             await page.screenshot(path=str(SCREENSHOTS_DIR / "probe_reactions_page.png"))
             print(f"📸 Saved screenshot: {SCREENSHOTS_DIR / 'probe_reactions_page.png'}")
 
-            # Inspect feed update containers
-            # Modern LinkedIn feed posts use .feed-shared-update-v2, .occludable-update, or div[data-urn*='activity']
+            # Inspect feed update containers (SDUI + legacy Ember)
             post_locators = page.locator(
-                ".feed-shared-update-v2, .occludable-update, div[data-urn*='activity'], [data-view-name*='feed-full-update'], .artdeco-card:has(.feed-shared-text, .update-components-text)"
+                "div:has(> h2:has-text('Feed post')), div:has(> span:has-text('Feed post')), "
+                ".feed-shared-update-v2, .occludable-update, div[data-urn*='activity'], "
+                "[data-view-name*='feed-full-update'], .artdeco-card:has(.feed-shared-text, .update-components-text, span.break-words)"
             )
             post_count = await post_locators.count()
             print(f"📦 Discovered {post_count} potential post card(s) on reactions page.")

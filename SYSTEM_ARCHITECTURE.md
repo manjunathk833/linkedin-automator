@@ -10,8 +10,8 @@
 > * [**02_CONCEPTUAL_ARCHITECTURE.md**](docs/02_CONCEPTUAL_ARCHITECTURE.md): Zero-cost economics, dual-track ingestion, and anti-detection threat model.
 > * [**03_TECHNICAL_SPECIFICATION.md**](docs/03_TECHNICAL_SPECIFICATION.md): Exhaustive breakdown of Modules 1–10 and data schemas.
 > * [**04_USAGE_AND_OPERATIONS.md**](docs/04_USAGE_AND_OPERATIONS.md): CLI subcommands and troubleshooting playbooks.
-> * [**05_VERIFICATION_AND_TESTING.md**](docs/05_VERIFICATION_AND_TESTING.md): Catalog of all 63 Tier 1 Core + 18 Tier 2 Autofill verification test scripts.
-> * [**RESEARCH_1000_ORG_CI_PORTAL_SNIPER.md**](docs/RESEARCH_1000_ORG_CI_PORTAL_SNIPER.md): Explicit 100+ Org CI/CD Career Portal Sniper (`<24h` delta) & Local SQLite/Dashboard Auto-Ingest architecture.
+> * [**05_VERIFICATION_AND_TESTING.md**](docs/05_VERIFICATION_AND_TESTING.md): Catalog of all 68 Tier 1 Core (~19s parallel runner) + 18 Tier 2 Autofill verification test scripts.
+> * [**RESEARCH_1000_ORG_CI_PORTAL_SNIPER.md**](docs/RESEARCH_1000_ORG_CI_PORTAL_SNIPER.md): Explicit 434-Org CI/CD Career Portal Sniper (`<24h` 3x/day delta) & Local SQLite/Dashboard Auto-Ingest architecture.
 
 ---
 
@@ -22,7 +22,7 @@ The **LinkedIn Job Search & Application Automator** is an autonomous, 100% zero-
 ### Core Pillars
 1. **Zero Third-Party Cost Guarantee:** Operates strictly on Google Gemini Free Tier APIs with automatic fallback to local offline LLMs via Ollama (`qwen2.5:7b`). No paid proxies, captcha solvers, or proprietary LLM subscriptions.
 2. **Deterministic Anti-Fabrication Grounding:** AI tailoring is strictly constrained to the candidate's authentic profile and master knowledge vault. A deterministic post-generation validation gate filters out hallucinated tech tools before resumes reach employers.
-3. **Multi-Channel 10X Discovery:** Scrapes beyond standard keyword searches across 4 distinct discovery vectors: Active Search, Recommended Feed, Recruiter Postings, and Similar Jobs.
+3. **Multi-Track 10X Discovery:** Scrapes across Track 1 (434 Direct Enterprise ATS boards + Hirist/Instahyre), Track 2 (LinkedIn AI-Search SDUI `<24h` Sniper, `<72h` Deep Search, Recommended Collections, Company Pages, Similar Jobs), and Track 3 (Candidate Liked Posts `/recent-activity/reactions/` + `<72h` Content Search hiring posts).
 4. **Human-in-the-Loop (HITL) Integrity:** Zero autonomous blind applications. Applications must pass through a local FastAPI Web Dashboard (`http://localhost:8000`) for human inspection, resume diff review, and approval.
 5. **Headful Visual Automation & Safe Session Persistence:** Employs Chrome DevTools Protocol (CDP) and persistent browser profiles with anti-bot stealth parameters to prevent session invalidation or account suspension.
 
