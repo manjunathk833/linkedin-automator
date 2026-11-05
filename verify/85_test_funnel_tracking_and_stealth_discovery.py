@@ -235,6 +235,57 @@ def test_run_daily_prod_network_and_sleep_guards():
     assert "18" in content, "Expected 18 attempts for 90s network wait loop"
     assert "EX_TEMPFAIL" in content or "75" in content, "Expected exit code 75 on network timeout"
     assert "caffeinate" in content, "Expected caffeinate sleep prevention wrapper"
+    assert "Afternoon Fast Sync" in content, "Expected Morning vs Afternoon schedule split in run_daily_prod.sh"
+
+
+def test_multi_track_time_filter_optimizations():
+    """Verifies <=72h ATS age filter, LinkedIn past_72h (f_TPR=r259200), and Track 3 post age filter."""
+    from datetime import datetime, timedelta
+
+    from src.ingestion.ats_discovery import ATSDiscoveryCoordinator
+    from src.posts.post_tracker import LinkedInPostTracker
+    from src.scraper.job_finder import LinkedInJobFinder
+    from src.storage.models import JobListing
+
+    now = datetime.utcnow()
+    fresh_listing = JobListing(
+        id="gh_fresh",
+        source="greenhouse",
+        company_name="Postman",
+        job_title="Senior SDET",
+        location="Bengaluru",
+        is_remote=False,
+        job_description_raw="Test",
+        job_description_clean="Test",
+        url="https://boards.greenhouse.io/postman/jobs/1",
+        posted_at=now - timedelta(days=2),
+    )
+    stale_listing = JobListing(
+        id="gh_stale",
+        source="greenhouse",
+        company_name="Postman",
+        job_title="Senior SDET",
+        location="Bengaluru",
+        is_remote=False,
+        job_description_raw="Test",
+        job_description_clean="Test",
+        url="https://boards.greenhouse.io/postman/jobs/2",
+        posted_at=now - timedelta(days=5),
+    )
+    assert ATSDiscoveryCoordinator.is_listing_within_age_limit(fresh_listing, max_age_days=3.0) is True
+    assert ATSDiscoveryCoordinator.is_listing_within_age_limit(stale_listing, max_age_days=3.0) is False
+
+    finder = LinkedInJobFinder(use_ai=False)
+    url_72h = finder.build_search_url(keywords="SDET", location="Bengaluru", time_posted="past_72h")
+    url_48h = finder.build_search_url(keywords="SDET", location="Bengaluru", time_posted="past_48h")
+    assert "f_TPR=r259200" in url_72h
+    assert "f_TPR=r172800" in url_48h
+
+    assert LinkedInPostTracker.is_post_within_age_limit("3h", "past-72h") is True
+    assert LinkedInPostTracker.is_post_within_age_limit("2d", "past-72h") is True
+    assert LinkedInPostTracker.is_post_within_age_limit("3d", "past-72h") is True
+    assert LinkedInPostTracker.is_post_within_age_limit("4d", "past-72h") is False
+    assert LinkedInPostTracker.is_post_within_age_limit("1w", "past-72h") is False
 
 
 if __name__ == "__main__":

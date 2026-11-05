@@ -186,7 +186,34 @@ def run_single_test(file_name: str, timeout_sec: float = 30.0) -> TestResult:
         return TestResult(file_name, "FAIL", duration, str(e))
 
 
+SERIALIZED_STATEFUL_GATES = {
+    "03_test_approval_gate.py",
+    "12_test_search_and_filter.py",
+    "19_test_job_filter_status_sync.py",
+    "34_test_dashboard_data_flow.py",
+    "35_test_approval_gate_coercion.py",
+    "36_test_queue_status_flow.py",
+    "37_test_approved_queue_ui_flow.py",
+    "38_test_static_cache_headers.py",
+    "42_test_safety_governor_cap_200.py",
+    "44_test_resume_professional_naming.py",
+    "45_test_staging_job_metadata_enrichment.py",
+    "52_audit_queue_zero_contamination.py",
+    "53_test_resume_comparison_and_selection.py",
+    "54_test_pdf_inline_preview_headers.py",
+    "61_test_application_tracking_and_auto_purge.py",
+    "62_test_user_driven_applied_and_approved_purge.py",
+    "63_test_unified_job_search.py",
+    "64_test_source_badge_accuracy.py",
+    "80_test_submission_verifier_and_guardrails.py",
+    "81_test_stealth_browser_cdp_reuse.py",
+    "107_test_mark_applied_force_override.py",
+}
+
+
 def main():
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     parser = argparse.ArgumentParser(description="Standardized Regression Test Runner")
     parser.add_argument(
         "--tier",
@@ -201,6 +228,12 @@ def main():
         default=35.0,
         help="Per-test timeout in seconds (default: 35.0s)",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=6,
+        help="Parallel worker threads for stateless unit gates (default: 6)",
+    )
     args = parser.parse_args()
     ensure_regression_test_fixtures()
 
@@ -214,21 +247,30 @@ def main():
 
     print("\n" + "=" * 65)
     print(f"  STANDARDIZED REGRESSION RUNNER — TIER: {args.tier.upper()}")
-    print(f"  Target: {len(tests_to_run)} test file(s) | Timeout: {args.timeout}s")
+    print(f"  Target: {len(tests_to_run)} test file(s) | Timeout: {args.timeout}s | Workers: {args.workers}")
     print("=" * 65 + "\n")
 
-    results: list[TestResult] = []
+    results_map: dict[str, TestResult] = {}
     total_start = time.time()
 
-    for idx, test_file in enumerate(tests_to_run, start=1):
-        print(
-            f"[{idx:02d}/{len(tests_to_run):02d}] Running {test_file:<45}",
-            end="",
-            flush=True,
-        )
-        res = run_single_test(test_file, timeout_sec=args.timeout)
-        results.append(res)
+    parallel_gates = [t for t in tests_to_run if t not in SERIALIZED_STATEFUL_GATES and t in TIER_1_CORE]
+    serial_gates = [t for t in tests_to_run if t not in parallel_gates]
 
+    if parallel_gates and args.workers > 1:
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            future_to_file = {pool.submit(run_single_test, tf, args.timeout): tf for tf in parallel_gates}
+            for fut in as_completed(future_to_file):
+                res = fut.result()
+                results_map[res.file_name] = res
+
+    for tf in serial_gates:
+        results_map[tf] = run_single_test(tf, timeout_sec=args.timeout)
+
+    results: list[TestResult] = []
+    for idx, test_file in enumerate(tests_to_run, start=1):
+        res = results_map[test_file]
+        results.append(res)
+        print(f"[{idx:02d}/{len(tests_to_run):02d}] Running {test_file:<45}", end="")
         if res.status == "PASS":
             print(f"✅ PASS ({res.duration_sec:.2f}s)")
         elif res.status == "SKIP":

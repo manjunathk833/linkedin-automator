@@ -27,6 +27,8 @@ discovery:
   enable_sniper_fresh_drops: true
   sniper_time_posted: "past_24h"
   sniper_sort_by: "date"
+  ats_max_age_days: 3          # Strict <=72h freshness window for Direct ATS (Greenhouse, Ashby, Lever, Workday, etc.)
+  posts_date_filter: "past-72h" # Strict <=72h freshness window for LinkedIn Hiring Posts (Track 3)
   referral_sla_hours: 36       # Hold Workday/Dream Org cold applications for 36h while referral leads respond
 
 search_profiles:
@@ -36,7 +38,7 @@ search_profiles:
     distance: 25               # Explicit 25 miles (~40 km) radius
     work_types: ["remote", "hybrid", "onsite"]
     experience_levels: ["mid_senior"]
-    time_posted: "past_week"   # High-velocity 7-day window (avoids stale 30-day postings)
+    time_posted: "past_72h"    # High-velocity 72-hour window (f_TPR=r259200, avoids 4-7d crowded postings)
     easy_apply_only: false
     max_jobs: 25
 
@@ -45,7 +47,7 @@ search_profiles:
     location: "India"
     work_types: ["remote"]
     experience_levels: ["mid_senior"]
-    time_posted: "past_week"
+    time_posted: "past_72h"
     easy_apply_only: false
     max_jobs: 25
 
@@ -55,7 +57,7 @@ search_profiles:
     distance: 25
     work_types: ["hybrid", "onsite"]
     experience_levels: ["mid_senior"]
-    time_posted: "past_week"
+    time_posted: "past_72h"
     easy_apply_only: false
     max_jobs: 25
 
@@ -65,7 +67,7 @@ search_profiles:
     distance: 25
     work_types: ["remote", "hybrid", "onsite"]
     experience_levels: ["mid_senior"]
-    time_posted: "past_week"
+    time_posted: "past_72h"
     easy_apply_only: false
     max_jobs: 25
 

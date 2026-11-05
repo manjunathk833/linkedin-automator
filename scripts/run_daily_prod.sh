@@ -69,17 +69,29 @@ if [[ -f "${TARGET_DIR}/.env" ]]; then
     set +a
 fi
 
-# 4. Execute daily automation pipeline (headless + email dispatch)
-# Use caffeinate on macOS to prevent system/display sleep during active run
+# 4. Execute scheduled automation pipeline based on time of day:
+# - Morning Run (<12:00 local time): Full Multi-Track Discovery + Naukri Touch + Email Briefing (--skip-tests)
+# - Afternoon Run (>=12:00 local time): Midday Cloud CI Sniper Sync + Afternoon Naukri Resdex Touch
 CMD_PREFIX=""
 if command -v caffeinate >/dev/null 2>&1; then
     CMD_PREFIX="caffeinate -dimsu"
 fi
 
-echo "Executing: ${CMD_PREFIX} ${VENV_PYTHON} main.py daily --headless" >> "${RUN_LOG}"
-${CMD_PREFIX} "${VENV_PYTHON}" main.py daily --headless >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
-    echo "⚠️ Daily run exited with error code $?" >> "${RUN_LOG}"
-}
+CURRENT_HOUR="$(date +%H)"
+if [[ $((10#${CURRENT_HOUR})) -ge 12 ]]; then
+    echo "Executing Afternoon Fast Sync & Naukri Resdex Refresh (Hour=${CURRENT_HOUR})..." >> "${RUN_LOG}"
+    ${CMD_PREFIX} "${VENV_PYTHON}" main.py sync-ci >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
+        echo "⚠️ Afternoon CI sync exited with code $?" >> "${RUN_LOG}"
+    }
+    ${CMD_PREFIX} "${VENV_PYTHON}" scripts/naukri_pinger.py --headless >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
+        echo "⚠️ Afternoon Naukri refresh exited with code $?" >> "${RUN_LOG}"
+    }
+else
+    echo "Executing Morning Full Pipeline: ${CMD_PREFIX} ${VENV_PYTHON} main.py daily --headless --skip-tests" >> "${RUN_LOG}"
+    ${CMD_PREFIX} "${VENV_PYTHON}" main.py daily --headless --skip-tests >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
+        echo "⚠️ Daily run exited with error code $?" >> "${RUN_LOG}"
+    }
+fi
 
 echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Daily Pipeline Execution Finished" >> "${RUN_LOG}"
 echo "================================================================" >> "${RUN_LOG}"

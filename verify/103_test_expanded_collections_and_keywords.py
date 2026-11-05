@@ -120,12 +120,15 @@ def test_multi_collection_scraper_deduplication():
     finder.scroll_results_pane = AsyncMock()
 
     async def run_test():
-        res = await finder.scrape_recommended_jobs(
-            mock_page,
-            max_jobs=20,
-            max_pages=2,
-            collections=["recommended", "top-applicant"],
-        )
+        from unittest.mock import patch
+
+        with patch("src.scraper.job_finder.asyncio.sleep", new_callable=AsyncMock):
+            res = await finder.scrape_recommended_jobs(
+                mock_page,
+                max_jobs=20,
+                max_pages=2,
+                collections=["recommended", "top-applicant"],
+            )
         assert len(res) == 2, f"Expected 2 deduplicated jobs, got {len(res)}"
         job_ids = [j["job_id"] for j in res]
         assert "4481865334" in job_ids, "Swiggy job ID not found"

@@ -424,21 +424,62 @@ class LinkedInPostTracker:
         except Exception:
             return None
 
+    @staticmethod
+    def is_post_within_age_limit(relative_time: str, date_filter: str = "past-72h") -> bool:
+        """
+        Enforces strict post age filtering on extracted LinkedIn feed cards.
+        Supports 'past-24h' (<=1d), 'past-48h' (<=2d), 'past-72h' (<=3d), and 'past-week' (<=7d).
+        """
+        if not relative_time:
+            return True
+        df = (date_filter or "past-week").lower().strip()
+        max_days = 7.0
+        if df in ("past-24h", "past_24h", "24h"):
+            max_days = 1.0
+        elif df in ("past-48h", "past_48h", "48h"):
+            max_days = 2.0
+        elif df in ("past-72h", "past_72h", "72h"):
+            max_days = 3.0
+        elif df in ("past-month", "past_month"):
+            max_days = 30.0
+
+        t = relative_time.lower().strip()
+        if any(u in t for u in ("now", "sec", "min", "hr", "hour")) or re.search(r"\b\d+\s*[smh]\b", t):
+            return True
+        m_day = re.search(r"\b(\d+)\s*d(?:ay)?s?\b", t)
+        if m_day:
+            return float(m_day.group(1)) <= max_days
+        m_wk = re.search(r"\b(\d+)\s*w(?:eek|k)?s?\b", t)
+        if m_wk:
+            return (float(m_wk.group(1)) * 7.0) <= max_days
+        m_mo = re.search(r"\b(\d+)\s*mo(?:nth)?s?\b", t)
+        if m_mo:
+            return (float(m_mo.group(1)) * 30.0) <= max_days
+        return True
+
     async def discover_posts(
         self,
         queries: list[str] | None = None,
-        date_filter: str = "past-week",
+        date_filter: str = "past-72h",
         max_scrolls: int = 12,
         headless: bool = False,
     ) -> list[dict[str, Any]]:
         """
         Executes search on LinkedIn /search/results/content/ and collects qualified posts.
+        Maps custom sub-week filters ('past-72h', 'past-48h') to LinkedIn's native 'past-week'
+        URL enum while enforcing exact relative-age cutoff per card.
         """
         target_queries = queries or DEFAULT_SEARCH_QUERIES
         discovered_leads: list[dict[str, Any]] = []
         self.last_raw_updates_scanned = 0
         self.last_auth_status: dict[str, Any] = {}
         self.last_yield_verdict = "NOT_RUN"
+
+        url_date_filter = (
+            "past-24h"
+            if date_filter in ("past-24h", "past_24h")
+            else ("past-month" if date_filter in ("past-month", "past_month") else "past-week")
+        )
 
         from src.browser.linkedin_auth import (
             capture_zero_yield_evidence,
@@ -448,7 +489,7 @@ class LinkedInPostTracker:
 
         async with async_playwright() as p:
             context, page = await launch_persistent_browser(p, profile_dir=str(DEFAULT_PROFILE_DIR), headless=headless)
-            print(f"🚀 Launching LinkedIn Posts Tracker (Headless: {headless})")
+            print(f"🚀 Launching LinkedIn Posts Tracker (Headless: {headless}, Filter: {date_filter})")
 
             try:
                 offline_auth = check_profile_session(DEFAULT_PROFILE_DIR)
@@ -464,10 +505,10 @@ class LinkedInPostTracker:
                     encoded_query = urllib.parse.quote(query)
                     url = (
                         f"https://www.linkedin.com/search/results/content/?"
-                        f"datePosted=%22{date_filter}%22&keywords={encoded_query}&sortBy=%22date_posted%22"
+                        f"datePosted=%22{url_date_filter}%22&keywords={encoded_query}&sortBy=%22date_posted%22"
                     )
                     print(f"\n🔍 [Query {q_idx + 1}/{len(target_queries)}] Searching: {query[:60]}...")
-                    print(f"🌐 URL: {url}")
+                    print(f"🌐 URL: {url} (card cutoff: {date_filter})")
 
                     try:
                         await page.goto(url, wait_until="domcontentloaded", timeout=35000)
@@ -493,6 +534,9 @@ class LinkedInPostTracker:
                             card = cards_loc.nth(c_idx)
                             post_lead = await self._extract_post_from_card(card, page)
                             if post_lead:
+                                rel_t = str(post_lead.get("posted_at_relative") or "")
+                                if not self.is_post_within_age_limit(rel_t, date_filter):
+                                    continue
                                 post_id = post_lead["post_id"]
                                 if not self.db.is_hiring_post_saved(
                                     post_id, content_hash=post_lead.get("content_hash")

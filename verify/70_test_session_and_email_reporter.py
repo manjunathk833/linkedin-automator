@@ -77,13 +77,16 @@ def test_session_and_email_reporter():
     today_slug = datetime.date.today().strftime("%Y-%m-%d")
     archive_file = test_log_dir / f"daily_report_{today_slug}.html"
 
-    # Send report and verify archive generation
-    res = reporter.send_report(
-        staged_jobs=sample_jobs,
-        regression_passed=True,
-        regression_summary="48/48 Passed (100%)",
-        execution_duration_sec=14.5,
-    )
+    # Send report and verify archive generation (mocking SMTP network socket so tests don't block 4s or spam inbox)
+    from unittest.mock import MagicMock, patch
+
+    with patch("src.notifier.email_reporter.smtplib.SMTP_SSL", return_value=MagicMock()):
+        res = reporter.send_report(
+            staged_jobs=sample_jobs,
+            regression_passed=True,
+            regression_summary="48/48 Passed (100%)",
+            execution_duration_sec=14.5,
+        )
     assert archive_file.exists(), "Expected archive HTML file to exist"
     assert isinstance(res, bool), "Expected boolean dispatch status from send_report"
 

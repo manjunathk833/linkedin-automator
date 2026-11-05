@@ -213,5 +213,5 @@ class PortalSniperEngine:
     async def execute_scan(self) -> dict[str, Any]:
         """Polls all active target companies concurrently and packages `<24h` fresh drops."""
         companies = self.coordinator.load_target_companies()
-        listings = await self.coordinator.ingest_all_sources(filter_sdet=True)
+        listings = await self.coordinator.ingest_all_sources(filter_sdet=True, max_age_days=None)
         return self.filter_and_package_drops(listings, total_orgs_polled=len(companies))
