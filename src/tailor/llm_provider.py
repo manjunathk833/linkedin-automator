@@ -200,7 +200,7 @@ class GeminiLLMProvider(LLMProvider):
 
                 self.client = genai.Client(
                     api_key=self.api_key,
-                    http_options=types.HttpOptions(timeout=25000),
+                    http_options=types.HttpOptions(timeout=12000),
                 )
             except Exception as e:
                 print(f"⚠️ Failed to initialize Gemini Client: {e}")
@@ -299,15 +299,18 @@ class GeminiLLMProvider(LLMProvider):
                     )
                     print(f"⚠️ [Gemini] Attempt {attempt + 1} failed on {current_model}: {err_str[:120]}")
                     if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                        self._set_model_cooldown(current_model, 60.0)
+                        cd_sec = 3600.0 if ("PerDay" in err_str or "requests per day" in err_str.lower()) else 60.0
+                        self._set_model_cooldown(current_model, cd_sec)
                         break
                     if ("503" in err_str or "UNAVAILABLE" in err_str) and attempt == 0:
-                        backoff = 2.0
+                        backoff = 1.5
                         print(
                             f"⏳ Gemini transient demand spike encountered. Backing off {backoff:.1f}s before retry..."
                         )
                         time.sleep(backoff)
                         continue
+                    if any(k in err_str for k in ("503", "UNAVAILABLE", "504", "DEADLINE_EXCEEDED", "timed out")):
+                        self._set_model_cooldown(current_model, 900.0)
                     break
 
         raise last_error or RuntimeError("Gemini failed to generate tailored bullets.")
@@ -383,15 +386,18 @@ class GeminiLLMProvider(LLMProvider):
                         f"⚠️ [Gemini] Attempt {attempt + 1} failed on {current_model} for {company_name}: {err_str[:120]}"
                     )
                     if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                        self._set_model_cooldown(current_model, 60.0)
+                        cd_sec = 3600.0 if ("PerDay" in err_str or "requests per day" in err_str.lower()) else 60.0
+                        self._set_model_cooldown(current_model, cd_sec)
                         break
                     if ("503" in err_str or "UNAVAILABLE" in err_str) and attempt == 0:
-                        backoff = 2.0
+                        backoff = 1.5
                         print(
                             f"⏳ Gemini transient demand spike encountered. Backing off {backoff:.1f}s before retry..."
                         )
                         time.sleep(backoff)
                         continue
+                    if any(k in err_str for k in ("503", "UNAVAILABLE", "504", "DEADLINE_EXCEEDED", "timed out")):
+                        self._set_model_cooldown(current_model, 900.0)
                     break
 
         raise last_error or RuntimeError(f"Gemini failed to generate tailored bullets for {company_name}.")
@@ -492,12 +498,16 @@ class GeminiLLMProvider(LLMProvider):
 
 
 class OllamaLLMProvider(LLMProvider):
+    _cooldown_until: ClassVar[float] = 0.0
+
     def __init__(self, model_name: str = "qwen2.5:7b"):
         self.model_name = model_name
 
     def generate_tailored_bullets(
         self, job_description: str, profile: ResumeProfile, master_vault: list[dict] | None = None
     ) -> list[str]:
+        if time.time() < OllamaLLMProvider._cooldown_until:
+            raise RuntimeError("Ollama is in connection cooldown.")
         import ollama
 
         vault_source = master_vault if master_vault else [exp.achievements for exp in profile.experience_history]
@@ -529,6 +539,8 @@ class OllamaLLMProvider(LLMProvider):
             )
             return parsed.tailored_bullets
         except Exception as e:
+            if "connect to ollama" in str(e).lower():
+                OllamaLLMProvider._cooldown_until = time.time() + 300.0
             duration_ms = (time.time() - start_time) * 1000.0
             log_llm_request(
                 "Ollama",
@@ -543,6 +555,8 @@ class OllamaLLMProvider(LLMProvider):
     def generate_company_tailored_bullets(
         self, company_name: str, job_description: str, profile: ResumeProfile, company_vault: list[dict]
     ) -> list[str]:
+        if time.time() < OllamaLLMProvider._cooldown_until:
+            raise RuntimeError("Ollama is in connection cooldown.")
         import ollama
 
         prompt = COMPANY_SCOPED_STAR_PROMPT.format(
@@ -572,6 +586,8 @@ class OllamaLLMProvider(LLMProvider):
             )
             return parsed.tailored_bullets
         except Exception as e:
+            if "connect to ollama" in str(e).lower():
+                OllamaLLMProvider._cooldown_until = time.time() + 300.0
             duration_ms = (time.time() - start_time) * 1000.0
             log_llm_request(
                 "Ollama",

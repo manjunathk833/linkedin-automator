@@ -143,7 +143,24 @@ def test_job_finder_channels_and_queue_routing() -> bool:
         payload = json.loads(Path(saved).read_text(encoding="utf-8"))
         assert "routing_strategy" in payload
         assert "routing_tier" in payload["routing_strategy"]
-    print("✅ JobFinder yields and 3-Tier InterviewRouter queue enrichment validated.")
+    # Verify _safe_goto recovery when first navigation is interrupted by a late redirect
+    import asyncio
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    mock_page = MagicMock()
+    mock_page.evaluate = AsyncMock()
+    mock_page.goto = AsyncMock(
+        side_effect=[
+            RuntimeError("Page.goto: Navigation to 'https://linkedin.com/b' is interrupted by another navigation"),
+            None,  # about:blank reset
+            None,  # retry target URL succeeds
+        ]
+    )
+    with patch("src.scraper.job_finder.asyncio.sleep", new_callable=AsyncMock):
+        nav_ok = asyncio.run(finder._safe_goto(mock_page, "https://www.linkedin.com/jobs/search/?keywords=SDET"))
+    assert nav_ok is True
+    assert mock_page.goto.call_count == 3
+    print("✅ JobFinder yields, _safe_goto redirect recovery, and 3-Tier InterviewRouter queue enrichment validated.")
     return True
 
 

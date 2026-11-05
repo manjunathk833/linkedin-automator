@@ -41,7 +41,7 @@ class ATSDiscoveryCoordinator:
         self,
         config_path: str = DEFAULT_CONFIG_PATH,
         queue_dir: str = DEFAULT_QUEUE_DIR,
-        max_concurrency: int = 10,
+        max_concurrency: int = 25,
         db_file: str = DEFAULT_DB_FILE,
         use_ai: bool = True,
     ):
@@ -148,38 +148,46 @@ class ATSDiscoveryCoordinator:
         return [TargetCompany(**item) for item in data if item.get("active", True)]
 
     async def _fetch_company_jobs(self, company: TargetCompany) -> list[JobListing]:
-        """Fetches jobs for a single target company using its respective ATS collector."""
+        """Fetches jobs for a single target company using its respective ATS collector with a strict 15s timeout."""
         if self.semaphore is None:
             self.semaphore = asyncio.Semaphore(self.max_concurrency)
         async with self.semaphore:
             provider = company.ats_provider.lower()
             listings: list[JobListing] = []
-            if provider == "greenhouse":
-                listings = await self.greenhouse.fetch_board_jobs(company.name, company.slug)
-            elif provider == "lever":
-                listings = await self.lever.fetch_board_jobs(company.name, company.slug)
-            elif provider == "ashby":
-                listings = await self.ashby.fetch_board_jobs(company.name, company.slug)
-            elif provider == "workday":
-                listings = await self.workday.fetch_board_jobs(
-                    company_name=company.name,
-                    slug=company.slug,
-                    site=company.site or company.slug,
-                    datacenter=company.datacenter or "wd3",
-                    is_dream_org=company.is_dream_org,
-                )
-            elif provider == "smartrecruiters":
-                listings = await self.smartrecruiters.fetch_board_jobs(company.name, company.slug)
-            elif provider == "rippling":
-                listings = await self.rippling.fetch_board_jobs(company.name, company.slug)
-            elif provider == "workable":
-                listings = await self.workable.fetch_board_jobs(company.name, company.slug)
-            elif provider == "recruitee":
-                listings = await self.recruitee.fetch_board_jobs(company.name, company.slug)
-            elif provider == "hirist":
-                listings = await self.hirist.fetch_board_jobs(company.name, company.slug)
-            elif provider == "instahyre":
-                listings = await self.instahyre.fetch_board_jobs(company.name, company.slug)
+            try:
+                if provider == "greenhouse":
+                    coro = self.greenhouse.fetch_board_jobs(company.name, company.slug)
+                elif provider == "lever":
+                    coro = self.lever.fetch_board_jobs(company.name, company.slug)
+                elif provider == "ashby":
+                    coro = self.ashby.fetch_board_jobs(company.name, company.slug)
+                elif provider == "workday":
+                    coro = self.workday.fetch_board_jobs(
+                        company_name=company.name,
+                        slug=company.slug,
+                        site=company.site or company.slug,
+                        datacenter=company.datacenter or "wd3",
+                        is_dream_org=company.is_dream_org,
+                    )
+                elif provider == "smartrecruiters":
+                    coro = self.smartrecruiters.fetch_board_jobs(company.name, company.slug)
+                elif provider == "rippling":
+                    coro = self.rippling.fetch_board_jobs(company.name, company.slug)
+                elif provider == "workable":
+                    coro = self.workable.fetch_board_jobs(company.name, company.slug)
+                elif provider == "recruitee":
+                    coro = self.recruitee.fetch_board_jobs(company.name, company.slug)
+                elif provider == "hirist":
+                    coro = self.hirist.fetch_board_jobs(company.name, company.slug)
+                elif provider == "instahyre":
+                    coro = self.instahyre.fetch_board_jobs(company.name, company.slug)
+                else:
+                    return []
+                listings = await asyncio.wait_for(coro, timeout=15.0)
+            except asyncio.TimeoutError:
+                return []
+            except Exception:
+                return []
             for item in listings:
                 item.is_dream_org = company.is_dream_org
             return listings
@@ -244,21 +252,30 @@ class ATSDiscoveryCoordinator:
         )
         all_portal_jobs: list[JobListing] = []
         try:
-            h_jobs = await self.hirist.fetch_jobs(
-                query="SDET", location="bangalore", filter_sdet=filter_sdet, max_age_days=effective_max_days
+            h_jobs = await asyncio.wait_for(
+                self.hirist.fetch_jobs(
+                    query="SDET", location="bangalore", filter_sdet=filter_sdet, max_age_days=effective_max_days
+                ),
+                timeout=45.0,
             )
             all_portal_jobs.extend(h_jobs)
         except Exception as e:
             print(f"⚠️ Hirist portal ingestion error: {e}")
 
         try:
-            i_jobs = await self.instahyre.fetch_opportunities_via_browser(
-                headless=True, limit=25, filter_sdet=filter_sdet, max_age_days=effective_max_days
+            i_jobs = await asyncio.wait_for(
+                self.instahyre.fetch_opportunities_via_browser(
+                    headless=True, limit=25, filter_sdet=filter_sdet, max_age_days=effective_max_days
+                ),
+                timeout=45.0,
             )
             if not i_jobs:
                 for slug in self.instahyre.CURATED_SLUGS[:2]:
-                    feed_jobs = await self.instahyre.fetch_feed_jobs(
-                        slug=slug, filter_sdet=filter_sdet, max_age_days=effective_max_days
+                    feed_jobs = await asyncio.wait_for(
+                        self.instahyre.fetch_feed_jobs(
+                            slug=slug, filter_sdet=filter_sdet, max_age_days=effective_max_days
+                        ),
+                        timeout=20.0,
                     )
                     i_jobs.extend(feed_jobs)
             all_portal_jobs.extend(i_jobs)
