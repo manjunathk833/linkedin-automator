@@ -252,11 +252,14 @@ class LinkedInJobFinder:
             ).all()
             print(f"   Found {len(hub_cards)} card(s) on main /jobs/ hub.")
             self._record_yield("jobs_hub", len(hub_cards))
+            self._active_channel = "recommended_hub"
             for c_idx, card in enumerate(hub_cards):
                 if len(extracted) >= max_jobs:
                     break
                 job = await self._extract_card_payload(page, card, c_idx, default_prefix="jobshub")
                 if job:
+                    job.setdefault("discovery_track", "TRACK_2_LINKEDIN")
+                    job.setdefault("discovery_channel", "recommended_hub")
                     jid = str(job.get("job_id", ""))
                     if jid and jid not in seen_ids:
                         seen_ids.add(jid)
@@ -269,6 +272,7 @@ class LinkedInJobFinder:
             if len(extracted) >= max_jobs:
                 break
 
+            self._active_channel = col
             print(f"\n📂 Scraping LinkedIn Collection: [{col}] (up to {max_pages} pages)")
             for page_num in range(max_pages):
                 if len(extracted) >= max_jobs:
@@ -301,6 +305,8 @@ class LinkedInJobFinder:
                             page, card, card_idx, default_prefix=f"{col}_p{page_num + 1}_job"
                         )
                         if job:
+                            job.setdefault("discovery_track", "TRACK_2_LINKEDIN")
+                            job.setdefault("discovery_channel", col)
                             jid = str(job.get("job_id", ""))
                             if jid and jid not in seen_ids:
                                 seen_ids.add(jid)
@@ -374,8 +380,11 @@ class LinkedInJobFinder:
                     except Exception:
                         pass
 
+                    self._active_channel = "company_pages"
                     job = await self._extract_card_payload(page, card, card_idx, default_prefix=f"{clean_slug}_job")
                     if job:
+                        job.setdefault("discovery_track", "TRACK_2_LINKEDIN")
+                        job.setdefault("discovery_channel", "company_pages")
                         jid = str(job.get("job_id", ""))
                         if jid and jid not in seen_ids:
                             seen_ids.add(jid)
@@ -441,6 +450,8 @@ class LinkedInJobFinder:
                     raw_job = {
                         "job_id": job_id,
                         "source": "linkedin",
+                        "discovery_track": "TRACK_2_LINKEDIN",
+                        "discovery_channel": "recruiter_posts",
                         "is_dream_org": is_dream,
                         "application_type": "EASY_APPLY",
                         "job_details": {
@@ -524,8 +535,11 @@ class LinkedInJobFinder:
                     except Exception:
                         pass
 
+                    self._active_channel = "similar_jobs"
                     job = await self._extract_card_payload(page, card, c_idx, default_prefix=f"sim_{seed_id}")
                     if job:
+                        job.setdefault("discovery_track", "TRACK_2_LINKEDIN")
+                        job.setdefault("discovery_channel", "similar_jobs")
                         jid = str(job.get("job_id", ""))
                         if jid and jid not in seen_ids:
                             seen_ids.add(jid)
@@ -538,7 +552,7 @@ class LinkedInJobFinder:
         return extracted
 
     async def _extract_card_payload(
-        self, page: Any, card: Any, idx: int, default_prefix: str = "job"
+        self, page: Any, card: Any, idx: int, default_prefix: str = "job", channel: str | None = None
     ) -> dict[str, Any] | None:
         """
         Extracts title, company, location, and full job description from a job card and runs AI tailoring.
@@ -566,12 +580,14 @@ class LinkedInJobFinder:
             if not job_id or not job_id.isdigit():
                 job_id = f"{default_prefix}_{idx + 1}"
 
-            # 2. Extract title directly from list card DOM element
+            # 2. Extract title directly from list card DOM element (stripping LinkedIn .sr-only prefix)
             title_elem = card.locator(
                 '.job-card-list__title, .job-card-container__link, a[data-control-name="job_card_title"], .job-card-square__title, .artdeco-entity-lockup__title'
             ).first
             raw_title = await title_elem.text_content() if await title_elem.count() > 0 else None
-            title = (raw_title or "Software Engineer").strip()
+            title = re.sub(
+                r"^Job\s+Title\s+", "", (raw_title or "Software Engineer").strip(), flags=re.IGNORECASE
+            ).strip()
 
             # 3. Extract company name directly from list card DOM element or company link
             raw_company = None
@@ -590,7 +606,9 @@ class LinkedInJobFinder:
                     if c_text and c_text.strip():
                         raw_company = c_text.strip()
 
-            company = raw_company or "Tech Company"
+            company = re.sub(
+                r"^Company\s+Name\s+", "", (raw_company or "Tech Company").strip(), flags=re.IGNORECASE
+            ).strip()
 
             # 4. INSTANT DEDUPLICATION CHECK BEFORE CLICKING!
             if self.is_duplicate(job_id, company, title):
@@ -670,9 +688,12 @@ class LinkedInJobFinder:
                 pass
 
             job_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
+            resolved_channel = channel or getattr(self, "_active_channel", "search") or "search"
             raw_job = {
                 "job_id": job_id,
                 "source": "linkedin",
+                "discovery_track": "TRACK_2_LINKEDIN",
+                "discovery_channel": resolved_channel,
                 "url": job_url,
                 "job_url": job_url,
                 "is_dream_org": is_dream,
@@ -795,6 +816,7 @@ class LinkedInJobFinder:
                         ).all()
                         print(f"   Found {len(s_cards)} fresh <24h card(s) on Sniper Profile #{s_idx + 1}.")
                         self._record_yield("sniper_fresh_24h", len(s_cards))
+                        self._active_channel = "sniper_fresh_24h"
                         for c_idx, card in enumerate(s_cards[:15]):
                             job = await self._extract_card_payload(
                                 page, card, c_idx, default_prefix=f"sniper_{s_idx + 1}"
@@ -859,6 +881,7 @@ class LinkedInJobFinder:
                             )
                             break
 
+                        self._active_channel = "search"
                         for card_idx, card in enumerate(cards):
                             if extracted_for_profile >= max_jobs:
                                 break

@@ -1032,6 +1032,9 @@ function renderTrackingGrid(apps) {
         const jobUrl = app.job_url || '#';
         const dreamHtml = app.is_dream_org ? '<span class="dream-pill">⭐ Dream Org</span>' : '';
         const trackHtml = app.discovery_track ? `<span class="track-pill" style="font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); font-weight: 500;">${app.discovery_track.replace(/_/g, ' ')}</span>` : '';
+        const channelHtml = app.discovery_channel ? `<span class="channel-pill" style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); font-weight: 500;">#${app.discovery_channel}</span>` : '';
+        const modeLabel = (app.application_mode || 'batch_autofill').replace(/_/g, ' ');
+        const modeHtml = `<span class="mode-pill" style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.25); font-weight: 500;">${modeLabel}</span>`;
 
         card.innerHTML = `
             <div>
@@ -1043,6 +1046,8 @@ function renderTrackingGrid(apps) {
                     <div class="tracking-badge-group">
                         ${dreamHtml}
                         ${trackHtml}
+                        ${channelHtml}
+                        ${modeHtml}
                         <span class="source-pill ${badgeInfo.cssClass}">${badgeInfo.label}</span>
                         <span class="status-pill ${statusClass}">${statusDisplay}</span>
                     </div>
@@ -1118,14 +1123,27 @@ async function updateApplicationStage(jobId, newStage) {
 function filterTrackingJobs() {
     const input = document.getElementById('tracking-search');
     const stageSelect = document.getElementById('tracking-stage-filter');
+    const trackSelect = document.getElementById('tracking-track-filter');
     const query = input ? input.value.toLowerCase().trim() : '';
     const selectedStage = stageSelect ? stageSelect.value.toUpperCase().trim() : '';
+    const selectedTrackOrMode = trackSelect ? trackSelect.value.trim() : '';
 
     const filtered = trackedApplications.filter(app => {
         // Stage filter
         const appStage = (app.funnel_stage || 'APPLIED').toUpperCase();
         if (selectedStage && appStage !== selectedStage) {
             return false;
+        }
+        // Track / Mode filter
+        if (selectedTrackOrMode) {
+            if (selectedTrackOrMode.startsWith('MODE:')) {
+                const targetMode = selectedTrackOrMode.replace('MODE:', '').toLowerCase();
+                if ((app.application_mode || 'batch_autofill').toLowerCase() !== targetMode) {
+                    return false;
+                }
+            } else if ((app.discovery_track || '').toUpperCase() !== selectedTrackOrMode.toUpperCase()) {
+                return false;
+            }
         }
         if (!query) return true;
 
@@ -1134,10 +1152,12 @@ function filterTrackingJobs() {
         const badgeInfo = formatSourceBadge(app.source, app.application_type);
         const src = (app.source || '').toLowerCase().includes(query) || badgeInfo.label.toLowerCase().includes(query);
         const track = (app.discovery_track || '').toLowerCase().includes(query);
+        const channel = (app.discovery_channel || '').toLowerCase().includes(query);
+        const mode = (app.application_mode || '').toLowerCase().includes(query);
         const status = (app.status || '').toLowerCase().includes(query);
         const stage = appStage.toLowerCase().includes(query);
         const jobId = (app.job_id || '').toLowerCase().includes(query);
-        return comp || title || src || track || status || stage || jobId;
+        return comp || title || src || track || channel || mode || status || stage || jobId;
     });
     renderTrackingGrid(filtered);
 }

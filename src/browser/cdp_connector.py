@@ -82,11 +82,20 @@ async def launch_persistent_browser(
         "--start-maximized",
         "--no-sandbox",
     ]
+    if headless:
+        stealth_args.append("--headless=new")
 
     desktop_ua = (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     )
+
+    try:
+        from src.browser.cdp_stealth import clean_stale_browser_processes
+
+        clean_stale_browser_processes(profile_dir)
+    except Exception:
+        pass
 
     context = await playwright.chromium.launch_persistent_context(
         user_data_dir=profile_dir,

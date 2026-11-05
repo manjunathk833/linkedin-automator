@@ -115,6 +115,60 @@ def test_record_application_with_track_deduction_and_funnel_transitions():
         assert metrics["stages"].get("APPLIED") == 1
         assert metrics["total_interviews_or_screens"] == 1
         assert metrics["application_to_screen_rate_pct"] == 50.0
+        assert "channels" in metrics
+        assert "application_modes" in metrics
+
+
+def test_repair_application_funnel_attribution_and_dict_coercion():
+    """Validates retroactive attribution backfill and dict-coercion guard when routing_strategy dict is passed."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        db_path = os.path.join(tmp_dir, "test_backfill.db")
+        db = ApplicationDatabase(db_path=db_path)
+
+        # Simulate legacy row that received default TRACK_2_LINKEDIN on ALTER TABLE despite source='greenhouse'
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO job_applications (
+                    id, source, company_name, job_title, job_url,
+                    resume_path, tailored_data_json, status, discovery_track, discovery_channel, application_mode
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                """,
+                (
+                    "legacy_gh_001",
+                    "greenhouse",
+                    "Datadog",
+                    "Senior QA Engineer",
+                    "https://boards.greenhouse.io/datadog/jobs/001",
+                    "",
+                    "{}",
+                    "applied_manual",
+                    "TRACK_2_LINKEDIN",
+                    "search",
+                    "batch_autofill",
+                ),
+            )
+            conn.commit()
+
+        # Run repair migration
+        db.repair_application_funnel_attribution()
+        repaired = db.get_application("legacy_gh_001")
+        assert repaired["discovery_track"] == "TRACK_1_DIRECT_ATS"
+        assert repaired["discovery_channel"] == "greenhouse"
+        assert repaired["application_mode"] == "manual_takeover"
+
+        # Test dict-coercion guard when routing_strategy dict is accidentally passed as discovery_track
+        db.record_application(
+            job_id="ashby_dict_test_002",
+            source="ashby",
+            company_name="Linear",
+            job_title="Staff SDET",
+            job_url="https://jobs.ashbyhq.com/linear/002",
+            discovery_track={"routing_tier": "TIER_1_SNIPER_APPLY"},  # type: ignore[arg-type]
+        )
+        coerced = db.get_application("ashby_dict_test_002")
+        assert coerced["discovery_track"] == "TRACK_1_DIRECT_ATS"
+        assert coerced["discovery_channel"] == "ashby"
 
 
 def test_fastapi_stage_update_and_metrics_endpoints():
@@ -158,7 +212,7 @@ def test_fastapi_stage_update_and_metrics_endpoints():
 
 
 def test_cdp_connector_incorporates_stealth():
-    """Verifies that launch_persistent_browser in cdp_connector injects STEALTH_EVASION_JS."""
+    """Verifies that launch_persistent_browser in cdp_connector injects STEALTH_EVASION_JS and --headless=new."""
     import inspect
 
     from src.browser.cdp_connector import launch_persistent_browser
@@ -168,6 +222,8 @@ def test_cdp_connector_incorporates_stealth():
     assert "add_init_script" in source
     assert "--disable-infobars" in source
     assert "--no-first-run" in source
+    assert "--headless=new" in source
+    assert "clean_stale_browser_processes" in source
 
 
 def test_run_daily_prod_network_and_sleep_guards():

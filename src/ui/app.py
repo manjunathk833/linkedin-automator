@@ -1027,7 +1027,18 @@ async def mark_job_applied(job_id: str, force: bool = False):
         if os.path.exists(archived_pdf_path):
             pdf_path = archived_pdf_path
 
-    norm_source, norm_app_type = normalize_job_source_metadata(job_data) if job_data else ("manual", "ATS")
+    norm_source, _norm_app_type = normalize_job_source_metadata(job_data) if job_data else ("manual", "ATS")
+    raw_track = job_data.get("discovery_track") if isinstance(job_data.get("discovery_track"), str) else None
+    raw_channel = (
+        job_data.get("discovery_channel")
+        if isinstance(job_data.get("discovery_channel"), str)
+        else (job_data.get("channel") if isinstance(job_data.get("channel"), str) else None)
+    )
+    inferred_mode = (
+        "manual_override"
+        if (force and not verif.get("verified"))
+        else (job_data.get("application_mode") or "batch_autofill")
+    )
     db = ApplicationDatabase()
     db.record_application(
         job_id=job_id,
@@ -1038,9 +1049,9 @@ async def mark_job_applied(job_id: str, force: bool = False):
         resume_path=pdf_path or "",
         tailored_data=job_data.get("tailored_resume", {}),
         status="applied",
-        discovery_track=job_data.get("discovery_track") or job_data.get("routing_strategy"),
-        discovery_channel=job_data.get("discovery_channel") or job_data.get("channel"),
-        application_mode=job_data.get("application_mode") or norm_app_type or "batch_autofill",
+        discovery_track=raw_track,
+        discovery_channel=raw_channel,
+        application_mode=inferred_mode,
         funnel_stage="APPLIED",
     )
 

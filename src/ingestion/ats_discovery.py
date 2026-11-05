@@ -282,6 +282,8 @@ class ATSDiscoveryCoordinator:
             payload = {
                 "job_id": item.id,
                 "source": item.source,
+                "discovery_track": "TRACK_1_DIRECT_ATS",
+                "discovery_channel": (item.source or "direct_ats").lower().strip(),
                 "application_type": f"ATS_{item.source.upper()}",
                 "is_dream_org": item.is_dream_org,
                 "job_details": {

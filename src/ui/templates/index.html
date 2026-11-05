@@ -221,7 +221,18 @@
                     <div class="search-box">
                         <input type="text" id="tracking-search" placeholder="🔍 Search applied jobs by company, role, track, or stage..." oninput="filterTrackingJobs()">
                     </div>
-                    <div class="toolbar-actions">
+                    <div class="toolbar-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <select id="tracking-track-filter" class="form-select-sm" onchange="filterTrackingJobs()" style="background: rgba(15,23,42,0.7); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; font-size: 0.85rem;">
+                            <option value="">All Tracks & Modes</option>
+                            <option value="TRACK_1_DIRECT_ATS">🎯 Track 1: Direct ATS</option>
+                            <option value="TRACK_2_LINKEDIN">💼 Track 2: LinkedIn</option>
+                            <option value="TRACK_3_SOCIAL_POST">📣 Track 3: Social Posts</option>
+                            <option value="PORTAL_SNIPER">⚡ Portal Sniper</option>
+                            <option value="MODE:batch_autofill">🤖 Mode: Batch Autofill</option>
+                            <option value="MODE:manual_takeover">🖐️ Mode: Manual Takeover</option>
+                            <option value="MODE:manual_override">✅ Mode: Manual Override</option>
+                            <option value="MODE:easy_apply">⚡ Mode: Easy Apply</option>
+                        </select>
                         <select id="tracking-stage-filter" class="form-select-sm" onchange="filterTrackingJobs()" style="background: rgba(15,23,42,0.7); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; font-size: 0.85rem;">
                             <option value="">All Funnel Stages</option>
                             <option value="APPLIED">Applied</option>

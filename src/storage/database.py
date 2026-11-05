@@ -162,6 +162,54 @@ class ApplicationDatabase:
 
             self.repair_invalid_post_urls(conn=conn)
             self.repair_posts_metadata_and_links(conn=conn)
+            self.repair_application_funnel_attribution(conn=conn)
+
+    def repair_application_funnel_attribution(self, conn: sqlite3.Connection | None = None) -> None:
+        """
+        Retroactively backfills discovery_track, discovery_channel, and application_mode
+        on existing rows in job_applications that received default ALTER TABLE values.
+        """
+
+        def _run(c: sqlite3.Connection) -> None:
+            try:
+                c.execute(
+                    """
+                    UPDATE job_applications
+                    SET discovery_track = 'TRACK_1_DIRECT_ATS',
+                        discovery_channel = LOWER(TRIM(source))
+                    WHERE LOWER(TRIM(source)) IN (
+                        'greenhouse', 'lever', 'ashby', 'workday', 'smartrecruiters',
+                        'hirist', 'instahyre', 'rippling', 'workable', 'recruitee'
+                    )
+                    AND (discovery_track IS NULL OR discovery_track = 'TRACK_2_LINKEDIN');
+                    """
+                )
+                c.execute(
+                    """
+                    UPDATE job_applications
+                    SET discovery_track = 'TRACK_3_SOCIAL_POST',
+                        discovery_channel = 'social_post'
+                    WHERE LOWER(TRIM(source)) IN ('social_lead', 'post', 'linkedin_post')
+                    AND (discovery_track IS NULL OR discovery_track = 'TRACK_2_LINKEDIN');
+                    """
+                )
+                c.execute(
+                    """
+                    UPDATE job_applications
+                    SET application_mode = 'manual_takeover'
+                    WHERE (LOWER(status) LIKE '%manual%' OR LOWER(source) LIKE '%manual%')
+                    AND (application_mode IS NULL OR application_mode = 'batch_autofill');
+                    """
+                )
+                c.commit()
+            except Exception:
+                pass
+
+        if conn is not None:
+            _run(conn)
+        else:
+            with self._get_connection() as new_conn:
+                _run(new_conn)
 
     def _get_today_bucket(self) -> str:
         """Returns date string bucket in YYYY-MM-DD format."""
@@ -235,7 +283,12 @@ class ApplicationDatabase:
 
         # Automatically deduce discovery track & mode if not explicitly supplied
         norm_source = (source or "linkedin").lower().strip()
-        if not discovery_track:
+        if isinstance(discovery_track, dict):
+            # Guard against callers passing the routing_strategy dict instead of a track string
+            tier = str(discovery_track.get("routing_tier") or "")
+            discovery_track = None if tier.startswith("TIER_") else (tier or None)
+
+        if not discovery_track or not isinstance(discovery_track, str):
             if norm_source in (
                 "greenhouse",
                 "lever",
@@ -256,9 +309,9 @@ class ApplicationDatabase:
             else:
                 discovery_track = "TRACK_2_LINKEDIN"
 
-        if not discovery_channel:
+        if not discovery_channel or not isinstance(discovery_channel, str):
             discovery_channel = (
-                "direct_ats"
+                norm_source
                 if "TRACK_1" in discovery_track
                 else ("social_post" if "TRACK_3" in discovery_track else "search")
             )
@@ -374,6 +427,16 @@ class ApplicationDatabase:
             )
             track_counts = {row["track"]: row["cnt"] for row in cursor.fetchall()}
 
+            cursor.execute(
+                "SELECT COALESCE(discovery_channel, 'search') AS channel, COUNT(*) AS cnt FROM job_applications GROUP BY channel;"
+            )
+            channel_counts = {row["channel"]: row["cnt"] for row in cursor.fetchall()}
+
+            cursor.execute(
+                "SELECT COALESCE(application_mode, 'batch_autofill') AS mode, COUNT(*) AS cnt FROM job_applications GROUP BY mode;"
+            )
+            mode_counts = {row["mode"]: row["cnt"] for row in cursor.fetchall()}
+
             screens = sum(
                 stage_counts.get(s, 0)
                 for s in (
@@ -393,6 +456,8 @@ class ApplicationDatabase:
                 "total_applications": total_apps,
                 "stages": stage_counts,
                 "tracks": track_counts,
+                "channels": channel_counts,
+                "application_modes": mode_counts,
                 "total_interviews_or_screens": screens,
                 "application_to_screen_rate_pct": screen_rate,
                 "offers": offers,
