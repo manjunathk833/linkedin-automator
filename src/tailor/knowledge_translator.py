@@ -51,13 +51,15 @@ class KnowledgeBankTranslator:
         with open(self.notes_file, "r") as f:
             notes_content = f.read()
 
+        notes_sha256 = hashlib.sha256(notes_content.encode("utf-8")).hexdigest()
+
         bullets = self.extract_bullet_lines(notes_content)
         if not bullets:
             print("ℹ️ No bullet points found in candidate_notes.md.")
             return {"status": "NO_BULLETS", "added": 0}
 
         # Load existing Master Knowledge Bank
-        bank_data = {"version": "1.0.0", "master_achievements_vault": []}
+        bank_data: dict[str, Any] = {"version": "1.0.0", "master_achievements_vault": []}
         if os.path.exists(self.bank_file):
             try:
                 with open(self.bank_file, "r") as f:
@@ -66,6 +68,10 @@ class KnowledgeBankTranslator:
                 print(f"⚠️ Could not load existing bank file: {e}")
 
         existing_vault = bank_data.setdefault("master_achievements_vault", [])
+        if bank_data.get("last_synced_notes_sha256") == notes_sha256 and existing_vault:
+            print("ℹ️ candidate_notes.md is unchanged since last sync — skipping redundant LLM translation.")
+            return {"status": "SUCCESS", "added": 0, "total_vault_size": len(existing_vault)}
+
         existing_hashes = {self.generate_achievement_hash(item.get("star_achievement", "")) for item in existing_vault}
 
         # Process in chunks of 5
@@ -167,6 +173,7 @@ class KnowledgeBankTranslator:
                     print(f"  ⏭️  Skipping duplicate achievement: {star_text[:50]}...")
 
         # Atomic Write via temp file and os.replace()
+        bank_data["last_synced_notes_sha256"] = notes_sha256
         tmp_file = f"{self.bank_file}.tmp"
         with open(tmp_file, "w") as f:
             json.dump(bank_data, f, indent=2)

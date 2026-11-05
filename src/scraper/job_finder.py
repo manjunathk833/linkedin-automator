@@ -211,6 +211,46 @@ class LinkedInJobFinder:
                 cleaned_lines.append(stripped)
         return "\n\n".join(cleaned_lines)
 
+    async def _safe_goto(self, page: Any, url: str, timeout: int = 35000) -> bool:
+        """
+        Resilient Playwright navigation wrapper that recovers from timeouts, net::ERR_TIMED_OUT
+        (`chrome-error://chromewebdata/`), and LinkedIn client-side redirect interruptions
+        (`Navigation to <N> is interrupted by another navigation to <N-1>`).
+        """
+        try:
+            await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+            return True
+        except Exception as first_err:
+            err_line = str(first_err).splitlines()[0] if str(first_err) else "Navigation error"
+            print(f"⚠️ Navigation warning on {url[:90]}...: {err_line}")
+            await asyncio.sleep(1.5)
+            try:
+                await page.evaluate("() => window.stop()")
+            except Exception:
+                pass
+            try:
+                await page.goto("about:blank", wait_until="commit", timeout=5000)
+            except Exception:
+                pass
+            await asyncio.sleep(0.8)
+            try:
+                await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+                return True
+            except Exception as retry_err:
+                retry_line = str(retry_err).splitlines()[0] if str(retry_err) else "Retry failed"
+                print(f"⚠️ Navigation retry failed for {url[:90]}...: {retry_line}")
+                await asyncio.sleep(1.0)
+                try:
+                    await page.evaluate("() => window.stop()")
+                except Exception:
+                    pass
+                try:
+                    await page.goto("about:blank", wait_until="commit", timeout=5000)
+                except Exception:
+                    pass
+                await asyncio.sleep(0.5)
+                return False
+
     async def scroll_results_pane(self, page: Any, scrolls: int = 5):
         """Scrolls the LinkedIn search / collection results pane down to trigger lazy loading of cards."""
         try:
@@ -248,26 +288,26 @@ class LinkedInJobFinder:
         # Step A: Scrape carousel cards from main /jobs/ landing hub
         try:
             print("🌐 Navigating to LinkedIn Jobs Main Hub (https://www.linkedin.com/jobs/)...")
-            await page.goto("https://www.linkedin.com/jobs/", wait_until="domcontentloaded")
-            await asyncio.sleep(2.5)
-            await self.scroll_results_pane(page, scrolls=3)
-            hub_cards = await page.locator(
-                ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id]"
-            ).all()
-            print(f"   Found {len(hub_cards)} card(s) on main /jobs/ hub.")
-            self._record_yield("jobs_hub", len(hub_cards))
-            self._active_channel = "recommended_hub"
-            for c_idx, card in enumerate(hub_cards):
-                if len(extracted) >= max_jobs:
-                    break
-                job = await self._extract_card_payload(page, card, c_idx, default_prefix="jobshub")
-                if job:
-                    job.setdefault("discovery_track", "TRACK_2_LINKEDIN")
-                    job.setdefault("discovery_channel", "recommended_hub")
-                    jid = str(job.get("job_id", ""))
-                    if jid and jid not in seen_ids:
-                        seen_ids.add(jid)
-                        extracted.append(job)
+            if await self._safe_goto(page, "https://www.linkedin.com/jobs/"):
+                await asyncio.sleep(2.5)
+                await self.scroll_results_pane(page, scrolls=3)
+                hub_cards = await page.locator(
+                    ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], div[role='button'][componentkey^='job-card-component-ref-']"
+                ).all()
+                print(f"   Found {len(hub_cards)} card(s) on main /jobs/ hub.")
+                self._record_yield("jobs_hub", len(hub_cards))
+                self._active_channel = "recommended_hub"
+                for c_idx, card in enumerate(hub_cards):
+                    if len(extracted) >= max_jobs:
+                        break
+                    job = await self._extract_card_payload(page, card, c_idx, default_prefix="jobshub")
+                    if job:
+                        job.setdefault("discovery_track", "TRACK_2_LINKEDIN")
+                        job.setdefault("discovery_channel", "recommended_hub")
+                        jid = str(job.get("job_id", ""))
+                        if jid and jid not in seen_ids:
+                            seen_ids.add(jid)
+                            extracted.append(job)
         except Exception as e:
             print(f"⚠️ Notice exploring main /jobs/ hub: {e}")
 
@@ -287,12 +327,13 @@ class LinkedInJobFinder:
                 print(f"🌐 Navigating to [{col}] Page {page_num + 1} (start={start_offset}): {col_url}")
 
                 try:
-                    await page.goto(col_url, wait_until="domcontentloaded")
+                    if not await self._safe_goto(page, col_url):
+                        break
                     await asyncio.sleep(2.5)
                     await self.scroll_results_pane(page, scrolls=4)
 
                     cards = await page.locator(
-                        ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], .jobs-job-board-list__item"
+                        ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], .jobs-job-board-list__item, div[role='button'][componentkey^='job-card-component-ref-']"
                     ).all()
                     print(f"   Found {len(cards)} card(s) in collection [{col}] on Page {page_num + 1}.")
                     self._record_yield(f"collection:{col}", len(cards))
@@ -349,12 +390,13 @@ class LinkedInJobFinder:
             print(f"\n🌐 Navigating to Company Jobs: [{clean_slug}] -> {company_url}")
 
             try:
-                await page.goto(company_url, wait_until="domcontentloaded")
+                if not await self._safe_goto(page, company_url):
+                    continue
                 await asyncio.sleep(2.5)
                 await self.scroll_results_pane(page, scrolls=3)
 
                 cards = await page.locator(
-                    ".job-card-container, div[data-job-id], .org-jobs-job-search-results-list__list-item, section.job-card-square, div[data-view-name*='recommended-jobs-card']"
+                    ".job-card-container, div[data-job-id], .org-jobs-job-search-results-list__list-item, section.job-card-square, div[data-view-name*='recommended-jobs-card'], div[role='button'][componentkey^='job-card-component-ref-']"
                 ).all()
                 print(f"   Found {len(cards)} card(s) for [{clean_slug}].")
                 self._record_yield("company_pages", len(cards))
@@ -430,7 +472,8 @@ class LinkedInJobFinder:
             from src.storage.database import ApplicationDatabase
 
             tracker = LinkedInPostTracker(db=ApplicationDatabase())
-            await page.goto(posts_url, wait_until="domcontentloaded")
+            if not await self._safe_goto(page, posts_url):
+                return []
             await asyncio.sleep(3.0)
             for _ in range(4):
                 await page.evaluate("window.scrollBy(0, 1000)")
@@ -501,7 +544,8 @@ class LinkedInJobFinder:
             view_url = f"https://www.linkedin.com/jobs/view/{seed_id}/"
             print(f"\n🌐 Navigating to Seed Job View [{seed_id}]: {view_url}")
             try:
-                await page.goto(view_url, wait_until="domcontentloaded")
+                if not await self._safe_goto(page, view_url):
+                    continue
                 await asyncio.sleep(2.5)
                 for _ in range(3):
                     await page.evaluate("window.scrollBy(0, 900)")
@@ -636,6 +680,14 @@ class LinkedInJobFinder:
             company = re.sub(
                 r"^Company\s+Name\s+", "", (raw_company or "Tech Company").strip(), flags=re.IGNORECASE
             ).strip()
+
+            # 3c. Enforce SDET/QA/AI-QA title relevance before clicking or tailoring
+            if raw_title:
+                from src.ingestion.filters import is_sdet_title
+
+                if not is_sdet_title(title):
+                    print(f"⏭️  Skipping non-SDET LinkedIn card: {title} @ {company} (ID: {job_id})")
+                    return None
 
             # 4. INSTANT DEDUPLICATION CHECK BEFORE CLICKING!
             if self.is_duplicate(job_id, company, title):
@@ -831,7 +883,8 @@ class LinkedInJobFinder:
                     )
                     print(f"🎯 Sniper Profile #{s_idx + 1}: {s_url}")
                     try:
-                        await page.goto(s_url, wait_until="domcontentloaded")
+                        if not await self._safe_goto(page, s_url):
+                            continue
                         await asyncio.sleep(2.5)
                         await self.scroll_results_pane(page, scrolls=3)
                         s_cards = await page.locator(
@@ -888,7 +941,8 @@ class LinkedInJobFinder:
                     print(f"🌐 Navigating to Page {page_num + 1} (start={start_offset}): {search_url}")
 
                     try:
-                        await page.goto(search_url, wait_until="domcontentloaded")
+                        if not await self._safe_goto(page, search_url):
+                            continue
                         await asyncio.sleep(2.5)
                         await self.scroll_results_pane(page, scrolls=4)
 
