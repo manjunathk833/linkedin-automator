@@ -177,7 +177,7 @@
 
             <!-- TAB 3: APPLIED TRACKING DASHBOARD -->
             <section id="tracking-section" class="hidden">
-                <!-- KPI Stat Cards -->
+                <!-- KPI Stat Cards & Funnel Metrics -->
                 <div class="tracking-stats-row">
                     <div class="kpi-card glass-panel">
                         <div class="kpi-icon">🎯</div>
@@ -194,22 +194,49 @@
                         </div>
                     </div>
                     <div class="kpi-card glass-panel">
-                        <div class="kpi-icon">🏢</div>
+                        <div class="kpi-icon">📞</div>
                         <div class="kpi-data">
-                            <span class="kpi-value" id="kpi-platforms-count">0</span>
-                            <span class="kpi-label">Active Portals</span>
+                            <span class="kpi-value" id="kpi-total-screens">0</span>
+                            <span class="kpi-label">Interviews / Calls</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon">📈</div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="kpi-screen-rate">0.0%</span>
+                            <span class="kpi-label">Interview Rate</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon">🎉</div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="kpi-total-offers">0</span>
+                            <span class="kpi-label">Offers</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tracking Toolbar -->
+                <!-- Tracking Toolbar with Funnel Filter -->
                 <div class="approved-toolbar">
                     <div class="search-box">
-                        <input type="text" id="tracking-search" placeholder="🔍 Search applied jobs by company, role, or platform..." oninput="filterTrackingJobs()">
+                        <input type="text" id="tracking-search" placeholder="🔍 Search applied jobs by company, role, track, or stage..." oninput="filterTrackingJobs()">
                     </div>
                     <div class="toolbar-actions">
+                        <select id="tracking-stage-filter" class="form-select-sm" onchange="filterTrackingJobs()" style="background: rgba(15,23,42,0.7); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; font-size: 0.85rem;">
+                            <option value="">All Funnel Stages</option>
+                            <option value="APPLIED">Applied</option>
+                            <option value="ACKNOWLEDGED">Acknowledged</option>
+                            <option value="RECRUITER_SCREEN">Recruiter Screen</option>
+                            <option value="TECH_ASSESSMENT">Tech Assessment / OA</option>
+                            <option value="TECH_ROUND_1">Tech Round 1</option>
+                            <option value="SYSTEM_DESIGN">System Design / Arch</option>
+                            <option value="HIRING_MANAGER">Hiring Manager</option>
+                            <option value="OFFER">Offer</option>
+                            <option value="REJECTED">Rejected</option>
+                            <option value="GHOSTED">Ghosted</option>
+                        </select>
                         <button class="btn btn-secondary-sm" onclick="loadAppliedTracking()">
-                            🔄 Refresh Tracking
+                            🔄 Refresh
                         </button>
                     </div>
                 </div>

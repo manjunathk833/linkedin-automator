@@ -109,6 +109,7 @@ TIER_1_CORE = [
     "82_test_sprint5_ai_eval_grounding.py",
     "83_test_sprint6_filters_and_usd_remote.py",
     "84_test_sprint7_hirist_instahyre_and_naukri.py",
+    "85_test_funnel_tracking_and_stealth_discovery.py",
     "103_test_expanded_collections_and_keywords.py",
     "104_test_search_sort_and_company_discovery.py",
     "105_test_interview_engine_and_batch_autofill.py",

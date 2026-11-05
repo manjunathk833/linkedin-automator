@@ -136,6 +136,30 @@ class ApplicationDatabase:
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_hiring_posts_content_hash ON hiring_posts(content_hash);")
             except Exception:
                 pass
+
+            # Funnel & Lifecycle Tracking Migration
+            funnel_cols = [
+                ("discovery_track", "TEXT DEFAULT 'TRACK_2_LINKEDIN'"),
+                ("discovery_channel", "TEXT DEFAULT 'search'"),
+                ("application_mode", "TEXT DEFAULT 'batch_autofill'"),
+                ("funnel_stage", "TEXT DEFAULT 'APPLIED'"),
+                ("last_stage_update", "TIMESTAMP"),
+                ("recruiter_contact", "TEXT DEFAULT ''"),
+                ("notes", "TEXT DEFAULT ''"),
+            ]
+            for col_name, col_def in funnel_cols:
+                try:
+                    conn.execute(f"ALTER TABLE job_applications ADD COLUMN {col_name} {col_def};")
+                except Exception:
+                    pass
+            try:
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_job_applications_stage ON job_applications(funnel_stage);")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_job_applications_track ON job_applications(discovery_track);"
+                )
+            except Exception:
+                pass
+
             self.repair_invalid_post_urls(conn=conn)
             self.repair_posts_metadata_and_links(conn=conn)
 
@@ -173,6 +197,19 @@ class ApplicationDatabase:
             conn.commit()
             return int(row[0]) if row else 1
 
+    VALID_FUNNEL_STAGES = (
+        "APPLIED",
+        "ACKNOWLEDGED",
+        "RECRUITER_SCREEN",
+        "TECH_ASSESSMENT",
+        "TECH_ROUND_1",
+        "SYSTEM_DESIGN",
+        "HIRING_MANAGER",
+        "OFFER",
+        "REJECTED",
+        "GHOSTED",
+    )
+
     def record_application(
         self,
         job_id: str,
@@ -184,24 +221,78 @@ class ApplicationDatabase:
         tailored_data: dict[str, Any] | str | None = None,
         screening_qa: dict[str, Any] | str | None = None,
         status: str = "applied",
+        discovery_track: str | None = None,
+        discovery_channel: str | None = None,
+        application_mode: str | None = None,
+        funnel_stage: str = "APPLIED",
+        recruiter_contact: str = "",
+        notes: str = "",
     ) -> None:
-        """Records an application event into the audit trail and updates daily submission counter."""
+        """Records an application event into the audit trail, initializes funnel stage, and updates daily quota."""
         tailored_payload = tailored_data if tailored_data is not None else {}
         tailored_json = tailored_payload if isinstance(tailored_payload, str) else json.dumps(tailored_payload)
         qa_json = screening_qa if isinstance(screening_qa, str) or screening_qa is None else json.dumps(screening_qa)
+
+        # Automatically deduce discovery track & mode if not explicitly supplied
+        norm_source = (source or "linkedin").lower().strip()
+        if not discovery_track:
+            if norm_source in (
+                "greenhouse",
+                "lever",
+                "ashby",
+                "workday",
+                "smartrecruiters",
+                "hirist",
+                "instahyre",
+                "rippling",
+                "workable",
+                "recruitee",
+            ):
+                discovery_track = "TRACK_1_DIRECT_ATS"
+            elif norm_source in ("social_lead", "post", "linkedin_post"):
+                discovery_track = "TRACK_3_SOCIAL_POST"
+            elif "sniper" in norm_source:
+                discovery_track = "PORTAL_SNIPER"
+            else:
+                discovery_track = "TRACK_2_LINKEDIN"
+
+        if not discovery_channel:
+            discovery_channel = (
+                "direct_ats"
+                if "TRACK_1" in discovery_track
+                else ("social_post" if "TRACK_3" in discovery_track else "search")
+            )
+
+        if not application_mode:
+            if "manual" in status.lower():
+                application_mode = "manual_takeover"
+            elif "easy_apply" in norm_source:
+                application_mode = "easy_apply"
+            else:
+                application_mode = "batch_autofill"
+
+        stage = (funnel_stage or "APPLIED").upper().strip()
+        if stage not in self.VALID_FUNNEL_STAGES:
+            stage = "APPLIED"
 
         with self._get_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO job_applications (
                     id, source, company_name, job_title, job_url,
-                    resume_path, tailored_data_json, screening_qa_json, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    resume_path, tailored_data_json, screening_qa_json, status,
+                    discovery_track, discovery_channel, application_mode, funnel_stage,
+                    recruiter_contact, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     status = excluded.status,
                     resume_path = excluded.resume_path,
                     tailored_data_json = excluded.tailored_data_json,
-                    screening_qa_json = excluded.screening_qa_json;
+                    screening_qa_json = excluded.screening_qa_json,
+                    discovery_track = COALESCE(job_applications.discovery_track, excluded.discovery_track),
+                    discovery_channel = COALESCE(job_applications.discovery_channel, excluded.discovery_channel),
+                    application_mode = COALESCE(job_applications.application_mode, excluded.application_mode),
+                    funnel_stage = COALESCE(job_applications.funnel_stage, excluded.funnel_stage);
                 """,
                 (
                     job_id,
@@ -213,11 +304,100 @@ class ApplicationDatabase:
                     tailored_json,
                     qa_json,
                     status,
+                    discovery_track,
+                    discovery_channel,
+                    application_mode,
+                    stage,
+                    recruiter_contact,
+                    notes,
                 ),
             )
             conn.commit()
 
         self.increment_today_submission_count()
+
+    def update_funnel_stage(
+        self,
+        job_id: str,
+        new_stage: str,
+        notes: str | None = None,
+        recruiter_contact: str | None = None,
+    ) -> bool:
+        """
+        Updates the recruitment funnel lifecycle stage for an application.
+        Valid stages: APPLIED, ACKNOWLEDGED, RECRUITER_SCREEN, TECH_ASSESSMENT,
+        TECH_ROUND_1, SYSTEM_DESIGN, HIRING_MANAGER, OFFER, REJECTED, GHOSTED.
+        """
+        stage = (new_stage or "APPLIED").upper().strip()
+        if stage not in self.VALID_FUNNEL_STAGES:
+            stage = "APPLIED"
+
+        updates = ["funnel_stage = ?", "last_stage_update = CURRENT_TIMESTAMP"]
+        params: list[Any] = [stage]
+
+        if notes is not None:
+            updates.append("notes = ?")
+            params.append(notes)
+        if recruiter_contact is not None:
+            updates.append("recruiter_contact = ?")
+            params.append(recruiter_contact)
+
+        params.append(job_id)
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                f"UPDATE job_applications SET {', '.join(updates)} WHERE id = ?;",
+                tuple(params),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def get_funnel_metrics(self) -> dict[str, Any]:
+        """
+        Calculates conversion funnel metrics:
+        - Stage counts (Applied, Screens, Tech Rounds, Offers, Rejections)
+        - Track breakdown (Direct ATS vs LinkedIn vs Social Posts vs Sniper)
+        - Application-to-Screen conversion rate (%)
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) AS total FROM job_applications;")
+            total_apps = cursor.fetchone()["total"] or 0
+
+            cursor.execute(
+                "SELECT COALESCE(funnel_stage, 'APPLIED') AS stage, COUNT(*) AS cnt FROM job_applications GROUP BY stage;"
+            )
+            stage_counts = {row["stage"]: row["cnt"] for row in cursor.fetchall()}
+
+            cursor.execute(
+                "SELECT COALESCE(discovery_track, 'TRACK_2_LINKEDIN') AS track, COUNT(*) AS cnt FROM job_applications GROUP BY track;"
+            )
+            track_counts = {row["track"]: row["cnt"] for row in cursor.fetchall()}
+
+            screens = sum(
+                stage_counts.get(s, 0)
+                for s in (
+                    "RECRUITER_SCREEN",
+                    "TECH_ASSESSMENT",
+                    "TECH_ROUND_1",
+                    "SYSTEM_DESIGN",
+                    "HIRING_MANAGER",
+                    "OFFER",
+                )
+            )
+            screen_rate = round((screens / total_apps * 100), 1) if total_apps > 0 else 0.0
+            offers = stage_counts.get("OFFER", 0)
+            offer_rate = round((offers / total_apps * 100), 1) if total_apps > 0 else 0.0
+
+            return {
+                "total_applications": total_apps,
+                "stages": stage_counts,
+                "tracks": track_counts,
+                "total_interviews_or_screens": screens,
+                "application_to_screen_rate_pct": screen_rate,
+                "offers": offers,
+                "offer_rate_pct": offer_rate,
+            }
 
     def get_application(self, job_id: str) -> dict[str, Any] | None:
         """Retrieves an application audit record by job_id."""
@@ -328,6 +508,7 @@ class ApplicationDatabase:
                 "source_breakdown": sources,
                 "statuses": statuses,
                 "status_breakdown": statuses,
+                "funnel": self.get_funnel_metrics(),
             }
 
     def delete_application(self, job_id: str) -> bool:

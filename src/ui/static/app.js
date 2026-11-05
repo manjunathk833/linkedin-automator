@@ -955,19 +955,21 @@ async function loadAppliedTracking() {
         const data = await response.json();
         trackedApplications = data.applications || [];
 
-        // Update KPIs
+        // Update KPIs with Funnel Metrics
         const stats = data.stats || {};
+        const funnel = stats.funnel || {};
         const kpiTotal = document.getElementById('kpi-total-applied');
         const kpiToday = document.getElementById('kpi-today-applied');
-        const kpiPlatforms = document.getElementById('kpi-platforms-count');
+        const kpiScreens = document.getElementById('kpi-total-screens');
+        const kpiScreenRate = document.getElementById('kpi-screen-rate');
+        const kpiOffers = document.getElementById('kpi-total-offers');
         const badgeCount = document.getElementById('tracking-count');
 
         if (kpiTotal) kpiTotal.innerText = stats.total_applied || trackedApplications.length;
         if (kpiToday) kpiToday.innerText = stats.applied_today || 0;
-        if (kpiPlatforms) {
-            const sources = Object.keys(stats.source_breakdown || {});
-            kpiPlatforms.innerText = sources.length || (trackedApplications.length > 0 ? 1 : 0);
-        }
+        if (kpiScreens) kpiScreens.innerText = funnel.total_interviews_or_screens || 0;
+        if (kpiScreenRate) kpiScreenRate.innerText = `${funnel.application_to_screen_rate_pct || 0.0}%`;
+        if (kpiOffers) kpiOffers.innerText = funnel.offers || 0;
         if (badgeCount) badgeCount.innerText = stats.total_applied || trackedApplications.length;
 
         if (loadingEl) loadingEl.classList.add('hidden');
@@ -1018,6 +1020,7 @@ function renderTrackingGrid(apps) {
             }
         }
 
+        const appStage = (app.funnel_stage || 'APPLIED').toUpperCase();
         const statusClass = (app.status || 'applied').toLowerCase().includes('interview')
             ? 'interview'
             : (app.status || 'applied').toLowerCase().includes('submitted')
@@ -1028,6 +1031,7 @@ function renderTrackingGrid(apps) {
         const hasPdf = Boolean(app.resume_path);
         const jobUrl = app.job_url || '#';
         const dreamHtml = app.is_dream_org ? '<span class="dream-pill">⭐ Dream Org</span>' : '';
+        const trackHtml = app.discovery_track ? `<span class="track-pill" style="font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); font-weight: 500;">${app.discovery_track.replace(/_/g, ' ')}</span>` : '';
 
         card.innerHTML = `
             <div>
@@ -1038,6 +1042,7 @@ function renderTrackingGrid(apps) {
                     </div>
                     <div class="tracking-badge-group">
                         ${dreamHtml}
+                        ${trackHtml}
                         <span class="source-pill ${badgeInfo.cssClass}">${badgeInfo.label}</span>
                         <span class="status-pill ${statusClass}">${statusDisplay}</span>
                     </div>
@@ -1045,6 +1050,23 @@ function renderTrackingGrid(apps) {
                 <div class="tracking-meta">
                     <span>🕒 Applied: <strong>${formattedDate}</strong></span>
                     <span>🆔 ID: <code>${app.job_id}</code></span>
+                </div>
+                <div class="tracking-stage-row" style="margin-top: 10px; padding: 6px 10px; background: rgba(15,23,42,0.5); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 0.8rem; color: #94a3b8; font-weight: 500;">Funnel Stage:</span>
+                        <select onchange="updateApplicationStage('${app.job_id}', this.value)" style="background: rgba(30, 41, 59, 0.95); color: #f1f5f9; border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 3px 8px; font-size: 0.8rem; cursor: pointer; outline: none;">
+                            <option value="APPLIED" ${appStage === 'APPLIED' ? 'selected' : ''}>📥 Applied</option>
+                            <option value="ACKNOWLEDGED" ${appStage === 'ACKNOWLEDGED' ? 'selected' : ''}>📨 Acknowledged</option>
+                            <option value="RECRUITER_SCREEN" ${appStage === 'RECRUITER_SCREEN' ? 'selected' : ''}>📞 Recruiter Screen</option>
+                            <option value="TECH_ASSESSMENT" ${appStage === 'TECH_ASSESSMENT' ? 'selected' : ''}>💻 Tech Assessment / OA</option>
+                            <option value="TECH_ROUND_1" ${appStage === 'TECH_ROUND_1' ? 'selected' : ''}>🧪 Tech Round 1</option>
+                            <option value="SYSTEM_DESIGN" ${appStage === 'SYSTEM_DESIGN' ? 'selected' : ''}>🏛️ System Design / Arch</option>
+                            <option value="HIRING_MANAGER" ${appStage === 'HIRING_MANAGER' ? 'selected' : ''}>👥 Hiring Manager</option>
+                            <option value="OFFER" ${appStage === 'OFFER' ? 'selected' : ''}>🎉 Offer</option>
+                            <option value="REJECTED" ${appStage === 'REJECTED' ? 'selected' : ''}>❌ Rejected</option>
+                            <option value="GHOSTED" ${appStage === 'GHOSTED' ? 'selected' : ''}>👻 Ghosted</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="tracking-footer">
@@ -1063,22 +1085,59 @@ function renderTrackingGrid(apps) {
     });
 }
 
+async function updateApplicationStage(jobId, newStage) {
+    try {
+        const response = await fetch(`/api/tracking/update-stage/${jobId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stage: newStage })
+        });
+        if (response.ok) {
+            const res = await response.json();
+            showToast(`Stage updated to ${newStage.replace(/_/g, ' ')}`);
+            const app = trackedApplications.find(a => a.job_id === jobId);
+            if (app) app.funnel_stage = newStage;
+            if (res.stats && res.stats.funnel) {
+                const funnel = res.stats.funnel;
+                const kpiScreens = document.getElementById('kpi-total-screens');
+                const kpiScreenRate = document.getElementById('kpi-screen-rate');
+                const kpiOffers = document.getElementById('kpi-total-offers');
+                if (kpiScreens) kpiScreens.innerText = funnel.total_interviews_or_screens || 0;
+                if (kpiScreenRate) kpiScreenRate.innerText = `${funnel.application_to_screen_rate_pct || 0.0}%`;
+                if (kpiOffers) kpiOffers.innerText = funnel.offers || 0;
+            }
+        } else {
+            showToast('Failed to update funnel stage', 'error');
+        }
+    } catch (e) {
+        console.error('Error updating funnel stage:', e);
+        showToast('Error updating funnel stage', 'error');
+    }
+}
+
 function filterTrackingJobs() {
     const input = document.getElementById('tracking-search');
-    if (!input) return;
-    const query = input.value.toLowerCase().trim();
-    if (!query) {
-        renderTrackingGrid(trackedApplications);
-        return;
-    }
+    const stageSelect = document.getElementById('tracking-stage-filter');
+    const query = input ? input.value.toLowerCase().trim() : '';
+    const selectedStage = stageSelect ? stageSelect.value.toUpperCase().trim() : '';
+
     const filtered = trackedApplications.filter(app => {
+        // Stage filter
+        const appStage = (app.funnel_stage || 'APPLIED').toUpperCase();
+        if (selectedStage && appStage !== selectedStage) {
+            return false;
+        }
+        if (!query) return true;
+
         const comp = (app.company_name || '').toLowerCase().includes(query);
         const title = (app.job_title || '').toLowerCase().includes(query);
         const badgeInfo = formatSourceBadge(app.source, app.application_type);
         const src = (app.source || '').toLowerCase().includes(query) || badgeInfo.label.toLowerCase().includes(query);
+        const track = (app.discovery_track || '').toLowerCase().includes(query);
         const status = (app.status || '').toLowerCase().includes(query);
+        const stage = appStage.toLowerCase().includes(query);
         const jobId = (app.job_id || '').toLowerCase().includes(query);
-        return comp || title || src || status || jobId;
+        return comp || title || src || track || status || stage || jobId;
     });
     renderTrackingGrid(filtered);
 }
