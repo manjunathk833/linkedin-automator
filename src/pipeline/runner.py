@@ -63,9 +63,10 @@ class JobSearchPipelineRunner:
             print("-" * 55)
             try:
                 coordinator = ATSDiscoveryCoordinator(use_ai=self.use_ai)
+                ats_max_age = float(discovery_cfg.get("ats_max_age_days", 3.0))
                 listings = []
                 if target_source in ["all", "ats", "trio"]:
-                    ats_listings = await coordinator.ingest_all_sources(filter_sdet=True)
+                    ats_listings = await coordinator.ingest_all_sources(filter_sdet=True, max_age_days=ats_max_age)
                     listings.extend(ats_listings)
                 if target_source in ["all", "ats", "trio", "portals"]:
                     portal_listings = await coordinator.ingest_direct_portals(filter_sdet=True)
@@ -145,7 +146,7 @@ class JobSearchPipelineRunner:
                 from src.storage.database import ApplicationDatabase
 
                 tracker = LinkedInPostTracker(db=ApplicationDatabase())
-                date_filter = discovery_cfg.get("posts_date_filter", "past-week")
+                date_filter = discovery_cfg.get("posts_date_filter", "past-72h")
                 is_headless = discovery_cfg.get("headless", True)
                 posts_discovered = await tracker.discover_posts(date_filter=date_filter, headless=is_headless)
                 track3_raw_scanned = int(getattr(tracker, "last_raw_updates_scanned", 0))

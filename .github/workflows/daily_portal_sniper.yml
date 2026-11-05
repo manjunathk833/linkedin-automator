@@ -2,8 +2,8 @@ name: Daily Career Portal Sniper (<24h Fresh Drops)
 
 on:
   schedule:
-    # Runs twice daily at 02:00 UTC (07:30 IST) and 13:00 UTC (18:30 IST)
-    - cron: "0 2,13 * * *"
+    # Runs 3x daily at 02:00 UTC (07:30 IST), 08:00 UTC (13:30 IST), and 14:00 UTC (19:30 IST)
+    - cron: "0 2,8,14 * * *"
   workflow_dispatch:
     inputs:
       hours:

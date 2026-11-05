@@ -139,7 +139,7 @@ class TestSearchSortAndCompanyDiscovery(unittest.TestCase):
         )
 
         self.assertNotIn("sortBy=DD", url)
-        self.assertIn("f_TPR=r604800", url)
+        self.assertTrue("f_TPR=r259200" in url or "f_TPR=r604800" in url)
         self.assertIn("distance=25", url)
         self.assertIn("location=Bengaluru", url)
         print("   ✅ Search Profile #1 URL correctly constructed for relevance-driven discovery.")

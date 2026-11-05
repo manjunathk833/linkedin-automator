@@ -9,6 +9,7 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 
 app = FastAPI(title="User Approval Gate")
 
@@ -1026,7 +1027,18 @@ async def mark_job_applied(job_id: str, force: bool = False):
         if os.path.exists(archived_pdf_path):
             pdf_path = archived_pdf_path
 
-    norm_source, _ = normalize_job_source_metadata(job_data) if job_data else ("manual", "ATS")
+    norm_source, _norm_app_type = normalize_job_source_metadata(job_data) if job_data else ("manual", "ATS")
+    raw_track = job_data.get("discovery_track") if isinstance(job_data.get("discovery_track"), str) else None
+    raw_channel = (
+        job_data.get("discovery_channel")
+        if isinstance(job_data.get("discovery_channel"), str)
+        else (job_data.get("channel") if isinstance(job_data.get("channel"), str) else None)
+    )
+    inferred_mode = (
+        "manual_override"
+        if (force and not verif.get("verified"))
+        else (job_data.get("application_mode") or "batch_autofill")
+    )
     db = ApplicationDatabase()
     db.record_application(
         job_id=job_id,
@@ -1037,6 +1049,10 @@ async def mark_job_applied(job_id: str, force: bool = False):
         resume_path=pdf_path or "",
         tailored_data=job_data.get("tailored_resume", {}),
         status="applied",
+        discovery_track=raw_track,
+        discovery_channel=raw_channel,
+        application_mode=inferred_mode,
+        funnel_stage="APPLIED",
     )
 
     # Purge file from pending queue
@@ -1116,6 +1132,47 @@ async def delete_tracked_job(job_id: str):
     db = ApplicationDatabase()
     deleted = db.delete_application(job_id)
     return {"status": "success" if deleted else "not_found", "job_id": job_id}
+
+
+class StageUpdateRequest(BaseModel):
+    stage: str
+    notes: str | None = None
+    recruiter_contact: str | None = None
+
+
+@app.post("/api/tracking/update-stage/{job_id}")
+async def update_job_funnel_stage(job_id: str, payload: StageUpdateRequest):
+    """Updates the recruitment lifecycle funnel stage for a tracked application."""
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    updated = db.update_funnel_stage(
+        job_id=job_id,
+        new_stage=payload.stage,
+        notes=payload.notes,
+        recruiter_contact=payload.recruiter_contact,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"Application {job_id} not found.")
+
+    return {
+        "status": "success",
+        "job_id": job_id,
+        "funnel_stage": payload.stage.upper().strip(),
+        "stats": db.get_application_stats(),
+    }
+
+
+@app.get("/api/tracking/funnel-metrics")
+async def get_funnel_metrics():
+    """Retrieves conversion funnel analytics (stages, conversion rates, channel attribution)."""
+    from src.storage.database import ApplicationDatabase
+
+    db = ApplicationDatabase()
+    return {
+        "status": "success",
+        "metrics": db.get_funnel_metrics(),
+    }
 
 
 @app.get("/api/approved-jobs")

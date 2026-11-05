@@ -111,10 +111,49 @@ def test_location_filter():
 
 
 async def test_live_workday_ingestion():
-    print("\n--- 3. Testing Workday Multi-Term Collector on Live Tenants ---")
-    collector = WorkdayCollector(timeout_seconds=15.0)
+    print("\n--- 3. Testing Workday Multi-Term Collector ---")
+    from unittest.mock import AsyncMock, MagicMock, patch
 
-    # Test Adobe (wd5, external_experienced)
+    collector = WorkdayCollector(timeout_seconds=10.0)
+    if os.environ.get("RUN_LIVE_TESTS") != "1" and "--live" not in sys.argv:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "total": 2,
+            "jobPostings": [
+                {
+                    "title": "Software Quality Engineer 5",
+                    "externalPath": "/job/Noida/Software-Quality-Engineer-5_R154321",
+                    "locationsText": "Noida, India",
+                    "postedOn": "Posted Today",
+                    "bulletFields": ["R154321"],
+                },
+                {
+                    "title": "Senior SDET - Cloud Platform",
+                    "externalPath": "/job/Bangalore/Senior-SDET_R154322",
+                    "locationsText": "Bengaluru, India",
+                    "postedOn": "Posted Yesterday",
+                    "bulletFields": ["R154322"],
+                },
+            ],
+        }
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+        with patch("src.ingestion.workday.httpx.AsyncClient", return_value=mock_client):
+            adobe_jobs = await collector.fetch_board_jobs(
+                company_name="Adobe",
+                slug="adobe",
+                site="external_experienced",
+                datacenter="wd5",
+                search_terms=["SDET India", "QA India"],
+                filter_sdet=True,
+                filter_india=True,
+            )
+            assert len(adobe_jobs) == 2, f"Expected 2 mocked Indian roles from Adobe, got {len(adobe_jobs)}"
+            print(f"  ✅ Fast-verified {len(adobe_jobs)} Workday CXS Indian roles (Adobe mock)")
+        return
+
+    # Live external polling when --live or RUN_LIVE_TESTS=1 is passed
     adobe_jobs = await collector.fetch_board_jobs(
         company_name="Adobe",
         slug="adobe",

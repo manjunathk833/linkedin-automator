@@ -184,48 +184,82 @@ class ATSDiscoveryCoordinator:
                 item.is_dream_org = company.is_dream_org
             return listings
 
-    async def ingest_all_sources(self, filter_sdet: bool = True) -> list[JobListing]:
+    @staticmethod
+    def is_listing_within_age_limit(listing: JobListing, max_age_days: float | None = 3.0) -> bool:
         """
-        Ingests public job boards across all target companies concurrently.
+        Returns True if the listing's posted_at timestamp is within max_age_days (default 3.0 days / 72h),
+        or if posted_at is not provided by the ATS vendor.
+        """
+        if max_age_days is None or max_age_days <= 0 or listing.posted_at is None:
+            return True
+        now = datetime.datetime.utcnow()
+        dt = listing.posted_at
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        age_days = (now - dt).total_seconds() / 86400.0
+        return age_days <= max_age_days
+
+    async def ingest_all_sources(self, filter_sdet: bool = True, max_age_days: float | None = 3.0) -> list[JobListing]:
+        """
+        Ingests public job boards across all target companies concurrently,
+        filtering out stale requisitions older than max_age_days (default <=3 days / 72h).
         """
         companies = self.load_target_companies()
         if not companies:
             print(f"⚠️ No target companies found in {self.config_path}")
             return []
 
-        print(f"🌐 Ingesting ATS boards across {len(companies)} target enterprises...")
+        print(f"🌐 Ingesting ATS boards across {len(companies)} target enterprises (max_age_days={max_age_days})...")
         self.semaphore = asyncio.Semaphore(self.max_concurrency)
         tasks = [self._fetch_company_jobs(c) for c in companies]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         all_listings: list[JobListing] = []
+        skipped_stale = 0
         for res in results:
             if isinstance(res, list):
-                all_listings.extend(res)
+                for item in res:
+                    if self.is_listing_within_age_limit(item, max_age_days=max_age_days):
+                        all_listings.append(item)
+                    else:
+                        skipped_stale += 1
             elif isinstance(res, Exception):
                 print(f"⚠️ Ingestion error: {res}")
 
-        print(f"✅ Ingestion complete: {len(all_listings)} relevant SDET/QA role(s) discovered.")
+        print(
+            f"✅ Ingestion complete: {len(all_listings)} fresh SDET/QA role(s) retained "
+            f"({skipped_stale} stale role(s) >{max_age_days}d filtered out)."
+        )
         return all_listings
 
-    async def ingest_direct_portals(self, filter_sdet: bool = True) -> list[JobListing]:
+    async def ingest_direct_portals(
+        self, filter_sdet: bool = True, max_age_days: float | None = None
+    ) -> list[JobListing]:
         """
         Ingests curated direct technology portal listings from Hirist and Instahyre.
+        Uses a smart 72h window on Mondays (to capture weekend drops) and 48h Tue-Sun by default.
         """
+        effective_max_days = (
+            max_age_days if max_age_days is not None else (3.0 if datetime.datetime.utcnow().weekday() == 0 else 2.0)
+        )
         all_portal_jobs: list[JobListing] = []
         try:
-            h_jobs = await self.hirist.fetch_jobs(query="SDET", location="bangalore", filter_sdet=filter_sdet)
+            h_jobs = await self.hirist.fetch_jobs(
+                query="SDET", location="bangalore", filter_sdet=filter_sdet, max_age_days=effective_max_days
+            )
             all_portal_jobs.extend(h_jobs)
         except Exception as e:
             print(f"⚠️ Hirist portal ingestion error: {e}")
 
         try:
             i_jobs = await self.instahyre.fetch_opportunities_via_browser(
-                headless=True, limit=25, filter_sdet=filter_sdet
+                headless=True, limit=25, filter_sdet=filter_sdet, max_age_days=effective_max_days
             )
             if not i_jobs:
                 for slug in self.instahyre.CURATED_SLUGS[:2]:
-                    feed_jobs = await self.instahyre.fetch_feed_jobs(slug=slug, filter_sdet=filter_sdet)
+                    feed_jobs = await self.instahyre.fetch_feed_jobs(
+                        slug=slug, filter_sdet=filter_sdet, max_age_days=effective_max_days
+                    )
                     i_jobs.extend(feed_jobs)
             all_portal_jobs.extend(i_jobs)
         except Exception as e:
@@ -282,6 +316,8 @@ class ATSDiscoveryCoordinator:
             payload = {
                 "job_id": item.id,
                 "source": item.source,
+                "discovery_track": "TRACK_1_DIRECT_ATS",
+                "discovery_channel": (item.source or "direct_ats").lower().strip(),
                 "application_type": f"ATS_{item.source.upper()}",
                 "is_dream_org": item.is_dream_org,
                 "job_details": {

@@ -71,15 +71,31 @@ async def launch_persistent_browser(
 
     stealth_args = [
         "--disable-blink-features=AutomationControlled",
+        "--disable-infobars",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-gpu-shader-disk-cache",
+        "--disable-dev-shm-usage",
         "--start-maximized",
         "--no-sandbox",
-        "--disable-infobars",
     ]
+    if headless:
+        stealth_args.append("--headless=new")
 
     desktop_ua = (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     )
+
+    try:
+        from src.browser.cdp_stealth import clean_stale_browser_processes
+
+        clean_stale_browser_processes(profile_dir)
+    except Exception:
+        pass
 
     context = await playwright.chromium.launch_persistent_context(
         user_data_dir=profile_dir,
@@ -103,6 +119,14 @@ async def launch_persistent_browser(
                 await context.add_cookies(cookies)
         except Exception as e:
             print(f"⚠️ Warning: Could not pre-sync storage_state cookies: {e}")
+
+    # Inject anti-detection evasion scripts before any page navigation occurs
+    try:
+        from src.browser.cdp_stealth import STEALTH_EVASION_JS
+
+        await context.add_init_script(STEALTH_EVASION_JS)
+    except Exception as e:
+        print(f"⚠️ Warning: Could not inject stealth evasion scripts: {e}")
 
     page = context.pages[0] if context.pages else await context.new_page()
     print(f"🔗 Playwright launched with hardened persistent profile: {profile_dir}")

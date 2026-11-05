@@ -29,21 +29,23 @@ echo "================================================================" >> "${RU
 echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Launching Scheduled Daily Pipeline" >> "${RUN_LOG}"
 echo "Execution Directory: ${TARGET_DIR}" >> "${RUN_LOG}"
 
-# 2. Check and wait for network connectivity (up to 30s) if machine just woke up
+# 2. Check and wait for network connectivity (up to 90s) if machine just woke up
 echo "Checking network connectivity..." >> "${RUN_LOG}"
 NET_READY=false
-for i in {1..6}; do
+for i in {1..18}; do
     if curl -s -m 5 https://github.com >/dev/null 2>&1 || ping -c 1 8.8.8.8 >/dev/null 2>&1; then
-        echo "✅ Network connectivity confirmed." >> "${RUN_LOG}"
+        echo "✅ Network connectivity confirmed (attempt ${i}/18)." >> "${RUN_LOG}"
         NET_READY=true
         break
     fi
-    echo "Waiting for network connectivity (attempt ${i}/6)..." >> "${RUN_LOG}"
+    echo "Waiting for network connectivity (attempt ${i}/18)..." >> "${RUN_LOG}"
     sleep 5
 done
 
 if [[ "${NET_READY}" != "true" ]]; then
-    echo "⚠️ Warning: Network connectivity not established within 30s. Proceeding with best effort..." >> "${RUN_LOG}"
+    echo "🚨 Error: Network connectivity could not be established within 90s." >> "${RUN_LOG}"
+    echo "   Aborting scheduled run to prevent offline failures. launchd will retry." >> "${RUN_LOG}"
+    exit 75  # EX_TEMPFAIL
 fi
 
 # 3. Synchronize latest production code from origin/main
@@ -67,11 +69,29 @@ if [[ -f "${TARGET_DIR}/.env" ]]; then
     set +a
 fi
 
-# 4. Execute daily automation pipeline (headless + email dispatch)
-echo "Executing: ${VENV_PYTHON} main.py daily --headless" >> "${RUN_LOG}"
-"${VENV_PYTHON}" main.py daily --headless >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
-    echo "⚠️ Daily run exited with error code $?" >> "${RUN_LOG}"
-}
+# 4. Execute scheduled automation pipeline based on time of day:
+# - Morning Run (<12:00 local time): Full Multi-Track Discovery + Naukri Touch + Email Briefing (--skip-tests)
+# - Afternoon Run (>=12:00 local time): Midday Cloud CI Sniper Sync + Afternoon Naukri Resdex Touch
+CMD_PREFIX=""
+if command -v caffeinate >/dev/null 2>&1; then
+    CMD_PREFIX="caffeinate -dimsu"
+fi
+
+CURRENT_HOUR="$(date +%H)"
+if [[ $((10#${CURRENT_HOUR})) -ge 12 ]]; then
+    echo "Executing Afternoon Fast Sync & Naukri Resdex Refresh (Hour=${CURRENT_HOUR})..." >> "${RUN_LOG}"
+    ${CMD_PREFIX} "${VENV_PYTHON}" main.py sync-ci >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
+        echo "⚠️ Afternoon CI sync exited with code $?" >> "${RUN_LOG}"
+    }
+    ${CMD_PREFIX} "${VENV_PYTHON}" scripts/naukri_pinger.py --headless >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
+        echo "⚠️ Afternoon Naukri refresh exited with code $?" >> "${RUN_LOG}"
+    }
+else
+    echo "Executing Morning Full Pipeline: ${CMD_PREFIX} ${VENV_PYTHON} main.py daily --headless --skip-tests" >> "${RUN_LOG}"
+    ${CMD_PREFIX} "${VENV_PYTHON}" main.py daily --headless --skip-tests >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
+        echo "⚠️ Daily run exited with error code $?" >> "${RUN_LOG}"
+    }
+fi
 
 echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Daily Pipeline Execution Finished" >> "${RUN_LOG}"
 echo "================================================================" >> "${RUN_LOG}"
