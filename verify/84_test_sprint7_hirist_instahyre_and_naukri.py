@@ -27,6 +27,7 @@ from scripts.naukri_pinger import (
 )
 from src.autofill.vendor_schemas import ATSVendorPattern, classify_ats_pattern
 from src.ingestion.ats_discovery import ATSDiscoveryCoordinator
+from src.ingestion.filters import is_linkedin_posting_fresh_and_unsaturated, is_sdet_title
 from src.ingestion.hirist import HiristCollector
 from src.ingestion.instahyre import InstahyreCollector
 from src.storage.models import JobListing
@@ -186,6 +187,64 @@ def test_coordinator_integration():
     print("   ✅ ATSDiscoveryCoordinator properly wired with Hirist & Instahyre collectors.")
 
 
+def test_freshness_and_negative_hardware_filters():
+    print("\n🔍 Step 7: Validating LinkedIn freshness/repost-saturation and negative hardware title filters...")
+    # Negative hardware/PLC/FPGA/Typst exclusions
+    for bad_title in (
+        "Senior Lead Engineer - Test & Validation - PLC Systems",
+        "Automation Engineer (Python + Typst)",
+        "Post-Silicon Validation & Test Automation Engineer",
+        "Network Automation Engineer",
+        "IT Infrastructure Automation Engineer",
+        "FPGA Test Engineer",
+        "Bluetooth Automation QA Engineer",
+    ):
+        assert not is_sdet_title(bad_title), f"Expected negative filter to reject '{bad_title}'"
+
+    # Stale LinkedIn age rejection
+    for stale_text in (
+        "Bengaluru, Karnataka, India · 1 week ago · 32 applicants",
+        "Pune, Maharashtra, India · 6 days ago · Over 100 people clicked apply",
+        "Hyderabad, India · Reposted 2 weeks ago · 45 people clicked apply",
+        "Bengaluru · 1 month ago · 12 applicants",
+    ):
+        ok, reason = is_linkedin_posting_fresh_and_unsaturated(stale_text, max_days=3)
+        assert not ok, f"Expected stale text to be rejected: {stale_text} (got {reason})"
+
+    # Saturated repost rejection
+    sat_repost = "Bengaluru, Karnataka, India · Reposted 1 day ago · Over 100 people clicked apply"
+    ok_sat, reason_sat = is_linkedin_posting_fresh_and_unsaturated(sat_repost, max_days=3)
+    assert not ok_sat and reason_sat == "reposted_and_saturated_over_100_applicants"
+
+    # Fresh / unsaturated acceptance
+    for fresh_text in (
+        "Bengaluru, Karnataka, India · 22 hours ago · 19 people clicked apply",
+        "Bengaluru, Karnataka, India · 1 day ago · 45 people clicked apply",
+        "Bengaluru, Karnataka, India · Reposted 6 hours ago · 28 people clicked apply",
+    ):
+        ok_f, _ = is_linkedin_posting_fresh_and_unsaturated(fresh_text, max_days=3)
+        assert ok_f, f"Expected fresh text to pass: {fresh_text}"
+
+    # Sniper <24h strict 1-day enforcement
+    ok_sniper_2d, reason_sniper_2d = is_linkedin_posting_fresh_and_unsaturated(
+        "Bengaluru, Karnataka, India · 2 days ago · 15 people clicked apply",
+        max_days=1,
+        is_sniper_24h=True,
+    )
+    assert not ok_sniper_2d and reason_sniper_2d == "stale_age_2_days_ago"
+
+    ok_sniper_18h, _ = is_linkedin_posting_fresh_and_unsaturated(
+        "Bengaluru, Karnataka, India · 18 hours ago · 12 people clicked apply",
+        max_days=1,
+        is_sniper_24h=True,
+    )
+    assert ok_sniper_18h
+
+    print(
+        "   ✅ LinkedIn freshness, Sniper <24h vs <=3d, repost-saturation, and negative hardware exclusions verified."
+    )
+
+
 def main():
     print("=" * 70)
     print("  VERIFICATION GATE 84: SPRINT 7 HIRIST, INSTAHYRE & NAUKRI TRAP")
@@ -197,6 +256,7 @@ def main():
     test_source_metadata_normalization()
     test_naukri_pinger_headline_rotation()
     test_coordinator_integration()
+    test_freshness_and_negative_hardware_filters()
 
     print("\n" + "=" * 70)
     print("  🎉 ALL GATE 84 SPECIFICATIONS VERIFIED: 100% PASS RATE")

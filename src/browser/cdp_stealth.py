@@ -167,12 +167,36 @@ def is_cdp_port_open(port: int = 9222) -> bool:
     return False
 
 
+def ensure_cdp_page_target(port: int = 9222) -> None:
+    """
+    Ensures at least one 'page' target exists on the active Chrome CDP instance.
+    On macOS, when the user closes all tabs, Chrome remains running in the Dock with 0 page targets,
+    causing Playwright's `connect_over_cdp` to fail with `Browser.setDownloadBehavior: Browser context
+    management is not supported`. Calling `PUT /json/new?about:blank` restores a default BrowserContext.
+    """
+    import json
+    import urllib.request
+
+    base_url = f"http://127.0.0.1:{port}"
+    try:
+        with urllib.request.urlopen(f"{base_url}/json/list", timeout=2.0) as resp:
+            targets = json.loads(resp.read().decode())
+        page_targets = [t for t in targets if isinstance(t, dict) and t.get("type") == "page"]
+        if not page_targets:
+            req = urllib.request.Request(f"{base_url}/json/new?about:blank", method="PUT")
+            with urllib.request.urlopen(req, timeout=3.0):
+                pass
+    except Exception:
+        pass
+
+
 async def _connect_existing_cdp(
     playwright_instance: Any,
     port: int = 9222,
     inject_stealth_js: bool = False,
 ) -> tuple[Any, Any, Any] | None:
     """Attempts to attach to an active Chrome instance on the given CDP port."""
+    ensure_cdp_page_target(port)
     for endpoint in (f"http://127.0.0.1:{port}", f"http://localhost:{port}"):
         try:
             browser = await playwright_instance.chromium.connect_over_cdp(endpoint, timeout=5000)

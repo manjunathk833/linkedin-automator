@@ -113,6 +113,61 @@ def sanitize_post_text(text: str, author_name: str = "") -> str:
     return cleaned.strip()
 
 
+def extract_relative_timestamp_from_card_text(raw_text: str) -> str:
+    """
+    Extracts relative timestamp (e.g. '2h', '16m', '1d', '6d', '1w', '2mo', '1yr')
+    from LinkedIn feed/search card text, including SDUI cards where the timestamp
+    is concatenated directly onto the end of the author headline without a leading
+    space (e.g. 'Manual & Automation Testing6d •' or 'Business Analysis1w • Edited').
+    """
+    if not raw_text:
+        return "recent"
+
+    header_window = raw_text[:450]
+
+    # 1. Explicit '<N> <unit> •' pattern (supports concatenated prefix like 'Testing6d •' or 'Company3h •')
+    m_bullet = re.search(
+        r"(?:^|[\s•|)\].a-zA-Z])(\d+\s*(?:yr|mo|wk|hr|min|sec|w|d|h|m|s))\s*•",
+        header_window,
+        re.IGNORECASE,
+    )
+    if m_bullet:
+        return re.sub(r"\s+", "", m_bullet.group(1).lower())
+
+    # 2. Explicit '<N> (hour|minute|day|week|month|year)s ago' pattern
+    m_ago = re.search(
+        r"(\d+)\s*(second|sec|minute|min|hour|hr|day|week|wk|month|mo|year|yr)s?(?:\s+ago)?\b",
+        header_window,
+        re.IGNORECASE,
+    )
+    if m_ago:
+        num = m_ago.group(1)
+        unit_raw = m_ago.group(2).lower()
+        unit_map = {
+            "second": "s",
+            "sec": "s",
+            "minute": "m",
+            "min": "m",
+            "hour": "h",
+            "hr": "h",
+            "day": "d",
+            "week": "w",
+            "wk": "w",
+            "month": "mo",
+            "mo": "mo",
+            "year": "yr",
+            "yr": "yr",
+        }
+        return f"{num}{unit_map.get(unit_raw, unit_raw)}"
+
+    # 3. Standalone word-boundary token fallback
+    m_token = re.search(r"\b(\d+(?:yr|mo|w|d|h|m))\b", header_window, re.IGNORECASE)
+    if m_token:
+        return m_token.group(1).lower()
+
+    return "recent"
+
+
 class LinkedInPostTracker:
     """
     Automated discovery engine for LinkedIn hiring & referral posts.
@@ -418,16 +473,18 @@ class LinkedInPostTracker:
             if len(text_content) < 25:
                 return None
 
-            # 4. Extract relative timestamp
+            # 4. Extract relative timestamp (supporting SDUI concatenated header timestamps)
+            relative_time = "recent"
             time_loc = card.locator(
                 ".update-components-actor__sub-description, .feed-shared-actor__sub-description, time"
             ).first
             if await time_loc.count() > 0:
-                posted_time = (await time_loc.text_content(timeout=1000)).strip()
-                relative_time = posted_time.split("•")[0].strip() if "•" in posted_time else posted_time
-            else:
-                time_match = re.search(r"\b(\d+[hmdw])\b", raw_text)
-                relative_time = time_match.group(1) if time_match else "recent"
+                posted_time = (await time_loc.text_content(timeout=1000) or "").strip()
+                cand_time = posted_time.split("•")[0].strip() if "•" in posted_time else posted_time
+                parsed_cand = extract_relative_timestamp_from_card_text(cand_time)
+                relative_time = parsed_cand if parsed_cand != "recent" else cand_time
+            if not relative_time or relative_time == "recent":
+                relative_time = extract_relative_timestamp_from_card_text(raw_text)
 
             # 5. Extract Post permalink / URN with multi-tier resilience
             post_url = await self._extract_post_permalink(card, author_url, raw_text)
@@ -473,9 +530,9 @@ class LinkedInPostTracker:
         """
         Enforces strict post age filtering on extracted LinkedIn feed cards.
         Supports 'past-24h' (<=1d), 'past-48h' (<=2d), 'past-72h' (<=3d), and 'past-week' (<=7d).
+        Rejects unverified 'recent' placeholders when a strict sub-week filter ('past-24h', 'past-48h', 'past-72h')
+        is requested so 4d-1w cards from LinkedIn's 'past-week' URL bucket cannot sneak in.
         """
-        if not relative_time:
-            return True
         df = (date_filter or "past-week").lower().strip()
         max_days = 7.0
         if df in ("past-24h", "past_24h", "24h"):
@@ -486,6 +543,9 @@ class LinkedInPostTracker:
             max_days = 3.0
         elif df in ("past-month", "past_month"):
             max_days = 30.0
+
+        if not relative_time or relative_time.lower().strip() in ("recent", "unknown"):
+            return max_days >= 7.0
 
         t = relative_time.lower().strip()
         if any(u in t for u in ("now", "sec", "min", "hr", "hour")) or re.search(r"\b\d+\s*[smh]\b", t):
@@ -499,13 +559,16 @@ class LinkedInPostTracker:
         m_mo = re.search(r"\b(\d+)\s*mo(?:nth)?s?\b", t)
         if m_mo:
             return (float(m_mo.group(1)) * 30.0) <= max_days
-        return True
+        m_yr = re.search(r"\b(\d+)\s*(?:yr|year)s?\b", t)
+        if m_yr:
+            return (float(m_yr.group(1)) * 365.0) <= max_days
+        return max_days >= 7.0
 
     async def scrape_liked_posts(
         self,
         page: Any,
         max_scrolls: int = 4,
-        date_filter: str = "past-week",
+        date_filter: str = "past-72h",
     ) -> list[dict[str, Any]]:
         """
         Scrapes the candidate's own LinkedIn Recent Activity -> Reactions feed
@@ -584,6 +647,7 @@ class LinkedInPostTracker:
             else ("past-month" if date_filter in ("past-month", "past_month") else "past-week")
         )
 
+        from src.browser.cdp_stealth import ensure_cdp_page_target, is_cdp_port_open
         from src.browser.linkedin_auth import (
             capture_zero_yield_evidence,
             check_profile_session,
@@ -591,7 +655,17 @@ class LinkedInPostTracker:
         )
 
         async with async_playwright() as p:
-            context, page = await launch_persistent_browser(p, profile_dir=str(DEFAULT_PROFILE_DIR), headless=headless)
+            owns_context = False
+            if is_cdp_port_open(9222):
+                ensure_cdp_page_target(9222)
+                browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222", timeout=10000)
+                context = browser.contexts[0] if browser.contexts else await browser.new_context()
+                page = await context.new_page()
+            else:
+                context, page = await launch_persistent_browser(
+                    p, profile_dir=str(DEFAULT_PROFILE_DIR), headless=headless
+                )
+                owns_context = True
             print(f"🚀 Launching LinkedIn Posts Tracker (Headless: {headless}, Filter: {date_filter})")
 
             try:
@@ -604,10 +678,10 @@ class LinkedInPostTracker:
                     self.last_yield_verdict = "AUTH_FAILED"
                     return discovered_leads
 
-                # Step 0: Scan candidate's own Liked Posts / Reactions feed
+                # Step 0: Scan candidate's own Liked Posts / Reactions feed (enforcing same date_filter)
                 if include_liked:
                     liked_leads = await self.scrape_liked_posts(
-                        page, max_scrolls=min(max_scrolls, 4), date_filter="past-week"
+                        page, max_scrolls=min(max_scrolls, 4), date_filter=date_filter
                     )
                     discovered_leads.extend(liked_leads)
 
@@ -667,7 +741,15 @@ class LinkedInPostTracker:
                 else:
                     self.last_yield_verdict = "OK"
             finally:
-                await context.close()
+                try:
+                    await page.close()
+                except Exception:
+                    pass
+                if owns_context:
+                    try:
+                        await context.close()
+                    except Exception:
+                        pass
 
         print(
             f"\n✅ Post Discovery completed. Scanned {self.last_raw_updates_scanned} raw update(s), "

@@ -224,12 +224,19 @@ class HiristCollector:
         try:
             from playwright.async_api import async_playwright
 
+            from src.browser.cdp_stealth import ensure_cdp_page_target, is_cdp_port_open, launch_stealth_browser
+
             async with async_playwright() as p:
-                ctx = await p.chromium.launch_persistent_context(
-                    DEFAULT_STEALTH_DIR,
-                    headless=headless,
-                    args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
-                )
+                owns_context = False
+                ctx = None
+                if is_cdp_port_open(9222):
+                    ensure_cdp_page_target(9222)
+                    browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222", timeout=10000)
+                    ctx = browser.contexts[0] if browser.contexts else await browser.new_context()
+                else:
+                    ctx = await launch_stealth_browser(p, headless=headless)
+                    owns_context = True
+
                 page = await ctx.new_page()
                 try:
                     await page.goto(
@@ -338,7 +345,15 @@ class HiristCollector:
                         if len(listings) >= limit:
                             break
                 finally:
-                    await ctx.close()
+                    try:
+                        await page.close()
+                    except Exception:
+                        pass
+                    if owns_context and ctx is not None:
+                        try:
+                            await ctx.close()
+                        except Exception:
+                            pass
         except Exception as e:
             print(f"⚠️ HiristCollector browser feed warning: {e}")
 
@@ -349,10 +364,13 @@ class HiristCollector:
         filter_sdet: bool = True,
         limit: int = 30,
         max_age_days: float = 3.0,
+        allow_unverified_company: bool = False,
     ) -> list[JobListing]:
         """
         Parses Hirist's daily unauthenticated XML sitemap to discover fresh SDET/QA roles,
-        strictly filtering for <lastmod> timestamps <= max_age_days.
+        strictly filtering for <lastmod> timestamps <= max_age_days and requiring a verified
+        employer prefix unless allow_unverified_company=True (since Hirist's global sitemap
+        rebuild stamps historical URLs with identical <lastmod> and lacks company metadata).
         """
         listings: list[JobListing] = []
         now = datetime.utcnow()
@@ -402,6 +420,9 @@ class HiristCollector:
                         if not is_sdet_title(prefix_cand) and not any(t in prefix_cand.lower() for t in role_tokens):
                             company = prefix_cand
                             raw_title = parts[1].strip()
+
+                    if not allow_unverified_company and company == "Hirist Tech Employer":
+                        continue
 
                     listing = JobListing(
                         id=f"hirist_{jid}",
