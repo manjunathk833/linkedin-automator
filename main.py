@@ -138,7 +138,9 @@ def handle_lint():
     print("  RUNNING RUFF AUTO-FIX LINTER & FORMATTER")
     print("=" * 50 + "\n")
     script = os.path.join(os.path.dirname(__file__), "verify", "autofix_lint.sh")
-    subprocess.run(["bash", script])
+    ret = subprocess.run(["bash", script])
+    if ret.returncode != 0:
+        sys.exit(ret.returncode)
 
 
 def handle_test(tier: str = "core", live: bool = False):

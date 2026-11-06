@@ -105,6 +105,22 @@
       "root_cause": "1. Generic dropdown_rules matched substring 'country' before explicit work-authorization regexes in _resolve_workday_questions(). 2. input[id*='city'] matched input#address--cityLocal before input#address--city.",
       "fix_rule": "1. Evaluate explicit work authorization, sponsorship, and employment history regexes BEFORE generic dropdown_rules in _resolve_workday_questions(). 2. Scope Workday city selector to input[id*='city']:not([id*='Local']).",
       "date_banked": "2026-11-06T13:55:00+05:30"
+    },
+    {
+      "id": "LESSON-044",
+      "vendor": "LEVER_STANDARD",
+      "symptom": "Lever Invisible hCaptcha returns 'There was an error verifying your application. Please try again.' and #location-input / #selected-location get wiped on blur.",
+      "root_cause": "1. retrieveLocations.js listens to input on #location-input to set .dropdown-container display:block, and on blur wipes both #location-input and #selected-location if .dropdown-container is visible. 2. Passing --disable-blink-features=AutomationControlled to native Chrome is unnecessary when --enable-automation is absent and triggers Chrome's flag warning banner. 3. Keeping Playwright CDP WebSocket (Runtime.enable) attached during #btn-submit click degrades Invisible hCaptcha trust score.",
+      "fix_rule": "1. Upload resume first and wait for /parseResume to populate resumeStorageId and #selected-location; keep .dropdown-container display:none and never dispatch input+blur on #location-input. 2. Launch native Chrome without --disable-blink-features=AutomationControlled. 3. Detach Playwright CDP (await p.stop()) immediately after staging so 0 debuggers are connected when user clicks SUBMIT APPLICATION.",
+      "date_banked": "2026-11-06T15:08:00+05:30"
+    },
+    {
+      "id": "LESSON-045",
+      "vendor": "COMMON",
+      "symptom": "Concurrent multi-tab worker overwrites tab URL with another worker's popup; ABB Workday pauses on Prefix ('Mr' without period) and Voluntary Disclosures genderIdentities pill.",
+      "root_cause": "1. page.context.on('page') listens globally across all concurrent workers in the browser context instead of only popups opened by that page. 2. ABB Workday uses 'Mr' (without trailing period) in Prefix options and input#personalInfoPerson--genderIdentities selectinput on Voluntary Disclosures.",
+      "fix_rule": "1. Strictly use page.on('popup') instead of page.context.on('page') when clicking Apply buttons in concurrent tabs. 2. Add prefix_val.rstrip('.') fallback for Workday Prefix dropdowns and populate input#personalInfoPerson--genderIdentities with 'Male' on Voluntary Disclosures.",
+      "date_banked": "2026-11-06T15:08:00+05:30"
     }
   ]
 }
