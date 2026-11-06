@@ -41,7 +41,7 @@ class ATSDiscoveryCoordinator:
         self,
         config_path: str = DEFAULT_CONFIG_PATH,
         queue_dir: str = DEFAULT_QUEUE_DIR,
-        max_concurrency: int = 25,
+        max_concurrency: int = 40,
         db_file: str = DEFAULT_DB_FILE,
         use_ai: bool = True,
     ):

@@ -108,7 +108,7 @@ def test_record_application_with_track_deduction_and_funnel_transitions():
             status="applied",
         )
 
-        # 4. Check funnel metrics
+        # 4. Check funnel metrics & deep analytics engine
         metrics = db.get_funnel_metrics()
         assert metrics["total_applications"] == 2
         assert metrics["stages"].get("RECRUITER_SCREEN") == 1
@@ -117,6 +117,21 @@ def test_record_application_with_track_deduction_and_funnel_transitions():
         assert metrics["application_to_screen_rate_pct"] == 50.0
         assert "channels" in metrics
         assert "application_modes" in metrics
+        assert "interview_turnover" in metrics
+        assert len(metrics["interview_turnover"]["interviewed_orgs"]) == 1
+        assert metrics["interview_turnover"]["interviewed_orgs"][0]["company_name"] == "Zscaler"
+        assert "speed_analytics" in metrics
+        assert "buckets" in metrics["speed_analytics"]
+        assert "topic_analytics" in metrics
+        assert "value_and_frequency" in metrics
+        assert "inferences" in metrics["value_and_frequency"]
+
+        all_apps = db.get_all_applications()
+        assert len(all_apps) == 2
+        zscaler_row = next(a for a in all_apps if a["job_id"] == "greenhouse_test_123")
+        assert zscaler_row["is_interviewed"] is True
+        assert "extracted_topics" in zscaler_row
+        assert "speed_bucket" in zscaler_row
 
 
 def test_repair_application_funnel_attribution_and_dict_coercion():
@@ -236,6 +251,12 @@ def test_run_daily_prod_network_and_sleep_guards():
     assert "EX_TEMPFAIL" in content or "75" in content, "Expected exit code 75 on network timeout"
     assert "caffeinate" in content, "Expected caffeinate sleep prevention wrapper"
     assert "Afternoon Fast Sync" in content, "Expected Morning vs Afternoon schedule split in run_daily_prod.sh"
+
+    plist_path = PROJECT_ROOT / "scripts" / "com.linkedin.automator.daily.plist"
+    plist_content = plist_path.read_text(encoding="utf-8")
+    assert "<integer>8</integer>" in plist_content
+    assert "<integer>14</integer>" in plist_content
+    assert "<integer>20</integer>" in plist_content, "Expected 20:00 IST evening run in launchd plist"
 
 
 def test_multi_track_time_filter_optimizations():

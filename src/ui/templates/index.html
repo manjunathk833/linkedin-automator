@@ -216,18 +216,111 @@
                     </div>
                 </div>
 
+                <!-- Collapsible Executive Analytics, Interview Turnover & Inference Engine -->
+                <div id="analytics-engine-panel" class="glass-panel" style="margin-bottom: 1.25rem; padding: 1rem 1.25rem; border: 1px solid rgba(99, 102, 241, 0.25); background: rgba(15, 23, 42, 0.65);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 0.9rem;">
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.05rem; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+                                📈 Analytics, Interview Turnover &amp; Strategic Inference Base
+                                <span id="analytics-sniper-badge" style="font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-weight: 600;">⚡ &lt;24h Sniper Share: 0%</span>
+                            </h3>
+                            <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #94a3b8;">
+                                Track interview conversion by channel, log organizations you interviewed with, analyze posted-to-applied speed (&lt;5% early pool), and see top demanded SDET/AI topics.
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button id="btn-filter-interviewed-quick" class="btn btn-outline-sm" onclick="toggleInterviewedOnlyFilter()" style="font-size: 0.78rem; padding: 5px 10px;">
+                                🎯 Show Interviewed Orgs Only
+                            </button>
+                            <button id="btn-toggle-analytics" class="btn btn-secondary-sm" onclick="toggleAnalyticsBody()" style="font-size: 0.78rem; padding: 5px 10px;">
+                                🔼 Collapse Analytics
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="analytics-engine-body">
+                        <!-- Quick Selector: Mark Organization as Interviewed + Topics Asked -->
+                        <div style="background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 10px 12px; margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                            <span style="font-size: 0.8rem; font-weight: 600; color: #38bdf8;">🎯 Log / Select Interviewed Org:</span>
+                            <select id="quick-interview-job-select" style="flex: 1; min-width: 210px; background: rgba(15, 23, 42, 0.9); color: #f1f5f9; border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 5px 8px; font-size: 0.8rem;">
+                                <option value="">Select an applied organization...</option>
+                            </select>
+                            <select id="quick-interview-stage-select" style="background: rgba(15, 23, 42, 0.9); color: #f1f5f9; border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 5px 8px; font-size: 0.8rem;">
+                                <option value="RECRUITER_SCREEN">📞 Recruiter Screen</option>
+                                <option value="TECH_ASSESSMENT">💻 Tech Assessment / OA</option>
+                                <option value="TECH_ROUND_1">🧪 Tech Round 1</option>
+                                <option value="SYSTEM_DESIGN">🏛️ System Design / Arch</option>
+                                <option value="HIRING_MANAGER">👥 Hiring Manager</option>
+                                <option value="OFFER">🎉 Offer</option>
+                            </select>
+                            <input type="text" id="quick-interview-notes" placeholder="Topics asked (e.g. Playwright, API framework, Java, LLM eval)..." style="flex: 1.2; min-width: 220px; background: rgba(15, 23, 42, 0.9); color: #f1f5f9; border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 5px 10px; font-size: 0.8rem;">
+                            <button class="btn btn-accent-sm" onclick="submitQuickInterviewLog()" style="padding: 5px 12px; font-size: 0.8rem;">
+                                ✅ Save Interview Record
+                            </button>
+                        </div>
+
+                        <!-- 4-Column Analytics Grid -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                            <!-- Panel 1: Interview Turnover & Interviewed Orgs -->
+                            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+                                <h4 style="margin: 0 0 8px 0; font-size: 0.88rem; color: #60a5fa; display: flex; justify-content: space-between;">
+                                    <span>📞 Interview Turnover &amp; Orgs</span>
+                                    <span id="analytics-turnover-summary" style="color: #94a3b8; font-weight: 400; font-size: 0.78rem;">0% Rate</span>
+                                </h4>
+                                <div id="analytics-interviewed-orgs-list" style="max-height: 110px; overflow-y: auto; margin-bottom: 8px; font-size: 0.78rem; color: #cbd5e1;"></div>
+                                <div style="border-top: 1px solid rgba(255,255,255,0.07); padding-top: 6px;">
+                                    <div style="font-size: 0.74rem; color: #94a3b8; margin-bottom: 4px; font-weight: 600;">Conversion by Track &amp; Tier:</div>
+                                    <div id="analytics-track-turnover-bars" style="font-size: 0.76rem;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Panel 2: Posted vs. Applied Speed (<5% Early Pool) -->
+                            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+                                <h4 style="margin: 0 0 8px 0; font-size: 0.88rem; color: #34d399; display: flex; justify-content: space-between;">
+                                    <span>⚡ Posted vs. Applied Speed</span>
+                                    <span id="analytics-median-latency" style="color: #94a3b8; font-weight: 400; font-size: 0.78rem;">Median: 0h</span>
+                                </h4>
+                                <div id="analytics-speed-buckets" style="font-size: 0.77rem;"></div>
+                            </div>
+
+                            <!-- Panel 3: Most Sought-Out SDET / AI Topics -->
+                            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+                                <h4 style="margin: 0 0 8px 0; font-size: 0.88rem; color: #f59e0b; display: flex; justify-content: space-between;">
+                                    <span>🔥 Sought-Out Topics (Click to Filter)</span>
+                                    <span style="color: #94a3b8; font-weight: 400; font-size: 0.74rem;">Demand %</span>
+                                </h4>
+                                <div id="analytics-top-topics" style="display: flex; flex-wrap: wrap; gap: 5px; max-height: 175px; overflow-y: auto;"></div>
+                            </div>
+
+                            <!-- Panel 4: Frequency, Portfolio Value & Inferences -->
+                            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+                                <h4 style="margin: 0 0 8px 0; font-size: 0.88rem; color: #c084fc; display: flex; justify-content: space-between;">
+                                    <span>🧠 Value, Frequency &amp; Inferences</span>
+                                    <span id="analytics-dream-mix" style="color: #94a3b8; font-weight: 400; font-size: 0.76rem;">Dream: 0%</span>
+                                </h4>
+                                <div id="analytics-value-pills" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; font-size: 0.74rem;"></div>
+                                <div id="analytics-inferences-list" style="font-size: 0.75rem; color: #e2e8f0; display: flex; flex-direction: column; gap: 5px; max-height: 135px; overflow-y: auto;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tracking Toolbar with Funnel Filter -->
                 <div class="approved-toolbar">
                     <div class="search-box">
-                        <input type="text" id="tracking-search" placeholder="🔍 Search applied jobs by company, role, track, or stage..." oninput="filterTrackingJobs()">
+                        <input type="text" id="tracking-search" placeholder="🔍 Search applied jobs by company, role, topic, track, or stage..." oninput="filterTrackingJobs()">
                     </div>
                     <div class="toolbar-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <select id="tracking-track-filter" class="form-select-sm" onchange="filterTrackingJobs()" style="background: rgba(15,23,42,0.7); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; font-size: 0.85rem;">
-                            <option value="">All Tracks & Modes</option>
+                            <option value="">All Tracks, Speeds &amp; Modes</option>
                             <option value="TRACK_1_DIRECT_ATS">🎯 Track 1: Direct ATS</option>
                             <option value="TRACK_2_LINKEDIN">💼 Track 2: LinkedIn</option>
                             <option value="TRACK_3_SOCIAL_POST">📣 Track 3: Social Posts</option>
                             <option value="PORTAL_SNIPER">⚡ Portal Sniper</option>
+                            <option value="SPEED:<6h">⚡ Speed: &lt;6h (&lt;2% Early)</option>
+                            <option value="SPEED:6-24h">🔥 Speed: 6h–24h (&lt;5% Sniper)</option>
+                            <option value="SPEED:24-72h">🟢 Speed: 24h–72h (Optimal)</option>
+                            <option value="DREAM_ONLY">⭐ Dream Orgs Only</option>
                             <option value="MODE:batch_autofill">🤖 Mode: Batch Autofill</option>
                             <option value="MODE:manual_takeover">🖐️ Mode: Manual Takeover</option>
                             <option value="MODE:manual_override">✅ Mode: Manual Override</option>
@@ -235,6 +328,7 @@
                         </select>
                         <select id="tracking-stage-filter" class="form-select-sm" onchange="filterTrackingJobs()" style="background: rgba(15,23,42,0.7); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; font-size: 0.85rem;">
                             <option value="">All Funnel Stages</option>
+                            <option value="INTERVIEWED_ANY">🎯 All Interviewed Orgs (Screen+)</option>
                             <option value="APPLIED">Applied</option>
                             <option value="ACKNOWLEDGED">Acknowledged</option>
                             <option value="RECRUITER_SCREEN">Recruiter Screen</option>

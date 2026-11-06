@@ -82,16 +82,33 @@ class OrgResearcher:
         }
 
     @staticmethod
-    def generate_slug_candidates(name: str, base_slug: str = "") -> list[str]:
-        """Generates deterministic slug candidates for a company name."""
+    def generate_slug_candidates(name: str, base_slug: str = "", domain: str = "") -> list[str]:
+        """Generates deterministic slug candidates for a company name and domain."""
         clean_base = re.sub(r"[^a-z0-9]", "", (base_slug or name).lower())
         dashed = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
         first_tok = re.sub(r"[^a-z0-9]", "", name.lower().split()[0]) if name.strip() else clean_base
+        dom_stem = re.sub(r"[^a-z0-9-]", "", domain.lower().split(".")[0]) if domain else ""
         candidates = []
-        for s in (base_slug, clean_base, dashed, first_tok, f"{clean_base}hq", f"{clean_base}inc"):
+        for s in (
+            base_slug,
+            dom_stem,
+            clean_base,
+            dashed,
+            first_tok,
+            f"{clean_base}hq",
+            f"{clean_base}inc",
+            f"{clean_base}ai",
+            f"{clean_base}tech",
+            f"{clean_base}technologies",
+            f"{clean_base}labs",
+            f"{clean_base}software",
+            f"{clean_base}global",
+            f"{dashed}-inc",
+            f"{dashed}-ai",
+        ):
             if s and s not in candidates:
                 candidates.append(s)
-        return candidates[:4]
+        return candidates[:10]
 
     async def probe_company_slug(
         self,
@@ -205,7 +222,7 @@ class OrgResearcher:
                     )
 
                 async with sem:
-                    slug_candidates = self.generate_slug_candidates(name, base_slug)
+                    slug_candidates = self.generate_slug_candidates(name, base_slug, domain=domain)
                     for cand in slug_candidates:
                         res = await self.probe_company_slug(name, cand, client=client)
                         if res["status"] == "VERIFIED_ACTIVE" and res["detected_provider"]:

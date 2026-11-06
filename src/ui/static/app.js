@@ -941,6 +941,8 @@ async function markApprovedJobApplied(jobId, btnElement) {
     }
 }
 
+let latestFunnelAnalytics = {};
+
 async function loadAppliedTracking() {
     const loadingEl = document.getElementById('tracking-loading');
     const listContainer = document.getElementById('tracking-jobs-list');
@@ -958,6 +960,7 @@ async function loadAppliedTracking() {
         // Update KPIs with Funnel Metrics
         const stats = data.stats || {};
         const funnel = stats.funnel || {};
+        latestFunnelAnalytics = funnel;
         const kpiTotal = document.getElementById('kpi-total-applied');
         const kpiToday = document.getElementById('kpi-today-applied');
         const kpiScreens = document.getElementById('kpi-total-screens');
@@ -972,17 +975,279 @@ async function loadAppliedTracking() {
         if (kpiOffers) kpiOffers.innerText = funnel.offers || 0;
         if (badgeCount) badgeCount.innerText = stats.total_applied || trackedApplications.length;
 
+        renderAnalyticsEngine(funnel, trackedApplications);
+        populateQuickInterviewSelector(trackedApplications);
+
         if (loadingEl) loadingEl.classList.add('hidden');
 
         if (trackedApplications.length === 0) {
             if (emptyEl) emptyEl.classList.remove('hidden');
         } else {
-            renderTrackingGrid(trackedApplications);
+            filterTrackingJobs();
         }
     } catch (error) {
         console.error('Error fetching applied tracking:', error);
         if (loadingEl) loadingEl.classList.add('hidden');
     }
+}
+
+function populateQuickInterviewSelector(apps) {
+    const selectEl = document.getElementById('quick-interview-job-select');
+    if (!selectEl) return;
+    const currentVal = selectEl.value;
+    selectEl.innerHTML = '<option value="">-- Select Applied Organization / Role --</option>';
+    (apps || []).forEach(app => {
+        const opt = document.createElement('option');
+        opt.value = app.job_id;
+        const stageTag = (app.funnel_stage && app.funnel_stage !== 'APPLIED') ? ` [${app.funnel_stage}]` : '';
+        opt.textContent = `${app.company_name || 'Unknown'} — ${app.job_title || 'SDET'}${stageTag}`;
+        selectEl.appendChild(opt);
+    });
+    if (currentVal) selectEl.value = currentVal;
+}
+
+function renderAnalyticsEngine(funnel, apps) {
+    if (!funnel) return;
+    const speed = funnel.speed_analytics || {};
+    const turnover = funnel.interview_turnover || {};
+    const topics = (funnel.topic_analytics && funnel.topic_analytics.top_topics) || [];
+    const vf = funnel.value_and_frequency || {};
+    const pv = vf.portfolio_value || {};
+
+    // Header badge
+    const sniperBadge = document.getElementById('analytics-sniper-badge');
+    if (sniperBadge) {
+        const pct = speed.under_24h_pct !== undefined ? speed.under_24h_pct : 0;
+        const cnt = speed.under_24h_count !== undefined ? speed.under_24h_count : 0;
+        sniperBadge.innerText = `⚡ <24h Sniper Share: ${pct}% (${cnt} apps)`;
+    }
+
+    // 1. Interview Turnover & Selected Orgs
+    const turnoverSummary = document.getElementById('analytics-turnover-summary');
+    const interviewedOrgs = turnover.interviewed_orgs || [];
+    if (turnoverSummary) {
+        const rate = funnel.application_to_screen_rate_pct || 0;
+        turnoverSummary.innerText = `${interviewedOrgs.length} Orgs (${rate}% Turnover)`;
+    }
+
+    const orgsListEl = document.getElementById('analytics-interviewed-orgs-list');
+    if (orgsListEl) {
+        if (interviewedOrgs.length === 0) {
+            orgsListEl.innerHTML = `<span style="font-size: 0.78rem; color: #64748b;">No interview stages logged yet. Select an organization above or change any card's stage to Recruiter Screen / Tech Round to track interview turnover.</span>`;
+        } else {
+            orgsListEl.innerHTML = interviewedOrgs.map(org => {
+                const hrs = org.posted_to_applied_hours !== null && org.posted_to_applied_hours !== undefined
+                    ? `${org.posted_to_applied_hours}h lag`
+                    : 'N/A lag';
+                const notesHtml = org.notes
+                    ? `<div style="font-size: 0.72rem; color: #cbd5e1; margin-top: 2px;">📝 ${escapeHtml(org.notes)}</div>`
+                    : '';
+                const topicTags = (org.topics || []).slice(0, 4).map(t =>
+                    `<span style="font-size:0.65rem; padding:1px 5px; border-radius:4px; background:rgba(168,85,247,0.18); color:#e9d5ff;">${escapeHtml(t)}</span>`
+                ).join(' ');
+                return `
+                    <div style="padding: 6px 8px; border-radius: 6px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(16, 185, 129, 0.25); display: flex; flex-direction: column; gap: 2px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+                            <strong style="font-size: 0.8rem; color: #ecfdf5;">🏢 ${escapeHtml(org.company_name)} <span style="font-weight:400; color:#94a3b8;">— ${escapeHtml(org.job_title)}</span></strong>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <span style="font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8;">${hrs}</span>
+                                <span style="font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 600;">${escapeHtml(org.funnel_stage)}</span>
+                            </div>
+                        </div>
+                        ${notesHtml}
+                        ${topicTags ? `<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:2px;">${topicTags}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    const trackBarsEl = document.getElementById('analytics-track-turnover-bars');
+    if (trackBarsEl) {
+        const byTrack = turnover.by_track || {};
+        const dvs = turnover.dream_vs_standard || {};
+        const rows = [];
+        Object.keys(byTrack).forEach(tk => {
+            const d = byTrack[tk];
+            rows.push({
+                label: tk.replace('TRACK_', 'T').replace(/_/g, ' '),
+                applied: d.applied || 0,
+                interviewed: d.interviewed || 0,
+                pct: d.turnover_pct || 0
+            });
+        });
+        if (dvs.dream) {
+            rows.push({
+                label: '⭐ Dream Watchlist Orgs',
+                applied: dvs.dream.applied || 0,
+                interviewed: dvs.dream.interviewed || 0,
+                pct: dvs.dream.turnover_pct || 0
+            });
+        }
+        trackBarsEl.innerHTML = rows.slice(0, 5).map(r => `
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; color: #cbd5e1; padding: 2px 4px;">
+                <span>${escapeHtml(r.label)} <span style="color:#64748b;">(${r.applied} apps)</span></span>
+                <span style="font-weight: 600; color: ${r.interviewed > 0 ? '#34d399' : '#94a3b8'};">${r.interviewed} intv (${r.pct}%)</span>
+            </div>
+        `).join('');
+    }
+
+    // 2. Posted vs Applied Latency
+    const medianEl = document.getElementById('analytics-median-latency');
+    if (medianEl) {
+        const med = speed.median_hours !== null && speed.median_hours !== undefined ? `${speed.median_hours}h` : 'N/A';
+        medianEl.innerText = `Median: ${med} | <24h: ${speed.under_24h_pct || 0}%`;
+    }
+    const bucketsEl = document.getElementById('analytics-speed-buckets');
+    if (bucketsEl) {
+        const b = speed.buckets || {};
+        const bucketMeta = [
+            { key: '<6h', label: '⚡ <6h (Top 2% Early)', color: '#10b981', filter: 'SPEED:<6h' },
+            { key: '6-24h', label: '🔥 6–24h (Top 5% Sniper)', color: '#38bdf8', filter: 'SPEED:6-24h' },
+            { key: '24-72h', label: '⏱️ 24–72h (3-Day Window)', color: '#f59e0b', filter: 'SPEED:24-72h' },
+            { key: '>72h', label: '🐢 >72h (Older Backlog)', color: '#94a3b8', filter: '' }
+        ];
+        bucketsEl.innerHTML = bucketMeta.map(meta => {
+            const item = b[meta.key] || { count: 0, pct_of_measured: 0, interviewed: 0, turnover_pct: 0 };
+            const barWidth = Math.min(100, Math.max(4, item.pct_of_measured || 0));
+            const clickAttr = meta.filter ? `onclick="applyQuickTrackFilter('${meta.filter}')" style="cursor:pointer;" title="Click to filter cards by ${meta.key}"` : '';
+            return `
+                <div ${clickAttr}>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #e2e8f0; margin-bottom: 2px;">
+                        <span>${meta.label}</span>
+                        <span><strong>${item.count}</strong> (${item.pct_of_measured}%) · <span style="color:#34d399;">${item.turnover_pct}% intv</span></span>
+                    </div>
+                    <div style="width: 100%; height: 6px; background: rgba(15, 23, 42, 0.8); border-radius: 4px; overflow: hidden;">
+                        <div style="width: ${barWidth}%; height: 100%; background: ${meta.color}; border-radius: 4px;"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // 3. Most Sought-Out SDET / AI QA Topics
+    const topicsEl = document.getElementById('analytics-top-topics');
+    if (topicsEl) {
+        if (topics.length === 0) {
+            topicsEl.innerHTML = '<span style="font-size: 0.78rem; color: #64748b;">No topics extracted yet.</span>';
+        } else {
+            topicsEl.innerHTML = topics.map(t => {
+                const intvBadge = t.interview_count > 0 ? ` <span style="color:#34d399; font-weight:700;">· 🎯${t.interview_count}</span>` : '';
+                return `
+                    <button onclick="filterByTopic('${escapeHtml(t.topic)}')"
+                        style="background: rgba(168, 85, 247, 0.14); color: #e9d5ff; border: 1px solid rgba(168, 85, 247, 0.32); border-radius: 999px; padding: 3px 9px; font-size: 0.73rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;"
+                        title="Click to filter applications demanding ${escapeHtml(t.topic)}">
+                        <span>${escapeHtml(t.topic)}</span>
+                        <span style="color: #c084fc; font-weight: 600;">${t.count} (${t.pct_of_apps}%)</span>
+                        ${intvBadge}
+                    </button>
+                `;
+            }).join('');
+        }
+    }
+
+    // 4. Job Value, Frequency & Strategic Inference Base
+    const dreamMixEl = document.getElementById('analytics-dream-mix');
+    if (dreamMixEl) {
+        dreamMixEl.innerText = `Dream Orgs: ${pv.dream_org_pct || 0}% (${pv.dream_org_count || 0})`;
+    }
+    const valuePillsEl = document.getElementById('analytics-value-pills');
+    if (valuePillsEl) {
+        valuePillsEl.innerHTML = `
+            <span style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.3);">
+                ⭐ Dream Enterprise: <strong>${pv.dream_org_pct || 0}%</strong>
+            </span>
+            <span style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.3);">
+                🤖 AI / LLM Eval Roles: <strong>${pv.ai_role_pct || 0}% (${pv.ai_role_count || 0})</strong>
+            </span>
+            <span style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3);">
+                🎯 Direct ATS Portals: <strong>${pv.direct_ats_pct || 0}% (${pv.direct_ats_count || 0})</strong>
+            </span>
+        `;
+    }
+    const inferencesEl = document.getElementById('analytics-inferences-list');
+    if (inferencesEl) {
+        const inferences = vf.inferences || [];
+        inferencesEl.innerHTML = inferences.map(inf => `
+            <div style="padding: 5px 8px; border-radius: 6px; background: rgba(15, 23, 42, 0.55); border-left: 3px solid #f59e0b;">
+                💡 ${escapeHtml(inf)}
+            </div>
+        `).join('');
+    }
+}
+
+function escapeHtml(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function toggleAnalyticsBody() {
+    const body = document.getElementById('analytics-engine-body');
+    const btn = document.getElementById('btn-toggle-analytics');
+    if (!body) return;
+    const isHidden = body.style.display === 'none';
+    body.style.display = isHidden ? 'block' : 'none';
+    if (btn) btn.innerText = isHidden ? '▾ Collapse' : '▸ Expand';
+}
+
+function toggleInterviewedOnlyFilter() {
+    const stageSelect = document.getElementById('tracking-stage-filter');
+    if (!stageSelect) return;
+    if (stageSelect.value === 'INTERVIEWED_ANY') {
+        stageSelect.value = '';
+        showToast('Showing all applied organizations');
+    } else {
+        stageSelect.value = 'INTERVIEWED_ANY';
+        showToast('Showing only organizations you interviewed with');
+    }
+    filterTrackingJobs();
+}
+
+function applyQuickTrackFilter(filterVal) {
+    const trackSelect = document.getElementById('tracking-track-filter');
+    if (!trackSelect) return;
+    trackSelect.value = trackSelect.value === filterVal ? '' : filterVal;
+    filterTrackingJobs();
+}
+
+function filterByTopic(topic) {
+    const input = document.getElementById('tracking-search');
+    if (!input) return;
+    if (input.value.toLowerCase() === topic.toLowerCase()) {
+        input.value = '';
+    } else {
+        input.value = topic;
+    }
+    filterTrackingJobs();
+}
+
+async function submitQuickInterviewLog() {
+    const jobSelect = document.getElementById('quick-interview-job-select');
+    const stageSelect = document.getElementById('quick-interview-stage-select');
+    const notesInput = document.getElementById('quick-interview-notes');
+    const jobId = jobSelect ? jobSelect.value : '';
+    const stage = stageSelect ? stageSelect.value : 'RECRUITER_SCREEN';
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    if (!jobId) {
+        showToast('Please select an applied organization first', 'error');
+        return;
+    }
+    await updateApplicationStage(jobId, stage, notes);
+    if (notesInput) notesInput.value = '';
+}
+
+async function saveCardInterviewNotes(jobId) {
+    const app = trackedApplications.find(a => a.job_id === jobId);
+    const stageSelect = document.getElementById(`stage-select-${jobId}`);
+    const notesInput = document.getElementById(`notes-input-${jobId}`);
+    const stage = stageSelect ? stageSelect.value : (app ? app.funnel_stage : 'APPLIED');
+    const notes = notesInput ? notesInput.value.trim() : '';
+    await updateApplicationStage(jobId, stage, notes);
 }
 
 function renderTrackingGrid(apps) {
@@ -1021,13 +1286,15 @@ function renderTrackingGrid(apps) {
         }
 
         const appStage = (app.funnel_stage || 'APPLIED').toUpperCase();
-        const statusClass = (app.status || 'applied').toLowerCase().includes('interview')
+        const statusClass = app.is_interviewed || (app.status || 'applied').toLowerCase().includes('interview')
             ? 'interview'
             : (app.status || 'applied').toLowerCase().includes('submitted')
                 ? 'submitted'
                 : 'applied';
 
-        const statusDisplay = (app.status || 'Applied').replace(/_/g, ' ').toUpperCase();
+        const statusDisplay = app.is_interviewed
+            ? `🎯 ${appStage.replace(/_/g, ' ')}`
+            : (app.status || 'Applied').replace(/_/g, ' ').toUpperCase();
         const hasPdf = Boolean(app.resume_path);
         const jobUrl = app.job_url || '#';
         const dreamHtml = app.is_dream_org ? '<span class="dream-pill">⭐ Dream Org</span>' : '';
@@ -1036,15 +1303,35 @@ function renderTrackingGrid(apps) {
         const modeLabel = (app.application_mode || 'batch_autofill').replace(/_/g, ' ');
         const modeHtml = `<span class="mode-pill" style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.25); font-weight: 500;">${modeLabel}</span>`;
 
+        const speedBucket = app.speed_bucket || 'unknown';
+        const speedColor = speedBucket === '<6h'
+            ? 'background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);'
+            : speedBucket === '6-24h'
+                ? 'background: rgba(56, 189, 248, 0.16); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35);'
+                : speedBucket === '24-72h'
+                    ? 'background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);'
+                    : 'background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25);';
+        const speedHtml = app.speed_label
+            ? `<span style="font-size: 0.7rem; padding: 2px 7px; border-radius: 4px; font-weight: 600; ${speedColor}" title="Posted to Applied Latency">${escapeHtml(app.speed_label)}</span>`
+            : '';
+
+        const topicsList = (app.extracted_topics || []).slice(0, 6);
+        const topicsHtml = topicsList.length > 0
+            ? `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;">
+                ${topicsList.map(t => `<span onclick="filterByTopic('${escapeHtml(t)}')" style="cursor:pointer; font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; background: rgba(168, 85, 247, 0.12); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.25);">${escapeHtml(t)}</span>`).join('')}
+               </div>`
+            : '';
+
         card.innerHTML = `
             <div>
                 <div class="tracking-card-header">
                     <div class="tracking-company-title">
-                        <h3>${app.company_name || 'Unknown Company'}</h3>
-                        <p>${app.job_title || 'Software Engineer'}</p>
+                        <h3>${escapeHtml(app.company_name || 'Unknown Company')}</h3>
+                        <p>${escapeHtml(app.job_title || 'Software Engineer')}</p>
                     </div>
                     <div class="tracking-badge-group">
                         ${dreamHtml}
+                        ${speedHtml}
                         ${trackHtml}
                         ${channelHtml}
                         ${modeHtml}
@@ -1056,21 +1343,31 @@ function renderTrackingGrid(apps) {
                     <span>🕒 Applied: <strong>${formattedDate}</strong></span>
                     <span>🆔 ID: <code>${app.job_id}</code></span>
                 </div>
-                <div class="tracking-stage-row" style="margin-top: 10px; padding: 6px 10px; background: rgba(15,23,42,0.5); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="font-size: 0.8rem; color: #94a3b8; font-weight: 500;">Funnel Stage:</span>
-                        <select onchange="updateApplicationStage('${app.job_id}', this.value)" style="background: rgba(30, 41, 59, 0.95); color: #f1f5f9; border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 3px 8px; font-size: 0.8rem; cursor: pointer; outline: none;">
-                            <option value="APPLIED" ${appStage === 'APPLIED' ? 'selected' : ''}>📥 Applied</option>
-                            <option value="ACKNOWLEDGED" ${appStage === 'ACKNOWLEDGED' ? 'selected' : ''}>📨 Acknowledged</option>
-                            <option value="RECRUITER_SCREEN" ${appStage === 'RECRUITER_SCREEN' ? 'selected' : ''}>📞 Recruiter Screen</option>
-                            <option value="TECH_ASSESSMENT" ${appStage === 'TECH_ASSESSMENT' ? 'selected' : ''}>💻 Tech Assessment / OA</option>
-                            <option value="TECH_ROUND_1" ${appStage === 'TECH_ROUND_1' ? 'selected' : ''}>🧪 Tech Round 1</option>
-                            <option value="SYSTEM_DESIGN" ${appStage === 'SYSTEM_DESIGN' ? 'selected' : ''}>🏛️ System Design / Arch</option>
-                            <option value="HIRING_MANAGER" ${appStage === 'HIRING_MANAGER' ? 'selected' : ''}>👥 Hiring Manager</option>
-                            <option value="OFFER" ${appStage === 'OFFER' ? 'selected' : ''}>🎉 Offer</option>
-                            <option value="REJECTED" ${appStage === 'REJECTED' ? 'selected' : ''}>❌ Rejected</option>
-                            <option value="GHOSTED" ${appStage === 'GHOSTED' ? 'selected' : ''}>👻 Ghosted</option>
-                        </select>
+                ${topicsHtml}
+                <div class="tracking-stage-row" style="margin-top: 10px; padding: 8px 10px; background: rgba(15,23,42,0.5); border-radius: 8px; display: flex; flex-direction: column; gap: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 0.8rem; color: #94a3b8; font-weight: 500;">Interview / Funnel Stage:</span>
+                            <select id="stage-select-${app.job_id}" onchange="updateApplicationStage('${app.job_id}', this.value)" style="background: rgba(30, 41, 59, 0.95); color: #f1f5f9; border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 3px 8px; font-size: 0.8rem; cursor: pointer; outline: none;">
+                                <option value="APPLIED" ${appStage === 'APPLIED' ? 'selected' : ''}>📥 Applied</option>
+                                <option value="ACKNOWLEDGED" ${appStage === 'ACKNOWLEDGED' ? 'selected' : ''}>📨 Acknowledged</option>
+                                <option value="RECRUITER_SCREEN" ${appStage === 'RECRUITER_SCREEN' ? 'selected' : ''}>📞 Recruiter Screen</option>
+                                <option value="TECH_ASSESSMENT" ${appStage === 'TECH_ASSESSMENT' ? 'selected' : ''}>💻 Tech Assessment / OA</option>
+                                <option value="TECH_ROUND_1" ${appStage === 'TECH_ROUND_1' ? 'selected' : ''}>🧪 Tech Round 1</option>
+                                <option value="SYSTEM_DESIGN" ${appStage === 'SYSTEM_DESIGN' ? 'selected' : ''}>🏛️ System Design / Arch</option>
+                                <option value="HIRING_MANAGER" ${appStage === 'HIRING_MANAGER' ? 'selected' : ''}>👥 Hiring Manager</option>
+                                <option value="OFFER" ${appStage === 'OFFER' ? 'selected' : ''}>🎉 Offer</option>
+                                <option value="REJECTED" ${appStage === 'REJECTED' ? 'selected' : ''}>❌ Rejected</option>
+                                <option value="GHOSTED" ${appStage === 'GHOSTED' ? 'selected' : ''}>👻 Ghosted</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <input type="text" id="notes-input-${app.job_id}" value="${escapeHtml(app.notes || '')}" placeholder="Interview topics asked / round notes (e.g. Playwright, Kafka, System Design)..."
+                            style="flex: 1; background: rgba(15, 23, 42, 0.85); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 4px 8px; font-size: 0.76rem; outline: none;">
+                        <button onclick="saveCardInterviewNotes('${app.job_id}')" class="btn-secondary-sm" style="padding: 4px 8px; font-size: 0.74rem; cursor: pointer; white-space: nowrap;">
+                            💾 Save Notes
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1090,27 +1387,18 @@ function renderTrackingGrid(apps) {
     });
 }
 
-async function updateApplicationStage(jobId, newStage) {
+async function updateApplicationStage(jobId, newStage, explicitNotes = undefined) {
     try {
+        const notesEl = document.getElementById(`notes-input-${jobId}`);
+        const notesToSend = explicitNotes !== undefined ? explicitNotes : (notesEl ? notesEl.value.trim() : '');
         const response = await fetch(`/api/tracking/update-stage/${jobId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ stage: newStage })
+            body: JSON.stringify({ stage: newStage, notes: notesToSend })
         });
         if (response.ok) {
-            const res = await response.json();
-            showToast(`Stage updated to ${newStage.replace(/_/g, ' ')}`);
-            const app = trackedApplications.find(a => a.job_id === jobId);
-            if (app) app.funnel_stage = newStage;
-            if (res.stats && res.stats.funnel) {
-                const funnel = res.stats.funnel;
-                const kpiScreens = document.getElementById('kpi-total-screens');
-                const kpiScreenRate = document.getElementById('kpi-screen-rate');
-                const kpiOffers = document.getElementById('kpi-total-offers');
-                if (kpiScreens) kpiScreens.innerText = funnel.total_interviews_or_screens || 0;
-                if (kpiScreenRate) kpiScreenRate.innerText = `${funnel.application_to_screen_rate_pct || 0.0}%`;
-                if (kpiOffers) kpiOffers.innerText = funnel.offers || 0;
-            }
+            showToast(`Updated ${jobId} → ${newStage.replace(/_/g, ' ')}`);
+            await loadAppliedTracking();
         } else {
             showToast('Failed to update funnel stage', 'error');
         }
@@ -1128,17 +1416,35 @@ function filterTrackingJobs() {
     const selectedStage = stageSelect ? stageSelect.value.toUpperCase().trim() : '';
     const selectedTrackOrMode = trackSelect ? trackSelect.value.trim() : '';
 
+    const interviewSet = new Set([
+        'RECRUITER_SCREEN', 'TECH_ASSESSMENT', 'TECH_ROUND_1',
+        'SYSTEM_DESIGN', 'HIRING_MANAGER', 'OFFER'
+    ]);
+
     const filtered = trackedApplications.filter(app => {
         // Stage filter
         const appStage = (app.funnel_stage || 'APPLIED').toUpperCase();
-        if (selectedStage && appStage !== selectedStage) {
+        if (selectedStage === 'INTERVIEWED_ANY') {
+            if (!interviewSet.has(appStage) && !app.is_interviewed) {
+                return false;
+            }
+        } else if (selectedStage && appStage !== selectedStage) {
             return false;
         }
-        // Track / Mode filter
+        // Track / Mode / Speed / Dream filter
         if (selectedTrackOrMode) {
             if (selectedTrackOrMode.startsWith('MODE:')) {
                 const targetMode = selectedTrackOrMode.replace('MODE:', '').toLowerCase();
                 if ((app.application_mode || 'batch_autofill').toLowerCase() !== targetMode) {
+                    return false;
+                }
+            } else if (selectedTrackOrMode.startsWith('SPEED:')) {
+                const targetBucket = selectedTrackOrMode.replace('SPEED:', '');
+                if ((app.speed_bucket || '') !== targetBucket) {
+                    return false;
+                }
+            } else if (selectedTrackOrMode === 'DREAM_ONLY') {
+                if (!app.is_dream_org) {
                     return false;
                 }
             } else if ((app.discovery_track || '').toUpperCase() !== selectedTrackOrMode.toUpperCase()) {
@@ -1157,7 +1463,9 @@ function filterTrackingJobs() {
         const status = (app.status || '').toLowerCase().includes(query);
         const stage = appStage.toLowerCase().includes(query);
         const jobId = (app.job_id || '').toLowerCase().includes(query);
-        return comp || title || src || track || channel || mode || status || stage || jobId;
+        const notesMatch = (app.notes || '').toLowerCase().includes(query);
+        const topicMatch = (app.extracted_topics || []).some(t => t.toLowerCase().includes(query));
+        return comp || title || src || track || channel || mode || status || stage || jobId || notesMatch || topicMatch;
     });
     renderTrackingGrid(filtered);
 }

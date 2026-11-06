@@ -243,14 +243,15 @@ def test_org_researcher_classification():
     print("🧪 [4/5] Testing OrgResearcher Watchlist Coverage, Catalog & URL Auto-Banking...")
     researcher = OrgResearcher()
     companies = researcher.load_watchlist()
-    assert len(companies) >= 400, f"Expected 400+ verified active companies in watchlist, found {len(companies)}"
+    assert len(companies) >= 1000, f"Expected 1,000+ verified active companies in watchlist, found {len(companies)}"
 
     summary = researcher.get_watchlist_Breakdown(companies)
-    assert summary["total_companies"] >= 400
-    assert summary["master_catalog_size"] >= 700
-    assert summary["dream_orgs"] >= 350
+    assert summary["total_companies"] >= 1000
+    assert summary["master_catalog_size"] >= 2000
+    assert summary["dream_orgs"] >= 900
     assert "smartrecruiters" in summary["by_provider"]
     assert "rippling" in summary["by_provider"]
+    assert "workday" in summary["by_provider"]
 
     # Test continuous URL auto-banking across providers (save=False so we don't mutate production file in test)
     gh_banked = researcher.extract_and_bank_ats_url(

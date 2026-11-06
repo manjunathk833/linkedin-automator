@@ -4417,5 +4417,6246 @@
     "industry": "Auto-Discovered Target",
     "is_dream_org": false,
     "datacenter": "wd3"
+  },
+  {
+    "name": "Lowe's India",
+    "ats_provider": "workday",
+    "slug": "lowes",
+    "domain": "lowes.com",
+    "active": true,
+    "industry": "Retail Cloud GCC",
+    "is_dream_org": true,
+    "site": "Lowes_Career_Site",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Best Buy India",
+    "ats_provider": "workday",
+    "slug": "bestbuy",
+    "domain": "bestbuy.com",
+    "active": true,
+    "industry": "Retail Digital GCC",
+    "is_dream_org": true,
+    "site": "BestBuyJobs",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Tesco Technology",
+    "ats_provider": "workday",
+    "slug": "tesco",
+    "domain": "tesco.com",
+    "active": true,
+    "industry": "Retail Platform GCC",
+    "is_dream_org": true,
+    "site": "Tesco_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "JCPenney India",
+    "ats_provider": "workday",
+    "slug": "jcpenney",
+    "domain": "jcpenney.com",
+    "active": true,
+    "industry": "E-Commerce GCC",
+    "is_dream_org": false,
+    "site": "JCPenney_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "7-Eleven Global Solution Center",
+    "ats_provider": "workday",
+    "slug": "7eleven",
+    "domain": "7eleven.com",
+    "active": true,
+    "industry": "Retail Tech GCC",
+    "is_dream_org": true,
+    "site": "7-Eleven",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "PepsiCo Global Business Services",
+    "ats_provider": "workday",
+    "slug": "pepsico",
+    "domain": "pepsico.com",
+    "active": true,
+    "industry": "Consumer Tech GCC",
+    "is_dream_org": true,
+    "site": "PepsiCo_Jobs",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Unilever Tech Hub",
+    "ats_provider": "workday",
+    "slug": "unilever",
+    "domain": "unilever.com",
+    "active": true,
+    "industry": "Global Tech GCC",
+    "is_dream_org": true,
+    "site": "Unilever_Experienced_Professionals",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "P&G Digital Innovation",
+    "ats_provider": "workday",
+    "slug": "pg",
+    "domain": "pg.com",
+    "active": true,
+    "industry": "Enterprise Digital GCC",
+    "is_dream_org": true,
+    "site": "1000",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "AB InBev GCC",
+    "ats_provider": "workday",
+    "slug": "abinbev",
+    "domain": "abinbev.com",
+    "active": true,
+    "industry": "Analytics & Brewing Tech GCC",
+    "is_dream_org": true,
+    "site": "AB_InBev_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Diageo Digital",
+    "ats_provider": "workday",
+    "slug": "diageo",
+    "domain": "diageo.com",
+    "active": true,
+    "industry": "Global Tech GCC",
+    "is_dream_org": true,
+    "site": "Diageo_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mondelez Digital",
+    "ats_provider": "workday",
+    "slug": "mdlz",
+    "domain": "mdlz.com",
+    "active": true,
+    "industry": "Global Digital GCC",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Kimberly-Clark Digital",
+    "ats_provider": "workday",
+    "slug": "kimberlyclark",
+    "domain": "kimberlyclark.com",
+    "active": true,
+    "industry": "Digital Engineering GCC",
+    "is_dream_org": true,
+    "site": "Global",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Colgate-Palmolive Global Tech",
+    "ats_provider": "workday",
+    "slug": "colgate",
+    "domain": "colgate.com",
+    "active": true,
+    "industry": "Enterprise Tech GCC",
+    "is_dream_org": true,
+    "site": "ColgateCareers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Morgan Stanley Technology",
+    "ats_provider": "workday",
+    "slug": "morganstanley",
+    "domain": "morganstanley.com",
+    "active": true,
+    "industry": "Capital Markets Tech",
+    "is_dream_org": true,
+    "site": "ms_careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Citi Technology",
+    "ats_provider": "workday",
+    "slug": "citi",
+    "domain": "citi.com",
+    "active": true,
+    "industry": "Global Banking Tech",
+    "is_dream_org": true,
+    "site": "2",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Bank of America Continuum",
+    "ats_provider": "workday",
+    "slug": "ghr",
+    "domain": "ghr.com",
+    "active": true,
+    "industry": "Global Banking Tech",
+    "is_dream_org": true,
+    "site": "lateral-us",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Wells Fargo India Solutions",
+    "ats_provider": "workday",
+    "slug": "wf",
+    "domain": "wf.com",
+    "active": true,
+    "industry": "Banking & Payments GCC",
+    "is_dream_org": true,
+    "site": "WellsFargoJobs",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Barclays Technology Centre",
+    "ats_provider": "workday",
+    "slug": "barclays",
+    "domain": "barclays.com",
+    "active": true,
+    "industry": "Investment Banking Tech",
+    "is_dream_org": true,
+    "site": "Barclays_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "UBS Technology",
+    "ats_provider": "workday",
+    "slug": "ubs",
+    "domain": "ubs.com",
+    "active": true,
+    "industry": "Wealth & Capital Markets Tech",
+    "is_dream_org": true,
+    "site": "UBS_Global_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "NatWest Digital X",
+    "ats_provider": "workday",
+    "slug": "natwestgroup",
+    "domain": "natwestgroup.com",
+    "active": true,
+    "industry": "Digital Banking GCC",
+    "is_dream_org": true,
+    "site": "NatWest_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Standard Chartered GBS",
+    "ats_provider": "workday",
+    "slug": "scb",
+    "domain": "scb.com",
+    "active": true,
+    "industry": "Global Banking GCC",
+    "is_dream_org": true,
+    "site": "Standard_Chartered_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "HSBC Technology India",
+    "ats_provider": "workday",
+    "slug": "hsbc",
+    "domain": "hsbc.com",
+    "active": true,
+    "industry": "Global Banking Tech",
+    "is_dream_org": true,
+    "site": "HSBC_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "BNY Mellon Technology",
+    "ats_provider": "workday",
+    "slug": "bnymellon",
+    "domain": "bnymellon.com",
+    "active": true,
+    "industry": "Financial Services Tech",
+    "is_dream_org": true,
+    "site": "BNYMellon_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "State Street Technology",
+    "ats_provider": "workday",
+    "slug": "statestreet",
+    "domain": "statestreet.com",
+    "active": true,
+    "industry": "Institutional Finance Tech",
+    "is_dream_org": true,
+    "site": "Global",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Northern Trust Tech",
+    "ats_provider": "workday",
+    "slug": "northerntrust",
+    "domain": "northerntrust.com",
+    "active": true,
+    "industry": "Asset Servicing Tech",
+    "is_dream_org": true,
+    "site": "ntcareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "BlackRock Aladdin Engineering",
+    "ats_provider": "workday",
+    "slug": "blackrock",
+    "domain": "blackrock.com",
+    "active": true,
+    "industry": "FinTech & Asset Tech",
+    "is_dream_org": true,
+    "site": "BlackRock_Professional",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Fidelity Investments India",
+    "ats_provider": "workday",
+    "slug": "fmr",
+    "domain": "fmr.com",
+    "active": true,
+    "industry": "Financial Services Tech",
+    "is_dream_org": true,
+    "site": "FidelityCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Charles Schwab Tech",
+    "ats_provider": "workday",
+    "slug": "schwab",
+    "domain": "schwab.com",
+    "active": true,
+    "industry": "Brokerage & Trading Tech",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Capital One Tech",
+    "ats_provider": "workday",
+    "slug": "capitalone",
+    "domain": "capitalone.com",
+    "active": true,
+    "industry": "Cloud Banking Tech",
+    "is_dream_org": true,
+    "site": "Capital_One",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "American Express Technology",
+    "ats_provider": "workday",
+    "slug": "amex",
+    "domain": "amex.com",
+    "active": true,
+    "industry": "Global Payments Tech",
+    "is_dream_org": true,
+    "site": "American_Express_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Mastercard Technology",
+    "ats_provider": "workday",
+    "slug": "mastercard",
+    "domain": "mastercard.com",
+    "active": true,
+    "industry": "Global Payments Network",
+    "is_dream_org": true,
+    "site": "CorporateCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "PayPal India Engineering",
+    "ats_provider": "workday",
+    "slug": "paypal",
+    "domain": "paypal.com",
+    "active": true,
+    "industry": "Global Payments Platform",
+    "is_dream_org": true,
+    "site": "jobs",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "FIS Global India",
+    "ats_provider": "workday",
+    "slug": "fis",
+    "domain": "fis.com",
+    "active": true,
+    "industry": "Core Banking & Payments",
+    "is_dream_org": true,
+    "site": "FIS_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Fiserv Global Services",
+    "ats_provider": "workday",
+    "slug": "fiserv",
+    "domain": "fiserv.com",
+    "active": true,
+    "industry": "Payments & FinTech",
+    "is_dream_org": true,
+    "site": "EXT",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Broadridge Financial Tech",
+    "ats_provider": "workday",
+    "slug": "broadridge",
+    "domain": "broadridge.com",
+    "active": true,
+    "industry": "Capital Markets SaaS",
+    "is_dream_org": true,
+    "site": "Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Nasdaq Technology",
+    "ats_provider": "workday",
+    "slug": "nasdaq",
+    "domain": "nasdaq.com",
+    "active": true,
+    "industry": "Exchange & Trading Systems",
+    "is_dream_org": true,
+    "site": "Global_External_Site",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "London Stock Exchange Group",
+    "ats_provider": "workday",
+    "slug": "lseg",
+    "domain": "lseg.com",
+    "active": true,
+    "industry": "Financial Data & Exchange",
+    "is_dream_org": true,
+    "site": "Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "S&P Global Market Intelligence",
+    "ats_provider": "workday",
+    "slug": "spgi",
+    "domain": "spgi.com",
+    "active": true,
+    "industry": "Financial Data & AI",
+    "is_dream_org": true,
+    "site": "SPGI_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Moody's Analytics",
+    "ats_provider": "workday",
+    "slug": "moodys",
+    "domain": "moodys.com",
+    "active": true,
+    "industry": "Financial Risk & AI",
+    "is_dream_org": true,
+    "site": "Moodys_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Morningstar India",
+    "ats_provider": "workday",
+    "slug": "morningstar",
+    "domain": "morningstar.com",
+    "active": true,
+    "industry": "Investment Analytics",
+    "is_dream_org": true,
+    "site": "Americas",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "FactSet Research Systems",
+    "ats_provider": "workday",
+    "slug": "factset",
+    "domain": "factset.com",
+    "active": true,
+    "industry": "Financial Data Platform",
+    "is_dream_org": true,
+    "site": "FactSetCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "TransUnion Global Capability",
+    "ats_provider": "workday",
+    "slug": "transunion",
+    "domain": "transunion.com",
+    "active": true,
+    "industry": "Credit & Fraud Analytics",
+    "is_dream_org": true,
+    "site": "TransUnion",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Equifax Technology",
+    "ats_provider": "workday",
+    "slug": "equifax",
+    "domain": "equifax.com",
+    "active": true,
+    "industry": "Data & Credit Cloud",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Synchrony Financial Tech",
+    "ats_provider": "workday",
+    "slug": "synchrony",
+    "domain": "synchrony.com",
+    "active": true,
+    "industry": "Consumer Finance Cloud",
+    "is_dream_org": true,
+    "site": "Synchrony_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Discover Financial Tech",
+    "ats_provider": "workday",
+    "slug": "discover",
+    "domain": "discover.com",
+    "active": true,
+    "industry": "Digital Payments",
+    "is_dream_org": true,
+    "site": "Discover",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Allstate India (ASPL)",
+    "ats_provider": "workday",
+    "slug": "allstate",
+    "domain": "allstate.com",
+    "active": true,
+    "industry": "InsurTech GCC",
+    "is_dream_org": true,
+    "site": "allstate_careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Chubb Global Services",
+    "ats_provider": "workday",
+    "slug": "chubb",
+    "domain": "chubb.com",
+    "active": true,
+    "industry": "InsurTech GCC",
+    "is_dream_org": true,
+    "site": "Chubb_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "AXA XL Technology",
+    "ats_provider": "workday",
+    "slug": "axaxl",
+    "domain": "axaxl.com",
+    "active": true,
+    "industry": "Global InsurTech",
+    "is_dream_org": true,
+    "site": "AXA_XL_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Prudential Financial Tech",
+    "ats_provider": "workday",
+    "slug": "prudential",
+    "domain": "prudential.com",
+    "active": true,
+    "industry": "Financial Services Cloud",
+    "is_dream_org": true,
+    "site": "prudential",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "MetLife Global Tech",
+    "ats_provider": "workday",
+    "slug": "metlife",
+    "domain": "metlife.com",
+    "active": true,
+    "industry": "InsurTech GCC",
+    "is_dream_org": true,
+    "site": "MetLife_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Sun Life Global Solutions",
+    "ats_provider": "workday",
+    "slug": "sunlife",
+    "domain": "sunlife.com",
+    "active": true,
+    "industry": "InsurTech GCC",
+    "is_dream_org": true,
+    "site": "Experienced-Jobs",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Principal Global Services",
+    "ats_provider": "workday",
+    "slug": "principal",
+    "domain": "principal.com",
+    "active": true,
+    "industry": "Retirement & Asset Tech",
+    "is_dream_org": true,
+    "site": "PGSCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "TIAA Global Capabilities",
+    "ats_provider": "workday",
+    "slug": "tiaa",
+    "domain": "tiaa.com",
+    "active": true,
+    "industry": "Wealth Tech GCC",
+    "is_dream_org": true,
+    "site": "TIAA",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Macquarie Group Tech",
+    "ats_provider": "workday",
+    "slug": "macquarie",
+    "domain": "macquarie.com",
+    "active": true,
+    "industry": "Banking & Trading Tech",
+    "is_dream_org": true,
+    "site": "Macquarie_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Nomura Services India",
+    "ats_provider": "workday",
+    "slug": "nomura",
+    "domain": "nomura.com",
+    "active": true,
+    "industry": "Investment Banking Tech",
+    "is_dream_org": true,
+    "site": "Nomura_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "ING Hubs",
+    "ats_provider": "workday",
+    "slug": "ing",
+    "domain": "ing.com",
+    "active": true,
+    "industry": "Global Banking Tech",
+    "is_dream_org": true,
+    "site": "ICS",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Rabobank Tech",
+    "ats_provider": "workday",
+    "slug": "rabobank",
+    "domain": "rabobank.com",
+    "active": true,
+    "industry": "Banking Cloud",
+    "is_dream_org": true,
+    "site": "Rabobank_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Workday Engineering",
+    "ats_provider": "workday",
+    "slug": "workday",
+    "domain": "workday.com",
+    "active": true,
+    "industry": "Enterprise Cloud HCM",
+    "is_dream_org": true,
+    "site": "Workday",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Red Hat Engineering",
+    "ats_provider": "workday",
+    "slug": "redhat",
+    "domain": "redhat.com",
+    "active": true,
+    "industry": "Open Source & Kubernetes",
+    "is_dream_org": true,
+    "site": "jobs",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Fortinet Engineering",
+    "ats_provider": "workday",
+    "slug": "fortinet",
+    "domain": "fortinet.com",
+    "active": true,
+    "industry": "Network Security",
+    "is_dream_org": true,
+    "site": "Fortinet_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "F5 Networks India",
+    "ats_provider": "workday",
+    "slug": "f5",
+    "domain": "f5.com",
+    "active": true,
+    "industry": "Application Delivery & Security",
+    "is_dream_org": true,
+    "site": "F5",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Akamai Technologies India",
+    "ats_provider": "workday",
+    "slug": "akamai",
+    "domain": "akamai.com",
+    "active": true,
+    "industry": "Edge Cloud & Security",
+    "is_dream_org": true,
+    "site": "Akamai_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "NetApp India",
+    "ats_provider": "workday",
+    "slug": "netapp",
+    "domain": "netapp.com",
+    "active": true,
+    "industry": "Cloud Data Storage",
+    "is_dream_org": true,
+    "site": "NetApp_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Dell Technologies India",
+    "ats_provider": "workday",
+    "slug": "dell",
+    "domain": "dell.com",
+    "active": true,
+    "industry": "Cloud & Storage Systems",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Hewlett Packard Enterprise",
+    "ats_provider": "workday",
+    "slug": "hpe",
+    "domain": "hpe.com",
+    "active": true,
+    "industry": "Hybrid Cloud & Networking",
+    "is_dream_org": true,
+    "site": "Jobsathpe",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "HP Inc India",
+    "ats_provider": "workday",
+    "slug": "hp",
+    "domain": "hp.com",
+    "active": true,
+    "industry": "Systems & Cloud Print",
+    "is_dream_org": true,
+    "site": "ExternalCareerSite",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Lenovo Software India",
+    "ats_provider": "workday",
+    "slug": "lenovo",
+    "domain": "lenovo.com",
+    "active": true,
+    "industry": "Cloud & Systems Engineering",
+    "is_dream_org": true,
+    "site": "LenovoCareers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Motorola Solutions",
+    "ats_provider": "workday",
+    "slug": "motorolasolutions",
+    "domain": "motorolasolutions.com",
+    "active": true,
+    "industry": "Mission Critical Comms",
+    "is_dream_org": true,
+    "site": "Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Juniper Networks India",
+    "ats_provider": "workday",
+    "slug": "juniper",
+    "domain": "juniper.com",
+    "active": true,
+    "industry": "AI-Native Networking",
+    "is_dream_org": true,
+    "site": "Juniper_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Ciena India",
+    "ats_provider": "workday",
+    "slug": "ciena",
+    "domain": "ciena.com",
+    "active": true,
+    "industry": "Optical & Cloud Networking",
+    "is_dream_org": true,
+    "site": "Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "CommScope India",
+    "ats_provider": "workday",
+    "slug": "commscope",
+    "domain": "commscope.com",
+    "active": true,
+    "industry": "Network Infrastructure",
+    "is_dream_org": true,
+    "site": "CommScope_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Extreme Networks India",
+    "ats_provider": "workday",
+    "slug": "extremenetworks",
+    "domain": "extremenetworks.com",
+    "active": true,
+    "industry": "Cloud Networking",
+    "is_dream_org": true,
+    "site": "Extreme_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "AMD India",
+    "ats_provider": "workday",
+    "slug": "amd",
+    "domain": "amd.com",
+    "active": true,
+    "industry": "High Performance Computing",
+    "is_dream_org": true,
+    "site": "AMD",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Intel India",
+    "ats_provider": "workday",
+    "slug": "intel",
+    "domain": "intel.com",
+    "active": true,
+    "industry": "Semiconductor & AI Software",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Micron Technology India",
+    "ats_provider": "workday",
+    "slug": "micron",
+    "domain": "micron.com",
+    "active": true,
+    "industry": "Memory & Storage Systems",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Western Digital India",
+    "ats_provider": "workday",
+    "slug": "westerndigital",
+    "domain": "westerndigital.com",
+    "active": true,
+    "industry": "Storage Systems",
+    "is_dream_org": true,
+    "site": "WDC_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Seagate Technology India",
+    "ats_provider": "workday",
+    "slug": "seagate",
+    "domain": "seagate.com",
+    "active": true,
+    "industry": "Data Storage Cloud",
+    "is_dream_org": true,
+    "site": "ext",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "NXP Semiconductors India",
+    "ats_provider": "workday",
+    "slug": "nxp",
+    "domain": "nxp.com",
+    "active": true,
+    "industry": "Embedded & Automotive SoC",
+    "is_dream_org": true,
+    "site": "careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Texas Instruments India",
+    "ats_provider": "workday",
+    "slug": "ti",
+    "domain": "ti.com",
+    "active": true,
+    "industry": "Semiconductor Engineering",
+    "is_dream_org": true,
+    "site": "TI_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Analog Devices India",
+    "ats_provider": "workday",
+    "slug": "analogdevices",
+    "domain": "analogdevices.com",
+    "active": true,
+    "industry": "Mixed Signal & DSP",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Infineon Technologies India",
+    "ats_provider": "workday",
+    "slug": "infineon",
+    "domain": "infineon.com",
+    "active": true,
+    "industry": "Automotive & Power Systems",
+    "is_dream_org": true,
+    "site": "Infineon_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Marvell Technology India",
+    "ats_provider": "workday",
+    "slug": "marvell",
+    "domain": "marvell.com",
+    "active": true,
+    "industry": "Data Infrastructure Silicon",
+    "is_dream_org": true,
+    "site": "MarvellCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "MediaTek India",
+    "ats_provider": "workday",
+    "slug": "mediatek",
+    "domain": "mediatek.com",
+    "active": true,
+    "industry": "Wireless & SoC Software",
+    "is_dream_org": true,
+    "site": "MediaTek_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Synopsys India",
+    "ats_provider": "workday",
+    "slug": "synopsys",
+    "domain": "synopsys.com",
+    "active": true,
+    "industry": "EDA & Software Integrity",
+    "is_dream_org": true,
+    "site": "Synopsys_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Cadence Design Systems",
+    "ats_provider": "workday",
+    "slug": "cadence",
+    "domain": "cadence.com",
+    "active": true,
+    "industry": "EDA & System Verification",
+    "is_dream_org": true,
+    "site": "External_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Ansys Software India",
+    "ats_provider": "workday",
+    "slug": "ansys",
+    "domain": "ansys.com",
+    "active": true,
+    "industry": "Engineering Simulation",
+    "is_dream_org": true,
+    "site": "Ansys_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Keysight Technologies India",
+    "ats_provider": "workday",
+    "slug": "keysight",
+    "domain": "keysight.com",
+    "active": true,
+    "industry": "Test & Measurement Automation",
+    "is_dream_org": true,
+    "site": "Keysight_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "National Instruments (NI)",
+    "ats_provider": "workday",
+    "slug": "ni",
+    "domain": "ni.com",
+    "active": true,
+    "industry": "Automated Test Systems",
+    "is_dream_org": true,
+    "site": "NI_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Teradyne India",
+    "ats_provider": "workday",
+    "slug": "teradyne",
+    "domain": "teradyne.com",
+    "active": true,
+    "industry": "Automated Test Equipment",
+    "is_dream_org": true,
+    "site": "Teradyne_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Philips Innovation Campus",
+    "ats_provider": "workday",
+    "slug": "philips",
+    "domain": "philips.com",
+    "active": true,
+    "industry": "HealthTech GCC",
+    "is_dream_org": true,
+    "site": "jobs-and-careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "GE HealthCare India",
+    "ats_provider": "workday",
+    "slug": "gehealthcare",
+    "domain": "gehealthcare.com",
+    "active": true,
+    "industry": "Medical Imaging & AI GCC",
+    "is_dream_org": true,
+    "site": "GEHC_External_Site",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Siemens Healthineers India",
+    "ats_provider": "workday",
+    "slug": "siemenshealthineers",
+    "domain": "siemenshealthineers.com",
+    "active": true,
+    "industry": "MedTech Digital Hub",
+    "is_dream_org": true,
+    "site": "SHS_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Medtronic Engineering",
+    "ats_provider": "workday",
+    "slug": "medtronic",
+    "domain": "medtronic.com",
+    "active": true,
+    "industry": "Medical Device Software",
+    "is_dream_org": true,
+    "site": "MedtronicCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Stryker Global Tech Center",
+    "ats_provider": "workday",
+    "slug": "stryker",
+    "domain": "stryker.com",
+    "active": true,
+    "industry": "MedTech Software GCC",
+    "is_dream_org": true,
+    "site": "StrykerCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Baxter International India",
+    "ats_provider": "workday",
+    "slug": "baxter",
+    "domain": "baxter.com",
+    "active": true,
+    "industry": "Connected Care Software",
+    "is_dream_org": true,
+    "site": "Baxter_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "BD (Becton Dickinson) India",
+    "ats_provider": "workday",
+    "slug": "bdx",
+    "domain": "bdx.com",
+    "active": true,
+    "industry": "Medical Tech GCC",
+    "is_dream_org": true,
+    "site": "EXTERNAL_CAREER_SITE_GLOBAL",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Boston Scientific India",
+    "ats_provider": "workday",
+    "slug": "bostonscientific",
+    "domain": "bostonscientific.com",
+    "active": true,
+    "industry": "MedTech R&D Hub",
+    "is_dream_org": true,
+    "site": "Boston_Scientific_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Alcon Digital Health",
+    "ats_provider": "workday",
+    "slug": "alcon",
+    "domain": "alcon.com",
+    "active": true,
+    "industry": "Medical Software GCC",
+    "is_dream_org": true,
+    "site": "careers_alcon",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Roche Information Solutions",
+    "ats_provider": "workday",
+    "slug": "roche",
+    "domain": "roche.com",
+    "active": true,
+    "industry": "Diagnostics & Health AI",
+    "is_dream_org": true,
+    "site": "roche-ext",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Novartis Healthcare India",
+    "ats_provider": "workday",
+    "slug": "novartis",
+    "domain": "novartis.com",
+    "active": true,
+    "industry": "Biotech Data & AI Hub",
+    "is_dream_org": true,
+    "site": "Novartis_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "AstraZeneca India Tech",
+    "ats_provider": "workday",
+    "slug": "astrazeneca",
+    "domain": "astrazeneca.com",
+    "active": true,
+    "industry": "Pharma Digital & AI GCC",
+    "is_dream_org": true,
+    "site": "Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "GSK India Tech Hub",
+    "ats_provider": "workday",
+    "slug": "gsk",
+    "domain": "gsk.com",
+    "active": true,
+    "industry": "Biopharma Digital GCC",
+    "is_dream_org": true,
+    "site": "GSK_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Sanofi Digital Hub",
+    "ats_provider": "workday",
+    "slug": "sanofi",
+    "domain": "sanofi.com",
+    "active": true,
+    "industry": "Digital Healthcare GCC",
+    "is_dream_org": true,
+    "site": "SanofiCareers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Eli Lilly Capability Center",
+    "ats_provider": "workday",
+    "slug": "lilly",
+    "domain": "lilly.com",
+    "active": true,
+    "industry": "HealthTech & AI GCC",
+    "is_dream_org": true,
+    "site": "Lilly_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Amgen Technology Center",
+    "ats_provider": "workday",
+    "slug": "amgen",
+    "domain": "amgen.com",
+    "active": true,
+    "industry": "Biotech Cloud GCC",
+    "is_dream_org": true,
+    "site": "Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Pfizer Digital India",
+    "ats_provider": "workday",
+    "slug": "pfizer",
+    "domain": "pfizer.com",
+    "active": true,
+    "industry": "Healthcare Digital Cloud",
+    "is_dream_org": true,
+    "site": "PfizerCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Merck / MSD IT Hub",
+    "ats_provider": "workday",
+    "slug": "msd",
+    "domain": "msd.com",
+    "active": true,
+    "industry": "Pharma Data & Cloud",
+    "is_dream_org": true,
+    "site": "SearchJobs",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Bristol Myers Squibb Hub",
+    "ats_provider": "workday",
+    "slug": "bms",
+    "domain": "bms.com",
+    "active": true,
+    "industry": "Biopharma Digital GCC",
+    "is_dream_org": true,
+    "site": "BMS",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "IQVIA India",
+    "ats_provider": "workday",
+    "slug": "iqvia",
+    "domain": "iqvia.com",
+    "active": true,
+    "industry": "Healthcare Data & Clinical Cloud",
+    "is_dream_org": true,
+    "site": "IQVIA",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "ICON Clinical Tech",
+    "ats_provider": "workday",
+    "slug": "icon",
+    "domain": "icon.com",
+    "active": true,
+    "industry": "Clinical Trial SaaS",
+    "is_dream_org": true,
+    "site": "broadbean_external",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Thermo Fisher Digital",
+    "ats_provider": "workday",
+    "slug": "thermofisher",
+    "domain": "thermofisher.com",
+    "active": true,
+    "industry": "Scientific Cloud & IoT",
+    "is_dream_org": true,
+    "site": "ThermoFisherCareers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Danaher Digital",
+    "ats_provider": "workday",
+    "slug": "danaher",
+    "domain": "danaher.com",
+    "active": true,
+    "industry": "Life Sciences Tech",
+    "is_dream_org": true,
+    "site": "DanaherJobs",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Illumina India",
+    "ats_provider": "workday",
+    "slug": "illumina",
+    "domain": "illumina.com",
+    "active": true,
+    "industry": "Genomics Cloud & Bioinformatics",
+    "is_dream_org": true,
+    "site": "illumina-careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Optum / UnitedHealth Group",
+    "ats_provider": "workday",
+    "slug": "uhg",
+    "domain": "uhg.com",
+    "active": true,
+    "industry": "Healthcare Cloud & AI",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Elevance Health (Carelon)",
+    "ats_provider": "workday",
+    "slug": "elevancehealth",
+    "domain": "elevancehealth.com",
+    "active": true,
+    "industry": "Healthcare Platform GCC",
+    "is_dream_org": true,
+    "site": "ANTM",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Cigna Evernorth India",
+    "ats_provider": "workday",
+    "slug": "cigna",
+    "domain": "cigna.com",
+    "active": true,
+    "industry": "Health Services Cloud",
+    "is_dream_org": true,
+    "site": "cignacareers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "CVS Health / Aetna Digital",
+    "ats_provider": "workday",
+    "slug": "cvshealth",
+    "domain": "cvshealth.com",
+    "active": true,
+    "industry": "Digital Pharmacy & Health",
+    "is_dream_org": true,
+    "site": "CVS_Health_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Humana Digital Health",
+    "ats_provider": "workday",
+    "slug": "humana",
+    "domain": "humana.com",
+    "active": true,
+    "industry": "Health Tech Cloud",
+    "is_dream_org": true,
+    "site": "Humana_External_Career_Site",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Shell India Markets",
+    "ats_provider": "workday",
+    "slug": "shell",
+    "domain": "shell.com",
+    "active": true,
+    "industry": "Energy & Digital Twin GCC",
+    "is_dream_org": true,
+    "site": "ShellCareers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "BP Technical Solutions",
+    "ats_provider": "workday",
+    "slug": "bp",
+    "domain": "bp.com",
+    "active": true,
+    "industry": "Energy Cloud & AI",
+    "is_dream_org": true,
+    "site": "bpCareers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Chevron Engine (Bengaluru)",
+    "ats_provider": "workday",
+    "slug": "chevron",
+    "domain": "chevron.com",
+    "active": true,
+    "industry": "Energy Engineering Hub",
+    "is_dream_org": true,
+    "site": "Jobs",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "ExxonMobil Bengaluru",
+    "ats_provider": "workday",
+    "slug": "exxonmobil",
+    "domain": "exxonmobil.com",
+    "active": true,
+    "industry": "Digital & Cloud GCC",
+    "is_dream_org": true,
+    "site": "ExxonMobil_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Schlumberger (SLB) Pune/BLR",
+    "ats_provider": "workday",
+    "slug": "slb",
+    "domain": "slb.com",
+    "active": true,
+    "industry": "Energy Cloud Platform",
+    "is_dream_org": true,
+    "site": "SLB_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Baker Hughes Digital",
+    "ats_provider": "workday",
+    "slug": "bakerhughes",
+    "domain": "bakerhughes.com",
+    "active": true,
+    "industry": "Industrial IoT & Cloud",
+    "is_dream_org": true,
+    "site": "BakerHughes",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Honeywell Technology Solutions",
+    "ats_provider": "workday",
+    "slug": "honeywell",
+    "domain": "honeywell.com",
+    "active": true,
+    "industry": "Aerospace & Building Automation",
+    "is_dream_org": true,
+    "site": "Honeywell",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Rockwell Automation India",
+    "ats_provider": "workday",
+    "slug": "rockwellautomation",
+    "domain": "rockwellautomation.com",
+    "active": true,
+    "industry": "Industrial Cloud",
+    "is_dream_org": true,
+    "site": "External_Rockwell_Automation",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Emerson Export Engineering",
+    "ats_provider": "workday",
+    "slug": "emerson",
+    "domain": "emerson.com",
+    "active": true,
+    "industry": "Automation Software",
+    "is_dream_org": true,
+    "site": "Emerson_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Eaton India Innovation Center",
+    "ats_provider": "workday",
+    "slug": "eaton",
+    "domain": "eaton.com",
+    "active": true,
+    "industry": "Intelligent Power Software",
+    "is_dream_org": true,
+    "site": "Eaton_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Johnson Controls India",
+    "ats_provider": "workday",
+    "slug": "johnsoncontrols",
+    "domain": "johnsoncontrols.com",
+    "active": true,
+    "industry": "Smart Building Cloud",
+    "is_dream_org": true,
+    "site": "JCI",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Carrier Digital Hub",
+    "ats_provider": "workday",
+    "slug": "carrier",
+    "domain": "carrier.com",
+    "active": true,
+    "industry": "Connected Climate IoT",
+    "is_dream_org": true,
+    "site": "jobs",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Otis Digital Center",
+    "ats_provider": "workday",
+    "slug": "otis",
+    "domain": "otis.com",
+    "active": true,
+    "industry": "IoT Mobility Platform",
+    "is_dream_org": true,
+    "site": "REC_Ext_Gateway",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Caterpillar India",
+    "ats_provider": "workday",
+    "slug": "caterpillar",
+    "domain": "caterpillar.com",
+    "active": true,
+    "industry": "Autonomous & Fleet Telematics",
+    "is_dream_org": true,
+    "site": "Caterpillar_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "John Deere Technology Center",
+    "ats_provider": "workday",
+    "slug": "johndeere",
+    "domain": "johndeere.com",
+    "active": true,
+    "industry": "Precision Ag & Autonomy",
+    "is_dream_org": true,
+    "site": "Deere_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Volvo Group Digital & IT",
+    "ats_provider": "workday",
+    "slug": "volvogroup",
+    "domain": "volvogroup.com",
+    "active": true,
+    "industry": "Connected Mobility GCC",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Daimler Truck Innovation Center",
+    "ats_provider": "workday",
+    "slug": "daimlertruck",
+    "domain": "daimlertruck.com",
+    "active": true,
+    "industry": "Autonomous & Connected Trucks",
+    "is_dream_org": true,
+    "site": "Daimler_Truck_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Ford Business Solutions",
+    "ats_provider": "workday",
+    "slug": "ford",
+    "domain": "ford.com",
+    "active": true,
+    "industry": "Connected Vehicle Software",
+    "is_dream_org": true,
+    "site": "Ford_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "General Motors Technical Centre",
+    "ats_provider": "workday",
+    "slug": "gm",
+    "domain": "gm.com",
+    "active": true,
+    "industry": "Ultifi & EV Software",
+    "is_dream_org": true,
+    "site": "Careers_GM",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "BorgWarner India",
+    "ats_provider": "workday",
+    "slug": "borgwarner",
+    "domain": "borgwarner.com",
+    "active": true,
+    "industry": "eMobility Software",
+    "is_dream_org": true,
+    "site": "BorgWarner_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Aptiv Technical Center",
+    "ats_provider": "workday",
+    "slug": "aptiv",
+    "domain": "aptiv.com",
+    "active": true,
+    "industry": "ADAS & Autonomous Driving",
+    "is_dream_org": true,
+    "site": "Aptiv_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Lear Corporation India",
+    "ats_provider": "workday",
+    "slug": "lear",
+    "domain": "lear.com",
+    "active": true,
+    "industry": "Automotive Software",
+    "is_dream_org": true,
+    "site": "Lear_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Goodyear Digital Hub",
+    "ats_provider": "workday",
+    "slug": "goodyear",
+    "domain": "goodyear.com",
+    "active": true,
+    "industry": "Connected Fleet Cloud",
+    "is_dream_org": true,
+    "site": "GoodyearCareerSite",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Boeing India Engineering",
+    "ats_provider": "workday",
+    "slug": "boeing",
+    "domain": "boeing.com",
+    "active": true,
+    "industry": "Aerospace & Avionics QA",
+    "is_dream_org": true,
+    "site": "EXTERNAL_CAREERS",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Airbus India Digital",
+    "ats_provider": "workday",
+    "slug": "ag",
+    "domain": "ag.com",
+    "active": true,
+    "industry": "Skywise Aviation Data Platform",
+    "is_dream_org": true,
+    "site": "Airbus",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Collins Aerospace (RTX)",
+    "ats_provider": "workday",
+    "slug": "raytheon",
+    "domain": "raytheon.com",
+    "active": true,
+    "industry": "Avionics & Defense Systems",
+    "is_dream_org": true,
+    "site": "RTX_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "GE Aerospace Bengaluru",
+    "ats_provider": "workday",
+    "slug": "geaerospace",
+    "domain": "geaerospace.com",
+    "active": true,
+    "industry": "Aviation Digital GCC",
+    "is_dream_org": true,
+    "site": "GE_External_Site",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Rolls-Royce Digital Hub",
+    "ats_provider": "workday",
+    "slug": "rollsroyce",
+    "domain": "rollsroyce.com",
+    "active": true,
+    "industry": "Aerospace Data & IoT",
+    "is_dream_org": true,
+    "site": "professional",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Ericsson R&D India",
+    "ats_provider": "workday",
+    "slug": "ericsson",
+    "domain": "ericsson.com",
+    "active": true,
+    "industry": "5G & Cloud RAN Automation",
+    "is_dream_org": true,
+    "site": "Ericsson_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Nokia Bell Labs / R&D India",
+    "ats_provider": "workday",
+    "slug": "nokia",
+    "domain": "nokia.com",
+    "active": true,
+    "industry": "5G Core & Network Automation",
+    "is_dream_org": true,
+    "site": "Nokia_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Vodafone Intelligent Solutions (_VOIS)",
+    "ats_provider": "workday",
+    "slug": "vodafone",
+    "domain": "vodafone.com",
+    "active": true,
+    "industry": "Telecom Cloud & IoT GCC",
+    "is_dream_org": true,
+    "site": "Vodafone_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Telstra Global Business Services",
+    "ats_provider": "workday",
+    "slug": "telstra",
+    "domain": "telstra.com",
+    "active": true,
+    "industry": "Telecom Software GCC",
+    "is_dream_org": true,
+    "site": "Telstra_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "BT Group Digital India",
+    "ats_provider": "workday",
+    "slug": "bt",
+    "domain": "bt.com",
+    "active": true,
+    "industry": "Telecom & Cyber GCC",
+    "is_dream_org": true,
+    "site": "BT_External_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Comcast India Engineering Center",
+    "ats_provider": "workday",
+    "slug": "comcast",
+    "domain": "comcast.com",
+    "active": true,
+    "industry": "Streaming & Broadband Cloud",
+    "is_dream_org": true,
+    "site": "Comcast_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Charter Communications Tech",
+    "ats_provider": "workday",
+    "slug": "charter",
+    "domain": "charter.com",
+    "active": true,
+    "industry": "Connectivity Platform",
+    "is_dream_org": true,
+    "site": " Charter_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Sony India Software Centre",
+    "ats_provider": "workday",
+    "slug": "sony",
+    "domain": "sony.com",
+    "active": true,
+    "industry": "Media, Gaming & Cloud GCC",
+    "is_dream_org": true,
+    "site": "SonyGlobalCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Electronic Arts (EA) India",
+    "ats_provider": "workday",
+    "slug": "ea",
+    "domain": "ea.com",
+    "active": true,
+    "industry": "Gaming Platform & QA Automation",
+    "is_dream_org": true,
+    "site": "arki",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Take-Two / Zynga India",
+    "ats_provider": "workday",
+    "slug": "taketwo",
+    "domain": "taketwo.com",
+    "active": true,
+    "industry": "Gaming Backend & QA",
+    "is_dream_org": true,
+    "site": "take-two",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Walt Disney Tech (Hotstar)",
+    "ats_provider": "workday",
+    "slug": "disney",
+    "domain": "disney.com",
+    "active": true,
+    "industry": "Streaming Platform",
+    "is_dream_org": true,
+    "site": "disneycareer",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Warner Bros. Discovery India",
+    "ats_provider": "workday",
+    "slug": "warnerbros",
+    "domain": "warnerbros.com",
+    "active": true,
+    "industry": "Max Streaming Engineering",
+    "is_dream_org": true,
+    "site": "global",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Paramount Streaming Tech",
+    "ats_provider": "workday",
+    "slug": "paramount",
+    "domain": "paramount.com",
+    "active": true,
+    "industry": "Streaming Video Platform",
+    "is_dream_org": true,
+    "site": "Paramount_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "RELX / Elsevier Tech Hub",
+    "ats_provider": "workday",
+    "slug": "relx",
+    "domain": "relx.com",
+    "active": true,
+    "industry": "Scientific & Legal AI SaaS",
+    "is_dream_org": true,
+    "site": "RELXCareers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Thomson Reuters India",
+    "ats_provider": "workday",
+    "slug": "thomsonreuters",
+    "domain": "thomsonreuters.com",
+    "active": true,
+    "industry": "Legal & Tax AI Platform",
+    "is_dream_org": true,
+    "site": "External_Career_Site",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Wolters Kluwer India",
+    "ats_provider": "workday",
+    "slug": "wolterskluwer",
+    "domain": "wolterskluwer.com",
+    "active": true,
+    "industry": "Enterprise Compliance SaaS",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Pearson Technology Hub",
+    "ats_provider": "workday",
+    "slug": "pearson",
+    "domain": "pearson.com",
+    "active": true,
+    "industry": "EdTech Cloud Platform",
+    "is_dream_org": true,
+    "site": "Pearson_Jobs",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "McGraw Hill Digital",
+    "ats_provider": "workday",
+    "slug": "mheducation",
+    "domain": "mheducation.com",
+    "active": true,
+    "industry": "EdTech SaaS",
+    "is_dream_org": true,
+    "site": "MHE_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Wiley Digital Tech",
+    "ats_provider": "workday",
+    "slug": "wiley",
+    "domain": "wiley.com",
+    "active": true,
+    "industry": "Publishing & EdTech Cloud",
+    "is_dream_org": true,
+    "site": "Wiley_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Clarivate Analytics India",
+    "ats_provider": "workday",
+    "slug": "clarivate",
+    "domain": "clarivate.com",
+    "active": true,
+    "industry": "IP & Life Sciences Data",
+    "is_dream_org": true,
+    "site": "Clarivate_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Gartner India Tech",
+    "ats_provider": "workday",
+    "slug": "gartner",
+    "domain": "gartner.com",
+    "active": true,
+    "industry": "Enterprise Research & Data",
+    "is_dream_org": true,
+    "site": "EXT",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "NielsenIQ (NIQ) Tech Hub",
+    "ats_provider": "workday",
+    "slug": "nielseniq",
+    "domain": "nielseniq.com",
+    "active": true,
+    "industry": "Retail Analytics Cloud",
+    "is_dream_org": true,
+    "site": "NIQ_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Circana (IRI/NPD) India",
+    "ats_provider": "workday",
+    "slug": "circana",
+    "domain": "circana.com",
+    "active": true,
+    "industry": "Consumer Data Platform",
+    "is_dream_org": true,
+    "site": "Circana_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Dun & Bradstreet India",
+    "ats_provider": "workday",
+    "slug": "dnb",
+    "domain": "dnb.com",
+    "active": true,
+    "industry": "B2B Data & Risk Cloud",
+    "is_dream_org": true,
+    "site": "Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "LexisNexis Risk Solutions",
+    "ats_provider": "workday",
+    "slug": "lexisnexis",
+    "domain": "lexisnexis.com",
+    "active": true,
+    "industry": "Fraud & Identity AI",
+    "is_dream_org": true,
+    "site": "LNRS",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Experian Global Delivery",
+    "ats_provider": "workday",
+    "slug": "experian",
+    "domain": "experian.com",
+    "active": true,
+    "industry": "Credit & Decisioning Cloud",
+    "is_dream_org": true,
+    "site": "Experian_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "ADT Commercial / Consumer Tech",
+    "ats_provider": "workday",
+    "slug": "adt",
+    "domain": "adt.com",
+    "active": true,
+    "industry": "Connected Home IoT",
+    "is_dream_org": true,
+    "site": "ADT_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Assurant Global Tech India",
+    "ats_provider": "workday",
+    "slug": "assurant",
+    "domain": "assurant.com",
+    "active": true,
+    "industry": "Connected Device InsurTech",
+    "is_dream_org": true,
+    "site": "Assurant_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Sedgwick Claims Tech",
+    "ats_provider": "workday",
+    "slug": "sedgwick",
+    "domain": "sedgwick.com",
+    "active": true,
+    "industry": "InsurTech SaaS",
+    "is_dream_org": true,
+    "site": "Sedgwick",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Gallagher Center of Excellence",
+    "ats_provider": "workday",
+    "slug": "ajg",
+    "domain": "ajg.com",
+    "active": true,
+    "industry": "Risk Management Tech",
+    "is_dream_org": true,
+    "site": "Gallagher_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Marsh McLennan Global Services",
+    "ats_provider": "workday",
+    "slug": "mmc",
+    "domain": "mmc.com",
+    "active": true,
+    "industry": "Risk & FinTech Hub",
+    "is_dream_org": true,
+    "site": "MMC_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Aon Service Corporation",
+    "ats_provider": "workday",
+    "slug": "aon",
+    "domain": "aon.com",
+    "active": true,
+    "industry": "Risk Analytics Cloud",
+    "is_dream_org": true,
+    "site": "Aon_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "WTW (Willis Towers Watson)",
+    "ats_provider": "workday",
+    "slug": "wtw",
+    "domain": "wtw.com",
+    "active": true,
+    "industry": "FinTech & Actuarial SaaS",
+    "is_dream_org": true,
+    "site": "WTW_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Deloitte USI Engineering",
+    "ats_provider": "workday",
+    "slug": "deloitte",
+    "domain": "deloitte.com",
+    "active": true,
+    "industry": "Cloud & AI Product Engineering",
+    "is_dream_org": false,
+    "site": "DeloitteCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "PwC Acceleration Center",
+    "ats_provider": "workday",
+    "slug": "pwc",
+    "domain": "pwc.com",
+    "active": true,
+    "industry": "Digital & AI Engineering",
+    "is_dream_org": false,
+    "site": "Global_Experienced_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "KPMG Global Services",
+    "ats_provider": "workday",
+    "slug": "kpmg",
+    "domain": "kpmg.com",
+    "active": true,
+    "industry": "Enterprise Cloud & Cyber",
+    "is_dream_org": false,
+    "site": "KPMG_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "EY Global Delivery Services",
+    "ats_provider": "workday",
+    "slug": "ey",
+    "domain": "ey.com",
+    "active": true,
+    "industry": "Tax & AI Platform Engineering",
+    "is_dream_org": false,
+    "site": "EY_Global_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Accenture Advanced Tech",
+    "ats_provider": "workday",
+    "slug": "accenture",
+    "domain": "accenture.com",
+    "active": true,
+    "industry": "Cloud First Automation",
+    "is_dream_org": false,
+    "site": "AccentureCareers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Cognizant Digital Engineering",
+    "ats_provider": "workday",
+    "slug": "cognizant",
+    "domain": "cognizant.com",
+    "active": true,
+    "industry": "Quality Engineering & AI",
+    "is_dream_org": false,
+    "site": "Cognizant_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Capgemini Engineering",
+    "ats_provider": "workday",
+    "slug": "capgemini",
+    "domain": "capgemini.com",
+    "active": true,
+    "industry": "Digital & Cloud QA",
+    "is_dream_org": false,
+    "site": "Capgemini_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "DXC Technology India",
+    "ats_provider": "workday",
+    "slug": "dxc",
+    "domain": "dxc.com",
+    "active": true,
+    "industry": "Enterprise Systems QA",
+    "is_dream_org": false,
+    "site": "DXC_Jobs",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "NTT DATA Services",
+    "ats_provider": "workday",
+    "slug": "nttdata",
+    "domain": "nttdata.com",
+    "active": true,
+    "industry": "Digital Platform QA",
+    "is_dream_org": false,
+    "site": "NTT_DATA_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Rackspace Technology",
+    "ats_provider": "workday",
+    "slug": "rackspace",
+    "domain": "rackspace.com",
+    "active": true,
+    "industry": "Multi-Cloud Engineering",
+    "is_dream_org": true,
+    "site": "Rackspace_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Kyndryl India",
+    "ats_provider": "workday",
+    "slug": "kyndryl",
+    "domain": "kyndryl.com",
+    "active": true,
+    "industry": "Cloud Infrastructure",
+    "is_dream_org": false,
+    "site": "KyndrylProfessionalCareers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "concentrix Catalyst",
+    "ats_provider": "workday",
+    "slug": "concentrix",
+    "domain": "concentrix.com",
+    "active": true,
+    "industry": "Digital Experience QA",
+    "is_dream_org": false,
+    "site": "Concentrix_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "TTEC Digital",
+    "ats_provider": "workday",
+    "slug": "ttec",
+    "domain": "ttec.com",
+    "active": true,
+    "industry": "CCaaS & AI Automation",
+    "is_dream_org": false,
+    "site": "TTEC_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "TaskUs AI Operations",
+    "ats_provider": "workday",
+    "slug": "taskus",
+    "domain": "taskus.com",
+    "active": true,
+    "industry": "AI Red Teaming & Trust",
+    "is_dream_org": true,
+    "site": "TaskUs",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Cencora (AmerisourceBergen)",
+    "ats_provider": "workday",
+    "slug": "cencora",
+    "domain": "cencora.com",
+    "active": true,
+    "industry": "Pharma Supply Chain Tech",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Cardinal Health India (CAH)",
+    "ats_provider": "workday",
+    "slug": "cardinalhealth",
+    "domain": "cardinalhealth.com",
+    "active": true,
+    "industry": "Healthcare Logistics Cloud",
+    "is_dream_org": true,
+    "site": "EXT",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "McKesson Technology",
+    "ats_provider": "workday",
+    "slug": "mckesson",
+    "domain": "mckesson.com",
+    "active": true,
+    "industry": "HealthTech Platform",
+    "is_dream_org": true,
+    "site": "External_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Labcorp Drug Development",
+    "ats_provider": "workday",
+    "slug": "labcorp",
+    "domain": "labcorp.com",
+    "active": true,
+    "industry": "Diagnostics Cloud",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Quest Diagnostics HTD",
+    "ats_provider": "workday",
+    "slug": "questdiagnostics",
+    "domain": "questdiagnostics.com",
+    "active": true,
+    "industry": "Lab Data Platform",
+    "is_dream_org": true,
+    "site": "Quest_Diagnostics_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Hologic Digital",
+    "ats_provider": "workday",
+    "slug": "hologic",
+    "domain": "hologic.com",
+    "active": true,
+    "industry": "Medical Imaging AI",
+    "is_dream_org": true,
+    "site": "Hologic_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "ResMed Technology",
+    "ats_provider": "workday",
+    "slug": "resmed",
+    "domain": "resmed.com",
+    "active": true,
+    "industry": "Connected Health IoT",
+    "is_dream_org": true,
+    "site": "ResMed_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Dexcom Engineering",
+    "ats_provider": "workday",
+    "slug": "dexcom",
+    "domain": "dexcom.com",
+    "active": true,
+    "industry": "Continuous Glucose IoT & Mobile",
+    "is_dream_org": true,
+    "site": "Dexcom",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Insulet Corporation",
+    "ats_provider": "workday",
+    "slug": "insulet",
+    "domain": "insulet.com",
+    "active": true,
+    "industry": "Connected Medical Devices",
+    "is_dream_org": true,
+    "site": "Insulet_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Edwards Lifesciences",
+    "ats_provider": "workday",
+    "slug": "edwards",
+    "domain": "edwards.com",
+    "active": true,
+    "industry": "Cardiovascular MedTech",
+    "is_dream_org": true,
+    "site": "Edwards_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Zimmer Biomet Digital",
+    "ats_provider": "workday",
+    "slug": "zimmerbiomet",
+    "domain": "zimmerbiomet.com",
+    "active": true,
+    "industry": "Robotic Surgery Software",
+    "is_dream_org": true,
+    "site": "ZimmerBiomet_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "B. Braun Digital",
+    "ats_provider": "workday",
+    "slug": "bbraun",
+    "domain": "bbraun.com",
+    "active": true,
+    "industry": "Medical Systems Software",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Smith+Nephew Digital",
+    "ats_provider": "workday",
+    "slug": "smithnephew",
+    "domain": "smithnephew.com",
+    "active": true,
+    "industry": "Surgical Robotics Software",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Agilent Technologies India",
+    "ats_provider": "workday",
+    "slug": "agilent",
+    "domain": "agilent.com",
+    "active": true,
+    "industry": "Lab Automation Software",
+    "is_dream_org": true,
+    "site": "Agilent_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Waters Corporation India",
+    "ats_provider": "workday",
+    "slug": "waters",
+    "domain": "waters.com",
+    "active": true,
+    "industry": "Analytical Instrument Software",
+    "is_dream_org": true,
+    "site": "Waters_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "PerkinElmer / Revvity",
+    "ats_provider": "workday",
+    "slug": "revvity",
+    "domain": "revvity.com",
+    "active": true,
+    "industry": "Life Sciences SaaS",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Bio-Rad Laboratories",
+    "ats_provider": "workday",
+    "slug": "biorad",
+    "domain": "biorad.com",
+    "active": true,
+    "industry": "Diagnostics Software",
+    "is_dream_org": true,
+    "site": "Bio-Rad_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Mettler-Toledo Turing",
+    "ats_provider": "workday",
+    "slug": "mt",
+    "domain": "mt.com",
+    "active": true,
+    "industry": "Precision Instrument Software",
+    "is_dream_org": true,
+    "site": "Mettler-Toledo",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "IDEXX Laboratories",
+    "ats_provider": "workday",
+    "slug": "idexx",
+    "domain": "idexx.com",
+    "active": true,
+    "industry": "Veterinary Diagnostics Cloud",
+    "is_dream_org": true,
+    "site": "IDEXX_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Zoetis Digital",
+    "ats_provider": "workday",
+    "slug": "zoetis",
+    "domain": "zoetis.com",
+    "active": true,
+    "industry": "Animal Health Cloud",
+    "is_dream_org": true,
+    "site": "zoetis",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Syngenta Digital Hub",
+    "ats_provider": "workday",
+    "slug": "syngenta",
+    "domain": "syngenta.com",
+    "active": true,
+    "industry": "AgriTech Data & AI",
+    "is_dream_org": true,
+    "site": "Syngenta_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Corteva Agriscience",
+    "ats_provider": "workday",
+    "slug": "corteva",
+    "domain": "corteva.com",
+    "active": true,
+    "industry": "AgriTech Cloud",
+    "is_dream_org": true,
+    "site": "Corteva_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Cargill Digital Labs",
+    "ats_provider": "workday",
+    "slug": "cargill",
+    "domain": "cargill.com",
+    "active": true,
+    "industry": "Supply Chain & Commodities AI",
+    "is_dream_org": true,
+    "site": "CargillCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "ADM Digital",
+    "ats_provider": "workday",
+    "slug": "adm",
+    "domain": "adm.com",
+    "active": true,
+    "industry": "Global Ag Supply Chain Tech",
+    "is_dream_org": true,
+    "site": "ADM_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Bunge Global Tech",
+    "ats_provider": "workday",
+    "slug": "bunge",
+    "domain": "bunge.com",
+    "active": true,
+    "industry": "Agri Commodities Tech",
+    "is_dream_org": true,
+    "site": "Bunge_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "General Mills India Center",
+    "ats_provider": "workday",
+    "slug": "generalmills",
+    "domain": "generalmills.com",
+    "active": true,
+    "industry": "Supply Chain & Digital GCC",
+    "is_dream_org": true,
+    "site": "GMI_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Kellanova (Kellogg) Tech",
+    "ats_provider": "workday",
+    "slug": "kellanova",
+    "domain": "kellanova.com",
+    "active": true,
+    "industry": "Consumer Data & Cloud",
+    "is_dream_org": true,
+    "site": "Kellanova_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Conagra Brands Digital",
+    "ats_provider": "workday",
+    "slug": "conagra",
+    "domain": "conagra.com",
+    "active": true,
+    "industry": "Retail Supply Chain Tech",
+    "is_dream_org": false,
+    "site": "Conagra_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Kraft Heinz Digital",
+    "ats_provider": "workday",
+    "slug": "kraftheinz",
+    "domain": "kraftheinz.com",
+    "active": true,
+    "industry": "Supply Chain AI",
+    "is_dream_org": true,
+    "site": "Kraft_Heinz_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "McCormick Global Tech",
+    "ats_provider": "workday",
+    "slug": "mccormick",
+    "domain": "mccormick.com",
+    "active": true,
+    "industry": "Enterprise Cloud",
+    "is_dream_org": false,
+    "site": "McCormick_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Clorox Digital",
+    "ats_provider": "workday",
+    "slug": "clorox",
+    "domain": "clorox.com",
+    "active": true,
+    "industry": "Consumer Cloud",
+    "is_dream_org": true,
+    "site": "Clorox_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Church & Dwight Tech",
+    "ats_provider": "workday",
+    "slug": "churchdwight",
+    "domain": "churchdwight.com",
+    "active": true,
+    "industry": "Enterprise Systems",
+    "is_dream_org": false,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "SC Johnson Digital",
+    "ats_provider": "workday",
+    "slug": "scjohnson",
+    "domain": "scjohnson.com",
+    "active": true,
+    "industry": "Enterprise Digital",
+    "is_dream_org": false,
+    "site": "SCJ_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Reckitt Digital Hub",
+    "ats_provider": "workday",
+    "slug": "reckitt",
+    "domain": "reckitt.com",
+    "active": true,
+    "industry": "Global Health E-Commerce",
+    "is_dream_org": true,
+    "site": "Reckitt_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Haleon Digital Hub Bengaluru",
+    "ats_provider": "workday",
+    "slug": "haleon",
+    "domain": "haleon.com",
+    "active": true,
+    "industry": "Consumer Health Tech GCC",
+    "is_dream_org": true,
+    "site": "Haleon_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Kenvue Digital Hub Bengaluru",
+    "ats_provider": "workday",
+    "slug": "kenvue",
+    "domain": "kenvue.com",
+    "active": true,
+    "industry": "Consumer Health Cloud GCC",
+    "is_dream_org": true,
+    "site": "Kenvue_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Johnson & Johnson MedTech/Janssen",
+    "ats_provider": "workday",
+    "slug": "jnj",
+    "domain": "jnj.com",
+    "active": true,
+    "industry": "Healthcare & MedTech AI",
+    "is_dream_org": true,
+    "site": "JJ",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Estee Lauder Tech Hub",
+    "ats_provider": "workday",
+    "slug": "elcompanies",
+    "domain": "elcompanies.com",
+    "active": true,
+    "industry": "Beauty Tech & E-Commerce",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "L'Oreal Beauty Tech",
+    "ats_provider": "workday",
+    "slug": "loreal",
+    "domain": "loreal.com",
+    "active": true,
+    "industry": "AI Beauty Tech",
+    "is_dream_org": true,
+    "site": "Loreal_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Coty Digital",
+    "ats_provider": "workday",
+    "slug": "coty",
+    "domain": "coty.com",
+    "active": true,
+    "industry": "E-Commerce Tech",
+    "is_dream_org": false,
+    "site": "Coty_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Nike Technology Center India",
+    "ats_provider": "workday",
+    "slug": "nike",
+    "domain": "nike.com",
+    "active": true,
+    "industry": "Global Digital Commerce GCC",
+    "is_dream_org": true,
+    "site": "nke",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Adidas Tech Hub",
+    "ats_provider": "workday",
+    "slug": "adidas",
+    "domain": "adidas.com",
+    "active": true,
+    "industry": "Digital Sports E-Commerce",
+    "is_dream_org": true,
+    "site": "adidas_careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Puma Digital Tech",
+    "ats_provider": "workday",
+    "slug": "puma",
+    "domain": "puma.com",
+    "active": true,
+    "industry": "Global E-Commerce Tech",
+    "is_dream_org": true,
+    "site": "PUMA_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Under Armour Digital",
+    "ats_provider": "workday",
+    "slug": "underarmour",
+    "domain": "underarmour.com",
+    "active": true,
+    "industry": "Connected Fitness Cloud",
+    "is_dream_org": true,
+    "site": "Under_Armour_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Lululemon India Tech Hub",
+    "ats_provider": "workday",
+    "slug": "lululemon",
+    "domain": "lululemon.com",
+    "active": true,
+    "industry": "Retail & Connected Fitness GCC",
+    "is_dream_org": true,
+    "site": "lululemon_careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Levi Strauss BeyondYoga Tech",
+    "ats_provider": "workday",
+    "slug": "levistrauss",
+    "domain": "levistrauss.com",
+    "active": true,
+    "industry": "Global Retail AI Hub",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "VF Corporation Digital",
+    "ats_provider": "workday",
+    "slug": "vfc",
+    "domain": "vfc.com",
+    "active": true,
+    "industry": "Apparel Supply Chain Tech",
+    "is_dream_org": true,
+    "site": "VF_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "PVH Corp Digital",
+    "ats_provider": "workday",
+    "slug": "pvh",
+    "domain": "pvh.com",
+    "active": true,
+    "industry": "Retail Cloud",
+    "is_dream_org": false,
+    "site": "PVH_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Tapestry Digital",
+    "ats_provider": "workday",
+    "slug": "tapestry",
+    "domain": "tapestry.com",
+    "active": true,
+    "industry": "Luxury E-Commerce Tech",
+    "is_dream_org": true,
+    "site": "Tapestry_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Ralph Lauren Global Tech Center",
+    "ats_provider": "workday",
+    "slug": "ralphlauren",
+    "domain": "ralphlauren.com",
+    "active": true,
+    "industry": "Digital Commerce GCC",
+    "is_dream_org": true,
+    "site": "Ralph_Lauren_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Gap Tech India (Hyderabad)",
+    "ats_provider": "workday",
+    "slug": "gapinc",
+    "domain": "gapinc.com",
+    "active": true,
+    "industry": "Retail Supply Chain & E-Commerce",
+    "is_dream_org": true,
+    "site": "GapInc",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Victoria's Secret & Co (Beng.)",
+    "ats_provider": "workday",
+    "slug": "victoriassecret",
+    "domain": "victoriassecret.com",
+    "active": true,
+    "industry": "Retail Digital GCC",
+    "is_dream_org": true,
+    "site": "VSandCo_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Bath & Body Works Tech",
+    "ats_provider": "workday",
+    "slug": "bbw",
+    "domain": "bbw.com",
+    "active": true,
+    "industry": "Digital Commerce",
+    "is_dream_org": true,
+    "site": "BBW_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Williams-Sonoma Tech Hub",
+    "ats_provider": "workday",
+    "slug": "wsi",
+    "domain": "wsi.com",
+    "active": true,
+    "industry": "E-Commerce Platform",
+    "is_dream_org": true,
+    "site": "WSI_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Wayfair India TDC (Bengaluru)",
+    "ats_provider": "workday",
+    "slug": "wayfair",
+    "domain": "wayfair.com",
+    "active": true,
+    "industry": "Home E-Commerce & Supply Chain AI",
+    "is_dream_org": true,
+    "site": "Wayfair",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Chewy Engineering",
+    "ats_provider": "workday",
+    "slug": "chewy",
+    "domain": "chewy.com",
+    "active": true,
+    "industry": "E-Commerce & Fulfillment Automation",
+    "is_dream_org": true,
+    "site": "Chewy_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Petco Digital",
+    "ats_provider": "workday",
+    "slug": "petco",
+    "domain": "petco.com",
+    "active": true,
+    "industry": "Retail E-Commerce",
+    "is_dream_org": false,
+    "site": "Petco_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "AutoZone Tech Center",
+    "ats_provider": "workday",
+    "slug": "autozone",
+    "domain": "autozone.com",
+    "active": true,
+    "industry": "Retail Supply Chain Tech",
+    "is_dream_org": true,
+    "site": "AutoZone_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Advance Auto Parts GCC",
+    "ats_provider": "workday",
+    "slug": "advanceautoparts",
+    "domain": "advanceautoparts.com",
+    "active": true,
+    "industry": "Supply Chain & E-Commerce GCC",
+    "is_dream_org": true,
+    "site": "AAP_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "O'Reilly Auto Parts Tech",
+    "ats_provider": "workday",
+    "slug": "oreillyauto",
+    "domain": "oreillyauto.com",
+    "active": true,
+    "industry": "Retail Systems",
+    "is_dream_org": false,
+    "site": "OReilly_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Genuine Parts Company (GPC) Tech",
+    "ats_provider": "workday",
+    "slug": "genpt",
+    "domain": "genpt.com",
+    "active": true,
+    "industry": "Global Automotive Supply Chain GCC",
+    "is_dream_org": true,
+    "site": "GPC_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "CarMax Technology",
+    "ats_provider": "workday",
+    "slug": "carmax",
+    "domain": "carmax.com",
+    "active": true,
+    "industry": "Automotive Marketplace Cloud",
+    "is_dream_org": true,
+    "site": "CarMax_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Cox Automotive India",
+    "ats_provider": "workday",
+    "slug": "cox",
+    "domain": "cox.com",
+    "active": true,
+    "industry": "Automotive SaaS & Marketplace",
+    "is_dream_org": true,
+    "site": "Cox_External_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Copart India Tech Center",
+    "ats_provider": "workday",
+    "slug": "copart",
+    "domain": "copart.com",
+    "active": true,
+    "industry": "Global Auction Platform GCC",
+    "is_dream_org": true,
+    "site": "Copart_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Sysco LABS / Tech Center",
+    "ats_provider": "workday",
+    "slug": "sysco",
+    "domain": "sysco.com",
+    "active": true,
+    "industry": "Foodservice Supply Chain Cloud",
+    "is_dream_org": true,
+    "site": "Sysco_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "US Foods Digital",
+    "ats_provider": "workday",
+    "slug": "usfoods",
+    "domain": "usfoods.com",
+    "active": true,
+    "industry": "E-Commerce & Fleet Routing",
+    "is_dream_org": true,
+    "site": "US_Foods_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Performance Food Group Tech",
+    "ats_provider": "workday",
+    "slug": "pfgc",
+    "domain": "pfgc.com",
+    "active": true,
+    "industry": "Supply Chain Systems",
+    "is_dream_org": false,
+    "site": "PFG_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Starbucks Technology",
+    "ats_provider": "workday",
+    "slug": "starbucks",
+    "domain": "starbucks.com",
+    "active": true,
+    "industry": "Mobile Ordering & Loyalty Cloud",
+    "is_dream_org": true,
+    "site": "StarbucksExternalCareerSite",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "McDonald's Global Tech",
+    "ats_provider": "workday",
+    "slug": "mcdonalds",
+    "domain": "mcdonalds.com",
+    "active": true,
+    "industry": "Digital Kiosk & Mobile Cloud",
+    "is_dream_org": true,
+    "site": "McDonalds_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Yum! Brands Digital (KFC/TacoBell)",
+    "ats_provider": "workday",
+    "slug": "yum",
+    "domain": "yum.com",
+    "active": true,
+    "industry": "Restaurant POS & Commerce Cloud",
+    "is_dream_org": true,
+    "site": "Yum_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Restaurant Brands Int'l (RBI)",
+    "ats_provider": "workday",
+    "slug": "rbi",
+    "domain": "rbi.com",
+    "active": true,
+    "industry": "Digital Ordering Platform",
+    "is_dream_org": true,
+    "site": "RBI_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Domino's Pizza Tech",
+    "ats_provider": "workday",
+    "slug": "dominos",
+    "domain": "dominos.com",
+    "active": true,
+    "industry": "Real-Time Delivery Platform",
+    "is_dream_org": true,
+    "site": "Dominos_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Chipotle Digital Tech",
+    "ats_provider": "workday",
+    "slug": "chipotle",
+    "domain": "chipotle.com",
+    "active": true,
+    "industry": "Digital Kitchen & Mobile App",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Darden Restaurants Tech",
+    "ats_provider": "workday",
+    "slug": "darden",
+    "domain": "darden.com",
+    "active": true,
+    "industry": "Hospitality Systems",
+    "is_dream_org": false,
+    "site": "Darden_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Marriott International Tech",
+    "ats_provider": "workday",
+    "slug": "marriott",
+    "domain": "marriott.com",
+    "active": true,
+    "industry": "Global Reservation & Loyalty Cloud",
+    "is_dream_org": true,
+    "site": "MarriottCareers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Hilton Technology",
+    "ats_provider": "workday",
+    "slug": "hilton",
+    "domain": "hilton.com",
+    "active": true,
+    "industry": "Connected Room & Booking Cloud",
+    "is_dream_org": true,
+    "site": "Hilton_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Hyatt Digital",
+    "ats_provider": "workday",
+    "slug": "hyatt",
+    "domain": "hyatt.com",
+    "active": true,
+    "industry": "Hospitality Commerce",
+    "is_dream_org": true,
+    "site": "Hyatt_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "IHG Hotels & Resorts Tech Hub",
+    "ats_provider": "workday",
+    "slug": "ihg",
+    "domain": "ihg.com",
+    "active": true,
+    "industry": "Global Booking Cloud GCC",
+    "is_dream_org": true,
+    "site": "IHG_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Wyndham Hotels Tech",
+    "ats_provider": "workday",
+    "slug": "wyndham",
+    "domain": "wyndham.com",
+    "active": true,
+    "industry": "Hospitality Cloud",
+    "is_dream_org": false,
+    "site": "Wyndham_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Booking Holdings India (Bengaluru)",
+    "ats_provider": "workday",
+    "slug": "booking",
+    "domain": "booking.com",
+    "active": true,
+    "industry": "Global Travel Marketplace GCC",
+    "is_dream_org": true,
+    "site": "Booking_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Expedia Group India",
+    "ats_provider": "workday",
+    "slug": "expedia",
+    "domain": "expedia.com",
+    "active": true,
+    "industry": "Travel Platform & AI",
+    "is_dream_org": true,
+    "site": "search",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Sabre Bengaluru GCC",
+    "ats_provider": "workday",
+    "slug": "sabre",
+    "domain": "sabre.com",
+    "active": true,
+    "industry": "Aviation GDS & Travel Cloud",
+    "is_dream_org": true,
+    "site": "Sabre_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Amadeus Labs Bengaluru",
+    "ats_provider": "workday",
+    "slug": "amadeus",
+    "domain": "amadeus.com",
+    "active": true,
+    "industry": "Global Aviation & Travel R&D",
+    "is_dream_org": true,
+    "site": "jobs",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Travelport Digital",
+    "ats_provider": "workday",
+    "slug": "travelport",
+    "domain": "travelport.com",
+    "active": true,
+    "industry": "Travel Retail Platform",
+    "is_dream_org": true,
+    "site": "Travelport_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Carlson Wagonlit (CWT) Tech",
+    "ats_provider": "workday",
+    "slug": "mycwt",
+    "domain": "mycwt.com",
+    "active": true,
+    "industry": "B2B Travel SaaS",
+    "is_dream_org": true,
+    "site": "CWT_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Delta Air Lines Tech Hub Bengaluru",
+    "ats_provider": "workday",
+    "slug": "delta",
+    "domain": "delta.com",
+    "active": true,
+    "industry": "Airline Operations & Digital GCC",
+    "is_dream_org": true,
+    "site": "Delta_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "United Airlines ITOC (Gurgaon/BLR)",
+    "ats_provider": "workday",
+    "slug": "united",
+    "domain": "united.com",
+    "active": true,
+    "industry": "Aviation Cloud & Mobile GCC",
+    "is_dream_org": true,
+    "site": "United_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "American Airlines Tech Hub (Hyd)",
+    "ats_provider": "workday",
+    "slug": "aa",
+    "domain": "aa.com",
+    "active": true,
+    "industry": "Aviation Systems GCC",
+    "is_dream_org": true,
+    "site": "American_Airlines_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Southwest Airlines Tech",
+    "ats_provider": "workday",
+    "slug": "swa",
+    "domain": "swa.com",
+    "active": true,
+    "industry": "Aviation Operations Cloud",
+    "is_dream_org": true,
+    "site": "external",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "FedEx ACC (Hyderabad/Bengaluru)",
+    "ats_provider": "workday",
+    "slug": "fedex",
+    "domain": "fedex.com",
+    "active": true,
+    "industry": "Global Logistics & Routing AI",
+    "is_dream_org": true,
+    "site": "FedEx_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "UPS Technology Center India",
+    "ats_provider": "workday",
+    "slug": "ups",
+    "domain": "ups.com",
+    "active": true,
+    "industry": "ORION Logistics & Package Cloud",
+    "is_dream_org": true,
+    "site": "UPS_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "DHL IT Services",
+    "ats_provider": "workday",
+    "slug": "dpdhl",
+    "domain": "dpdhl.com",
+    "active": true,
+    "industry": "Supply Chain & Logistics Cloud",
+    "is_dream_org": true,
+    "site": "DHL_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Maersk Fleet & Logistics Tech",
+    "ats_provider": "workday",
+    "slug": "maersk",
+    "domain": "maersk.com",
+    "active": true,
+    "industry": "Global Container & Supply Chain GCC",
+    "is_dream_org": true,
+    "site": "Maersk_Careers",
+    "datacenter": "wd3"
+  },
+  {
+    "name": "C.H. Robinson Tech",
+    "ats_provider": "workday",
+    "slug": "chrobinson",
+    "domain": "chrobinson.com",
+    "active": true,
+    "industry": "Freight Marketplace Cloud",
+    "is_dream_org": true,
+    "site": "CH_Robinson_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "J.B. Hunt Digital",
+    "ats_provider": "workday",
+    "slug": "jbhunt",
+    "domain": "jbhunt.com",
+    "active": true,
+    "industry": "Freight 360 Platform",
+    "is_dream_org": true,
+    "site": "JBHuntCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "XPO Logistics Tech",
+    "ats_provider": "workday",
+    "slug": "xpo",
+    "domain": "xpo.com",
+    "active": true,
+    "industry": "LTL Routing & Logistics SaaS",
+    "is_dream_org": true,
+    "site": "XPO_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "GXO Logistics Tech",
+    "ats_provider": "workday",
+    "slug": "gxo",
+    "domain": "gxo.com",
+    "active": true,
+    "industry": "Warehouse Robotics & WMS",
+    "is_dream_org": true,
+    "site": "GXO_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Prologis Digital",
+    "ats_provider": "workday",
+    "slug": "prologis",
+    "domain": "prologis.com",
+    "active": true,
+    "industry": "Logistics Real Estate Tech",
+    "is_dream_org": true,
+    "site": "Prologis_Careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "CBRE Digital & Tech (India)",
+    "ats_provider": "workday",
+    "slug": "cbre",
+    "domain": "cbre.com",
+    "active": true,
+    "industry": "PropTech & Smart Workplace GCC",
+    "is_dream_org": true,
+    "site": "CBRE_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "JLL Technologies (Bengaluru)",
+    "ats_provider": "workday",
+    "slug": "jll",
+    "domain": "jll.com",
+    "active": true,
+    "industry": "Commercial PropTech SaaS",
+    "is_dream_org": true,
+    "site": "jllcareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Cushman & Wakefield Tech",
+    "ats_provider": "workday",
+    "slug": "cushwake",
+    "domain": "cushwake.com",
+    "active": true,
+    "industry": "Real Estate Analytics",
+    "is_dream_org": false,
+    "site": "CW_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Equinix India Engineering",
+    "ats_provider": "workday",
+    "slug": "equinix",
+    "domain": "equinix.com",
+    "active": true,
+    "industry": "Digital Infrastructure & Bare Metal",
+    "is_dream_org": true,
+    "site": "External",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Digital Realty Tech",
+    "ats_provider": "workday",
+    "slug": "digitalrealty",
+    "domain": "digitalrealty.com",
+    "active": true,
+    "industry": "Data Center Interconnection",
+    "is_dream_org": true,
+    "site": "Digital_Realty_Careers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Iron Mountain Digital",
+    "ats_provider": "workday",
+    "slug": "ironmountain",
+    "domain": "ironmountain.com",
+    "active": true,
+    "industry": "Content & Data Cloud",
+    "is_dream_org": true,
+    "site": "im_careers",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "CoStar Group Tech",
+    "ats_provider": "workday",
+    "slug": "costar",
+    "domain": "costar.com",
+    "active": true,
+    "industry": "Real Estate Data Marketplaces",
+    "is_dream_org": true,
+    "site": "CoStarCareers",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Zillow Group Tech",
+    "ats_provider": "workday",
+    "slug": "zillow",
+    "domain": "zillow.com",
+    "active": true,
+    "industry": "Real Estate AI Marketplace",
+    "is_dream_org": true,
+    "site": "Zillow_Group_External",
+    "datacenter": "wd5"
+  },
+  {
+    "name": "Abbvie",
+    "ats_provider": "smartrecruiters",
+    "slug": "abbvie",
+    "domain": "abbvie.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Ableto",
+    "ats_provider": "smartrecruiters",
+    "slug": "ableto",
+    "domain": "ableto.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Acceldata",
+    "ats_provider": "lever",
+    "slug": "acceldata",
+    "domain": "acceldata.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Acorns",
+    "ats_provider": "ashby",
+    "slug": "acorns",
+    "domain": "acorns.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Acquisition",
+    "ats_provider": "ashby",
+    "slug": "acquisition",
+    "domain": "acquisition.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Acquia",
+    "ats_provider": "greenhouse",
+    "slug": "acquia",
+    "domain": "acquia.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Acuitymd",
+    "ats_provider": "greenhouse",
+    "slug": "acuitymd",
+    "domain": "acuitymd.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Adaptive",
+    "ats_provider": "ashby",
+    "slug": "adaptive",
+    "domain": "adaptive.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Adjoe",
+    "ats_provider": "ashby",
+    "slug": "adjoe",
+    "domain": "adjoe.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aeva",
+    "ats_provider": "lever",
+    "slug": "aeva",
+    "domain": "aeva.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Afresh",
+    "ats_provider": "greenhouse",
+    "slug": "afresh",
+    "domain": "afresh.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "airDNA",
+    "ats_provider": "lever",
+    "slug": "airdna",
+    "domain": "airdna.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Airgarage",
+    "ats_provider": "ashby",
+    "slug": "airgarage",
+    "domain": "airgarage.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Airslate",
+    "ats_provider": "lever",
+    "slug": "airslate",
+    "domain": "airslate.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Airwallex",
+    "ats_provider": "ashby",
+    "slug": "airwallex",
+    "domain": "airwallex.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Akasa",
+    "ats_provider": "ashby",
+    "slug": "akasa",
+    "domain": "akasa.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Alertmedia",
+    "ats_provider": "greenhouse",
+    "slug": "alertmedia",
+    "domain": "alertmedia.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Alight",
+    "ats_provider": "smartrecruiters",
+    "slug": "alight",
+    "domain": "alight.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Allegro",
+    "ats_provider": "smartrecruiters",
+    "slug": "allegro",
+    "domain": "allegro.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Alma",
+    "ats_provider": "ashby",
+    "slug": "alma",
+    "domain": "alma.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Alphasense",
+    "ats_provider": "greenhouse",
+    "slug": "alphasense",
+    "domain": "alphasense.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Altruist",
+    "ats_provider": "greenhouse",
+    "slug": "altruist",
+    "domain": "altruist.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Ambition",
+    "ats_provider": "ashby",
+    "slug": "ambition",
+    "domain": "ambition.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Amboss",
+    "ats_provider": "ashby",
+    "slug": "amboss",
+    "domain": "amboss.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Amwell",
+    "ats_provider": "greenhouse",
+    "slug": "amwell",
+    "domain": "amwell.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Ampere",
+    "ats_provider": "recruitee",
+    "slug": "ampere",
+    "domain": "ampere.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Amperity",
+    "ats_provider": "greenhouse",
+    "slug": "amperity",
+    "domain": "amperity.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Anaconda",
+    "ats_provider": "rippling",
+    "slug": "anaconda",
+    "domain": "anaconda.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Anaplan",
+    "ats_provider": "greenhouse",
+    "slug": "anaplan",
+    "domain": "anaplan.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Andela",
+    "ats_provider": "ashby",
+    "slug": "andela",
+    "domain": "andela.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Angi",
+    "ats_provider": "ashby",
+    "slug": "angi",
+    "domain": "angi.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Anomali",
+    "ats_provider": "lever",
+    "slug": "anomali",
+    "domain": "anomali.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Anrok",
+    "ats_provider": "ashby",
+    "slug": "anrok",
+    "domain": "anrok.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Apex",
+    "ats_provider": "greenhouse",
+    "slug": "apex",
+    "domain": "apex.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Apiiro",
+    "ats_provider": "greenhouse",
+    "slug": "apiiro",
+    "domain": "apiiro.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Appdirect",
+    "ats_provider": "greenhouse",
+    "slug": "appdirect",
+    "domain": "appdirect.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Appen",
+    "ats_provider": "lever",
+    "slug": "appen",
+    "domain": "appen.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Appfire",
+    "ats_provider": "greenhouse",
+    "slug": "appfire",
+    "domain": "appfire.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Appgate",
+    "ats_provider": "workable",
+    "slug": "appgate",
+    "domain": "appgate.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Appian",
+    "ats_provider": "greenhouse",
+    "slug": "appian",
+    "domain": "appian.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Applied",
+    "ats_provider": "ashby",
+    "slug": "applied",
+    "domain": "applied.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Applovin",
+    "ats_provider": "greenhouse",
+    "slug": "applovin",
+    "domain": "applovin.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Appsflyer",
+    "ats_provider": "greenhouse",
+    "slug": "appsflyer",
+    "domain": "appsflyer.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aptible",
+    "ats_provider": "ashby",
+    "slug": "aptible",
+    "domain": "aptible.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Arable",
+    "ats_provider": "lever",
+    "slug": "arable",
+    "domain": "arable.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Arago",
+    "ats_provider": "ashby",
+    "slug": "arago",
+    "domain": "arago.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Arbor",
+    "ats_provider": "ashby",
+    "slug": "arbor",
+    "domain": "arbor.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Arcade",
+    "ats_provider": "ashby",
+    "slug": "arcade",
+    "domain": "arcade.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Arch",
+    "ats_provider": "ashby",
+    "slug": "arch",
+    "domain": "arch.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Archer",
+    "ats_provider": "greenhouse",
+    "slug": "archer",
+    "domain": "archer.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Arketa",
+    "ats_provider": "ashby",
+    "slug": "arketa",
+    "domain": "arketa.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Arkoselabs",
+    "ats_provider": "greenhouse",
+    "slug": "arkoselabs",
+    "domain": "arkoselabs.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Armis",
+    "ats_provider": "smartrecruiters",
+    "slug": "armis",
+    "domain": "armis.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Array",
+    "ats_provider": "greenhouse",
+    "slug": "array",
+    "domain": "array.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Artemis",
+    "ats_provider": "ashby",
+    "slug": "artemis",
+    "domain": "artemis.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Arthur",
+    "ats_provider": "ashby",
+    "slug": "arthur",
+    "domain": "arthur.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Articulate",
+    "ats_provider": "lever",
+    "slug": "articulate",
+    "domain": "articulate.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Articul8",
+    "ats_provider": "ashby",
+    "slug": "articul8",
+    "domain": "articul8.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Artisan",
+    "ats_provider": "ashby",
+    "slug": "artisan",
+    "domain": "artisan.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Artsy",
+    "ats_provider": "ashby",
+    "slug": "artsy",
+    "domain": "artsy.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Asknicely",
+    "ats_provider": "rippling",
+    "slug": "asknicely",
+    "domain": "asknicely.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aslan",
+    "ats_provider": "ashby",
+    "slug": "aslan",
+    "domain": "aslan.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Asm",
+    "ats_provider": "greenhouse",
+    "slug": "asm",
+    "domain": "asm.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aspire",
+    "ats_provider": "rippling",
+    "slug": "aspire",
+    "domain": "aspire.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Assemblyai",
+    "ats_provider": "greenhouse",
+    "slug": "assemblyai",
+    "domain": "assemblyai.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Assent",
+    "ats_provider": "smartrecruiters",
+    "slug": "assent",
+    "domain": "assent.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Astera",
+    "ats_provider": "ashby",
+    "slug": "astera",
+    "domain": "astera.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Astranis",
+    "ats_provider": "greenhouse",
+    "slug": "astranis",
+    "domain": "astranis.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Ataccama",
+    "ats_provider": "lever",
+    "slug": "ataccama",
+    "domain": "ataccama.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Atera",
+    "ats_provider": "smartrecruiters",
+    "slug": "atera",
+    "domain": "atera.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Athena",
+    "ats_provider": "greenhouse",
+    "slug": "athena",
+    "domain": "athena.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Atomic",
+    "ats_provider": "ashby",
+    "slug": "atomic",
+    "domain": "atomic.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Atomcomputing",
+    "ats_provider": "lever",
+    "slug": "atomcomputing",
+    "domain": "atomcomputing.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Attio",
+    "ats_provider": "ashby",
+    "slug": "attio",
+    "domain": "attio.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Auctane",
+    "ats_provider": "greenhouse",
+    "slug": "auctane",
+    "domain": "auctane.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Augury",
+    "ats_provider": "greenhouse",
+    "slug": "augury",
+    "domain": "augury.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aura",
+    "ats_provider": "greenhouse",
+    "slug": "aura",
+    "domain": "aura.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aurorasolar",
+    "ats_provider": "ashby",
+    "slug": "aurorasolar",
+    "domain": "aurorasolar.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Auto1",
+    "ats_provider": "smartrecruiters",
+    "slug": "auto1",
+    "domain": "auto1.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Autofi",
+    "ats_provider": "lever",
+    "slug": "autofi",
+    "domain": "autofi.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Automox",
+    "ats_provider": "greenhouse",
+    "slug": "automox",
+    "domain": "automox.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Avela",
+    "ats_provider": "greenhouse",
+    "slug": "avela",
+    "domain": "avela.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aven",
+    "ats_provider": "ashby",
+    "slug": "aven",
+    "domain": "aven.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Avepoint",
+    "ats_provider": "greenhouse",
+    "slug": "avepoint",
+    "domain": "avepoint.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aviatrix",
+    "ats_provider": "greenhouse",
+    "slug": "aviatrix",
+    "domain": "aviatrix.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Awin",
+    "ats_provider": "greenhouse",
+    "slug": "awin",
+    "domain": "awin.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Axel",
+    "ats_provider": "ashby",
+    "slug": "axel",
+    "domain": "axel.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Axiad",
+    "ats_provider": "greenhouse",
+    "slug": "axiad",
+    "domain": "axiad.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Axiom",
+    "ats_provider": "greenhouse",
+    "slug": "axiom",
+    "domain": "axiom.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Axonius",
+    "ats_provider": "greenhouse",
+    "slug": "axonius",
+    "domain": "axonius.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aylo",
+    "ats_provider": "greenhouse",
+    "slug": "aylo",
+    "domain": "aylo.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Azul",
+    "ats_provider": "lever",
+    "slug": "azul",
+    "domain": "azul.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Babbel",
+    "ats_provider": "ashby",
+    "slug": "babbel",
+    "domain": "babbel.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Backblaze",
+    "ats_provider": "greenhouse",
+    "slug": "backblaze",
+    "domain": "backblaze.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Mapbox",
+    "ats_provider": "ashby",
+    "slug": "mapbox",
+    "domain": "mapbox.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Zerotier",
+    "ats_provider": "lever",
+    "slug": "zerotier",
+    "domain": "zerotier.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Twingate",
+    "ats_provider": "lever",
+    "slug": "twingate",
+    "domain": "twingate.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Thoropass",
+    "ats_provider": "greenhouse",
+    "slug": "thoropass",
+    "domain": "thoropass.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Laika",
+    "ats_provider": "greenhouse",
+    "slug": "laika",
+    "domain": "laika.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Hyperproof",
+    "ats_provider": "greenhouse",
+    "slug": "hyperproof",
+    "domain": "hyperproof.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Logicgate",
+    "ats_provider": "greenhouse",
+    "slug": "logicgate",
+    "domain": "logicgate.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Orca",
+    "ats_provider": "ashby",
+    "slug": "orca",
+    "domain": "orca.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Semgrep",
+    "ats_provider": "ashby",
+    "slug": "semgrep",
+    "domain": "semgrep.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Sonarsource",
+    "ats_provider": "lever",
+    "slug": "sonarsource",
+    "domain": "sonarsource.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Veracode",
+    "ats_provider": "greenhouse",
+    "slug": "veracode",
+    "domain": "veracode.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Endorlabs",
+    "ats_provider": "greenhouse",
+    "slug": "endorlabs",
+    "domain": "endorlabs.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Socket",
+    "ats_provider": "greenhouse",
+    "slug": "socket",
+    "domain": "socket.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Seon",
+    "ats_provider": "ashby",
+    "slug": "seon",
+    "domain": "seon.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Middesk",
+    "ats_provider": "ashby",
+    "slug": "middesk",
+    "domain": "middesk.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Veriff",
+    "ats_provider": "greenhouse",
+    "slug": "veriff",
+    "domain": "veriff.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Jumio",
+    "ats_provider": "greenhouse",
+    "slug": "jumio",
+    "domain": "jumio.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Idme",
+    "ats_provider": "greenhouse",
+    "slug": "idme",
+    "domain": "idme.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Incognia",
+    "ats_provider": "greenhouse",
+    "slug": "incognia",
+    "domain": "incognia.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Incode",
+    "ats_provider": "greenhouse",
+    "slug": "incode",
+    "domain": "incode.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Prove",
+    "ats_provider": "greenhouse",
+    "slug": "prove",
+    "domain": "prove.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Complyadvantage",
+    "ats_provider": "greenhouse",
+    "slug": "complyadvantage",
+    "domain": "complyadvantage.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Bitgo",
+    "ats_provider": "greenhouse",
+    "slug": "bitgo",
+    "domain": "bitgo.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Stellar",
+    "ats_provider": "ashby",
+    "slug": "stellar",
+    "domain": "stellar.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Helius",
+    "ats_provider": "ashby",
+    "slug": "helius",
+    "domain": "helius.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Dune",
+    "ats_provider": "ashby",
+    "slug": "dune",
+    "domain": "dune.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Falconx",
+    "ats_provider": "greenhouse",
+    "slug": "falconx",
+    "domain": "falconx.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Gauntlet",
+    "ats_provider": "lever",
+    "slug": "gauntlet",
+    "domain": "gauntlet.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Certik",
+    "ats_provider": "lever",
+    "slug": "certik",
+    "domain": "certik.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Halborn",
+    "ats_provider": "rippling",
+    "slug": "halborn",
+    "domain": "halborn.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Openzeppelin",
+    "ats_provider": "greenhouse",
+    "slug": "openzeppelin",
+    "domain": "openzeppelin.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Compound",
+    "ats_provider": "ashby",
+    "slug": "compound",
+    "domain": "compound.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aptoslabs",
+    "ats_provider": "greenhouse",
+    "slug": "aptoslabs",
+    "domain": "aptoslabs.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Mystenlabs",
+    "ats_provider": "ashby",
+    "slug": "mystenlabs",
+    "domain": "mystenlabs.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Offchainlabs",
+    "ats_provider": "lever",
+    "slug": "offchainlabs",
+    "domain": "offchainlabs.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Succinct",
+    "ats_provider": "ashby",
+    "slug": "succinct",
+    "domain": "succinct.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Gensyn",
+    "ats_provider": "greenhouse",
+    "slug": "gensyn",
+    "domain": "gensyn.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Ritual",
+    "ats_provider": "greenhouse",
+    "slug": "ritual",
+    "domain": "ritual.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Together",
+    "ats_provider": "smartrecruiters",
+    "slug": "together",
+    "domain": "together.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Runpod",
+    "ats_provider": "ashby",
+    "slug": "runpod",
+    "domain": "runpod.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Foundry",
+    "ats_provider": "greenhouse",
+    "slug": "foundry",
+    "domain": "foundry.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Primeintellect",
+    "ats_provider": "ashby",
+    "slug": "primeintellect",
+    "domain": "primeintellect.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Everlaw",
+    "ats_provider": "greenhouse",
+    "slug": "everlaw",
+    "domain": "everlaw.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Disco",
+    "ats_provider": "greenhouse",
+    "slug": "disco",
+    "domain": "disco.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Ontra",
+    "ats_provider": "ashby",
+    "slug": "ontra",
+    "domain": "ontra.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Agiloft",
+    "ats_provider": "lever",
+    "slug": "agiloft",
+    "domain": "agiloft.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Spotdraft",
+    "ats_provider": "ashby",
+    "slug": "spotdraft",
+    "domain": "spotdraft.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Juro",
+    "ats_provider": "ashby",
+    "slug": "juro",
+    "domain": "juro.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Commvault",
+    "ats_provider": "greenhouse",
+    "slug": "commvault",
+    "domain": "commvault.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Veritas",
+    "ats_provider": "recruitee",
+    "slug": "veritas",
+    "domain": "veritas.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Purestorage",
+    "ats_provider": "greenhouse",
+    "slug": "purestorage",
+    "domain": "purestorage.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Fullstory",
+    "ats_provider": "ashby",
+    "slug": "fullstory",
+    "domain": "fullstory.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Logrocket",
+    "ats_provider": "lever",
+    "slug": "logrocket",
+    "domain": "logrocket.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Contentsquare",
+    "ats_provider": "lever",
+    "slug": "contentsquare",
+    "domain": "contentsquare.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Quantummetric",
+    "ats_provider": "lever",
+    "slug": "quantummetric",
+    "domain": "quantummetric.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Pendo",
+    "ats_provider": "greenhouse",
+    "slug": "pendo",
+    "domain": "pendo.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Walkme",
+    "ats_provider": "lever",
+    "slug": "walkme",
+    "domain": "walkme.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Navattic",
+    "ats_provider": "smartrecruiters",
+    "slug": "navattic",
+    "domain": "navattic.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Reprise",
+    "ats_provider": "ashby",
+    "slug": "reprise",
+    "domain": "reprise.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Consensus",
+    "ats_provider": "rippling",
+    "slug": "consensus",
+    "domain": "consensus.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aligned",
+    "ats_provider": "greenhouse",
+    "slug": "aligned",
+    "domain": "aligned.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Accord",
+    "ats_provider": "ashby",
+    "slug": "accord",
+    "domain": "accord.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Cognism",
+    "ats_provider": "greenhouse",
+    "slug": "cognism",
+    "domain": "cognism.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Seamless",
+    "ats_provider": "rippling",
+    "slug": "seamless",
+    "domain": "seamless.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Mutiny",
+    "ats_provider": "ashby",
+    "slug": "mutiny",
+    "domain": "mutiny.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Cortex",
+    "ats_provider": "greenhouse",
+    "slug": "cortex",
+    "domain": "cortex.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Opslevel",
+    "ats_provider": "ashby",
+    "slug": "opslevel",
+    "domain": "opslevel.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Roadie",
+    "ats_provider": "greenhouse",
+    "slug": "roadie",
+    "domain": "roadie.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Namespace",
+    "ats_provider": "ashby",
+    "slug": "namespace",
+    "domain": "namespace.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Swarmia",
+    "ats_provider": "ashby",
+    "slug": "swarmia",
+    "domain": "swarmia.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Jellyfish",
+    "ats_provider": "ashby",
+    "slug": "jellyfish",
+    "domain": "jellyfish.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Sleuth",
+    "ats_provider": "rippling",
+    "slug": "sleuth",
+    "domain": "sleuth.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Coder",
+    "ats_provider": "ashby",
+    "slug": "coder",
+    "domain": "coder.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Replit",
+    "ats_provider": "ashby",
+    "slug": "replit",
+    "domain": "replit.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Stackblitz",
+    "ats_provider": "greenhouse",
+    "slug": "stackblitz",
+    "domain": "stackblitz.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Glitch",
+    "ats_provider": "ashby",
+    "slug": "glitch",
+    "domain": "glitch.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Cursor",
+    "ats_provider": "ashby",
+    "slug": "cursor",
+    "domain": "cursor.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Cognition",
+    "ats_provider": "ashby",
+    "slug": "cognition",
+    "domain": "cognition.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Magic",
+    "ats_provider": "ashby",
+    "slug": "magic",
+    "domain": "magic.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Poolside",
+    "ats_provider": "ashby",
+    "slug": "poolside",
+    "domain": "poolside.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Factory",
+    "ats_provider": "ashby",
+    "slug": "factory",
+    "domain": "factory.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Cosine",
+    "ats_provider": "ashby",
+    "slug": "cosine",
+    "domain": "cosine.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Sweep",
+    "ats_provider": "ashby",
+    "slug": "sweep",
+    "domain": "sweep.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Greptile",
+    "ats_provider": "ashby",
+    "slug": "greptile",
+    "domain": "greptile.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Coderabbit",
+    "ats_provider": "ashby",
+    "slug": "coderabbit",
+    "domain": "coderabbit.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Warp",
+    "ats_provider": "greenhouse",
+    "slug": "warp",
+    "domain": "warp.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Fig",
+    "ats_provider": "ashby",
+    "slug": "fig",
+    "domain": "fig.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Plane",
+    "ats_provider": "ashby",
+    "slug": "plane",
+    "domain": "plane.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Wrike",
+    "ats_provider": "greenhouse",
+    "slug": "wrike",
+    "domain": "wrike.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Granola",
+    "ats_provider": "ashby",
+    "slug": "granola",
+    "domain": "granola.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Fathom",
+    "ats_provider": "ashby",
+    "slug": "fathom",
+    "domain": "fathom.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Otter",
+    "ats_provider": "greenhouse",
+    "slug": "otter",
+    "domain": "otter.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Motion",
+    "ats_provider": "rippling",
+    "slug": "motion",
+    "domain": "motion.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Chilipiper",
+    "ats_provider": "ashby",
+    "slug": "chilipiper",
+    "domain": "chilipiper.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Kustomer",
+    "ats_provider": "ashby",
+    "slug": "kustomer",
+    "domain": "kustomer.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Justworks",
+    "ats_provider": "greenhouse",
+    "slug": "justworks",
+    "domain": "justworks.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Ledgy",
+    "ats_provider": "greenhouse",
+    "slug": "ledgy",
+    "domain": "ledgy.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Startengine",
+    "ats_provider": "lever",
+    "slug": "startengine",
+    "domain": "startengine.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Moonfare",
+    "ats_provider": "greenhouse",
+    "slug": "moonfare",
+    "domain": "moonfare.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Pleo",
+    "ats_provider": "ashby",
+    "slug": "pleo",
+    "domain": "pleo.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Moss",
+    "ats_provider": "ashby",
+    "slug": "moss",
+    "domain": "moss.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Perk",
+    "ats_provider": "ashby",
+    "slug": "perk",
+    "domain": "perk.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Expensify",
+    "ats_provider": "ashby",
+    "slug": "expensify",
+    "domain": "expensify.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Emburse",
+    "ats_provider": "lever",
+    "slug": "emburse",
+    "domain": "emburse.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Karbon",
+    "ats_provider": "greenhouse",
+    "slug": "karbon",
+    "domain": "karbon.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Qonto",
+    "ats_provider": "ashby",
+    "slug": "qonto",
+    "domain": "qonto.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Shine",
+    "ats_provider": "rippling",
+    "slug": "shine",
+    "domain": "shine.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Pennylane",
+    "ats_provider": "ashby",
+    "slug": "pennylane",
+    "domain": "pennylane.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Sumup",
+    "ats_provider": "greenhouse",
+    "slug": "sumup",
+    "domain": "sumup.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Block",
+    "ats_provider": "greenhouse",
+    "slug": "block",
+    "domain": "block.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Spoton",
+    "ats_provider": "ashby",
+    "slug": "spoton",
+    "domain": "spoton.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Lightspeed",
+    "ats_provider": "ashby",
+    "slug": "lightspeed",
+    "domain": "lightspeed.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Revel",
+    "ats_provider": "greenhouse",
+    "slug": "revel",
+    "domain": "revel.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Thanx",
+    "ats_provider": "greenhouse",
+    "slug": "thanx",
+    "domain": "thanx.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Opentable",
+    "ats_provider": "greenhouse",
+    "slug": "opentable",
+    "domain": "opentable.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Jane",
+    "ats_provider": "ashby",
+    "slug": "jane",
+    "domain": "jane.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Meadow",
+    "ats_provider": "ashby",
+    "slug": "meadow",
+    "domain": "meadow.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Distru",
+    "ats_provider": "lever",
+    "slug": "distru",
+    "domain": "distru.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Leaflink",
+    "ats_provider": "greenhouse",
+    "slug": "leaflink",
+    "domain": "leaflink.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Nabis",
+    "ats_provider": "greenhouse",
+    "slug": "nabis",
+    "domain": "nabis.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Commercetools",
+    "ats_provider": "greenhouse",
+    "slug": "commercetools",
+    "domain": "commercetools.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Ralph",
+    "ats_provider": "ashby",
+    "slug": "ralph",
+    "domain": "ralph.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Recharge",
+    "ats_provider": "ashby",
+    "slug": "recharge",
+    "domain": "recharge.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Skio",
+    "ats_provider": "lever",
+    "slug": "skio",
+    "domain": "skio.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Stayai",
+    "ats_provider": "ashby",
+    "slug": "stayai",
+    "domain": "stayai.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Ordergroove",
+    "ats_provider": "greenhouse",
+    "slug": "ordergroove",
+    "domain": "ordergroove.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Loop",
+    "ats_provider": "rippling",
+    "slug": "loop",
+    "domain": "loop.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Loopreturns",
+    "ats_provider": "lever",
+    "slug": "loopreturns",
+    "domain": "loopreturns.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Narvar",
+    "ats_provider": "greenhouse",
+    "slug": "narvar",
+    "domain": "narvar.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Aftership",
+    "ats_provider": "greenhouse",
+    "slug": "aftership",
+    "domain": "aftership.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Route",
+    "ats_provider": "greenhouse",
+    "slug": "route",
+    "domain": "route.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Postscript",
+    "ats_provider": "greenhouse",
+    "slug": "postscript",
+    "domain": "postscript.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Omnisend",
+    "ats_provider": "lever",
+    "slug": "omnisend",
+    "domain": "omnisend.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Insider",
+    "ats_provider": "greenhouse",
+    "slug": "insider",
+    "domain": "insider.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Bloomreach",
+    "ats_provider": "greenhouse",
+    "slug": "bloomreach",
+    "domain": "bloomreach.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Blueshift",
+    "ats_provider": "greenhouse",
+    "slug": "blueshift",
+    "domain": "blueshift.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Simondata",
+    "ats_provider": "ashby",
+    "slug": "simondata",
+    "domain": "simondata.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Hightouch",
+    "ats_provider": "ashby",
+    "slug": "hightouch",
+    "domain": "hightouch.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Hevo",
+    "ats_provider": "lever",
+    "slug": "hevo",
+    "domain": "hevo.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Portable",
+    "ats_provider": "greenhouse",
+    "slug": "portable",
+    "domain": "portable.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Kestra",
+    "ats_provider": "ashby",
+    "slug": "kestra",
+    "domain": "kestra.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Internal",
+    "ats_provider": "rippling",
+    "slug": "internal",
+    "domain": "internal.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Glide",
+    "ats_provider": "greenhouse",
+    "slug": "glide",
+    "domain": "glide.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Stacker",
+    "ats_provider": "ashby",
+    "slug": "stacker",
+    "domain": "stacker.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Activecampaign",
+    "ats_provider": "lever",
+    "slug": "activecampaign",
+    "domain": "activecampaign.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Close",
+    "ats_provider": "ashby",
+    "slug": "close",
+    "domain": "close.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Amplemarket",
+    "ats_provider": "greenhouse",
+    "slug": "amplemarket",
+    "domain": "amplemarket.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Lemlist",
+    "ats_provider": "ashby",
+    "slug": "lemlist",
+    "domain": "lemlist.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Reply",
+    "ats_provider": "lever",
+    "slug": "reply",
+    "domain": "reply.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Mixmax",
+    "ats_provider": "greenhouse",
+    "slug": "mixmax",
+    "domain": "mixmax.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Regie",
+    "ats_provider": "greenhouse",
+    "slug": "regie",
+    "domain": "regie.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Typeface",
+    "ats_provider": "greenhouse",
+    "slug": "typeface",
+    "domain": "typeface.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Gamma",
+    "ats_provider": "ashby",
+    "slug": "gamma",
+    "domain": "gamma.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Mural",
+    "ats_provider": "ashby",
+    "slug": "mural",
+    "domain": "mural.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Tldraw",
+    "ats_provider": "ashby",
+    "slug": "tldraw",
+    "domain": "tldraw.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Lottiefiles",
+    "ats_provider": "smartrecruiters",
+    "slug": "lottiefiles",
+    "domain": "lottiefiles.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Restream",
+    "ats_provider": "ashby",
+    "slug": "restream",
+    "domain": "restream.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Wistia",
+    "ats_provider": "ashby",
+    "slug": "wistia",
+    "domain": "wistia.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Bunny",
+    "ats_provider": "ashby",
+    "slug": "bunny",
+    "domain": "bunny.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Wasabi",
+    "ats_provider": "greenhouse",
+    "slug": "wasabi",
+    "domain": "wasabi.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Scaleway",
+    "ats_provider": "lever",
+    "slug": "scaleway",
+    "domain": "scaleway.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Gcore",
+    "ats_provider": "smartrecruiters",
+    "slug": "gcore",
+    "domain": "gcore.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Sophos",
+    "ats_provider": "ashby",
+    "slug": "sophos",
+    "domain": "sophos.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Watchguard",
+    "ats_provider": "lever",
+    "slug": "watchguard",
+    "domain": "watchguard.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Sonicwall",
+    "ats_provider": "greenhouse",
+    "slug": "sonicwall",
+    "domain": "sonicwall.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Virtru",
+    "ats_provider": "greenhouse",
+    "slug": "virtru",
+    "domain": "virtru.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Securiti",
+    "ats_provider": "smartrecruiters",
+    "slug": "securiti",
+    "domain": "securiti.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Trustarc",
+    "ats_provider": "lever",
+    "slug": "trustarc",
+    "domain": "trustarc.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Osano",
+    "ats_provider": "greenhouse",
+    "slug": "osano",
+    "domain": "osano.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Ketch",
+    "ats_provider": "greenhouse",
+    "slug": "ketch",
+    "domain": "ketch.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "dataGrail",
+    "ats_provider": "greenhouse",
+    "slug": "datagrail",
+    "domain": "datagrail.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Immuta",
+    "ats_provider": "lever",
+    "slug": "immuta",
+    "domain": "immuta.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Anomalo",
+    "ats_provider": "ashby",
+    "slug": "anomalo",
+    "domain": "anomalo.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Datafold",
+    "ats_provider": "ashby",
+    "slug": "datafold",
+    "domain": "datafold.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Sifflet",
+    "ats_provider": "ashby",
+    "slug": "sifflet",
+    "domain": "sifflet.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Validio",
+    "ats_provider": "ashby",
+    "slug": "validio",
+    "domain": "validio.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Coalesce",
+    "ats_provider": "ashby",
+    "slug": "coalesce",
+    "domain": "coalesce.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Percona",
+    "ats_provider": "ashby",
+    "slug": "percona",
+    "domain": "percona.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Pingcap",
+    "ats_provider": "greenhouse",
+    "slug": "pingcap",
+    "domain": "pingcap.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Tinybird",
+    "ats_provider": "lever",
+    "slug": "tinybird",
+    "domain": "tinybird.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Motherduck",
+    "ats_provider": "ashby",
+    "slug": "motherduck",
+    "domain": "motherduck.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Turbopuffer",
+    "ats_provider": "ashby",
+    "slug": "turbopuffer",
+    "domain": "turbopuffer.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Lancedb",
+    "ats_provider": "ashby",
+    "slug": "lancedb",
+    "domain": "lancedb.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Logz",
+    "ats_provider": "lever",
+    "slug": "logz",
+    "domain": "logz.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Prometheus",
+    "ats_provider": "ashby",
+    "slug": "prometheus",
+    "domain": "prometheus.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Signoz",
+    "ats_provider": "ashby",
+    "slug": "signoz",
+    "domain": "signoz.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Checkly",
+    "ats_provider": "ashby",
+    "slug": "checkly",
+    "domain": "checkly.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Calibre",
+    "ats_provider": "ashby",
+    "slug": "calibre",
+    "domain": "calibre.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Sentry",
+    "ats_provider": "ashby",
+    "slug": "sentry",
+    "domain": "sentry.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Raygun",
+    "ats_provider": "smartrecruiters",
+    "slug": "raygun",
+    "domain": "raygun.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Lightrun",
+    "ats_provider": "greenhouse",
+    "slug": "lightrun",
+    "domain": "lightrun.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Chromatic",
+    "ats_provider": "ashby",
+    "slug": "chromatic",
+    "domain": "chromatic.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Testlio",
+    "ats_provider": "greenhouse",
+    "slug": "testlio",
+    "domain": "testlio.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Gremlin",
+    "ats_provider": "greenhouse",
+    "slug": "gremlin",
+    "domain": "gremlin.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Litmus",
+    "ats_provider": "ashby",
+    "slug": "litmus",
+    "domain": "litmus.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Incident",
+    "ats_provider": "ashby",
+    "slug": "incident",
+    "domain": "incident.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Bounce",
+    "ats_provider": "ashby",
+    "slug": "bounce",
+    "domain": "bounce.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "River",
+    "ats_provider": "ashby",
+    "slug": "river",
+    "domain": "river.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Statiq",
+    "ats_provider": "smartrecruiters",
+    "slug": "statiq",
+    "domain": "statiq.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Turtlemint",
+    "ats_provider": "smartrecruiters",
+    "slug": "turtlemint",
+    "domain": "turtlemint.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Loophealth",
+    "ats_provider": "smartrecruiters",
+    "slug": "loophealth",
+    "domain": "loophealth.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Kenko",
+    "ats_provider": "lever",
+    "slug": "kenko",
+    "domain": "kenko.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Twinhealth",
+    "ats_provider": "greenhouse",
+    "slug": "twinhealth",
+    "domain": "twinhealth.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Dozee",
+    "ats_provider": "lever",
+    "slug": "dozee",
+    "domain": "dozee.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Lendingkart",
+    "ats_provider": "smartrecruiters",
+    "slug": "lendingkart",
+    "domain": "lendingkart.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Kredx",
+    "ats_provider": "smartrecruiters",
+    "slug": "kredx",
+    "domain": "kredx.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Axio",
+    "ats_provider": "rippling",
+    "slug": "axio",
+    "domain": "axio.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Bureau",
+    "ats_provider": "ashby",
+    "slug": "bureau",
+    "domain": "bureau.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Safe",
+    "ats_provider": "ashby",
+    "slug": "safe",
+    "domain": "safe.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Cloudsek",
+    "ats_provider": "greenhouse",
+    "slug": "cloudsek",
+    "domain": "cloudsek.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Bolster",
+    "ats_provider": "recruitee",
+    "slug": "bolster",
+    "domain": "bolster.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Sigmoid",
+    "ats_provider": "greenhouse",
+    "slug": "sigmoid",
+    "domain": "sigmoid.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Highradius",
+    "ats_provider": "greenhouse",
+    "slug": "highradius",
+    "domain": "highradius.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Thoughtspot",
+    "ats_provider": "rippling",
+    "slug": "thoughtspot",
+    "domain": "thoughtspot.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Shipsy",
+    "ats_provider": "smartrecruiters",
+    "slug": "shipsy",
+    "domain": "shipsy.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Gramophone",
+    "ats_provider": "smartrecruiters",
+    "slug": "gramophone",
+    "domain": "gramophone.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Captainfresh",
+    "ats_provider": "smartrecruiters",
+    "slug": "captainfresh",
+    "domain": "captainfresh.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Rebelfoods",
+    "ats_provider": "smartrecruiters",
+    "slug": "rebelfoods",
+    "domain": "rebelfoods.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Headout",
+    "ats_provider": "ashby",
+    "slug": "headout",
+    "domain": "headout.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Verse",
+    "ats_provider": "greenhouse",
+    "slug": "verse",
+    "domain": "verse.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Glance",
+    "ats_provider": "greenhouse",
+    "slug": "glance",
+    "domain": "glance.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Affle",
+    "ats_provider": "greenhouse",
+    "slug": "affle",
+    "domain": "affle.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Pubmatic",
+    "ats_provider": "greenhouse",
+    "slug": "pubmatic",
+    "domain": "pubmatic.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "mediaNet",
+    "ats_provider": "smartrecruiters",
+    "slug": "medianet",
+    "domain": "medianet.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Krafton",
+    "ats_provider": "greenhouse",
+    "slug": "krafton",
+    "domain": "krafton.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Pocketfm",
+    "ats_provider": "lever",
+    "slug": "pocketfm",
+    "domain": "pocketfm.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Stage",
+    "ats_provider": "greenhouse",
+    "slug": "stage",
+    "domain": "stage.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Hoichoi",
+    "ats_provider": "smartrecruiters",
+    "slug": "hoichoi",
+    "domain": "hoichoi.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Interviewbit",
+    "ats_provider": "smartrecruiters",
+    "slug": "interviewbit",
+    "domain": "interviewbit.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Newton",
+    "ats_provider": "greenhouse",
+    "slug": "newton",
+    "domain": "newton.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Crio",
+    "ats_provider": "rippling",
+    "slug": "crio",
+    "domain": "crio.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Leap",
+    "ats_provider": "ashby",
+    "slug": "leap",
+    "domain": "leap.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "Synctera",
+    "ats_provider": "ashby",
+    "slug": "synctera",
+    "domain": "synctera.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
+  },
+  {
+    "name": "100ms",
+    "ats_provider": "lever",
+    "slug": "100ms",
+    "domain": "100ms.com",
+    "active": true,
+    "industry": "AI, Cloud & Product Engineering",
+    "is_dream_org": true
   }
 ]
