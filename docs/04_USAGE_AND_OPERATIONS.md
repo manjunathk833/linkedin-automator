@@ -22,7 +22,7 @@ This manual provides the complete operational reference for running, configuring
 | `python main.py referral-scout` | Dynamically scouts verified current employees on LinkedIn over CDP port 9222 and ranks them with `score_referral_candidate`. | `--job-id <id>`: Scout a specific role.<br/>`--limit <n>`: Max leads per company. |
 | `python main.py autofill` | Audits ATS autofill events, Phase A benchmark latencies, unmapped field backlogs, and Learning Vault rules. | `--audit`: Prints aggregated telemetry report. |
 | `python main.py posts` | Discovers and manages Track 3 LinkedIn social hiring posts from EMs, QA Leads, and recruiters. | `discover`, `list`, `stats`, `--headless` |
-| `python main.py search` | Runs unified discovery across Track 1 (Direct ATS: Greenhouse, Lever, Ashby, Workday) and Track 2 (5-Channel LinkedIn + Sniper). | `--source [all|ats|linkedin]`, `--headless`, `--max-jobs` |
+| `python main.py search` | Runs unified discovery across Track 1 (Direct ATS: Greenhouse, Lever, Ashby, Workday), Track 2 (LinkedIn Multi-Channel + `<24h` Sniper), and Track 3 (`<24h`/`<72h` Hiring Posts). | `--source [all|ats|linkedin|sniper|portals|posts]`, `--headless`, `--max-jobs` |
 | `python main.py dashboard` | Launches the 4-Tab FastAPI Command Center at `http://127.0.0.1:8000`. | `--host 127.0.0.1`, `--port 8000` |
 | `python main.py sync` | Translates plain-English notes in `data/candidate_notes.md` into boundary-isolated STAR achievements in `data/master_knowledge_bank.json`. | None |
 | `python main.py session` | Inspects or exports portable Playwright authentication cookies (`storage_state.json`). | `status`, `export` |

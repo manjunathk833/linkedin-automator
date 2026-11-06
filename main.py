@@ -812,9 +812,9 @@ def main():
     )
     parser_run.add_argument(
         "--source",
-        choices=["all", "linkedin", "ats", "hirist", "instahyre", "portals", "posts", "trio"],
+        choices=["all", "linkedin", "ats", "hirist", "instahyre", "portals", "posts", "trio", "sniper"],
         default="all",
-        help="Job discovery source: 'all', 'linkedin', 'ats', 'hirist', 'instahyre', 'portals', 'posts', or 'trio' (default: all)",
+        help="Job discovery source: 'all', 'linkedin', 'ats', 'hirist', 'instahyre', 'portals', 'posts', 'trio', or 'sniper' (default: all)",
     )
     parser_run.add_argument(
         "--headless",
@@ -829,9 +829,9 @@ def main():
     )
     parser_search.add_argument(
         "--source",
-        choices=["all", "linkedin", "ats", "hirist", "instahyre", "portals", "posts", "trio"],
+        choices=["all", "linkedin", "ats", "hirist", "instahyre", "portals", "posts", "trio", "sniper"],
         default="all",
-        help="Job discovery source: 'all', 'linkedin', 'ats', 'hirist', 'instahyre', 'portals', 'posts', or 'trio' (default: all)",
+        help="Job discovery source: 'all', 'linkedin', 'ats', 'hirist', 'instahyre', 'portals', 'posts', 'trio', or 'sniper' (default: all)",
     )
     parser_search.add_argument(
         "--headless",

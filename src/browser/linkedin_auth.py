@@ -140,11 +140,15 @@ async def verify_live_session(page: Any, timeout_ms: int = 30000) -> dict[str, A
             "final_url": final_url,
             "message": "LinkedIn redirected /feed/ to login/authwall. Run `python main.py login`.",
         }
-    # Persist fresh authenticated storage_state.json so fallback state never goes stale
+    # Persist fresh authenticated storage_state.json ONLY when runtime context holds a valid li_at cookie
     try:
         state_path = DEFAULT_PROFILE_DIR / "storage_state.json"
-        if hasattr(page, "context") and hasattr(page.context, "storage_state"):
-            await page.context.storage_state(path=str(state_path))
+        if hasattr(page, "context") and hasattr(page.context, "storage_state") and hasattr(page.context, "cookies"):
+            live_cookies = await page.context.cookies("https://www.linkedin.com")
+            if isinstance(live_cookies, list) and any(
+                isinstance(c, dict) and c.get("name") == "li_at" and c.get("value") for c in live_cookies
+            ):
+                await page.context.storage_state(path=str(state_path))
     except Exception:
         pass
     return {

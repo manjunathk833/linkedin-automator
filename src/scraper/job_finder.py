@@ -894,7 +894,12 @@ class LinkedInJobFinder:
                 print(f"🚨 LINKEDIN AUTH PREFLIGHT FAILED: {self.last_auth_status.get('message')}")
                 await capture_zero_yield_evidence(page, "linkedin_auth_preflight")
                 self.last_yield_verdict = "AUTH_FAILED"
-                if context is not None:
+                if getattr(context, "_is_shared_cdp", False):
+                    try:
+                        await page.close()
+                    except Exception:
+                        pass
+                elif context is not None:
                     await context.close()
                 return all_jobs
 
@@ -1046,9 +1051,12 @@ class LinkedInJobFinder:
             # -------------------------------------------------------------
             # ZERO-YIELD VERDICT ON AUTH-ONLY SURFACES
             # -------------------------------------------------------------
-            auth_surfaces = tuple(
-                ["jobs_hub", "company_pages", "recruiter_posts"] + [f"collection:{c}" for c in rec_collections]
-            )
+            if max_pages == 0 and not enable_rec and not enable_company_pages and not enable_posts:
+                auth_surfaces = ("sniper_fresh_24h",)
+            else:
+                auth_surfaces = tuple(
+                    ["jobs_hub", "company_pages", "recruiter_posts"] + [f"collection:{c}" for c in rec_collections]
+                )
             self.last_yield_verdict = summarize_yield(self.channel_yield, auth_surfaces)
             if self.last_yield_verdict == "ZERO_YIELD_SUSPECT":
                 print(f"⚠️ ZERO-YIELD SUSPECT: All auth-only LinkedIn surfaces returned 0 cards ({self.channel_yield}).")
@@ -1057,7 +1065,13 @@ class LinkedInJobFinder:
                 print(f"📊 LinkedIn Channel Raw Card Yield: {self.channel_yield} (Verdict: {self.last_yield_verdict})")
 
             # Close single browser session ONCE at the end of all channels
-            if context is not None:
+            if getattr(context, "_is_shared_cdp", False):
+                try:
+                    await page.close()
+                except Exception:
+                    pass
+                print("\n🔒 Closed temporary discovery tab on shared Chrome CDP session.")
+            elif context is not None:
                 await context.close()
                 print("\n🔒 Closed multi-channel batch Chrome session successfully.")
 

@@ -91,7 +91,33 @@ async def launch_persistent_browser(
     )
 
     try:
-        from src.browser.cdp_stealth import clean_stale_browser_processes
+        from src.browser.cdp_stealth import (
+            clean_stale_browser_processes,
+            ensure_cdp_page_target,
+            is_cdp_port_open,
+        )
+
+        if is_cdp_port_open(9222) and os.path.abspath(profile_dir) == os.path.abspath(DEFAULT_PROFILE_DIR):
+            ensure_cdp_page_target(9222)
+            browser = await playwright.chromium.connect_over_cdp("http://127.0.0.1:9222", timeout=10000)
+            context = browser.contexts[0] if browser.contexts else await browser.new_context()
+            context._is_shared_cdp = True
+            state_file = os.path.join(profile_dir, "storage_state.json")
+            if os.path.exists(state_file):
+                try:
+                    live_cookies = await context.cookies("https://www.linkedin.com")
+                    has_live_li = any(c.get("name") == "li_at" and c.get("value") for c in live_cookies)
+                    if not has_live_li:
+                        with open(state_file, "r", encoding="utf-8") as f:
+                            state_data = json.load(f)
+                        cookies = state_data.get("cookies", [])
+                        if cookies:
+                            await context.add_cookies(cookies)
+                except Exception:
+                    pass
+            page = await context.new_page()
+            print("🔗 Reused active Chrome session on CDP port 9222.")
+            return context, page
 
         clean_stale_browser_processes(profile_dir)
     except Exception:
@@ -103,21 +129,18 @@ async def launch_persistent_browser(
         headless=headless,
         args=stealth_args,
         ignore_default_args=["--enable-automation"],
-        user_agent=desktop_ua,
+        user_agent=desktop_ua if headless else None,
         no_viewport=True,
         accept_downloads=True,
     )
 
-    # Synchronize cookies from storage_state.json ONLY if the live profile Cookies DB lacks li_at
+    # Synchronize cookies from storage_state.json whenever Playwright's runtime cookie jar lacks a decrypted li_at
     state_file = os.path.join(profile_dir, "storage_state.json")
     if os.path.exists(state_file):
         try:
-            from pathlib import Path
-
-            from src.browser.linkedin_auth import _li_at_from_cookie_db
-
-            cookie_db_state = _li_at_from_cookie_db(Path(profile_dir))
-            if not (cookie_db_state and cookie_db_state.get("has_li_at")):
+            live_cookies = await context.cookies("https://www.linkedin.com")
+            has_live_li = any(c.get("name") == "li_at" and c.get("value") for c in live_cookies)
+            if not has_live_li:
                 with open(state_file, "r", encoding="utf-8") as f:
                     state_data = json.load(f)
                 cookies = state_data.get("cookies", [])
