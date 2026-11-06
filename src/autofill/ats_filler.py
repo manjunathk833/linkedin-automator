@@ -3309,7 +3309,7 @@ class ATSAssistedFiller:
                 ans_count = await self._resolve_workday_questions(target)
                 filled += ans_count
 
-                # B. Prefix Dropdown (Mr., Ms., etc.)
+                # B. Prefix Dropdown (Mr., Ms., etc. with fallback to 'Mr' without period)
                 prefix_drop = target.locator(
                     "button[id='name--legalName--title'], button[id*='legalName--title'], button[aria-label*='prefix' i], "
                     "[data-automation-id='legalNameSection_prefix'], button[data-automation-id*='prefix' i], "
@@ -3319,7 +3319,11 @@ class ATSAssistedFiller:
                     curr_prefix = (await prefix_drop.text_content() or "").strip()
                     if not curr_prefix or "select" in curr_prefix.lower():
                         prefix_val = getattr(p, "prefix", "Mr.") or "Mr."
-                        if await self._select_react_combobox(target, prefix_drop, prefix_val):
+                        if await self._select_react_combobox(
+                            target, prefix_drop, prefix_val
+                        ) or await self._select_react_combobox(target, prefix_drop, prefix_val.rstrip(".")):
+                            filled += 1
+                        elif await self._select_react_combobox(target, prefix_drop, prefix_val.rstrip(".")):
                             filled += 1
 
                 # C. Country Dropdown
@@ -3553,6 +3557,29 @@ class ATSAssistedFiller:
                 print("📋 Populating Workday 'Voluntary Disclosures'...")
                 d_ans = await self._resolve_workday_questions(target)
                 filled += d_ans
+                # Handle Workday selectinput gender pill (e.g. ABB's input#personalInfoPerson--genderIdentities)
+                gender_inp = target.locator(
+                    "input#personalInfoPerson--genderIdentities, input[id*='genderIdentities' i]"
+                ).first
+                if await gender_inp.count() > 0 and await gender_inp.is_visible():
+                    has_gender_pill = await gender_inp.evaluate(
+                        "el => { const c = el.closest('[data-automation-id*=formField]'); return c ? c.querySelectorAll('[data-automation-id=selectedItem], li[data-automation-id*=menuItem]').length > 0 : false; }"
+                    )
+                    if not has_gender_pill:
+                        try:
+                            await gender_inp.scroll_into_view_if_needed()
+                            await gender_inp.click()
+                            await gender_inp.fill("Male")
+                            await asyncio.sleep(0.5)
+                            await gender_inp.press("Enter")
+                            await asyncio.sleep(1.0)
+                            opt = target.locator("[data-automation-id='promptOption']:has-text('Male')").first
+                            if await opt.count() > 0 and await opt.is_visible():
+                                await opt.click()
+                                await asyncio.sleep(0.5)
+                            filled += 1
+                        except Exception:
+                            pass
                 next_btn = target.locator(
                     "button[data-automation-id='pageFooterNextButton'], button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue'), button:has-text('Next')"
                 ).first

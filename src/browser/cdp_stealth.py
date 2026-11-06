@@ -204,15 +204,18 @@ MACOS_CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 
 
 def _spawn_native_macos_chrome(user_data_dir: str, extra_args: list[str] | None = None) -> None:
-    """Spawns native macOS Google Chrome in a detached OS session with minimal clean flags."""
+    """
+    Spawns native macOS Google Chrome in a detached OS session with zero automation flags.
+    Because `--enable-automation` is never passed, `navigator.webdriver` is natively `false`
+    without needing `--disable-blink-features=AutomationControlled` (which triggers Chrome's
+    unsupported-flag warning banner and hCaptcha Enterprise command-line flag detection).
+    """
     native_cmd = [
         MACOS_CHROME_BIN,
         "--remote-debugging-port=9222",
         f"--user-data-dir={os.path.abspath(user_data_dir)}",
-        "--disable-blink-features=AutomationControlled",
         "--no-first-run",
         "--no-default-browser-check",
-        "--start-maximized",
     ]
     if extra_args:
         native_cmd.extend(extra_args)

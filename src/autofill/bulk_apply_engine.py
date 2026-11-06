@@ -52,27 +52,31 @@ def ensure_persistent_cdp_browser(
     cdp_url: str = "http://127.0.0.1:9222", dashboard_url: str = "http://127.0.0.1:8000"
 ) -> None:
     """
-    Ensures the persistent headful Chrome session is running inside the long-lived
-    FastAPI daemon on port 9222 so CLI subcommands can disconnect without closing tabs.
+    Ensures the persistent headful Chrome session is running on port 9222 using
+    native macOS Google Chrome (zero automation flags) so CLI subcommands can
+    connect and disconnect cleanly without closing tabs or triggering hCaptcha flags.
     """
-    from src.browser.cdp_stealth import is_cdp_port_open
+    import sys
+
+    from src.browser.cdp_stealth import (
+        DEFAULT_STEALTH_DIR,
+        MACOS_CHROME_BIN,
+        _spawn_native_macos_chrome,
+        clean_stale_browser_processes,
+        is_cdp_port_open,
+    )
 
     if not is_cdp_port_open(9222):
-        try:
-            files = sorted(f for f in os.listdir("data/approved_queue") if f.endswith(".json"))
-            if files:
-                first_jid = files[0].replace(".json", "")
-                req = urllib.request.Request(
-                    f"{dashboard_url.rstrip('/')}/api/autofill/manual/{first_jid}",
-                    method="POST",
-                )
-                urllib.request.urlopen(req, timeout=40).read()
-        except Exception:
-            pass
-        for _ in range(15):
+        clean_stale_browser_processes(DEFAULT_STEALTH_DIR)
+        if sys.platform == "darwin" and os.path.exists(MACOS_CHROME_BIN):
+            try:
+                _spawn_native_macos_chrome(DEFAULT_STEALTH_DIR)
+            except Exception:
+                pass
+        for _ in range(20):
             if is_cdp_port_open(9222):
                 break
-            time.sleep(0.5)
+            time.sleep(0.3)
     ensure_cdp_page_target(cdp_url)
 
 
@@ -372,6 +376,8 @@ class BulkApplyFastTrackEngine:
         "no longer accepting applications",
         "this job is no longer available",
         "job you are looking for is no longer open",
+        "either does not exist or is no longer open",
+        "the requested job could not be found",
         "page not found",
         "this position has been filled",
         "job posting has expired",
@@ -546,10 +552,21 @@ class BulkApplyFastTrackEngine:
             return {"verified": True, "mark_applied_error": str(e), "screenshot": snap_path}
 
     async def _is_page_closed_or_unavailable(self, page: Page) -> str | None:
-        """Checks if the current page indicates a closed or unavailable job."""
+        """Checks if the current page (or embedded iCIMS content iframe) indicates a closed or unavailable job."""
         try:
             body_text = (await page.locator("body").inner_text(timeout=3000)).lower()
         except Exception:
+            body_text = ""
+
+        try:
+            icims_fr = page.frame(name="icims_content_iframe")
+            if icims_fr:
+                fr_text = (await icims_fr.locator("body").inner_text(timeout=2500)).lower()
+                body_text = f"{body_text}\n{fr_text}"
+        except Exception:
+            pass
+
+        if not body_text:
             return None
 
         for marker in self.CLOSED_JOB_MARKERS:
@@ -895,19 +912,19 @@ class BulkApplyFastTrackEngine:
             if await apply_trigger.count() > 0:
                 try:
                     if await apply_trigger.is_visible(timeout=2000):
-                        # Listen in case clicking Apply opens a popup tab
+                        # Listen strictly for popups opened by THIS page (never context-wide across workers)
                         opened_popups: list[Page] = []
 
                         def _on_pop(new_p: Page) -> None:
                             opened_popups.append(new_p)
 
-                        page.context.on("page", _on_pop)
+                        page.on("popup", _on_pop)
                         try:
                             await apply_trigger.click(timeout=4000)
                             await asyncio.sleep(2.5)
                         finally:
                             try:
-                                page.context.remove_listener("page", _on_pop)
+                                page.remove_listener("popup", _on_pop)
                             except Exception:
                                 pass
 
@@ -941,7 +958,52 @@ class BulkApplyFastTrackEngine:
                 await page.goto(iframe_src2, wait_until="domcontentloaded", timeout=20000)
                 await asyncio.sleep(2.0)
                 await stamp_tab_job_id(page, jid)
+                await dismiss_overlays(page)
                 curr_url = page.url
+            except Exception:
+                pass
+
+        # Re-check if the redirected ATS page or iCIMS iframe reports the job is closed
+        closed_after_redirect = await self._is_page_closed_or_unavailable(page)
+        if closed_after_redirect:
+            self.purge_unavailable_job(jid, company, closed_after_redirect, url=curr_url)
+            return {
+                "status": "JOB_UNAVAILABLE",
+                "job_id": jid,
+                "company": company,
+                "url": curr_url,
+                "reason": closed_after_redirect,
+                "tab_kept_open": False,
+            }
+
+        # Handle iCIMS email entry step inside `icims_content_iframe` or main frame automatically
+        if "icims.com/" in curr_url.lower() or page.frame(name="icims_content_iframe") is not None:
+            try:
+                icims_target: Any = page.frame(name="icims_content_iframe") or page
+                icims_email = icims_target.locator("input#email, input[name='css_email'], input[type='email']").first
+                if await icims_email.count() > 0 and await icims_email.is_visible():
+                    await icims_email.fill(self.master_data.personal.email)
+                    cb = icims_target.locator("input[type='checkbox']").first
+                    if await cb.count() > 0 and await cb.is_visible() and not await cb.is_checked():
+                        await cb.check(force=True)
+                    nxt = icims_target.locator(
+                        "input#enterEmailSubmitButton, button#enterEmailSubmitButton, input[type='submit'][value*='Next' i], button:has-text('Next')"
+                    ).first
+                    if await nxt.count() > 0 and await nxt.is_visible():
+                        await nxt.click()
+                        await asyncio.sleep(2.5)
+                        curr_url = page.url
+            except Exception:
+                pass
+
+        # Handle Siemens Avature ApplicationMethods interstitial (`Self-complete`)
+        if "applicationmethods" in curr_url.lower():
+            try:
+                self_comp = page.locator("a:has-text('Self-complete'), button:has-text('Self-complete')").first
+                if await self_comp.count() > 0 and await self_comp.is_visible():
+                    await self_comp.click()
+                    await asyncio.sleep(2.5)
+                    curr_url = page.url
             except Exception:
                 pass
 
@@ -1039,6 +1101,10 @@ class BulkApplyFastTrackEngine:
                     vendor="WORKDAY_STANDARD",
                     url=curr_url,
                 )
+
+        # 3c. Delegate Lever (`jobs.lever.co`) to `_fill_lever_humanized` (Invisible hCaptcha + retrieveLocations.js safe)
+        if "jobs.lever.co" in curr_url.lower() or pattern == "LEVER_STANDARD":
+            return await self._fill_lever_humanized(page, pdf_path or "", job)
 
         # Check if portal requires login / account creation / CAPTCHA
         has_password = await page.locator("input[type='password']:visible").count() > 0
@@ -1144,6 +1210,198 @@ class BulkApplyFastTrackEngine:
             "tab_kept_open": True,
         }
 
+    async def _fill_lever_humanized(
+        self,
+        page: Page,
+        pdf_path: str,
+        job: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Humanized Lever (`jobs.lever.co`) filler engineered specifically for Lever's
+        `parseResume.js`, `retrieveLocations.js`, and Invisible hCaptcha (`secure-api.js`):
+        1. Uploads the tailored PDF into `#resume-upload-input` first and waits for `/parseResume`
+           to natively populate `name`, `email`, `phone`, `org`, `location`, `#selected-location`,
+           and `input[name=resumeStorageId]`.
+        2. Emits genuine mouse movements and keystroke events on custom card questions so
+           Invisible hCaptcha records natural human interaction telemetry.
+        3. Preserves `#selected-location` (`{"name":"Bengaluru, Bengaluru Urban, Karnataka, IND"}`)
+           while keeping `.dropdown-container` `display: none` so `retrieveLocations.js`'s blur
+           listener never wipes `#location-input`.
+        4. Never auto-clicks `#btn-submit` while CDP is attached, leaving the tab ready for a
+           single human click with 0 active CDP debuggers.
+        """
+        jid = job["job_id"]
+        company = job["company"]
+        filled_cnt = 0
+        resume_ok = False
+
+        # 1. Human mouse movement across viewport to seed Invisible hCaptcha behavioral buffer
+        try:
+            await page.mouse.move(220, 320, steps=12)
+            await page.mouse.move(480, 520, steps=15)
+        except Exception:
+            pass
+
+        # 2. Upload resume first and wait for Lever's /parseResume XHR to populate resumeStorageId & selectedLocation
+        if pdf_path and os.path.exists(pdf_path):
+            try:
+                file_in = page.locator("input#resume-upload-input, input[type='file'][name='resume']").first
+                if await file_in.count() > 0:
+                    await file_in.set_input_files(os.path.abspath(pdf_path))
+                    resume_ok = True
+                    filled_cnt += 1
+                    for _ in range(18):
+                        storage_id = await page.evaluate(
+                            "() => (document.querySelector('input[name=resumeStorageId]') || {}).value || ''"
+                        )
+                        if storage_id:
+                            break
+                        await asyncio.sleep(0.25)
+            except Exception:
+                pass
+
+        # 3. Fill any standard fields not populated by /parseResume using real keystrokes
+        p = self.master_data.personal
+        std_pairs = [
+            ("input[name='name']", p.full_name),
+            ("input[name='email']", p.email),
+            ("input[name='phone']", p.phone),
+            ("input[name='org']", self.master_data.current_employment.company),
+            ("input[name='urls[LinkedIn]']", self.master_data.profiles.linkedin),
+            ("input[name='urls[GitHub]']", self.master_data.profiles.github),
+            ("input[name='urls[Portfolio]']", self.master_data.profiles.portfolio),
+        ]
+        for sel, val in std_pairs:
+            if not val:
+                continue
+            try:
+                el = page.locator(sel).first
+                if await el.count() > 0 and await el.is_visible():
+                    cur_v = (await el.input_value()).strip()
+                    if not cur_v:
+                        await el.click()
+                        await page.keyboard.type(str(val), delay=18)
+                        filled_cnt += 1
+                    else:
+                        filled_cnt += 1
+            except Exception:
+                pass
+
+        # 4. Ensure Lever #location-input and #selected-location are populated via /searchLocations or safe fallback
+        try:
+            await page.evaluate(
+                """() => {
+                    const dc = document.querySelector('.dropdown-container');
+                    if (dc) dc.style.display = 'none';
+                    const loc = document.getElementById('location-input');
+                    const selLoc = document.getElementById('selected-location');
+                    if (loc && !loc.value) {
+                        loc.value = 'Bengaluru, Bengaluru Urban, Karnataka, IND';
+                    }
+                    if (selLoc && !selLoc.value) {
+                        selLoc.value = JSON.stringify({
+                            name: 'Bengaluru, Bengaluru Urban, Karnataka, IND',
+                            id: 'f9fb0ff8176b132b009ff9e9235fb567'
+                        });
+                    }
+                }"""
+            )
+            filled_cnt += 1
+        except Exception:
+            pass
+
+        # 5. Fill custom Lever card questions (`li.application-question.custom-question`) with real mouse/keyboard events
+        try:
+            q_items = await page.locator(
+                "li.application-question.custom-question, li.application-question:has([name^='cards['])"
+            ).all()
+            for q_li in q_items:
+                lbl_txt = (await q_li.inner_text()).lower()
+                radios = await q_li.locator("input[type='radio']").all()
+                if radios:
+                    want_no = any(k in lbl_txt for k in ("sponsor", "visa", "relocat", "non-compete"))
+                    target_val = "No" if want_no else "Yes"
+                    for r_el in radios:
+                        r_val = (await r_el.get_attribute("value") or "").strip()
+                        if r_val.lower() == target_val.lower():
+                            await r_el.click()
+                            filled_cnt += 1
+                            break
+                    continue
+
+                txt_in = q_li.locator("input[type='text'], input[type='number'], textarea").first
+                if await txt_in.count() > 0 and await txt_in.is_visible():
+                    cur_v = (await txt_in.input_value()).strip()
+                    ans = ""
+                    if "notice" in lbl_txt:
+                        ans = "60"
+                    elif "expected" in lbl_txt and (
+                        "ctc" in lbl_txt or "salary" in lbl_txt or "compensation" in lbl_txt
+                    ):
+                        ans = "27 LPA"
+                    elif "current" in lbl_txt and (
+                        "ctc" in lbl_txt or "salary" in lbl_txt or "compensation" in lbl_txt
+                    ):
+                        ans = "17 LPA"
+                    elif "current" in lbl_txt and ("org" in lbl_txt or "company" in lbl_txt or "employer" in lbl_txt):
+                        ans = "Value Labs"
+                    elif "current location" in lbl_txt or ("location" in lbl_txt and "what is your" in lbl_txt):
+                        ans = "Bengaluru, Karnataka, India"
+                    elif "designed and implemented" in lbl_txt or "framework from scratch" in lbl_txt:
+                        ans = "Yes, designed and implemented scalable UI, API, and Mobile test automation frameworks from scratch using Java, Python, Playwright, Selenium, RestAssured, and Appium."
+                    elif "built and deployed" in lbl_txt or "ai/ml or llm" in lbl_txt:
+                        ans = "Yes, built and validated AI-driven test automation and LLM evaluation workflows."
+                    elif "llm technologies" in lbl_txt or "prompt engineering" in lbl_txt or "rag" in lbl_txt:
+                        ans = "Hands-on experience with prompt engineering, LLM evaluation, RAG-based test generation, and AI agent validation workflows."
+                    elif "cloud platforms" in lbl_txt:
+                        ans = "AWS, Docker, Kubernetes, and LLM API integrations."
+                    elif "ci/cd" in lbl_txt:
+                        ans = "Jenkins, GitHub Actions, GitLab CI, Docker, and Kubernetes."
+                    elif "year" in lbl_txt or "experience" in lbl_txt:
+                        ans = "6.8"
+                    elif "why" in lbl_txt:
+                        ans = f"Excited to architect scalable AI test automation and quality engineering systems at {company}."
+                    if ans and (not cur_v or (cur_v == "6.8" and len(ans) > 10)):
+                        await txt_in.click()
+                        await txt_in.fill("")
+                        await page.keyboard.type(ans, delay=14)
+                        filled_cnt += 1
+                    elif cur_v:
+                        filled_cnt += 1
+
+            # Pronoun checkbox: select He/him if present
+            he_cb = page.locator("input[name='pronouns'][value='He/him']").first
+            if await he_cb.count() > 0 and await he_cb.is_visible() and not await he_cb.is_checked():
+                await he_cb.click()
+                filled_cnt += 1
+        except Exception:
+            pass
+
+        # Scroll down to SUBMIT APPLICATION button so user sees it immediately
+        try:
+            await page.mouse.move(520, 680, steps=15)
+            sub_btn = page.locator("#btn-submit").first
+            if await sub_btn.count() > 0:
+                await sub_btn.scroll_into_view_if_needed()
+        except Exception:
+            pass
+
+        return {
+            "status": "NEEDS_AGENT",
+            "job_id": jid,
+            "company": company,
+            "title": job["title"],
+            "vendor": "LEVER_STANDARD",
+            "url": page.url,
+            "filled_count": filled_cnt,
+            "resume_attached": resume_ok,
+            "empty_required_fields": [],
+            "unmapped_fields": [],
+            "visible_buttons": ["SUBMIT APPLICATION"],
+            "reason": "Lever Invisible hCaptcha ready for 1-click user submit (CDP detached)",
+            "tab_kept_open": True,
+        }
+
     async def _sanitize_post_resume_parse(self, page: Page) -> None:
         """
         Normalizes fields that enterprise resume parsers (Phenom People, Eightfold.ai, Darwinbox)
@@ -1185,13 +1443,20 @@ class BulkApplyFastTrackEngine:
                             ta.dispatchEvent(new Event("change", {bubbles: true}));
                         }
                     });
-                    // Restore Lever #location-input if asynchronous resume parser cleared it
-                    const locInput = document.querySelector("input#location-input, input[name='location']");
+                    // Restore Lever #location-input & #selected-location WITHOUT dispatching input+blur
+                    // (which triggers retrieveLocations.js blur handler to wipe both fields!)
+                    const locInput = document.getElementById("location-input");
                     if (locInput && !locInput.value) {
-                        locInput.value = "Bengaluru, Karnataka, India";
-                        locInput.dispatchEvent(new Event("input", {bubbles: true}));
-                        locInput.dispatchEvent(new Event("change", {bubbles: true}));
-                        locInput.dispatchEvent(new Event("blur", {bubbles: true}));
+                        const dc = document.querySelector(".dropdown-container");
+                        if (dc) dc.style.display = "none";
+                        locInput.value = "Bengaluru, Bengaluru Urban, Karnataka, IND";
+                        const selLoc = document.getElementById("selected-location");
+                        if (selLoc && !selLoc.value) {
+                            selLoc.value = JSON.stringify({
+                                name: "Bengaluru, Bengaluru Urban, Karnataka, IND",
+                                id: "f9fb0ff8176b132b009ff9e9235fb567"
+                            });
+                        }
                     }
                 }"""
             )
@@ -1395,30 +1660,37 @@ class BulkApplyFastTrackEngine:
 
         p = await async_playwright().start()
         self._pw = p
-        browser = await p.chromium.connect_over_cdp(self.cdp_url)
-        context = browser.contexts[0] if browser.contexts else await browser.new_context()
+        try:
+            browser = await p.chromium.connect_over_cdp(self.cdp_url)
+            context = browser.contexts[0] if browser.contexts else await browser.new_context()
 
-        async def _worker(job_item: dict[str, Any]) -> dict[str, Any]:
-            async with sem:
-                try:
-                    return await self._process_single_job_tab(context, job_item, dry_run=dry_run)
-                except Exception as exc:
-                    return {
-                        "status": "NEEDS_AGENT",
-                        "job_id": job_item.get("job_id", ""),
-                        "company": job_item.get("company", ""),
-                        "url": job_item.get("url", ""),
-                        "error": str(exc),
-                        "tab_kept_open": True,
-                    }
+            async def _worker(job_item: dict[str, Any]) -> dict[str, Any]:
+                async with sem:
+                    try:
+                        return await self._process_single_job_tab(context, job_item, dry_run=dry_run)
+                    except Exception as exc:
+                        return {
+                            "status": "NEEDS_AGENT",
+                            "job_id": job_item.get("job_id", ""),
+                            "company": job_item.get("company", ""),
+                            "url": job_item.get("url", ""),
+                            "error": str(exc),
+                            "tab_kept_open": True,
+                        }
 
-        # Process in waves of at most `max_open_tabs` (default 5)
-        results: list[dict[str, Any]] = []
-        wave_size = max(1, min(max_open_tabs, 5))
-        for i in range(0, len(batch_jobs), wave_size):
-            wave = batch_jobs[i : i + wave_size]
-            wave_res = list(await asyncio.gather(*(_worker(jb) for jb in wave)))
-            results.extend(wave_res)
+            # Process in waves of at most `max_open_tabs` (default 5)
+            results: list[dict[str, Any]] = []
+            wave_size = max(1, min(max_open_tabs, 5))
+            for i in range(0, len(batch_jobs), wave_size):
+                wave = batch_jobs[i : i + wave_size]
+                wave_res = list(await asyncio.gather(*(_worker(jb) for jb in wave)))
+                results.extend(wave_res)
+        finally:
+            try:
+                await p.stop()
+            except Exception:
+                pass
+            self._pw = None
 
         elapsed = round(time.perf_counter() - t0, 2)
         summary = {
@@ -1446,97 +1718,65 @@ class BulkApplyFastTrackEngine:
         ensure_persistent_cdp_browser(self.cdp_url, self.dashboard_url)
         p = await async_playwright().start()
         self._pw = p
-        browser = await p.chromium.connect_over_cdp(self.cdp_url)
-        context = browser.contexts[0] if browser.contexts else await browser.new_context()
-
         resumed_results: list[dict[str, Any]] = []
-        for pg in list(context.pages):
-            try:
-                if pg.is_closed():
-                    continue
-                cur_url = pg.url or ""
-                if not cur_url or cur_url.startswith(
-                    ("about:blank", "chrome://", "http://127.0.0.1:8000", "http://localhost:8000")
-                ):
-                    continue
+        try:
+            browser = await p.chromium.connect_over_cdp(self.cdp_url)
+            context = browser.contexts[0] if browser.contexts else await browser.new_context()
 
-                stamped_id = await pg.evaluate(
-                    """() => {
-                        if (window.__agy_job_id) return String(window.__agy_job_id);
-                        if (window.name && window.name.startsWith('agy_job_')) return window.name.replace('agy_job_', '');
-                        return '';
-                    }"""
-                )
-                matched_job = by_id.get(stamped_id) if stamped_id else None
-                if not matched_job:
-                    low_u = cur_url.lower()
-                    for jb in all_queued:
-                        comp_slug = re.sub(r"[^a-z0-9]", "", jb["company"].lower().split()[0]) if jb["company"] else ""
-                        if (jb["job_id"] in low_u) or (comp_slug and len(comp_slug) >= 3 and comp_slug in low_u):
-                            matched_job = jb
-                            break
-
-                if not matched_job:
-                    continue
-
-                jid = matched_job["job_id"]
-                company = matched_job["company"]
-                pdf_path = matched_job["pdf_path"]
-                await stamp_tab_job_id(pg, jid)
-                await dismiss_overlays(pg)
-
-                body_lower = (await pg.locator("body").inner_text(timeout=3000)).lower()
-                confirmed_marker = ""
-                if "/completed/application" in cur_url.lower() or "/jobtasks/completed" in cur_url.lower():
-                    confirmed_marker = f"URL: {cur_url}"
-                else:
-                    for c_marker in self.CONFIRMATION_MARKERS:
-                        if c_marker in body_lower:
-                            confirmed_marker = c_marker
-                            break
-
-                if confirmed_marker:
-                    verif_res = await self.verify_and_mark_applied(
-                        page=pg,
-                        job_id=jid,
-                        company=company,
-                        marker_type="resume_tabs_confirmed",
-                        marker_text=confirmed_marker,
-                    )
-                    if verif_res.get("verified") and len(context.pages) > 1:
-                        await pg.close()
-                    resumed_results.append(
-                        {
-                            "status": "APPLIED" if verif_res.get("verified") else "SUBMITTED_UNVERIFIED",
-                            "job_id": jid,
-                            "company": company,
-                            "url": cur_url,
-                        }
-                    )
-                    continue
-
-                if "myworkdayjobs.com" in cur_url.lower() or "myworkdaysite.com" in cur_url.lower():
-                    from src.autofill.ats_filler import ATSAssistedFiller
-
-                    await ATSAssistedFiller()._fill_workday(
-                        pg,
-                        pdf_path or "",
-                        job_id=jid,
-                        company=company,
-                        auto_submit=not dry_run,
-                        fast_park_on_verify=True,
-                    )
-                    post_url = pg.url
-                    post_body = (await pg.locator("body").inner_text(timeout=3000)).lower()
-                    if "/completed/application" in post_url.lower() or any(
-                        m in post_body for m in self.CONFIRMATION_MARKERS
+            for pg in list(context.pages):
+                try:
+                    if pg.is_closed():
+                        continue
+                    cur_url = pg.url or ""
+                    if not cur_url or cur_url.startswith(
+                        ("about:blank", "chrome://", "http://127.0.0.1:8000", "http://localhost:8000")
                     ):
+                        continue
+
+                    stamped_id = await pg.evaluate(
+                        """() => {
+                            if (window.__agy_job_id) return String(window.__agy_job_id);
+                            if (window.name && window.name.startsWith('agy_job_')) return window.name.replace('agy_job_', '');
+                            return '';
+                        }"""
+                    )
+                    matched_job = by_id.get(stamped_id) if stamped_id else None
+                    if not matched_job:
+                        low_u = cur_url.lower()
+                        for jb in all_queued:
+                            comp_slug = (
+                                re.sub(r"[^a-z0-9]", "", jb["company"].lower().split()[0]) if jb["company"] else ""
+                            )
+                            if (jb["job_id"] in low_u) or (comp_slug and len(comp_slug) >= 3 and comp_slug in low_u):
+                                matched_job = jb
+                                break
+
+                    if not matched_job:
+                        continue
+
+                    jid = matched_job["job_id"]
+                    company = matched_job["company"]
+                    pdf_path = matched_job["pdf_path"]
+                    await stamp_tab_job_id(pg, jid)
+                    await dismiss_overlays(pg)
+
+                    body_lower = (await pg.locator("body").inner_text(timeout=3000)).lower()
+                    confirmed_marker = ""
+                    if "/completed/application" in cur_url.lower() or "/jobtasks/completed" in cur_url.lower():
+                        confirmed_marker = f"URL: {cur_url}"
+                    else:
+                        for c_marker in self.CONFIRMATION_MARKERS:
+                            if c_marker in body_lower:
+                                confirmed_marker = c_marker
+                                break
+
+                    if confirmed_marker:
                         verif_res = await self.verify_and_mark_applied(
                             page=pg,
                             job_id=jid,
                             company=company,
-                            marker_type="workday_resume_completed",
-                            marker_text=f"URL: {post_url}",
+                            marker_type="resume_tabs_confirmed",
+                            marker_text=confirmed_marker,
                         )
                         if verif_res.get("verified") and len(context.pages) > 1:
                             await pg.close()
@@ -1545,46 +1785,161 @@ class BulkApplyFastTrackEngine:
                                 "status": "APPLIED" if verif_res.get("verified") else "SUBMITTED_UNVERIFIED",
                                 "job_id": jid,
                                 "company": company,
-                                "vendor": "WORKDAY_STANDARD",
-                                "url": post_url,
+                                "url": cur_url,
                             }
                         )
-                    else:
+                        continue
+
+                    if "myworkdayjobs.com" in cur_url.lower() or "myworkdaysite.com" in cur_url.lower():
+                        from src.autofill.ats_filler import ATSAssistedFiller
+
+                        await ATSAssistedFiller()._fill_workday(
+                            pg,
+                            pdf_path or "",
+                            job_id=jid,
+                            company=company,
+                            auto_submit=not dry_run,
+                            fast_park_on_verify=True,
+                        )
+                        post_url = pg.url
+                        post_body = (await pg.locator("body").inner_text(timeout=3000)).lower()
+                        if "/completed/application" in post_url.lower() or any(
+                            m in post_body for m in self.CONFIRMATION_MARKERS
+                        ):
+                            verif_res = await self.verify_and_mark_applied(
+                                page=pg,
+                                job_id=jid,
+                                company=company,
+                                marker_type="workday_resume_completed",
+                                marker_text=f"URL: {post_url}",
+                            )
+                            if verif_res.get("verified") and len(context.pages) > 1:
+                                await pg.close()
+                            resumed_results.append(
+                                {
+                                    "status": "APPLIED" if verif_res.get("verified") else "SUBMITTED_UNVERIFIED",
+                                    "job_id": jid,
+                                    "company": company,
+                                    "vendor": "WORKDAY_STANDARD",
+                                    "url": post_url,
+                                }
+                            )
+                        else:
+                            await self.logger.record_flight_snapshot(
+                                pg,
+                                jid,
+                                company,
+                                "WORKDAY_STANDARD",
+                                "NEEDS_AGENT",
+                                reason="Resumed Workday tab incomplete",
+                            )
+                            resumed_results.append(
+                                {
+                                    "status": "NEEDS_AGENT",
+                                    "job_id": jid,
+                                    "company": company,
+                                    "vendor": "WORKDAY_STANDARD",
+                                    "url": post_url,
+                                }
+                            )
+                    elif "jobs.lever.co" in cur_url.lower():
+                        lever_res = await self._fill_lever_humanized(pg, pdf_path or "", matched_job)
+                        await self._sanitize_post_resume_parse(pg)
                         await self.logger.record_flight_snapshot(
-                            pg, jid, company, "WORKDAY_STANDARD", "NEEDS_AGENT", reason="Resumed Workday tab incomplete"
+                            pg,
+                            jid,
+                            company,
+                            "LEVER_STANDARD",
+                            "RESUMED_PREFILLED",
+                            reason="Resumed Lever tab humanized prefill",
                         )
                         resumed_results.append(
                             {
-                                "status": "NEEDS_AGENT",
+                                "status": "RESUMED_PREFILLED",
                                 "job_id": jid,
                                 "company": company,
-                                "vendor": "WORKDAY_STANDARD",
-                                "url": post_url,
+                                "vendor": "LEVER_STANDARD",
+                                "filled_count": lever_res.get("filled_count", 0),
+                                "url": pg.url,
                             }
                         )
-                else:
-                    step_res = await self.filler.inspect_and_autofill_step(pg, resume_pdf_path=pdf_path or None)
-                    await self._sanitize_post_resume_parse(pg)
-                    await self.logger.record_flight_snapshot(
-                        pg,
-                        jid,
-                        company,
-                        str(step_res.get("vendor", "GENERIC")),
-                        "RESUMED_PREFILLED",
-                        reason="Resumed open tab prefilled",
-                    )
-                    resumed_results.append(
-                        {
-                            "status": "RESUMED_PREFILLED",
-                            "job_id": jid,
-                            "company": company,
-                            "vendor": step_res.get("vendor", "GENERIC"),
-                            "filled_count": step_res.get("filled_count", 0),
-                            "url": pg.url,
-                        }
-                    )
-            except Exception as e:
-                resumed_results.append({"status": "ERROR", "error": str(e)[:200]})
+                    else:
+                        closed_reason = await self._is_page_closed_or_unavailable(pg)
+                        if closed_reason:
+                            self.purge_unavailable_job(jid, company, closed_reason, url=cur_url)
+                            if len(context.pages) > 1:
+                                await pg.close()
+                            resumed_results.append(
+                                {
+                                    "status": "JOB_UNAVAILABLE",
+                                    "job_id": jid,
+                                    "company": company,
+                                    "url": cur_url,
+                                    "reason": closed_reason,
+                                }
+                            )
+                            continue
+
+                        if "icims.com/" in pg.url.lower() or pg.frame(name="icims_content_iframe") is not None:
+                            try:
+                                icims_target: Any = pg.frame(name="icims_content_iframe") or pg
+                                icims_email = icims_target.locator(
+                                    "input#email, input[name='css_email'], input[type='email']"
+                                ).first
+                                if await icims_email.count() > 0 and await icims_email.is_visible():
+                                    await icims_email.fill(self.master_data.personal.email)
+                                    cb = icims_target.locator("input[type='checkbox']").first
+                                    if await cb.count() > 0 and await cb.is_visible() and not await cb.is_checked():
+                                        await cb.check(force=True)
+                                    nxt = icims_target.locator(
+                                        "input#enterEmailSubmitButton, button#enterEmailSubmitButton, input[type='submit'][value*='Next' i], button:has-text('Next')"
+                                    ).first
+                                    if await nxt.count() > 0 and await nxt.is_visible():
+                                        await nxt.click()
+                                        await asyncio.sleep(2.5)
+                            except Exception:
+                                pass
+                        if "applicationmethods" in pg.url.lower():
+                            try:
+                                self_comp = pg.locator(
+                                    "a:has-text('Self-complete'), button:has-text('Self-complete')"
+                                ).first
+                                if await self_comp.count() > 0 and await self_comp.is_visible():
+                                    await self_comp.click()
+                                    await asyncio.sleep(2.5)
+                            except Exception:
+                                pass
+                        fill_target: Any = pg.frame(name="icims_content_iframe") or pg
+                        step_res = await self.filler.inspect_and_autofill_step(
+                            fill_target, resume_pdf_path=pdf_path or None
+                        )
+                        await self._sanitize_post_resume_parse(pg)
+                        await self.logger.record_flight_snapshot(
+                            pg,
+                            jid,
+                            company,
+                            str(step_res.get("vendor", "GENERIC")),
+                            "RESUMED_PREFILLED",
+                            reason="Resumed open tab prefilled",
+                        )
+                        resumed_results.append(
+                            {
+                                "status": "RESUMED_PREFILLED",
+                                "job_id": jid,
+                                "company": company,
+                                "vendor": step_res.get("vendor", "GENERIC"),
+                                "filled_count": step_res.get("filled_count", 0),
+                                "url": pg.url,
+                            }
+                        )
+                except Exception as e:
+                    resumed_results.append({"status": "ERROR", "error": str(e)[:200]})
+        finally:
+            try:
+                await p.stop()
+            except Exception:
+                pass
+            self._pw = None
 
         return {
             "resumed_tabs_count": len(resumed_results),
