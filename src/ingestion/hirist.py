@@ -224,12 +224,13 @@ class HiristCollector:
         try:
             from playwright.async_api import async_playwright
 
-            from src.browser.cdp_stealth import is_cdp_port_open, launch_stealth_browser
+            from src.browser.cdp_stealth import ensure_cdp_page_target, is_cdp_port_open, launch_stealth_browser
 
             async with async_playwright() as p:
                 owns_context = False
                 ctx = None
                 if is_cdp_port_open(9222):
+                    ensure_cdp_page_target(9222)
                     browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222", timeout=10000)
                     ctx = browser.contexts[0] if browser.contexts else await browser.new_context()
                 else:

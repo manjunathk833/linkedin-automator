@@ -698,7 +698,15 @@ class LinkedInJobFinder:
 
             # 5. Full Job Description Scraping with Title Click, "See more" expansion, and noise cleaning
             desc_text = f"Position for {title} @ {company} requiring automation experience in Python, Java, API testing, REST Assured, Playwright, and CI/CD."
+            resolved_channel = channel or getattr(self, "_active_channel", "search") or "search"
             raw_meta_and_desc = ""
+            try:
+                card_meta = await card.inner_text()
+                if isinstance(card_meta, str) and card_meta.strip():
+                    raw_meta_and_desc = card_meta.strip()
+            except Exception:
+                pass
+
             try:
                 if await card.is_visible():
                     # Click title link explicitly for reliable detail pane rendering
@@ -713,12 +721,15 @@ class LinkedInJobFinder:
 
                     # Capture top-card metadata (posting age, Reposted flag, applicant volume) if rendered separately
                     top_card_elem = page.locator(
+                        ".job-details-jobs-unified-top-card__container, "
                         ".job-details-jobs-unified-top-card__primary-description-container, "
                         ".job-details-jobs-unified-top-card__tertiary-description-container, "
                         ".jobs-unified-top-card__subtitle-secondary-grouping"
                     ).first
                     if await top_card_elem.count() > 0:
-                        raw_meta_and_desc = (await top_card_elem.text_content() or "").strip()
+                        top_txt = (await top_card_elem.text_content() or "").strip()
+                        if top_txt:
+                            raw_meta_and_desc = f"{raw_meta_and_desc}\n{top_txt}".strip()
 
                     # Expand "See more" if present
                     see_more_btn = page.locator(
@@ -743,14 +754,19 @@ class LinkedInJobFinder:
             except Exception:
                 pass
 
-            # 5b. Enforce Post-Extraction Freshness & Repost-Saturation Gate (<=3 days, no saturated reposts)
+            # 5b. Enforce Post-Extraction Freshness & Repost-Saturation Gate (<=1d for Sniper, <=3d for other channels)
             if raw_meta_and_desc:
                 from src.ingestion.filters import is_linkedin_posting_fresh_and_unsaturated
 
-                is_fresh, fresh_reason = is_linkedin_posting_fresh_and_unsaturated(raw_meta_and_desc, max_days=3)
+                is_sniper = resolved_channel == "sniper_fresh_24h"
+                is_fresh, fresh_reason = is_linkedin_posting_fresh_and_unsaturated(
+                    raw_meta_and_desc,
+                    max_days=1 if is_sniper else 3,
+                    is_sniper_24h=is_sniper,
+                )
                 if not is_fresh:
                     print(
-                        f"⏭️  Skipping stale/saturated LinkedIn job ({fresh_reason}): {title} @ {company} (ID: {job_id})"
+                        f"⏭️  Skipping stale/saturated LinkedIn job ({fresh_reason}, channel={resolved_channel}): {title} @ {company} (ID: {job_id})"
                     )
                     return None
 

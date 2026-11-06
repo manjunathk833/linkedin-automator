@@ -140,6 +140,13 @@ async def verify_live_session(page: Any, timeout_ms: int = 30000) -> dict[str, A
             "final_url": final_url,
             "message": "LinkedIn redirected /feed/ to login/authwall. Run `python main.py login`.",
         }
+    # Persist fresh authenticated storage_state.json so fallback state never goes stale
+    try:
+        state_path = DEFAULT_PROFILE_DIR / "storage_state.json"
+        if hasattr(page, "context") and hasattr(page.context, "storage_state"):
+            await page.context.storage_state(path=str(state_path))
+    except Exception:
+        pass
     return {
         "is_authenticated": True,
         "status": "AUTHENTICATED",

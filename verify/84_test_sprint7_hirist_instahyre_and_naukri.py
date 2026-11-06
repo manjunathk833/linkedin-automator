@@ -225,7 +225,24 @@ def test_freshness_and_negative_hardware_filters():
         ok_f, _ = is_linkedin_posting_fresh_and_unsaturated(fresh_text, max_days=3)
         assert ok_f, f"Expected fresh text to pass: {fresh_text}"
 
-    print("   ✅ LinkedIn freshness, repost-saturation, and negative hardware exclusions verified.")
+    # Sniper <24h strict 1-day enforcement
+    ok_sniper_2d, reason_sniper_2d = is_linkedin_posting_fresh_and_unsaturated(
+        "Bengaluru, Karnataka, India · 2 days ago · 15 people clicked apply",
+        max_days=1,
+        is_sniper_24h=True,
+    )
+    assert not ok_sniper_2d and reason_sniper_2d == "stale_age_2_days_ago"
+
+    ok_sniper_18h, _ = is_linkedin_posting_fresh_and_unsaturated(
+        "Bengaluru, Karnataka, India · 18 hours ago · 12 people clicked apply",
+        max_days=1,
+        is_sniper_24h=True,
+    )
+    assert ok_sniper_18h
+
+    print(
+        "   ✅ LinkedIn freshness, Sniper <24h vs <=3d, repost-saturation, and negative hardware exclusions verified."
+    )
 
 
 def main():

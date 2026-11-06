@@ -445,12 +445,13 @@ def is_global_remote_eligible(
 def is_linkedin_posting_fresh_and_unsaturated(
     text: str | None,
     max_days: int = 3,
+    is_sniper_24h: bool = False,
 ) -> tuple[bool, str]:
     """
-    Inspects LinkedIn top-card / header metadata (first 800 characters of detail text)
-    to enforce two strict freshness and saturation invariants across all LinkedIn channels:
-    1. Rejects any posting/reposting whose header age exceeds `max_days` (e.g. '5 days ago',
-       '1 week ago', '2 weeks ago', '1 month ago').
+    Inspects LinkedIn top-card / list-card metadata (first 800 characters of detail text)
+    to enforce strict freshness and saturation invariants across all LinkedIn channels:
+    1. Rejects any posting/reposting whose header age exceeds `effective_max_days`
+       (`1` day for `sniper_fresh_24h`, `3` days for other channels).
     2. Rejects any recycled 'Reposted' job that is already saturated with
        'Over 100 people clicked apply' or 'Over 100 applicants'.
     Returns (is_valid, reason).
@@ -458,6 +459,7 @@ def is_linkedin_posting_fresh_and_unsaturated(
     if not text or not text.strip():
         return True, "empty_metadata"
 
+    effective_max_days = 1 if is_sniper_24h else max_days
     header_text = text[:800]
 
     # 1. Check relative age anchored to LinkedIn metadata separators ('·', 'Reposted', 'Posted', or line start)
@@ -470,7 +472,7 @@ def is_linkedin_posting_fresh_and_unsaturated(
         unit = match.group(2).lower()
         if unit in ("week", "month", "year"):
             return False, f"stale_age_{num}_{unit}s_ago"
-        if unit == "day" and num > max_days:
+        if unit == "day" and num > effective_max_days:
             return False, f"stale_age_{num}_days_ago"
 
     # 2. Check recycled Reposted + Over 100 applicants saturation

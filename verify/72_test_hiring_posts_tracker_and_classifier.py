@@ -24,6 +24,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.posts.outreach_composer import PostOutreachComposer
 from src.posts.post_classifier import PostClassifier
+from src.posts.post_tracker import LinkedInPostTracker, extract_relative_timestamp_from_card_text
 from src.storage.database import ApplicationDatabase
 
 
@@ -141,6 +142,30 @@ def test_post_classifier_noise_filtering():
     }
     assert classifier.process_raw_post(promo_post) is None, "Failed: Promotion celebration post was not filtered!"
     print("   ✅ Promotion celebration filtered out successfully")
+
+    # 5. Overseas US W2 onsite contract rejection
+    us_w2_post = {
+        "author_name": "Geetha S",
+        "author_headline": "Sr Resource Manager at Javen Technologies, Inc.",
+        "post_text": "Seeking a SDET QA Automation Engineer for onsite w2 long term contract role in Farmington Hills MI. Reach geetha@javentechnologies.com",
+    }
+    assert classifier.process_raw_post(us_w2_post) is None, "Failed: US W2 onsite contract post was not filtered!"
+    print("   ✅ Overseas US W2 onsite contract filtered out successfully")
+
+    # 6. SDUI concatenated timestamp extraction & strict <=72h age filter
+    assert (
+        extract_relative_timestamp_from_card_text("Manoj Sangwan • 2nd Manual & Automation Testing6d • Follow") == "6d"
+    )
+    assert (
+        extract_relative_timestamp_from_card_text("A.R. Ashwin • 3rd+ Workday Business Analysis1w • Edited •") == "1w"
+    )
+    assert extract_relative_timestamp_from_card_text("Rahul Y. • 2nd +LTIMindtree16m • Follow") == "16m"
+    assert LinkedInPostTracker.is_post_within_age_limit("6d", "past-72h") is False
+    assert LinkedInPostTracker.is_post_within_age_limit("1w", "past-72h") is False
+    assert LinkedInPostTracker.is_post_within_age_limit("recent", "past-72h") is False
+    assert LinkedInPostTracker.is_post_within_age_limit("2d", "past-72h") is True
+    assert LinkedInPostTracker.is_post_within_age_limit("16m", "past-24h") is True
+    print("   ✅ SDUI concatenated timestamp extraction & strict <=72h post age cutoff verified")
 
 
 def test_outreach_composer_limits_and_personas():

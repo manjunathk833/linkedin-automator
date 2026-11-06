@@ -108,15 +108,21 @@ async def launch_persistent_browser(
         accept_downloads=True,
     )
 
-    # Synchronize cookies from storage_state.json if available
+    # Synchronize cookies from storage_state.json ONLY if the live profile Cookies DB lacks li_at
     state_file = os.path.join(profile_dir, "storage_state.json")
     if os.path.exists(state_file):
         try:
-            with open(state_file, "r", encoding="utf-8") as f:
-                state_data = json.load(f)
-            cookies = state_data.get("cookies", [])
-            if cookies:
-                await context.add_cookies(cookies)
+            from pathlib import Path
+
+            from src.browser.linkedin_auth import _li_at_from_cookie_db
+
+            cookie_db_state = _li_at_from_cookie_db(Path(profile_dir))
+            if not (cookie_db_state and cookie_db_state.get("has_li_at")):
+                with open(state_file, "r", encoding="utf-8") as f:
+                    state_data = json.load(f)
+                cookies = state_data.get("cookies", [])
+                if cookies:
+                    await context.add_cookies(cookies)
         except Exception as e:
             print(f"⚠️ Warning: Could not pre-sync storage_state cookies: {e}")
 

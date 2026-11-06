@@ -612,6 +612,16 @@ class PostClassifier:
         ):
             return False, "Non-software CAD/BIM/Civil modeling role detected."
 
+        # 1f. Reject overseas US W2 / US-citizenship / security-clearance restricted staffing posts
+        from src.ingestion.filters import has_jurisdiction_restriction
+
+        if has_jurisdiction_restriction(text_lower) or re.search(
+            r"\b(?:w2\s+(?:only|contract|long\s+term)|onsite\s+w2|gc/usc|usc/gc|c2c\s+in\s+usa)\b",
+            text_lower,
+            re.IGNORECASE,
+        ):
+            return False, "Overseas US W2 / jurisdiction restriction detected in post."
+
         # 2. Reject EdTech Commercial Spam
         for marker in COMMERCIAL_SPAM_MARKERS:
             if marker in combined:
