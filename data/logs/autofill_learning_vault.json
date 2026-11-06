@@ -121,6 +121,14 @@
       "root_cause": "1. page.context.on('page') listens globally across all concurrent workers in the browser context instead of only popups opened by that page. 2. ABB Workday uses 'Mr' (without trailing period) in Prefix options and input#personalInfoPerson--genderIdentities selectinput on Voluntary Disclosures.",
       "fix_rule": "1. Strictly use page.on('popup') instead of page.context.on('page') when clicking Apply buttons in concurrent tabs. 2. Add prefix_val.rstrip('.') fallback for Workday Prefix dropdowns and populate input#personalInfoPerson--genderIdentities with 'Male' on Voluntary Disclosures.",
       "date_banked": "2026-11-06T15:08:00+05:30"
+    },
+    {
+      "id": "LESSON-046",
+      "vendor": "COMMON",
+      "symptom": "Darwinbox login/register inputs return 0 controls in document.querySelectorAll('input'); Oracle Taleo pauses on Privacy Agreement ('\u2714 I have read') and Guest Apply email entry.",
+      "root_cause": "1. Darwinbox encapsulates inputs inside <dbx-textinput> Shadow DOM web components and renders Sign Up as a text span. 2. Oracle Taleo uses <input type='button' id='dialogTemplate-dialogForm-StatementBeforeAuthentificationContent-ContinueButton' value='\u2714 I have read'> followed by input#dialogTemplate-dialogForm-email + Continue.",
+      "fix_rule": "1. Traverse open .shadowRoot trees in record_flight_snapshot() and use Playwright shadow-piercing locators (input[placeholder*='email' i], text='Sign Up') on Darwinbox. 2. Advance Oracle Taleo through Apply as Guest -> StatementBeforeAuthentificationContent-ContinueButton -> dialogForm-email + Continue -> resume upload.",
+      "date_banked": "2026-11-06T15:52:00+05:30"
     }
   ]
 }
