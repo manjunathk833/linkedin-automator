@@ -411,6 +411,21 @@ def normalize_job_source_metadata(payload: dict[str, Any]) -> tuple[str, str]:
         or app_type == "ATS_INSTAHYRE"
     ):
         source = "instahyre"
+    elif "amazon" in raw_source or job_id.startswith("amazon_") or "amazon.jobs" in url:
+        source = "amazon"
+    elif (
+        "eightfold" in raw_source
+        or job_id.startswith("eightfold_")
+        or "eightfold.ai" in url
+        or "careers.microsoft.com" in url
+    ):
+        source = "eightfold"
+    elif "apple" in raw_source or job_id.startswith("apple_") or "jobs.apple.com" in url:
+        source = "apple"
+    elif "google" in raw_source or job_id.startswith("google_") or "google.com/about/careers" in url:
+        source = "google"
+    elif "comeet" in raw_source or job_id.startswith("comeet_") or "comeet.com" in url:
+        source = "comeet"
     elif (
         "linkedin" in raw_source
         or job_id.startswith("p1_job_")
@@ -673,7 +688,17 @@ async def approve_job(job_id: str, payload: dict):
     from src.resume_store.models import ResumeProfile
 
     approved_path = os.path.join(APPROVED_DIR, f"{job_id}.json")
+    pending_path = os.path.join(PENDING_DIR, f"{job_id}.json")
     try:
+        if os.path.exists(pending_path):
+            try:
+                with open(pending_path, "r", encoding="utf-8") as pf:
+                    pending_data = json.load(pf)
+                for k, v in pending_data.items():
+                    if k not in payload or payload[k] in (None, {}, ""):
+                        payload[k] = v
+            except Exception:
+                pass
         resume_choice = payload.get("resume_choice", "tailored").lower()
         if resume_choice not in ["tailored", "standard"]:
             resume_choice = "tailored"

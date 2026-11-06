@@ -96,6 +96,9 @@ class OrgResearcher:
             dashed,
             first_tok,
             f"{clean_base}hq",
+            f"{clean_base}-careers",
+            f"{clean_base}careers",
+            f"{dashed}-careers",
             f"{clean_base}inc",
             f"{clean_base}ai",
             f"{clean_base}tech",
@@ -108,7 +111,7 @@ class OrgResearcher:
         ):
             if s and s not in candidates:
                 candidates.append(s)
-        return candidates[:10]
+        return candidates[:12]
 
     async def probe_company_slug(
         self,

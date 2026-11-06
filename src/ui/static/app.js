@@ -167,6 +167,41 @@ function formatSourceBadge(source, appType) {
             icon: '🔷'
         };
     }
+    if (s.includes('amazon') || a.includes('AMAZON')) {
+        return {
+            label: '🟠 Amazon Jobs',
+            cssClass: 'badge-workday',
+            icon: '🟠'
+        };
+    }
+    if (s.includes('eightfold') || a.includes('EIGHTFOLD')) {
+        return {
+            label: '🟦 Eightfold AI',
+            cssClass: 'badge-lever',
+            icon: '🟦'
+        };
+    }
+    if (s.includes('apple') || a.includes('APPLE')) {
+        return {
+            label: '🍎 Apple Jobs',
+            cssClass: 'badge-generic-ats',
+            icon: '🍎'
+        };
+    }
+    if (s.includes('google') || a.includes('GOOGLE')) {
+        return {
+            label: '🔵 Google Careers',
+            cssClass: 'badge-lever',
+            icon: '🔵'
+        };
+    }
+    if (s.includes('comeet') || a.includes('COMEET')) {
+        return {
+            label: '💠 Comeet ATS',
+            cssClass: 'badge-ashby',
+            icon: '💠'
+        };
+    }
     const fallbackText = (source || 'ATS').toUpperCase();
     return {
         label: `💼 ${fallbackText} ATS`,

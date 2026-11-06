@@ -15,6 +15,7 @@ POSITIVE_SDET_REGEX = re.compile(
     r"sdet|"
     r"software development engineer in test|"
     r"software engineer in test|"
+    r"software (?:development |dev\.? )?engineer[\s,-]+(?:[ivx123]+[\s,-]+)?test|"
     r"engineer in quality|"
     r"qa\b|"
     r"qe\b|"

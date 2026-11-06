@@ -20501,5 +20501,275 @@
     "industry": "AI, Cloud & Product Engineering",
     "is_dream_org": true,
     "active": true
+  },
+  {
+    "name": "Skild AI",
+    "ats_provider": "greenhouse",
+    "slug": "skildai-careers",
+    "domain": "skild.ai",
+    "active": true,
+    "industry": "Robotics Foundation Models & AI",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Syllo",
+    "ats_provider": "greenhouse",
+    "slug": "syllo",
+    "domain": "syllo.ai",
+    "active": true,
+    "industry": "AI Litigation Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "microagi",
+    "ats_provider": "ashby",
+    "slug": "microagi",
+    "domain": "microagi.ai",
+    "active": true,
+    "industry": "Industrial Foundation Models & Robotics",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Nova Intelligence",
+    "ats_provider": "ashby",
+    "slug": "novaintelligence",
+    "domain": "novaintelligence.com",
+    "active": true,
+    "industry": "Agentic Enterprise SAP Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Nous Research",
+    "ats_provider": "ashby",
+    "slug": "nousresearch",
+    "domain": "nousresearch.com",
+    "active": true,
+    "industry": "Open-Source Foundation LLMs & Evals",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Glow Security",
+    "ats_provider": "ashby",
+    "slug": "glow",
+    "domain": "glow.io",
+    "active": true,
+    "industry": "Agentic Endpoint Security",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Fluidstack",
+    "ats_provider": "ashby",
+    "slug": "fluidstack",
+    "domain": "fluidstack.io",
+    "active": true,
+    "industry": "AI Compute Infrastructure",
+    "is_dream_org": true,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Onyx Security",
+    "ats_provider": "comeet",
+    "slug": "onyxsecurity",
+    "domain": "onyx.security",
+    "active": true,
+    "industry": "Secure AI Control Plane",
+    "is_dream_org": true,
+    "site": "BA.005",
+    "datacenter": "wd3",
+    "career_url": "AB54AF3403E156A55A8605D156A2AD44AF3605D"
+  },
+  {
+    "name": "Google India",
+    "ats_provider": "google",
+    "slug": "google-india",
+    "domain": "google.com",
+    "active": true,
+    "industry": "Tier-1 Big Tech / Cloud & AI",
+    "is_dream_org": true,
+    "datacenter": "wd3",
+    "career_url": "https://www.google.com/about/careers/applications/jobs/results/?location=India"
+  },
+  {
+    "name": "Microsoft India (Careers)",
+    "ats_provider": "eightfold",
+    "slug": "microsoft-eightfold",
+    "domain": "microsoft.com",
+    "active": true,
+    "industry": "Tier-1 Big Tech / Cloud & AI",
+    "is_dream_org": true,
+    "datacenter": "wd3",
+    "career_url": "https://apply.careers.microsoft.com"
+  },
+  {
+    "name": "Amazon India",
+    "ats_provider": "amazon",
+    "slug": "amazon-india",
+    "domain": "amazon.jobs",
+    "active": true,
+    "industry": "Tier-1 Big Tech / E-Commerce & AWS",
+    "is_dream_org": true,
+    "datacenter": "wd3",
+    "career_url": "https://www.amazon.jobs/en/search.json"
+  },
+  {
+    "name": "Apple India",
+    "ats_provider": "apple",
+    "slug": "apple-india",
+    "domain": "jobs.apple.com",
+    "active": true,
+    "industry": "Tier-1 Big Tech / Consumer & Cloud",
+    "is_dream_org": true,
+    "datacenter": "wd3",
+    "career_url": "https://jobs.apple.com/en-in/search"
+  },
+  {
+    "name": "Ema",
+    "domain": "ema.co",
+    "career_url": "https://www.ema.co/careers",
+    "ats_provider": "ashby",
+    "slug": "ema",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Nscale",
+    "domain": "nscale.com",
+    "career_url": "https://www.nscale.com/open-positions",
+    "ats_provider": "greenhouse",
+    "slug": "nscaleoperationsukltd",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Wonderful",
+    "domain": "wonderful.ai",
+    "career_url": "https://www.wonderful.ai/careers",
+    "ats_provider": "ashby",
+    "slug": "wonderful",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Emerald AI",
+    "domain": "emeraldai.co",
+    "career_url": "https://www.emeraldai.co/careers",
+    "ats_provider": "ashby",
+    "slug": "emerald-ai",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Nevis",
+    "domain": "neviswealth.com",
+    "career_url": "https://www.neviswealth.com/careers",
+    "ats_provider": "ashby",
+    "slug": "nevis",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Canals",
+    "domain": "canals.ai",
+    "career_url": "https://www.canals.ai/careers",
+    "ats_provider": "ashby",
+    "slug": "canals",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Triomics",
+    "domain": "triomics.com",
+    "career_url": "https://www.triomics.com/careers",
+    "ats_provider": "ashby",
+    "slug": "triomics",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "CrewAI",
+    "domain": "crewai.com",
+    "career_url": "https://apply.workable.com/crewai/",
+    "ats_provider": "workable",
+    "slug": "crewai",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "TENEX.AI",
+    "domain": "tenex.ai",
+    "career_url": "https://www.tenex.ai/careers",
+    "ats_provider": "ashby",
+    "slug": "tenex",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Novee Security",
+    "domain": "novee.security",
+    "career_url": "https://novee.security/careers/",
+    "ats_provider": "comeet",
+    "slug": "noveesecurity",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Seekr",
+    "domain": "seekr.com",
+    "career_url": "https://www.seekr.com/careers",
+    "ats_provider": "greenhouse",
+    "slug": "seekr",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "OpenEvidence",
+    "domain": "openevidence.com",
+    "career_url": "https://www.openevidence.com/careers",
+    "ats_provider": "ashby",
+    "slug": "openevidence",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Zafran Security",
+    "domain": "zafran.io",
+    "career_url": "https://www.zafran.io/careers",
+    "ats_provider": "ashby",
+    "slug": "zafran-security",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Qualcomm India (Careers)",
+    "domain": "qualcomm.com",
+    "career_url": "https://careers.qualcomm.com",
+    "ats_provider": "eightfold",
+    "slug": "qualcomm-eightfold",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "PayPal India (Careers)",
+    "domain": "paypal.com",
+    "career_url": "https://paypal.eightfold.ai",
+    "ats_provider": "eightfold",
+    "slug": "paypal-eightfold",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Micron India (Careers)",
+    "domain": "micron.com",
+    "career_url": "https://micron.eightfold.ai",
+    "ats_provider": "eightfold",
+    "slug": "micron-eightfold",
+    "is_dream_org": true,
+    "status": "VERIFIED_ACTIVE"
   }
 ]
