@@ -759,10 +759,20 @@ class AutofillLogger:
             try:
                 dom_snapshot = await page.evaluate(
                     """() => {
+                        const queryAllDeep = (selector, root = document) => {
+                            const results = Array.from(root.querySelectorAll(selector));
+                            const allNodes = root.querySelectorAll('*');
+                            for (const node of allNodes) {
+                                if (node.shadowRoot) {
+                                    results.push(...queryAllDeep(selector, node.shadowRoot));
+                                }
+                            }
+                            return results;
+                        };
                         const controls = [];
-                        const els = Array.from(document.querySelectorAll(
+                        const els = queryAllDeep(
                             'input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea, [role="combobox"], [data-automation-id*="selectWidget"]'
-                        ));
+                        );
                         for (const el of els) {
                             const r = el.getBoundingClientRect();
                             if (r.width === 0 || r.height === 0) continue;
@@ -819,7 +829,7 @@ class AutofillLogger:
 
                         const buttons = [];
                         const seenBtns = new Set();
-                        const btnEls = Array.from(document.querySelectorAll('button, a[role="button"], input[type="submit"], a.postings-btn'));
+                        const btnEls = queryAllDeep('button, a[role="button"], input[type="submit"], input[type="button"], a.postings-btn');
                         for (const b of btnEls) {
                             const r = b.getBoundingClientRect();
                             if (r.width === 0 || r.height === 0) continue;
