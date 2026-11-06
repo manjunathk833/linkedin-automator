@@ -215,6 +215,22 @@ def handle_autofill_audit():
         for sc in recent_screenshots[:5]:
             print(f"  • {sc}")
 
+    flight_records = summary.get("recent_flight_records", [])
+    if flight_records:
+        print(f"\n🛫 Recent Application Flight Recorder Entries ({len(flight_records)} captured):")
+        for fr in flight_records[-5:]:
+            ts = fr.get("timestamp", "")[:19]
+            jid = fr.get("job_id", "")
+            comp = fr.get("company", "")
+            vnd = fr.get("vendor", "GENERIC")
+            st = fr.get("status", "")
+            ctrl_cnt = fr.get("visible_controls_count", 0)
+            banners = len(fr.get("validation_banners", []))
+            net_errs = len(fr.get("network_errors", []))
+            print(
+                f"  [{ts}] [{st}] {comp} ({jid}) [{vnd}] -> controls={ctrl_cnt}, banners={banners}, net_errs={net_errs}"
+            )
+
     print("\n" + "=" * 72 + "\n")
 
 
@@ -434,9 +450,34 @@ async def _run_form_batch_async(
     url: str = "",
     resume_path: str = "",
     actions_json: str = "{}",
+    batch_size: int = 5,
+    ignore_tiers: bool = True,
+    resume_tabs: bool = False,
     cdp_url: str = "http://127.0.0.1:9222",
 ) -> None:
-    """Connects to persistent Chrome over CDP and runs 2-phase batch form inspection or custom action fill."""
+    """Connects to persistent Chrome over CDP and runs 2-phase batch form inspection, custom action fill, bulk apply, or open-tab resume."""
+    if resume_tabs or action == "resume":
+        from src.autofill.bulk_apply_engine import BulkApplyFastTrackEngine
+
+        engine = BulkApplyFastTrackEngine(cdp_url=cdp_url)
+        res = await engine.resume_open_tabs(dry_run=False)
+        print(json.dumps(res, indent=2))
+        return
+
+    if action == "bulk":
+        from src.autofill.bulk_apply_engine import BulkApplyFastTrackEngine
+
+        engine = BulkApplyFastTrackEngine(cdp_url=cdp_url)
+        target_ids = [x.strip() for x in job_id.split(",") if x.strip()] if job_id else None
+        res = await engine.execute_batch(
+            batch_size=batch_size,
+            ignore_tiers=ignore_tiers,
+            dry_run=False,
+            job_ids=target_ids,
+        )
+        print(json.dumps(res, indent=2))
+        return
+
     from src.autofill.batch_form_engine import UniversalBatchFormFiller
 
     _ensure_cdp_page_target(cdp_url)
@@ -480,16 +521,27 @@ async def _run_form_batch_async(
         pages = context.pages
         page = None
 
-        if url:
+        # 1. Priority match: check if an open tab is stamped for this job_id (window.__agy_job_id / window.name)
+        if job_id:
+            from src.autofill.bulk_apply_engine import find_tab_for_job
+
+            page = await find_tab_for_job(context, job_id)
+
+        # 2. Secondary match: check URL substring
+        if page is None and url:
             for pg in pages:
                 if url in (pg.url or ""):
                     page = pg
                     break
             if page is None:
-                page = pages[-1] if pages else await context.new_page()
+                page = await context.new_page()
                 await page.goto(url, wait_until="domcontentloaded", timeout=30000)
                 await asyncio.sleep(1.5)
-        else:
+                if job_id:
+                    from src.autofill.bulk_apply_engine import stamp_tab_job_id
+
+                    await stamp_tab_job_id(page, job_id)
+        elif page is None:
             # Find the tab with the most visible interactive form fields (penalizing LinkedIn browse tabs without Easy Apply modal)
             best_score = -1000
             for pg in reversed(pages):
@@ -920,21 +972,47 @@ def main():
         help="Run browser in headless mode (default: False, runs headful visible)",
     )
 
-    # 14. form-batch (2-Phase Extract-Map-BatchExecute high-speed form engine)
+    # 14. form-batch / bulk-apply (2-Phase Extract-Map-BatchExecute high-speed form engine)
     parser_batch = subparsers.add_parser(
-        "form-batch", help="High-speed 2-phase DOM schema extractor & deterministic batch form filler"
+        "form-batch",
+        aliases=["bulk-apply"],
+        help="High-speed 2-phase DOM schema extractor, deterministic batch filler & multi-job bulk applier",
     )
     parser_batch.add_argument(
         "action",
-        choices=["inspect", "apply"],
+        choices=["inspect", "apply", "bulk", "resume"],
         nargs="?",
         default="inspect",
-        help="Action: 'inspect' (extract schema & batch-fill known fields) or 'apply' (apply custom field JSON)",
+        help="Action: 'inspect' (extract schema & batch-fill), 'apply' (apply custom field JSON), 'bulk' (fast-track N approved jobs), or 'resume' (complete open signed-in tabs)",
     )
-    parser_batch.add_argument("--job-id", default="", help="Job ID from data/approved_queue/")
+    parser_batch.add_argument("--job-id", default="", help="Job ID (or comma-separated IDs) from data/approved_queue/")
     parser_batch.add_argument("--url", default="", help="Optional target URL to open/inspect")
     parser_batch.add_argument("--resume", default="", help="Optional path to tailored resume PDF")
     parser_batch.add_argument("--actions", default="{}", help="JSON mapping of {field_id_or_label: value} for 'apply'")
+    parser_batch.add_argument(
+        "--batch-size",
+        type=int,
+        default=5,
+        help="Number of approved jobs to stage/fast-track in 'bulk' mode (default: 5, max wave: 5)",
+    )
+    parser_batch.add_argument(
+        "--resume-tabs",
+        action="store_true",
+        default=False,
+        help="Inspect and deterministically complete all open signed-in ATS/Workday tabs in Chrome",
+    )
+    parser_batch.add_argument(
+        "--ignore-tiers",
+        action="store_true",
+        default=True,
+        help="Apply to all approved jobs regardless of TIER_2_REFERRAL_SLA holds (default: True)",
+    )
+    parser_batch.add_argument(
+        "--respect-tiers",
+        action="store_false",
+        dest="ignore_tiers",
+        help="Skip TIER_2_REFERRAL_SLA jobs during bulk apply",
+    )
 
     # 15. referral-scout (Dynamic LinkedIn low-key referral contact scout)
     parser_scout = subparsers.add_parser(
@@ -1046,14 +1124,18 @@ def main():
             limit=getattr(args, "limit", 15),
             headless=getattr(args, "headless", True),
         )
-    elif cmd == "form-batch":
+    elif cmd in ("form-batch", "bulk-apply"):
+        default_act = "bulk" if (cmd == "bulk-apply" and args.action == "inspect") else args.action
         asyncio.run(
             _run_form_batch_async(
-                action=args.action,
+                action=default_act,
                 job_id=getattr(args, "job_id", ""),
                 url=getattr(args, "url", ""),
                 resume_path=getattr(args, "resume", ""),
                 actions_json=getattr(args, "actions", "{}"),
+                batch_size=getattr(args, "batch_size", 5),
+                ignore_tiers=getattr(args, "ignore_tiers", True),
+                resume_tabs=getattr(args, "resume_tabs", False),
             )
         )
     elif cmd == "referral-scout":

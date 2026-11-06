@@ -26,6 +26,7 @@ LEARNING_VAULT_FILE = LOGS_DIR / "autofill_learning_vault.json"
 BENCHMARKS_JSONL_FILE = LOGS_DIR / "autofill_benchmarks.jsonl"
 UNMAPPED_BACKLOG_JSONL_FILE = LOGS_DIR / "unmapped_fields_backlog.jsonl"
 LEARNED_MAPPINGS_FILE = LOGS_DIR / "learned_field_mappings.json"
+FLIGHT_RECORDER_JSONL_FILE = LOGS_DIR / "application_flight_recorder.jsonl"
 
 
 def normalize_field_label_key(label: str) -> str:
@@ -640,8 +641,22 @@ class AutofillLogger:
 
         learned_mappings = self.get_learned_field_mappings()
 
+        flight_records = []
+        if FLIGHT_RECORDER_JSONL_FILE.exists():
+            try:
+                with open(FLIGHT_RECORDER_JSONL_FILE, encoding="utf-8") as f:
+                    lines = [ln.strip() for ln in f if ln.strip()]
+                    for ln in lines[-limit:]:
+                        try:
+                            flight_records.append(json.loads(ln))
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
         return {
             "recent_events": events,
+            "recent_flight_records": flight_records,
             "total_lessons_banked": len(lessons),
             "lessons": lessons,
             "recent_screenshots": screenshots,
@@ -655,3 +670,198 @@ class AutofillLogger:
                 "learned_mappings": list(learned_mappings.values())[:limit],
             },
         }
+
+    def attach_network_flight_recorder(self, page: Any) -> None:
+        """
+        Attaches a lightweight HTTP response listener to `page` that captures failed API calls
+        (`status >= 400`) or ATS submission/validation payloads into `page._agy_net_errors`.
+        """
+        if not page or getattr(page, "_agy_flight_recorder_attached", False):
+            return
+        try:
+            page._agy_net_errors = []
+            page._agy_flight_recorder_attached = True
+
+            async def _on_response(resp: Any) -> None:
+                try:
+                    status = int(resp.status)
+                    r_url = str(resp.url or "")
+                    if any(
+                        ext in r_url.lower()
+                        for ext in (".png", ".jpg", ".svg", ".woff", ".css", "google-analytics", "doubleclick")
+                    ):
+                        return
+                    is_error = status >= 400
+                    is_ats_submit = any(
+                        k in r_url.lower() for k in ("/apply", "/submit", "/jobtasks", "/candidate", "/application")
+                    ) and resp.request.method in ("POST", "PUT", "PATCH")
+                    if not (is_error or is_ats_submit):
+                        return
+                    body_preview = ""
+                    ctype = (resp.headers.get("content-type") or "").lower()
+                    if "json" in ctype or "text" in ctype or is_error:
+                        try:
+                            txt = await resp.text()
+                            if (
+                                is_ats_submit
+                                and status < 400
+                                and not any(
+                                    err_k in txt.lower()
+                                    for err_k in ("error", "invalid", "required", "captcha", "fail")
+                                )
+                            ):
+                                return
+                            body_preview = re.sub(r"\s+", " ", txt).strip()[:350]
+                        except Exception:
+                            body_preview = ""
+                    bucket: list[dict[str, Any]] = getattr(page, "_agy_net_errors", [])
+                    if len(bucket) < 15:
+                        bucket.append(
+                            {
+                                "status": status,
+                                "method": resp.request.method,
+                                "url": r_url[:180],
+                                "response_preview": body_preview,
+                            }
+                        )
+                except Exception:
+                    pass
+
+            page.on("response", _on_response)
+        except Exception:
+            pass
+
+    async def record_flight_snapshot(
+        self,
+        page: Any,
+        job_id: str,
+        company: str,
+        vendor: str,
+        status: str,
+        reason: str = "",
+        extra: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Captures an Action-Scoped Application Flight Recorder entry (<15 KB JSONL) containing
+        all visible interactive form controls (with resolved labels & data-automation-id),
+        visible validation error banners, and failed XHR/HTTP responses into
+        `data/logs/application_flight_recorder.jsonl`.
+        """
+        _ensure_directories()
+        cur_url = getattr(page, "url", "") if page else ""
+        dom_snapshot: dict[str, Any] = {
+            "visible_controls": [],
+            "validation_banners": [],
+            "visible_buttons": [],
+        }
+
+        if page and hasattr(page, "evaluate"):
+            try:
+                dom_snapshot = await page.evaluate(
+                    """() => {
+                        const controls = [];
+                        const els = Array.from(document.querySelectorAll(
+                            'input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea, [role="combobox"], [data-automation-id*="selectWidget"]'
+                        ));
+                        for (const el of els) {
+                            const r = el.getBoundingClientRect();
+                            if (r.width === 0 || r.height === 0) continue;
+                            let lbl = '';
+                            if (el.labels && el.labels.length > 0) {
+                                lbl = Array.from(el.labels).map(l => l.innerText).join(' ');
+                            }
+                            if (!lbl && el.id) {
+                                const byFor = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+                                if (byFor) lbl = byFor.innerText;
+                            }
+                            if (!lbl) {
+                                lbl = el.getAttribute('aria-label') || el.getAttribute('placeholder') || '';
+                            }
+                            if (!lbl) {
+                                const container = el.closest('[data-automation-id*="formField"], .application-question, .field, fieldset, label');
+                                if (container) {
+                                    const lEl = container.querySelector('label, legend, .text, [data-automation-id*="formLabel"]');
+                                    if (lEl) lbl = lEl.innerText;
+                                }
+                            }
+                            lbl = (lbl || '').replace(/\\s+/g, ' ').trim().slice(0, 120);
+                            const tag = (el.tagName || '').toLowerCase();
+                            const itype = (el.getAttribute('type') || tag).toLowerCase();
+                            const rawVal = itype === 'password' ? '********' : (el.value || (el.innerText || '').trim()).slice(0, 80);
+                            controls.push({
+                                tag: tag,
+                                type: itype,
+                                id: (el.id || '').slice(0, 80),
+                                name: (el.getAttribute('name') || '').slice(0, 80),
+                                data_automation_id: (el.getAttribute('data-automation-id') || '').slice(0, 80),
+                                label: lbl,
+                                required: !!(el.required || el.getAttribute('aria-required') === 'true' || /\\*/.test(lbl)),
+                                value: rawVal
+                            });
+                            if (controls.length >= 35) break;
+                        }
+
+                        const banners = [];
+                        const seenBanners = new Set();
+                        const alertEls = Array.from(document.querySelectorAll(
+                            '[role="alert"], [data-automation-id*="error" i], .error-message, .field-error, .invalid-feedback, .g-recaptcha, .h-captcha, iframe[src*="hcaptcha"], iframe[src*="recaptcha"]'
+                        ));
+                        for (const a of alertEls) {
+                            const r = a.getBoundingClientRect();
+                            if (r.width === 0 || r.height === 0) continue;
+                            const txt = (a.tagName === 'IFRAME' ? ('CAPTCHA_IFRAME:' + (a.getAttribute('src') || '').slice(0, 80)) : (a.innerText || '')).replace(/\\s+/g, ' ').trim().slice(0, 160);
+                            if (txt && !seenBanners.has(txt.toLowerCase())) {
+                                seenBanners.add(txt.toLowerCase());
+                                banners.push(txt);
+                            }
+                            if (banners.length >= 10) break;
+                        }
+
+                        const buttons = [];
+                        const seenBtns = new Set();
+                        const btnEls = Array.from(document.querySelectorAll('button, a[role="button"], input[type="submit"], a.postings-btn'));
+                        for (const b of btnEls) {
+                            const r = b.getBoundingClientRect();
+                            if (r.width === 0 || r.height === 0) continue;
+                            const btxt = (b.innerText || b.value || b.getAttribute('aria-label') || '').replace(/\\s+/g, ' ').trim().slice(0, 50);
+                            if (btxt && !seenBtns.has(btxt.toLowerCase())) {
+                                seenBtns.add(btxt.toLowerCase());
+                                buttons.push(btxt);
+                            }
+                            if (buttons.length >= 12) break;
+                        }
+
+                        return {
+                            visible_controls: controls,
+                            validation_banners: banners,
+                            visible_buttons: buttons
+                        };
+                    }"""
+                )
+            except Exception:
+                pass
+
+        net_errors = list(getattr(page, "_agy_net_errors", [])) if page else []
+        record = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "job_id": str(job_id),
+            "company": company,
+            "vendor": vendor or "GENERIC",
+            "status": status,
+            "reason": reason,
+            "url": cur_url,
+            "visible_controls_count": len(dom_snapshot.get("visible_controls", [])),
+            "visible_controls": dom_snapshot.get("visible_controls", []),
+            "validation_banners": dom_snapshot.get("validation_banners", []),
+            "visible_buttons": dom_snapshot.get("visible_buttons", []),
+            "network_errors": net_errors,
+            "extra": extra or {},
+        }
+
+        try:
+            with open(FLIGHT_RECORDER_JSONL_FILE, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record) + "\n")
+        except Exception as e:
+            self.logger.warning(f"Failed to append to {FLIGHT_RECORDER_JSONL_FILE}: {e}")
+
+        return record

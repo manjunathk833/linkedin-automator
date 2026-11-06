@@ -4356,5 +4356,66 @@
     "industry": "Marketing Automation & CRM",
     "is_dream_org": true,
     "datacenter": "wd3"
+  },
+  {
+    "name": "Northern Trust",
+    "ats_provider": "workday",
+    "slug": "ntrs",
+    "domain": "ntrs.com",
+    "active": true,
+    "industry": "Auto-Discovered Target",
+    "is_dream_org": false,
+    "site": "northerntrust",
+    "datacenter": "wd1"
+  },
+  {
+    "name": "Neuron7.ai",
+    "ats_provider": "lever",
+    "slug": "neuron7",
+    "domain": "neuron7.com",
+    "active": true,
+    "industry": "Auto-Discovered Target",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "IntegriChain",
+    "ats_provider": "smartrecruiters",
+    "slug": "IntegriChain1",
+    "domain": "integrichain1.com",
+    "active": true,
+    "industry": "Auto-Discovered Target",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Apex IT",
+    "ats_provider": "greenhouse",
+    "slug": "apexit",
+    "domain": "apexit.com",
+    "active": true,
+    "industry": "Auto-Discovered Target",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "QAD",
+    "ats_provider": "smartrecruiters",
+    "slug": "QADInc",
+    "domain": "qadinc.com",
+    "active": true,
+    "industry": "Auto-Discovered Target",
+    "is_dream_org": false,
+    "datacenter": "wd3"
+  },
+  {
+    "name": "Experian",
+    "ats_provider": "smartrecruiters",
+    "slug": "Experian",
+    "domain": "experian.com",
+    "active": true,
+    "industry": "Auto-Discovered Target",
+    "is_dream_org": false,
+    "datacenter": "wd3"
   }
 ]

@@ -206,7 +206,7 @@ class JobSearchPipelineRunner:
         print("  STAGE 4: LAUNCHING APPROVAL GATE DASHBOARD")
         print("  Access UI at: http://127.0.0.1:8000")
         print("=" * 60 + "\n")
-        uvicorn.run("src.ui.app:app", host="127.0.0.1", port=8000, reload=True)
+        uvicorn.run("src.ui.app:app", host="127.0.0.1", port=8000, reload=True, reload_dirs=["src"])
 
     async def run_full_pipeline(
         self,
