@@ -698,6 +698,7 @@ class LinkedInJobFinder:
 
             # 5. Full Job Description Scraping with Title Click, "See more" expansion, and noise cleaning
             desc_text = f"Position for {title} @ {company} requiring automation experience in Python, Java, API testing, REST Assured, Playwright, and CI/CD."
+            raw_meta_and_desc = ""
             try:
                 if await card.is_visible():
                     # Click title link explicitly for reliable detail pane rendering
@@ -709,6 +710,15 @@ class LinkedInJobFinder:
                     else:
                         await card.click(timeout=2000)
                     await asyncio.sleep(1.2)
+
+                    # Capture top-card metadata (posting age, Reposted flag, applicant volume) if rendered separately
+                    top_card_elem = page.locator(
+                        ".job-details-jobs-unified-top-card__primary-description-container, "
+                        ".job-details-jobs-unified-top-card__tertiary-description-container, "
+                        ".jobs-unified-top-card__subtitle-secondary-grouping"
+                    ).first
+                    if await top_card_elem.count() > 0:
+                        raw_meta_and_desc = (await top_card_elem.text_content() or "").strip()
 
                     # Expand "See more" if present
                     see_more_btn = page.locator(
@@ -726,11 +736,23 @@ class LinkedInJobFinder:
                     ).first
                     if await details_elem.count() > 0:
                         raw_desc = await details_elem.text_content()
+                        raw_meta_and_desc = f"{raw_meta_and_desc}\n{raw_desc or ''}".strip()
                         cleaned = self.clean_job_description(raw_desc or "")
                         if cleaned and len(cleaned) > 50:
                             desc_text = cleaned
             except Exception:
                 pass
+
+            # 5b. Enforce Post-Extraction Freshness & Repost-Saturation Gate (<=3 days, no saturated reposts)
+            if raw_meta_and_desc:
+                from src.ingestion.filters import is_linkedin_posting_fresh_and_unsaturated
+
+                is_fresh, fresh_reason = is_linkedin_posting_fresh_and_unsaturated(raw_meta_and_desc, max_days=3)
+                if not is_fresh:
+                    print(
+                        f"⏭️  Skipping stale/saturated LinkedIn job ({fresh_reason}): {title} @ {company} (ID: {job_id})"
+                    )
+                    return None
 
             # 6. Detect Application Type (EASY_APPLY vs LINKEDIN_EXTERNAL)
             application_type = "LINKEDIN_EXTERNAL"

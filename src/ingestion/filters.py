@@ -101,7 +101,16 @@ NEGATIVE_TITLE_REGEX = re.compile(
     r"dataset reviewer|"
     r"data annotator|"
     r"ai trainer|"
-    r"manual tester"
+    r"manual tester|"
+    r"plc|"
+    r"fpga|"
+    r"dft|"
+    r"typst|"
+    r"network\s+automation|"
+    r"it\s+infrastructure|"
+    r"post-silicon|"
+    r"high\s+speed\s+io|"
+    r"bluetooth\s+automation"
     r")\b",
     re.IGNORECASE,
 )
@@ -431,3 +440,49 @@ def is_global_remote_eligible(
 
     # 3. Evaluate location viability
     return is_india_or_remote_location(location_str, allow_unspecified=allow_unspecified, text_snippet=text_snippet)
+
+
+def is_linkedin_posting_fresh_and_unsaturated(
+    text: str | None,
+    max_days: int = 3,
+) -> tuple[bool, str]:
+    """
+    Inspects LinkedIn top-card / header metadata (first 800 characters of detail text)
+    to enforce two strict freshness and saturation invariants across all LinkedIn channels:
+    1. Rejects any posting/reposting whose header age exceeds `max_days` (e.g. '5 days ago',
+       '1 week ago', '2 weeks ago', '1 month ago').
+    2. Rejects any recycled 'Reposted' job that is already saturated with
+       'Over 100 people clicked apply' or 'Over 100 applicants'.
+    Returns (is_valid, reason).
+    """
+    if not text or not text.strip():
+        return True, "empty_metadata"
+
+    header_text = text[:800]
+
+    # 1. Check relative age anchored to LinkedIn metadata separators ('·', 'Reposted', 'Posted', or line start)
+    age_pattern = re.compile(
+        r"(?:·|\b(?:re)?posted\b|^\s*)\s*(?:reposted\s+)?(\d+)\s+(minute|hour|day|week|month|year)s?\s+ago\b",
+        re.IGNORECASE | re.MULTILINE,
+    )
+    for match in age_pattern.finditer(header_text):
+        num = int(match.group(1))
+        unit = match.group(2).lower()
+        if unit in ("week", "month", "year"):
+            return False, f"stale_age_{num}_{unit}s_ago"
+        if unit == "day" and num > max_days:
+            return False, f"stale_age_{num}_days_ago"
+
+    # 2. Check recycled Reposted + Over 100 applicants saturation
+    is_reposted = bool(re.search(r"\breposted\b", header_text, re.IGNORECASE))
+    is_saturated = bool(
+        re.search(
+            r"\bover\s+100\s+(?:people\s+clicked\s+apply|applicants)\b",
+            header_text,
+            re.IGNORECASE,
+        )
+    )
+    if is_reposted and is_saturated:
+        return False, "reposted_and_saturated_over_100_applicants"
+
+    return True, "fresh"
