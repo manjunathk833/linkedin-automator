@@ -89,6 +89,22 @@
       "root_cause": "1. Phone input intl-tel-input injects 245 hidden li.iti__country[role='option'] elements at the top of the DOM (with British Indian Ocean Territory at index 30 and India at index 98). 2. Multi-select comboboxes (question_*[]) stay open after option click and block subsequent comboboxes unless Escape is pressed. 3. el.closest('.select__control, [role=combobox]') matches the inner <input role='combobox'> itself rather than the outer .select__control wrapper.",
       "fix_rule": "1. Exclude :not(.iti__country) from generic [role='option'] locators and check opt.is_visible(). 2. Press ArrowDown to open Remix React-Select menus and Escape after selecting on multi-selects. 3. Use el.closest('.select__control, .select__container, .select, .field') to read .select__single-value and .select__multi-value__label.",
       "date_banked": "2026-11-01T21:00:00+05:30"
+    },
+    {
+      "id": "LESSON-041",
+      "vendor": "LEVER_STANDARD",
+      "symptom": "Lever hCaptcha fails verification ('There was an error verifying your application') in automation Chrome while working in native Chrome; #location-input cleared after resume upload.",
+      "root_cause": "1. context.add_init_script(STEALTH_EVASION_JS) and page.add_init_script('window.alert = ...') injected Page.addScriptToEvaluateOnNewDocument into cross-origin newassets.hcaptcha.com iframes and defined an own-property 'webdriver' on the navigator instance (detectable via Object.getOwnPropertyDescriptor(navigator, 'webdriver')). 2. Launching via launch_persistent_context passed Playwright internal flags. 3. Lever's async resume parser clears #location-input 1.5s after PDF upload.",
+      "fix_rule": "1. Spawn native macOS Google Chrome directly via subprocess.Popen with --disable-blink-features=AutomationControlled and attach over CDP without add_init_script in headful mode. 2. In STEALTH_EVASION_JS, skip cross-origin CAPTCHA iframes and only patch Navigator.prototype.webdriver when true. 3. Restore input#location-input in _sanitize_post_resume_parse().",
+      "date_banked": "2026-11-06T13:55:00+05:30"
+    },
+    {
+      "id": "LESSON-042",
+      "vendor": "WORKDAY_STANDARD",
+      "symptom": "Workday Application Questions dropdown 'Are you currently authorized to work in the country where this position is based?' selected 'India' instead of 'Yes'; Jabil filled city into address--cityLocal.",
+      "root_cause": "1. Generic dropdown_rules matched substring 'country' before explicit work-authorization regexes in _resolve_workday_questions(). 2. input[id*='city'] matched input#address--cityLocal before input#address--city.",
+      "fix_rule": "1. Evaluate explicit work authorization, sponsorship, and employment history regexes BEFORE generic dropdown_rules in _resolve_workday_questions(). 2. Scope Workday city selector to input[id*='city']:not([id*='Local']).",
+      "date_banked": "2026-11-06T13:55:00+05:30"
     }
   ]
 }

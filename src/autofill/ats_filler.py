@@ -2832,24 +2832,48 @@ class ATSAssistedFiller:
                     if await btn.count() == 0 or not await btn.is_visible():
                         continue
 
-                    lbl_text = ""
-                    aria_lbl = await btn.get_attribute("aria-label") or ""
-                    if aria_lbl:
-                        lbl_text = aria_lbl
-                    else:
-                        label_el = cb_cont.locator("label, [data-automation-id*='label']").first if not is_btn else None
-                        if label_el and await label_el.count() > 0:
-                            lbl_text = (await label_el.text_content() or "").strip()
+                    lbl_parts = []
+                    btn_id = await btn.get_attribute("id") or ""
+                    if btn_id:
+                        for_lbl = target.locator(f"label[for='{btn_id}']").first
+                        if await for_lbl.count() > 0:
+                            lbl_parts.append((await for_lbl.text_content() or "").strip())
+                    if not is_btn:
+                        label_el = cb_cont.locator("label, legend, [data-automation-id*='label']").first
+                        if await label_el.count() > 0:
+                            lbl_parts.append((await label_el.text_content() or "").strip())
+                    aria_lbl = (await btn.get_attribute("aria-label") or "").strip()
+                    if aria_lbl and aria_lbl.lower() not in ("select one", "select one required"):
+                        lbl_parts.append(aria_lbl)
 
+                    lbl_text = " ".join(p for p in lbl_parts if p).strip()
                     if not lbl_text:
                         continue
 
                     target_val = None
-                    for rule in dropdown_rules:
-                        pat = rule.get("pattern", "")
-                        if pat and re.search(pat, lbl_text, re.IGNORECASE):
-                            target_val = rule.get("answer")
-                            break
+                    if re.search(
+                        r"previous|former.*employ|worked.*for|worked.*at|employed.*by|work.*for.*or.*with|temporary.*work|search.*agency|ever.*interviewed|political.*contribution|company.*director|bankruptcy|non-compete|non-solicitation|close.*associate|predecessor|require.*sponsor|relatives|family.*member|government.*official|disability|veteran",
+                        lbl_text,
+                        re.IGNORECASE,
+                    ):
+                        target_val = "No"
+                    elif re.search(
+                        r"authorized.*to.*work|right.*to.*work|18.*years|consent.*to.*the.*use|legally.*eligible|pan.*card|passport.*holder",
+                        lbl_text,
+                        re.IGNORECASE,
+                    ):
+                        target_val = "Yes"
+                    elif re.search(r"\bgender\b|\bsex\b", lbl_text, re.IGNORECASE):
+                        target_val = "Male"
+                    elif re.search(r"please select one of the following options", lbl_text, re.IGNORECASE):
+                        target_val = "kept for 24 months"
+
+                    if target_val is None:
+                        for rule in radio_rules + dropdown_rules:
+                            pat = rule.get("pattern", "")
+                            if pat and re.search(pat, lbl_text, re.IGNORECASE):
+                                target_val = rule.get("answer")
+                                break
 
                     if target_val:
                         curr_val = (await btn.text_content() or "").strip()
@@ -2868,6 +2892,27 @@ class ATSAssistedFiller:
                     pass
         except Exception as e:
             print(f"⚠️ Dropdown resolution notice: {e}")
+
+        # 3. Answer Required / Terms & Consent Checkboxes (e.g. Voluntary Disclosures termsAndConditions)
+        try:
+            checkboxes = await target.locator(
+                "input[type='checkbox'][id*='termsAndConditions'], input[type='checkbox'][id*='consent' i], "
+                "input[type='checkbox'][id*='accept' i], input[type='checkbox'][aria-required='true']"
+            ).all()
+            for cb in checkboxes:
+                try:
+                    if not await cb.is_checked():
+                        await cb.check(force=True)
+                        answered += 1
+                        await asyncio.sleep(0.2)
+                except Exception:
+                    try:
+                        await cb.click(force=True)
+                        answered += 1
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
         return answered
 
@@ -2985,6 +3030,8 @@ class ATSAssistedFiller:
         company: str = "",
         job_title: str = "",
         job_url: str = "",
+        auto_submit: bool = False,
+        fast_park_on_verify: bool = False,
     ) -> tuple[int, bool]:
         """Fills standard Workday application fields using an autonomous state machine loop.
         Handles dynamic transitions across Job Overview, Modals, Create Account, Sign In,
@@ -3230,10 +3277,16 @@ class ATSAssistedFiller:
 
             # --- State 4: Post-Registration Email Verification Notice ---
             elif curr_state == "email_verify":
+                if fast_park_on_verify:
+                    print(f"⏸️ Fast-parking Workday tab for {company} ({job_id}) at Email Verification Gate.")
+                    return filled, attached
                 await self._handle_workday_email_verification_loop(target, workday_pwd)
 
             # --- State 5: OTP Code Screen ---
             elif curr_state == "otp":
+                if fast_park_on_verify:
+                    print(f"⏸️ Fast-parking Workday tab for {company} ({job_id}) at OTP Gate.")
+                    return filled, attached
                 print("=" * 65)
                 print("🔔 WORKDAY OTP / EMAIL VERIFICATION CODE DETECTED")
                 print("🔔 Please enter the verification code sent to your email into the Chrome window.")
@@ -3294,6 +3347,18 @@ class ATSAssistedFiller:
                 if await ln_input.count() > 0 and await self._fill_text_input(ln_input, p.last_name):
                     filled += 1
 
+                # D2. Email Address (present on Guest-Apply Workday tenants like Deutsche Bank & Danaher/Cytiva)
+                email_info_input = target.locator(
+                    "input[id='emailAddress--emailAddress'], input[id*='emailAddress'], input[name*='emailAddress' i], "
+                    "[data-automation-id='emailAddress'], input[type='email']"
+                ).first
+                if (
+                    await email_info_input.count() > 0
+                    and await email_info_input.is_visible()
+                    and await self._fill_text_input(email_info_input, p.email)
+                ):
+                    filled += 1
+
                 # E. Address
                 addr_input = target.locator(
                     "input[id='address--addressLine1'], input[id*='addressLine1'], input[name='addressLine1'], "
@@ -3304,7 +3369,7 @@ class ATSAssistedFiller:
                     filled += 1
 
                 city_input = target.locator(
-                    "input[id='address--city'], input[id*='city'], input[name='city'], "
+                    "input[id='address--city'], input[id*='city']:not([id*='Local']), input[name='city'], "
                     "[data-automation-id='addressSection_city'], input[id*='addressSection_city']"
                 ).first
                 if await city_input.count() > 0 and await self._fill_text_input(city_input, p.city):
@@ -3340,19 +3405,7 @@ class ATSAssistedFiller:
                     ):
                         filled += 1
 
-                phone_code = target.locator(
-                    "input[id='phoneNumber--countryPhoneCode'], input[id*='countryPhoneCode'], button[id*='countryPhoneCode'], "
-                    "[data-automation-id='countryPhoneCode'], button[aria-label*='country phone code' i]"
-                ).first
-                if await phone_code.count() > 0 and await phone_code.is_visible():
-                    tag = await phone_code.evaluate("e => e.tagName.toLowerCase()")
-                    if tag == "button":
-                        await self._select_react_combobox(target, phone_code, "India (+91)")
-                    else:
-                        curr_code = await phone_code.input_value()
-                        if not curr_code:
-                            await self._fill_text_input(phone_code, "+91")
-
+                # Fill phone number BEFORE countryPhoneCode so countryPhoneCode dropdown never intercepts phone_input
                 phone_input = target.locator(
                     "input[id='phoneNumber--phoneNumber'], input[id*='phoneNumber--phoneNumber'], input[name='phoneNumber'], "
                     "[data-automation-id='phone-number'], input[type='tel'], input[id*='phone-number']"
@@ -3363,16 +3416,75 @@ class ATSAssistedFiller:
                 if await phone_input.count() > 0 and await self._fill_text_input(phone_input, phone_digits):
                     filled += 1
 
+                phone_code = target.locator(
+                    "input[id='phoneNumber--countryPhoneCode'], input[id*='countryPhoneCode'], button[id*='countryPhoneCode'], "
+                    "[data-automation-id='countryPhoneCode'], button[aria-label*='country phone code' i]"
+                ).first
+                if await phone_code.count() > 0 and await phone_code.is_visible():
+                    tag = await phone_code.evaluate("e => e.tagName.toLowerCase()")
+                    if tag == "button":
+                        await self._select_react_combobox(target, phone_code, "India (+91)")
+                    else:
+                        has_pill = await phone_code.evaluate(
+                            "el => { const c = el.closest('[data-automation-id*=formField]'); return c ? (c.innerText.includes('+91') || c.innerText.includes('India') || c.querySelectorAll('[data-automation-id=selectedItem], li').length > 0) : true; }"
+                        )
+                        curr_code = await phone_code.input_value()
+                        if not curr_code and not has_pill:
+                            await self._fill_text_input(phone_code, "India (+91)")
+                            try:
+                                await phone_code.press("Enter")
+                                await asyncio.sleep(0.3)
+                            except Exception:
+                                pass
+
                 # G. Source
                 source_drop = target.locator(
-                    "[data-automation-id='sourcePrompt'], button[id*='source' i], button[aria-label*='how did you hear' i]"
+                    "[data-automation-id='sourcePrompt'], input[id*='source' i], button[id*='source' i], button[aria-label*='how did you hear' i]"
                 ).first
                 if await source_drop.count() > 0 and await source_drop.is_visible():
-                    curr_src = (await source_drop.text_content() or "").strip()
-                    if (not curr_src or "select" in curr_src.lower()) and await self._select_react_combobox(
-                        target, source_drop, "LinkedIn"
-                    ):
-                        filled += 1
+                    tag = await source_drop.evaluate("e => e.tagName.toLowerCase()")
+                    if tag == "input":
+                        has_src_pill = await source_drop.evaluate(
+                            "el => { const c = el.closest('[data-automation-id*=formField]'); return c ? c.querySelectorAll('[data-automation-id=selectedItem]').length > 0 : false; }"
+                        )
+                        if not has_src_pill:
+                            await source_drop.scroll_into_view_if_needed()
+                            await source_drop.click()
+                            await source_drop.fill("LinkedIn")
+                            await asyncio.sleep(0.5)
+                            await source_drop.press("Enter")
+                            await asyncio.sleep(1.5)
+                            opt = target.locator("[data-automation-id='promptOption']:has-text('LinkedIn')").first
+                            if await opt.count() > 0 and await opt.is_visible():
+                                await opt.click()
+                                await asyncio.sleep(0.8)
+                            else:
+                                # Hierarchical source menu fallback (e.g. Job Board / Social Media -> LinkedIn)
+                                await source_drop.fill("")
+                                await source_drop.press("Enter")
+                                await asyncio.sleep(1.2)
+                                lvl1 = target.locator(
+                                    "[data-automation-id='promptOption']:has-text('Job Board'), "
+                                    "[data-automation-id='promptOption']:has-text('Social Media'), "
+                                    "[data-automation-id='promptOption']:not(:has-text('+91')):not(:has-text('India'))"
+                                ).first
+                                if await lvl1.count() > 0 and await lvl1.is_visible():
+                                    await lvl1.click()
+                                    await asyncio.sleep(1.2)
+                                    lvl2 = target.locator(
+                                        "[data-automation-id='promptOption']:has-text('LinkedIn'), "
+                                        "[data-automation-id='promptOption']:not(:has-text('+91')):not(:has-text('India'))"
+                                    ).first
+                                    if await lvl2.count() > 0 and await lvl2.is_visible():
+                                        await lvl2.click()
+                                        await asyncio.sleep(0.8)
+                            filled += 1
+                    else:
+                        curr_src = (await source_drop.text_content() or "").strip()
+                        if (not curr_src or "select" in curr_src.lower()) and await self._select_react_combobox(
+                            target, source_drop, "LinkedIn"
+                        ):
+                            filled += 1
 
                 next_btn = target.locator(
                     "button[data-automation-id='pageFooterNextButton'], button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue')"
@@ -3407,7 +3519,7 @@ class ATSAssistedFiller:
                         filled += 1
 
                 next_btn = target.locator(
-                    "button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue')"
+                    "button[data-automation-id='pageFooterNextButton'], button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue'), button:has-text('Next')"
                 ).first
                 if await next_btn.count() > 0 and await next_btn.is_visible():
                     print("➡️ Advancing from 'My Experience' to 'Application Questions'...")
@@ -3426,7 +3538,7 @@ class ATSAssistedFiller:
                 q_ans = await self._resolve_workday_questions(target)
                 filled += q_ans
                 next_btn = target.locator(
-                    "button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue')"
+                    "button[data-automation-id='pageFooterNextButton'], button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue'), button:has-text('Next')"
                 ).first
                 if await next_btn.count() > 0 and await next_btn.is_visible():
                     print("➡️ Advancing from 'Application Questions' to next stage...")
@@ -3442,7 +3554,7 @@ class ATSAssistedFiller:
                 d_ans = await self._resolve_workday_questions(target)
                 filled += d_ans
                 next_btn = target.locator(
-                    "button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue')"
+                    "button[data-automation-id='pageFooterNextButton'], button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue'), button:has-text('Next')"
                 ).first
                 if await next_btn.count() > 0 and await next_btn.is_visible():
                     print("➡️ Advancing from 'Voluntary Disclosures' to Review...")
@@ -3454,6 +3566,18 @@ class ATSAssistedFiller:
 
             # --- State 10: Review / Final Submit Gate ---
             elif curr_state == "review":
+                if auto_submit:
+                    sub_btn = target.locator(
+                        "button[data-automation-id='pageFooterNextButton']:has-text('Submit'), button[data-automation-id='bottom-navigation-submit-button'], button:has-text('Submit Application'), button:has-text('Submit')"
+                    ).first
+                    if await sub_btn.count() > 0 and await sub_btn.is_visible():
+                        print(f"🚀 Auto-submitting Workday application for {company} ({job_id})...")
+                        try:
+                            await sub_btn.click(timeout=5000)
+                        except Exception:
+                            await sub_btn.click(force=True)
+                        await asyncio.sleep(5.0)
+                        return filled, attached
                 print("🎉 Workday Application Review Gate reached. Halting before submission.")
                 page_obj = getattr(target, "page", target)
                 await self._enter_manual_takeover_mode(

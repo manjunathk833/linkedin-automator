@@ -12,14 +12,15 @@ You are the **Autofill Learning & DOM Diagnostic Agent**. Your mandate is to eli
 
 ## 1. 2-Layer Continuous Telemetry Architecture
 
-1. **Layer 1 (Real-Time Telemetry — Pure Deterministic Python, Zero LLM Overhead):**
-   - During `/apply`, inline hooks in `UniversalBatchFormFiller` (`src/autofill/batch_form_engine.py`) and `AutofillLogger` (`src/autofill/autofill_logger.py`) automatically record:
+1. **Layer 1 (Real-Time Telemetry & Action-Scoped Flight Recorder — Pure Deterministic Python, Zero LLM Overhead):**
+   - During `/apply` and `form-batch bulk`, inline hooks in `UniversalBatchFormFiller` (`src/autofill/batch_form_engine.py`), `BulkApplyFastTrackEngine` (`src/autofill/bulk_apply_engine.py`), and `AutofillLogger` (`src/autofill/autofill_logger.py`) automatically record:
+     - `data/logs/application_flight_recorder.jsonl` (Action-Scoped Flight Recorder: `<15 KB` per non-`APPLIED` application containing all `visible_controls` with resolved `<label for="...">`, `aria-label`, `data-automation-id`, `required`, current `value`; `validation_banners` including CAPTCHA iframe detection; and `network_errors` for `status >= 400` or `/apply` validation responses)
      - `data/logs/autofill_benchmarks.jsonl` (`duration_ms`, `coverage_pct`, `auto_filled_count`, `unmapped_count`, `failed_count`)
      - `data/logs/unmapped_fields_backlog.jsonl` (every unmapped custom question encountered across ATS portals)
      - `data/logs/learned_field_mappings.json` (auto-banked custom questions + answers from Phase B `apply_custom_actions`)
 2. **Layer 2 (Post-Run Root-Cause Analysis & Rule Promotion):**
-   - Run `./venv/bin/python main.py autofill --audit` to inspect aggregated telemetry, vendor error rates, and top recurring unmapped questions.
-   - Inspect `data/logs/autofill_events.jsonl`, `data/logs/autofill_diagnostics.log`, and `data/logs/screenshots/autofill_dom_*.json`.
+   - Run `./venv/bin/python main.py autofill --audit` to inspect aggregated telemetry, recent flight recorder snapshots, vendor error rates, and top recurring unmapped questions.
+   - Inspect `data/logs/application_flight_recorder.jsonl` first to see exact `visible_controls`, `validation_banners`, and `network_errors` for any stuck or failed application, alongside `data/logs/autofill_events.jsonl` and `data/logs/screenshots/autofill_dom_*.json`.
    - Consult `data/logs/autofill_learning_vault.json` first to match symptoms against banked lessons (`LESSON-001` through `LESSON-040+`).
    - When `unmapped_fields_backlog.jsonl` or `learned_field_mappings.json` shows a recurring pattern (`count >= 2`), promote it into `src/autofill/batch_form_engine.py` (`resolve_deterministic_value`) or `data/profile/workday_field_mappings.json`.
 

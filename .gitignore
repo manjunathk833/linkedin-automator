@@ -30,6 +30,7 @@ upcomingsprints.md
 *.sqlite
 *.sqlite3
 data/app_database.db
+data/backups/
 data/application_history.json
 data/processed_jobs.json
 data/optimization_runs.json
@@ -77,16 +78,9 @@ Thumbs.db
 # Verification Scratch / Logs / Temp Media
 *.log
 cirunlog.md
-data/logs/*.log
-data/logs/*.jsonl
-data/logs/*.html
-data/logs/*_ledger.json
-data/logs/linkedin_*.json
-data/logs/referral_reconnaissance.json
-data/logs/learned_field_mappings.json
-data/logs/*_sample.json
+data/logs/*
+!data/logs/autofill_learning_vault.json
 data/browser_subagent_posts_eval.json
-data/logs/screenshots/
 .system_generated/
 .tempmediaStorage/
 .user_uploaded/

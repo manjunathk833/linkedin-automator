@@ -35,13 +35,18 @@ Load authentic candidate details directly from the local gitignored profile file
   4. Education: `Sri Jayachamarajendra College of Engineering (SJCE), Mysore` — `B.E.` (`2015 – 2019`, GPA `8.02/10`)
 * **Screening Mappings:** `data/profile/workday_field_mappings.json` & `data/logs/learned_field_mappings.json` (Authorized to work in India: `Yes`, Sponsorship required: `No`, Prior employment / Relatives / Referral at company: `No`, Referral details if asked: `NA`).
 
-### Step 4: High-Speed 2-Phase Application Execution (10–15+ Apps/Hr)
-For each approved job in the queue (hard ceiling: **20 actions max per job**):
-1. **Strict Fail-Fast Policy (Zero Over-Exploration):**
+### Step 4: High-Speed Multi-Tab Hybrid Application Execution (20–30+ Apps/Hr)
+1. **Execution Priority 0: Multi-Tab Parallel Fast-Track Engine (`0` LLM Tokens, `concurrency=5`):**
+   * Run the deterministic multi-tab batch engine first across `data/approved_queue/`:
+     ```bash
+     ./venv/bin/python main.py bulk-apply --limit 15 --concurrency 5 --ignore-tiers
+     ```
+   * Opens each job in an isolated `context.new_page()` tab (`window.__agy_job_id`), dismisses Cookie/OneTrust/Eightfold privacy overlays (`dismiss_overlays`), sanitizes post-resume-parse fields (`_sanitize_post_resume_parse`), auto-submits deterministic vendors (including Workday `auto_submit=True`), auto-purges closed/404 jobs (`JOB_UNAVAILABLE`), and fast-parks CAPTCHA/Email-Verify tabs (`PARKED_FOR_USER`).
+2. **Strict Fail-Fast Policy (Zero Over-Exploration):**
    * If the job URL returns 404, "Job closed", or "No longer accepting applications" (max 2 checks), **never** search Google or browse external career portals. Log `JOB_UNAVAILABLE`, purge the payload from `data/approved_queue/`, and immediately advance to the next job.
-2. **Execution Priority 1: Native Headful Playwright Fast-Path (`3–5s`):**
-   * Call `curl -s -X POST http://127.0.0.1:8000/api/autofill/{job_id}` for standard supported vendors (`EASY_APPLY`, `GREENHOUSE_STANDARD`, `LEVER_STANDARD`, `ASHBY_STANDARD`, `WORKDAY_STANDARD`).
-3. **Execution Priority 2: 2-Phase `form-batch` Universal DOM Engine (`<10s`):**
+3. **Execution Priority 1: Native Headful Playwright Fast-Path (`3–5s`):**
+   * Call `curl -s -X POST http://127.0.0.1:8000/api/autofill/{job_id}` for single-job assisted autofill on standard supported vendors (`EASY_APPLY`, `GREENHOUSE_STANDARD`, `LEVER_STANDARD`, `ASHBY_STANDARD`, `WORKDAY_STANDARD`).
+4. **Execution Priority 2: 2-Phase `form-batch` Universal DOM Engine (`<10s`):**
    * **Phase A (Single-Call DOM Extract + Deterministic Batch Fill):**
      ```bash
      ./venv/bin/python main.py form-batch inspect --job-id {job_id}

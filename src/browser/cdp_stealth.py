@@ -20,13 +20,28 @@ DEFAULT_STEALTH_DIR = os.path.join(PROJECT_ROOT, ".browser_data")
 
 STEALTH_EVASION_JS = """
 (() => {
-    // 1. Remove navigator.webdriver artifact
-    Object.defineProperty(navigator, 'webdriver', {
-        get: () => undefined,
-        configurable: true
-    });
+    // 0. Never tamper with cross-origin CAPTCHA / anti-bot challenge iframes (hCaptcha, reCAPTCHA, Turnstile)
+    try {
+        const href = (window.location && window.location.href) || '';
+        if (window !== window.top && /hcaptcha|recaptcha|cloudflare|turnstile|arkoselabs/i.test(href)) {
+            return;
+        }
+    } catch (e) {
+        return;
+    }
 
-    // 2. Mock authentic Chrome object if missing or incomplete
+    // 1. Mask navigator.webdriver on Navigator.prototype ONLY if true (headless fallback).
+    // Never define an own-property on navigator instance (which hCaptcha flags via getOwnPropertyDescriptor).
+    if (navigator.webdriver === true) {
+        try {
+            Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', {
+                get: () => false,
+                configurable: true
+            });
+        } catch (e) {}
+    }
+
+    // 2. Mock authentic Chrome object ONLY if missing (headless Chromium fallback)
     if (!window.chrome) {
         window.chrome = {};
     }
@@ -40,37 +55,8 @@ STEALTH_EVASION_JS = """
             RequestUpdateCheckStatus: { NO_UPDATE: "no_update", THROTTLED: "throttled", UPDATE_AVAILABLE: "update_available" }
         };
     }
-    if (!window.chrome.loadTimes) {
-        window.chrome.loadTimes = function() {
-            return {
-                commitLoadTime: Date.now() / 1000 - 0.5,
-                connectionInfo: "h2",
-                finishDocumentLoadTime: Date.now() / 1000 - 0.1,
-                finishLoadTime: Date.now() / 1000,
-                firstPaintAfterLoadTime: 0,
-                firstPaintTime: Date.now() / 1000 - 0.4,
-                navigationType: "Other",
-                npnNegotiatedProtocol: "h2",
-                requestTime: Date.now() / 1000 - 0.6,
-                startLoadTime: Date.now() / 1000 - 0.6,
-                wasAlternateProtocolAvailable: false,
-                wasFetchedViaSpdy: true,
-                wasNpnNegotiated: true
-            };
-        };
-    }
-    if (!window.chrome.csi) {
-        window.chrome.csi = function() {
-            return {
-                onloadT: Date.now(),
-                pageT: 1200.0,
-                startE: Date.now() - 1200,
-                tran: 15
-            };
-        };
-    }
 
-    // 3. Emulate authentic macOS Chrome plugins
+    // 3. Emulate authentic macOS Chrome plugins ONLY if empty (headless fallback)
     if (!navigator.plugins || navigator.plugins.length === 0) {
         const mockPlugins = [
             { name: "PDF Viewer", filename: "internal-pdf-viewer", description: "Portable Document Format" },
@@ -79,27 +65,19 @@ STEALTH_EVASION_JS = """
             { name: "Microsoft Edge PDF Viewer", filename: "internal-pdf-viewer", description: "Portable Document Format" },
             { name: "WebKit built-in PDF", filename: "internal-pdf-viewer", description: "Portable Document Format" }
         ];
-        Object.defineProperty(navigator, 'plugins', {
+        Object.defineProperty(Object.getPrototypeOf(navigator), 'plugins', {
             get: () => mockPlugins,
             configurable: true
         });
     }
 
-    // 4. Emulate authentic notification permissions query
-    const originalQuery = window.navigator.permissions ? window.navigator.permissions.query : null;
-    if (originalQuery) {
-        window.navigator.permissions.query = (parameters) => (
-            parameters.name === 'notifications' ?
-                Promise.resolve({ state: Notification.permission }) :
-                originalQuery(parameters)
-        );
+    // 4. Ensure languages reflect natural English browser if missing
+    if (!navigator.languages || navigator.languages.length === 0) {
+        Object.defineProperty(Object.getPrototypeOf(navigator), 'languages', {
+            get: () => ['en-US', 'en'],
+            configurable: true
+        });
     }
-
-    // 5. Ensure languages reflect natural English browser
-    Object.defineProperty(navigator, 'languages', {
-        get: () => ['en-US', 'en'],
-        configurable: true
-    });
 })();
 """
 
@@ -189,14 +167,20 @@ def is_cdp_port_open(port: int = 9222) -> bool:
     return False
 
 
-async def _connect_existing_cdp(playwright_instance: Any, port: int = 9222) -> tuple[Any, Any, Any] | None:
+async def _connect_existing_cdp(
+    playwright_instance: Any,
+    port: int = 9222,
+    inject_stealth_js: bool = False,
+) -> tuple[Any, Any, Any] | None:
     """Attempts to attach to an active Chrome instance on the given CDP port."""
     for endpoint in (f"http://127.0.0.1:{port}", f"http://localhost:{port}"):
         try:
             browser = await playwright_instance.chromium.connect_over_cdp(endpoint, timeout=5000)
             context = browser.contexts[0] if browser.contexts else await browser.new_context()
-            await context.add_init_script(STEALTH_EVASION_JS)
-            page = await context.new_page()
+            if inject_stealth_js and not getattr(context, "_agy_stealth_injected", False):
+                await context.add_init_script(STEALTH_EVASION_JS)
+                context._agy_stealth_injected = True
+            page = context.pages[0] if context.pages else await context.new_page()
             print("✅ Seamlessly attached to active headful Chrome session via CDP!")
             return playwright_instance, context, page
         except Exception as cdp_err:
@@ -215,6 +199,31 @@ def is_browser_context_alive(context: Any) -> bool:
         return False
 
 
+_ACTIVE_BROWSER_REFS: list[Any] = []
+MACOS_CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+
+def _spawn_native_macos_chrome(user_data_dir: str, extra_args: list[str] | None = None) -> None:
+    """Spawns native macOS Google Chrome in a detached OS session with minimal clean flags."""
+    native_cmd = [
+        MACOS_CHROME_BIN,
+        "--remote-debugging-port=9222",
+        f"--user-data-dir={os.path.abspath(user_data_dir)}",
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--start-maximized",
+    ]
+    if extra_args:
+        native_cmd.extend(extra_args)
+    subprocess.Popen(
+        native_cmd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+
 async def launch_stealth_browser(
     user_data_dir: str = DEFAULT_STEALTH_DIR,
     headless: bool = False,
@@ -224,7 +233,9 @@ async def launch_stealth_browser(
     Launches an anti-detection hardened browser context using system Google Chrome.
     If an existing Chrome instance is already running with remote debugging port 9222,
     seamlessly connects over CDP to prevent profile lock collisions and reuse session.
-    Otherwise, ensures stale processes are terminated and launches persistent context.
+    In headful macOS mode, spawns native Google Chrome directly with minimal clean flags
+    and attaches via CDP without injecting Page.addScriptToEvaluateOnNewDocument, preserving
+    100% authentic hCaptcha / Cloudflare Turnstile iframe integrity.
 
     Returns:
         tuple: (playwright_instance, context, page)
@@ -242,12 +253,28 @@ async def launch_stealth_browser(
     # Fast-Path: Reuse existing active Chrome session via CDP if available
     if is_cdp_port_open(9222):
         print("🔗 Active Chrome detected on CDP port 9222. Connecting over CDP...")
-        cdp_tuple = await _connect_existing_cdp(playwright_instance, 9222)
+        cdp_tuple = await _connect_existing_cdp(playwright_instance, 9222, inject_stealth_js=headless)
         if cdp_tuple is not None:
             return cdp_tuple
         print("⚠️ CDP connection attempt warning. Falling back to persistent launch...")
 
     clean_stale_browser_processes(user_data_dir)
+
+    # Headful macOS Native Chrome Launch (Preserves 100% genuine hCaptcha/Turnstile fingerprint)
+    if not headless and sys.platform == "darwin" and os.path.exists(MACOS_CHROME_BIN):
+        try:
+            _spawn_native_macos_chrome(user_data_dir=user_data_dir, extra_args=extra_args)
+            for _ in range(25):
+                if is_cdp_port_open(9222):
+                    break
+                await asyncio.sleep(0.25)
+            if is_cdp_port_open(9222):
+                cdp_tuple = await _connect_existing_cdp(playwright_instance, 9222, inject_stealth_js=False)
+                if cdp_tuple is not None:
+                    _ACTIVE_BROWSER_REFS.append((playwright_instance, cdp_tuple[1]))
+                    return cdp_tuple
+        except Exception as native_err:
+            print(f"⚠️ Native Chrome spawn warning: {native_err}. Falling back to Playwright launch...")
 
     chrome_args = [
         "--disable-blink-features=AutomationControlled",
@@ -267,7 +294,7 @@ async def launch_stealth_browser(
     if extra_args:
         chrome_args.extend(extra_args)
 
-    # Launch persistent Chrome context
+    # Launch persistent Chrome context (Headless / Fallback)
     try:
         context = await playwright_instance.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
@@ -282,7 +309,7 @@ async def launch_stealth_browser(
         # If Chrome delegated to an existing session ('Opening in existing browser session'), attach via CDP
         await asyncio.sleep(0.5)
         if is_cdp_port_open(9222):
-            cdp_tuple = await _connect_existing_cdp(playwright_instance, 9222)
+            cdp_tuple = await _connect_existing_cdp(playwright_instance, 9222, inject_stealth_js=headless)
             if cdp_tuple is not None:
                 return cdp_tuple
 
@@ -302,9 +329,10 @@ async def launch_stealth_browser(
             ignore_default_args=["--enable-automation"],
         )
 
-    # Inject stealth scripts before any page navigation occurs
+    # Inject stealth scripts when running headless or via launch_persistent_context
     await context.add_init_script(STEALTH_EVASION_JS)
 
+    _ACTIVE_BROWSER_REFS.append((playwright_instance, context))
     page = context.pages[0] if context.pages else await context.new_page()
     return playwright_instance, context, page
 
@@ -317,6 +345,7 @@ async def verify_stealth_integrity(page: Any) -> dict[str, Any]:
         """() => {
         return {
             webdriver: navigator.webdriver,
+            webdriverOwnProperty: Object.getOwnPropertyDescriptor(navigator, 'webdriver') !== undefined,
             hasChrome: !!window.chrome,
             hasChromeRuntime: !!(window.chrome && window.chrome.runtime),
             pluginCount: navigator.plugins.length,
