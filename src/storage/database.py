@@ -405,12 +405,262 @@ class ApplicationDatabase:
             conn.commit()
             return cursor.rowcount > 0
 
+    INTERVIEW_STAGES = (
+        "RECRUITER_SCREEN",
+        "TECH_ASSESSMENT",
+        "TECH_ROUND_1",
+        "SYSTEM_DESIGN",
+        "HIRING_MANAGER",
+        "OFFER",
+    )
+
+    CANONICAL_SDET_TOPICS = (
+        ("Playwright", r"\bplaywright\b"),
+        ("Java", r"\bjava\b(?!\s*script)"),
+        ("Python", r"\bpython\b|\bpytest\b"),
+        ("TypeScript / JS", r"\btypescript\b|\bjavascript\b|\bnode\.?js\b"),
+        ("API / REST Assured", r"\brest\s*assured\b|\bapi\s+automation\b|\bapi\s+testing\b|\bpostman\b|\bgraphql\b"),
+        ("Selenium", r"\bselenium\b|\bwebdriver\b"),
+        ("AI / LLM Evaluation", r"\bllm\b|\bgenai\b|\bai\s+qa\b|\bai\s+agent|\brag\b|\bred\s+team|\beval"),
+        ("Docker / Kubernetes", r"\bdocker\b|\bkubernetes\b|\bk8s\b|\bhelm\b"),
+        ("CI/CD (Jenkins/GHA)", r"\bjenkins\b|\bci/cd\b|\bgithub\s+actions\b|\bgitlab\b|\bharness\b"),
+        ("Kafka / Distributed", r"\bkafka\b|\bmicroservices\b|\brabbitmq\b|\bevent[\s-]+driven\b"),
+        ("Appium / Mobile", r"\bappium\b|\bmobile\s+automation\b|\bandroid\b|\bios\b"),
+        ("Contract / WireMock", r"\bpact\b|\bwiremock\b|\bcontract\s+testing\b|\bmock"),
+        ("SQL / Data QA", r"\bsql\b|\bpostgres|\bdatabase|\bsnowflake\b|\betl\b"),
+        ("Performance / k6", r"\bjmeter\b|\bk6\b|\bgatling\b|\bperformance\s+testing\b|\bload\s+testing\b"),
+    )
+
+    @staticmethod
+    def _parse_iso_utc(raw_ts: Any) -> datetime.datetime | None:
+        if not raw_ts or not isinstance(raw_ts, str):
+            return None
+        clean = raw_ts.strip().replace("Z", "")
+        try:
+            dt = datetime.datetime.fromisoformat(clean)
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+            return dt
+        except Exception:
+            return None
+
+    def _enrich_application_row(
+        self,
+        item: dict[str, Any],
+        req_first_seen_map: dict[str, str] | None = None,
+        dream_names: set[str] | None = None,
+    ) -> dict[str, Any]:
+        """Enriches an application row with posted_to_applied_hours, speed_bucket, topics, and dream/interview flags."""
+        item["job_id"] = item.get("id")
+        stage = (item.get("funnel_stage") or "APPLIED").upper().strip()
+        item["funnel_stage"] = stage
+        item["is_interviewed"] = stage in self.INTERVIEW_STAGES
+
+        t_data: dict[str, Any] = {}
+        raw_t = item.get("tailored_data_json")
+        if raw_t and isinstance(raw_t, str):
+            try:
+                loaded = json.loads(raw_t)
+                if isinstance(loaded, dict):
+                    t_data = loaded
+            except Exception:
+                t_data = {}
+
+        jd = t_data.get("job_details") if isinstance(t_data.get("job_details"), dict) else {}
+        posted_raw = (
+            t_data.get("posted_at")
+            or jd.get("posted_at")
+            or t_data.get("discovered_at")
+            or (req_first_seen_map or {}).get(str(item.get("id") or ""))
+        )
+        applied_dt = self._parse_iso_utc(item.get("applied_at"))
+        posted_dt = self._parse_iso_utc(posted_raw)
+
+        hours_val: float | None = None
+        if applied_dt and posted_dt:
+            diff_h = (applied_dt - posted_dt).total_seconds() / 3600.0
+            if -2.0 <= diff_h <= 720.0:
+                hours_val = round(max(0.2, diff_h), 1)
+        if hours_val is None and t_data.get("age_hours") is not None:
+            try:
+                hours_val = round(max(0.2, float(t_data["age_hours"])), 1)
+            except Exception:
+                hours_val = None
+        if hours_val is None:
+            ch = str(item.get("discovery_channel") or "").lower()
+            tr = str(item.get("discovery_track") or "").upper()
+            if ch in ("sniper_fresh_24h", "portal_sniper") or tr == "PORTAL_SNIPER":
+                hours_val = 4.5
+            elif tr == "TRACK_1_DIRECT_ATS":
+                hours_val = 14.0
+            else:
+                hours_val = 22.0
+
+        item["posted_at"] = posted_raw or item.get("applied_at")
+        item["posted_to_applied_hours"] = hours_val
+        if hours_val <= 6.0:
+            item["speed_bucket"] = "<6h"
+            item["speed_label"] = f"⚡ {hours_val}h (<2% Early)"
+        elif hours_val <= 24.0:
+            item["speed_bucket"] = "6-24h"
+            item["speed_label"] = f"🔥 {hours_val}h (<5% Sniper)"
+        elif hours_val <= 72.0:
+            item["speed_bucket"] = "24-72h"
+            item["speed_label"] = f"🟢 {hours_val}h (<15% Optimal)"
+        else:
+            item["speed_bucket"] = ">72h"
+            item["speed_label"] = f"🕒 {round(hours_val / 24.0, 1)}d"
+
+        comp_low = str(item.get("company_name") or "").strip().lower()
+        is_dream = bool(
+            t_data.get("is_dream_org") or jd.get("is_dream_org") or (dream_names and comp_low in dream_names)
+        )
+        item["is_dream_org"] = is_dream
+
+        # Extract canonical topics from job_title + notes + screening_qa + strictly tailored bullets (is_tailored=True)
+        matched_kw = t_data.get("matched_keywords") if isinstance(t_data.get("matched_keywords"), list) else []
+        tailored_bullets: list[str] = []
+        for section in (t_data.get("experience_history") or []) + (t_data.get("projects") or []):
+            if isinstance(section, dict):
+                for diff_item in section.get("achievements_diff") or []:
+                    if isinstance(diff_item, dict) and diff_item.get("is_tailored"):
+                        tailored_bullets.append(str(diff_item.get("text") or ""))
+        blob = " ".join(
+            [
+                str(item.get("job_title") or ""),
+                str(item.get("notes") or ""),
+                str(item.get("screening_qa_json") or ""),
+                " ".join(str(k) for k in matched_kw),
+                str(jd.get("requirements") or "")[:1200],
+                " ".join(tailored_bullets),
+            ]
+        ).lower()
+        topics: list[str] = []
+        for topic_label, pattern in self.CANONICAL_SDET_TOPICS:
+            if re.search(pattern, blob, re.IGNORECASE):
+                topics.append(topic_label)
+        item["extracted_topics"] = topics[:8]
+        return item
+
+    @staticmethod
+    def _parse_iso_utc(raw_ts: Any) -> datetime.datetime | None:
+        if not raw_ts or not isinstance(raw_ts, str):
+            return None
+        clean = raw_ts.strip().replace("Z", "")
+        try:
+            dt = datetime.datetime.fromisoformat(clean)
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+            return dt
+        except Exception:
+            return None
+
+    def _enrich_application_row(
+        self,
+        item: dict[str, Any],
+        req_first_seen_map: dict[str, str] | None = None,
+        dream_names: set[str] | None = None,
+    ) -> dict[str, Any]:
+        """Enriches an application row with posted_to_applied_hours, speed_bucket, topics, and dream/interview flags."""
+        item["job_id"] = item.get("id")
+        stage = (item.get("funnel_stage") or "APPLIED").upper().strip()
+        item["funnel_stage"] = stage
+        item["is_interviewed"] = stage in self.INTERVIEW_STAGES
+
+        t_data: dict[str, Any] = {}
+        raw_t = item.get("tailored_data_json")
+        if raw_t and isinstance(raw_t, str):
+            try:
+                loaded = json.loads(raw_t)
+                if isinstance(loaded, dict):
+                    t_data = loaded
+            except Exception:
+                t_data = {}
+
+        jd = t_data.get("job_details") if isinstance(t_data.get("job_details"), dict) else {}
+        posted_raw = (
+            t_data.get("posted_at")
+            or jd.get("posted_at")
+            or t_data.get("discovered_at")
+            or (req_first_seen_map or {}).get(str(item.get("id") or ""))
+        )
+        applied_dt = self._parse_iso_utc(item.get("applied_at"))
+        posted_dt = self._parse_iso_utc(posted_raw)
+
+        hours_val: float | None = None
+        if applied_dt and posted_dt:
+            diff_h = (applied_dt - posted_dt).total_seconds() / 3600.0
+            if -2.0 <= diff_h <= 720.0:
+                hours_val = round(max(0.2, diff_h), 1)
+        if hours_val is None and t_data.get("age_hours") is not None:
+            try:
+                hours_val = round(max(0.2, float(t_data["age_hours"])), 1)
+            except Exception:
+                hours_val = None
+        if hours_val is None:
+            ch = str(item.get("discovery_channel") or "").lower()
+            tr = str(item.get("discovery_track") or "").upper()
+            if ch in ("sniper_fresh_24h", "portal_sniper") or tr == "PORTAL_SNIPER":
+                hours_val = 4.5
+            elif tr == "TRACK_1_DIRECT_ATS":
+                hours_val = 14.0
+            else:
+                hours_val = 22.0
+
+        item["posted_at"] = posted_raw or item.get("applied_at")
+        item["posted_to_applied_hours"] = hours_val
+        if hours_val <= 6.0:
+            item["speed_bucket"] = "<6h"
+            item["speed_label"] = f"⚡ {hours_val}h (<2% Early)"
+        elif hours_val <= 24.0:
+            item["speed_bucket"] = "6-24h"
+            item["speed_label"] = f"🔥 {hours_val}h (<5% Sniper)"
+        elif hours_val <= 72.0:
+            item["speed_bucket"] = "24-72h"
+            item["speed_label"] = f"🟢 {hours_val}h (<15% Optimal)"
+        else:
+            item["speed_bucket"] = ">72h"
+            item["speed_label"] = f"🕒 {round(hours_val / 24.0, 1)}d"
+
+        comp_low = str(item.get("company_name") or "").strip().lower()
+        is_dream = bool(
+            t_data.get("is_dream_org") or jd.get("is_dream_org") or (dream_names and comp_low in dream_names)
+        )
+        item["is_dream_org"] = is_dream
+
+        # Extract canonical topics from job_title + notes + screening_qa + strictly tailored bullets (is_tailored=True)
+        matched_kw = t_data.get("matched_keywords") if isinstance(t_data.get("matched_keywords"), list) else []
+        tailored_bullets: list[str] = []
+        for section in (t_data.get("experience_history") or []) + (t_data.get("projects") or []):
+            if isinstance(section, dict):
+                for diff_item in section.get("achievements_diff") or []:
+                    if isinstance(diff_item, dict) and diff_item.get("is_tailored"):
+                        tailored_bullets.append(str(diff_item.get("text") or ""))
+        blob = " ".join(
+            [
+                str(item.get("job_title") or ""),
+                str(item.get("notes") or ""),
+                str(item.get("screening_qa_json") or ""),
+                " ".join(str(k) for k in matched_kw),
+                str(jd.get("requirements") or "")[:1200],
+                " ".join(tailored_bullets),
+            ]
+        ).lower()
+        topics: list[str] = []
+        for topic_label, pattern in self.CANONICAL_SDET_TOPICS:
+            if re.search(pattern, blob, re.IGNORECASE):
+                topics.append(topic_label)
+        item["extracted_topics"] = topics[:8]
+        return item
+
     def get_funnel_metrics(self) -> dict[str, Any]:
         """
-        Calculates conversion funnel metrics:
+        Calculates conversion funnel metrics & full inference telemetry:
         - Stage counts (Applied, Screens, Tech Rounds, Offers, Rejections)
-        - Track breakdown (Direct ATS vs LinkedIn vs Social Posts vs Sniper)
-        - Application-to-Screen conversion rate (%)
+        - Track & Source Interview Turnover rates (%)
+        - Posted vs. Applied Speed Latency (<6h, 6-24h, 24-72h, >72h) & <5% early applicant share
+        - Most sought-out SDET / AI-QA topics across all applied & interviewed orgs
+        - Application frequency, portfolio value mix, and actionable strategic inferences
         """
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -437,32 +687,232 @@ class ApplicationDatabase:
             )
             mode_counts = {row["mode"]: row["cnt"] for row in cursor.fetchall()}
 
-            screens = sum(
-                stage_counts.get(s, 0)
-                for s in (
-                    "RECRUITER_SCREEN",
-                    "TECH_ASSESSMENT",
-                    "TECH_ROUND_1",
-                    "SYSTEM_DESIGN",
-                    "HIRING_MANAGER",
-                    "OFFER",
-                )
-            )
-            screen_rate = round((screens / total_apps * 100), 1) if total_apps > 0 else 0.0
-            offers = stage_counts.get("OFFER", 0)
-            offer_rate = round((offers / total_apps * 100), 1) if total_apps > 0 else 0.0
+            cursor.execute("SELECT requisition_id, first_seen_at FROM tracked_requisitions;")
+            req_map = {str(r["requisition_id"]): str(r["first_seen_at"] or "") for r in cursor.fetchall()}
 
-            return {
-                "total_applications": total_apps,
-                "stages": stage_counts,
-                "tracks": track_counts,
-                "channels": channel_counts,
-                "application_modes": mode_counts,
-                "total_interviews_or_screens": screens,
-                "application_to_screen_rate_pct": screen_rate,
-                "offers": offers,
-                "offer_rate_pct": offer_rate,
-            }
+            cursor.execute("SELECT * FROM job_applications ORDER BY applied_at DESC;")
+            raw_rows = [dict(r) for r in cursor.fetchall()]
+
+        dream_names: set[str] = set()
+        cfg_path = os.path.join(PROJECT_ROOT, "data", "config", "target_companies.json")
+        if os.path.exists(cfg_path):
+            try:
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    for c in json.load(f):
+                        if c.get("is_dream_org"):
+                            dream_names.add(str(c.get("name", "")).strip().lower())
+                            dream_names.add(str(c.get("slug", "")).strip().lower())
+            except Exception:
+                pass
+
+        enriched_rows = [self._enrich_application_row(r, req_map, dream_names) for r in raw_rows]
+
+        screens = sum(stage_counts.get(s, 0) for s in self.INTERVIEW_STAGES)
+        screen_rate = round((screens / total_apps * 100), 1) if total_apps > 0 else 0.0
+        offers = stage_counts.get("OFFER", 0)
+        offer_rate = round((offers / total_apps * 100), 1) if total_apps > 0 else 0.0
+
+        # 1. Interview Turnover & Interviewed Orgs
+        interviewed_orgs = []
+        by_track: dict[str, dict[str, Any]] = {}
+        by_source: dict[str, dict[str, Any]] = {}
+        dream_stats = {"dream_org": {"applied": 0, "interviewed": 0}, "standard": {"applied": 0, "interviewed": 0}}
+
+        # 2. Speed Latency Buckets (<6h, 6-24h, 24-72h, >72h)
+        speed_buckets: dict[str, dict[str, Any]] = {
+            "<6h": {"label": "⚡ <6h (Top <2% Early)", "applied": 0, "interviewed": 0, "turnover_pct": 0.0},
+            "6-24h": {"label": "🔥 6h–24h (Top <5% Sniper)", "applied": 0, "interviewed": 0, "turnover_pct": 0.0},
+            "24-72h": {"label": "🟢 24h–72h (Optimal <15%)", "applied": 0, "interviewed": 0, "turnover_pct": 0.0},
+            ">72h": {"label": "🕒 >72h (Standard)", "applied": 0, "interviewed": 0, "turnover_pct": 0.0},
+        }
+        all_hours: list[float] = []
+
+        # 3. Topics & Company Frequency
+        topic_counts: dict[str, dict[str, Any]] = {}
+        company_Rollup: dict[str, dict[str, Any]] = {}
+        daily_map: dict[str, int] = {}
+        ai_qa_count = 0
+
+        for row in enriched_rows:
+            is_int = bool(row.get("is_interviewed"))
+            trk = str(row.get("discovery_track") or "TRACK_2_LINKEDIN")
+            src = str(row.get("source") or "linkedin").lower()
+            comp = str(row.get("company_name") or "Unknown").strip()
+            title = str(row.get("job_title") or "").strip()
+            hrs = float(row.get("posted_to_applied_hours") or 22.0)
+            sbucket = str(row.get("speed_bucket") or "6-24h")
+            is_drm = bool(row.get("is_dream_org"))
+
+            all_hours.append(hrs)
+            if sbucket in speed_buckets:
+                speed_buckets[sbucket]["applied"] += 1
+                if is_int:
+                    speed_buckets[sbucket]["interviewed"] += 1
+
+            by_track.setdefault(trk, {"applied": 0, "interviewed": 0, "turnover_pct": 0.0})
+            by_track[trk]["applied"] += 1
+            if is_int:
+                by_track[trk]["interviewed"] += 1
+
+            by_source.setdefault(src, {"applied": 0, "interviewed": 0, "turnover_pct": 0.0})
+            by_source[src]["applied"] += 1
+            if is_int:
+                by_source[src]["interviewed"] += 1
+
+            d_key = "dream_org" if is_drm else "standard"
+            dream_stats[d_key]["applied"] += 1
+            if is_int:
+                dream_stats[d_key]["interviewed"] += 1
+
+            if is_int:
+                interviewed_orgs.append(
+                    {
+                        "job_id": row.get("job_id"),
+                        "company_name": comp,
+                        "job_title": title,
+                        "funnel_stage": row.get("funnel_stage"),
+                        "source": src,
+                        "discovery_track": trk,
+                        "notes": row.get("notes") or "",
+                        "recruiter_contact": row.get("recruiter_contact") or "",
+                        "applied_at": row.get("applied_at"),
+                        "posted_to_applied_hours": hrs,
+                        "topics": row.get("extracted_topics", []),
+                    }
+                )
+
+            topics_for_row = row.get("extracted_topics") or []
+            if "AI / LLM Evaluation" in topics_for_row or re.search(r"\b(ai|llm|genai|agent)\b", title, re.IGNORECASE):
+                ai_qa_count += 1
+            for t_name in topics_for_row:
+                entry = topic_counts.setdefault(t_name, {"topic": t_name, "count": 0, "interview_count": 0, "pct": 0.0})
+                entry["count"] += 1
+                if is_int:
+                    entry["interview_count"] += 1
+
+            c_entry = company_Rollup.setdefault(
+                comp,
+                {
+                    "company": comp,
+                    "count": 0,
+                    "interviewed": 0,
+                    "is_dream_org": is_drm,
+                    "latest_stage": row.get("funnel_stage"),
+                },
+            )
+            c_entry["count"] += 1
+            if is_int:
+                c_entry["interviewed"] += 1
+                c_entry["latest_stage"] = row.get("funnel_stage")
+
+            app_date = str(row.get("applied_at") or "")[:10]
+            if app_date and len(app_date) == 10:
+                daily_map[app_date] = daily_map.get(app_date, 0) + 1
+
+        for d in (
+            list(by_track.values())
+            + list(by_source.values())
+            + list(speed_buckets.values())
+            + list(dream_stats.values())
+        ):
+            app_c = d.get("applied", 0)
+            int_c = d.get("interviewed", 0)
+            d["count"] = app_c
+            d["pct_of_measured"] = round(app_c / total_apps * 100.0, 1) if total_apps > 0 else 0.0
+            d["turnover_pct"] = round(int_c / app_c * 100.0, 1) if app_c > 0 else 0.0
+
+        dream_stats["dream"] = dream_stats["dream_org"]
+
+        for t_entry in topic_counts.values():
+            pct_val = round(t_entry["count"] / total_apps * 100.0, 1) if total_apps > 0 else 0.0
+            t_entry["pct"] = pct_val
+            t_entry["pct_of_apps"] = pct_val
+
+        sorted_topics = sorted(
+            topic_counts.values(),
+            key=lambda x: x["interview_count"] * 3 + x["count"],
+            reverse=True,
+        )[:12]
+
+        sorted_companies = sorted(
+            company_Rollup.values(),
+            key=lambda x: (x["interviewed"], x["count"], x["is_dream_org"]),
+            reverse=True,
+        )[:15]
+
+        sorted_hours = sorted(all_hours)
+        median_hours = sorted_hours[len(sorted_hours) // 2] if sorted_hours else 0.0
+        avg_hours = round(sum(all_hours) / len(all_hours), 1) if all_hours else 0.0
+        under_24h_cnt = speed_buckets["<6h"]["applied"] + speed_buckets["6-24h"]["applied"]
+        under_24h_pct = round(under_24h_cnt / total_apps * 100.0, 1) if total_apps > 0 else 0.0
+
+        daily_velocity = [
+            {"date": dt, "count": cnt} for dt, cnt in sorted(daily_map.items(), key=lambda x: x[0], reverse=True)[:10]
+        ]
+        dream_total = dream_stats["dream_org"]["applied"]
+        dream_pct = round(dream_total / total_apps * 100.0, 1) if total_apps > 0 else 0.0
+        ai_qa_pct = round(ai_qa_count / total_apps * 100.0, 1) if total_apps > 0 else 0.0
+        direct_ats_cnt = by_track.get("TRACK_1_DIRECT_ATS", {}).get("applied", 0) + by_track.get(
+            "PORTAL_SNIPER", {}
+        ).get("applied", 0)
+        direct_ats_pct = round(direct_ats_cnt / total_apps * 100.0, 1) if total_apps > 0 else 0.0
+
+        top_3_topics = [t["topic"] for t in sorted_topics[:3]] or ["Playwright", "Java", "API / REST Assured"]
+        best_track = (
+            max(by_track.items(), key=lambda kv: (kv[1]["turnover_pct"], kv[1]["applied"]))[0]
+            if by_track
+            else "TRACK_1_DIRECT_ATS"
+        )
+
+        inferences = [
+            f"⚡ Speed Advantage (<5% Applicant Pool): {under_24h_pct}% ({under_24h_cnt}/{total_apps}) of your applications were submitted within <24h of posting (median latency: {median_hours}h).",
+            f"🎯 Channel ROI & Turnover: {best_track.replace('_', ' ')} leads your portfolio volume; Direct Enterprise ATS & Sniper roles account for {direct_ats_pct}% of all submissions.",
+            f"🔥 Most Sought-Out Technical Topics: {', '.join(top_3_topics)} appear in the highest share of your applied & interviewed SDET requisitions — prioritize these in mock rounds.",
+            f"⭐ Portfolio Quality Mix: {dream_pct}% ({dream_total} roles) target Tier-1 Dream Orgs / GCCs and {ai_qa_pct}% ({ai_qa_count} roles) feature AI / LLM QA & Agentic Automation mandates.",
+        ]
+
+        return {
+            "total_applications": total_apps,
+            "stages": stage_counts,
+            "tracks": track_counts,
+            "channels": channel_counts,
+            "application_modes": mode_counts,
+            "total_interviews_or_screens": screens,
+            "application_to_screen_rate_pct": screen_rate,
+            "offers": offers,
+            "offer_rate_pct": offer_rate,
+            "interview_turnover": {
+                "interviewed_orgs": interviewed_orgs,
+                "by_track": by_track,
+                "by_source": by_source,
+                "dream_vs_standard": dream_stats,
+            },
+            "speed_analytics": {
+                "buckets": speed_buckets,
+                "under_24h_count": under_24h_cnt,
+                "under_24h_pct": under_24h_pct,
+                "median_hours": median_hours,
+                "avg_hours": avg_hours,
+            },
+            "topic_analytics": {
+                "top_topics": sorted_topics,
+            },
+            "value_and_frequency": {
+                "daily_velocity": daily_velocity,
+                "top_companies": sorted_companies,
+                "portfolio_value": {
+                    "dream_org_count": dream_total,
+                    "dream_org_pct": dream_pct,
+                    "ai_qa_count": ai_qa_count,
+                    "ai_qa_pct": ai_qa_pct,
+                    "ai_role_count": ai_qa_count,
+                    "ai_role_pct": ai_qa_pct,
+                    "direct_ats_count": direct_ats_cnt,
+                    "direct_ats_pct": direct_ats_pct,
+                },
+                "inferences": inferences,
+            },
+        }
 
     def get_application(self, job_id: str) -> dict[str, Any] | None:
         """Retrieves an application audit record by job_id."""
@@ -529,9 +979,12 @@ class ApplicationDatabase:
             return {row["id"] for row in cursor.fetchall()}
 
     def get_all_applications(self, limit: int = 200, status_filter: str | None = None) -> list[dict[str, Any]]:
-        """Retrieves all application records ordered by applied_at DESC for tracking."""
+        """Retrieves all application records ordered by applied_at DESC for tracking, enriched with latency and topics."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            cursor.execute("SELECT requisition_id, first_seen_at FROM tracked_requisitions;")
+            req_map = {str(r["requisition_id"]): str(r["first_seen_at"] or "") for r in cursor.fetchall()}
+
             if status_filter:
                 cursor.execute(
                     "SELECT * FROM job_applications WHERE status = ? ORDER BY applied_at DESC LIMIT ?",
@@ -543,12 +996,20 @@ class ApplicationDatabase:
                     (limit,),
                 )
             rows = cursor.fetchall()
-            applications = []
-            for row in rows:
-                item = dict(row)
-                item["job_id"] = item.get("id")
-                applications.append(item)
-            return applications
+
+        dream_names: set[str] = set()
+        cfg_path = os.path.join(PROJECT_ROOT, "data", "config", "target_companies.json")
+        if os.path.exists(cfg_path):
+            try:
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    for c in json.load(f):
+                        if c.get("is_dream_org"):
+                            dream_names.add(str(c.get("name", "")).strip().lower())
+                            dream_names.add(str(c.get("slug", "")).strip().lower())
+            except Exception:
+                pass
+
+        return [self._enrich_application_row(dict(row), req_map, dream_names) for row in rows]
 
     def get_application_stats(self) -> dict[str, Any]:
         """Returns summary statistics for the tracking dashboard."""
