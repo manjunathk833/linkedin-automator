@@ -1392,6 +1392,31 @@ class ApplicationDatabase:
                         except Exception:
                             pass
 
+                # Purge stale (>72h) uncontacted posts (e.g. 4d-9d, 1w+, 1mo+, or discovered >3 days ago)
+                outreach_st = (r["outreach_status"] or "NEW").upper()
+                rel_t = (r["posted_at_relative"] or "").strip().lower()
+                if outreach_st in ("NEW", "UNCONTACTED"):
+                    from src.posts.post_tracker import LinkedInPostTracker
+
+                    if (
+                        rel_t
+                        and rel_t != "recent"
+                        and not LinkedInPostTracker.is_post_within_age_limit(rel_t, "past-72h")
+                    ):
+                        cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
+                        updated_count += 1
+                        continue
+                    disc_raw = str(r["discovered_at"] or "").strip()
+                    if disc_raw:
+                        try:
+                            disc_dt = datetime.datetime.fromisoformat(disc_raw.replace("Z", ""))
+                            if (datetime.datetime.utcnow() - disc_dt).total_seconds() > 3 * 86400:
+                                cursor.execute("DELETE FROM hiring_posts WHERE post_id = ?", (post_id,))
+                                updated_count += 1
+                                continue
+                        except Exception:
+                            pass
+
                 norm_text = re.sub(r"\s+", " ", clean_text.lower()).strip()
                 c_hash = hashlib.sha256(norm_text.encode("utf-8")).hexdigest()[:16]
 
