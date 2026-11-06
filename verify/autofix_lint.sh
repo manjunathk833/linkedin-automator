@@ -15,6 +15,9 @@ ruff check --fix --unsafe-fixes .
 echo "🎨 Step 2: Auto-formatting Python files..."
 ruff format .
 
+echo "🔍 Step 3: Verifying strict zero-error Ruff check (--no-cache)..."
+ruff check . --no-cache
+
 echo "=================================================="
 echo "✅ CODEBASE LINTING & FORMATTING COMPLETE!"
 echo "=================================================="

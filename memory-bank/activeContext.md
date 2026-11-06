@@ -15,7 +15,8 @@
   - **Vendor-Cohort Grouping, Strict 5-Tab Wave Gate, Direct Workday Delegation & `--resume-tabs` CLI (`src/autofill/bulk_apply_engine.py`, `main.py`):**
     * Added `classify_job_cohort()` and `group_jobs_by_cohort()` sorting queued jobs into `COHORT_1_FAST_AUTO` $\rightarrow$ `COHORT_2_SPA_AUTO` $\rightarrow$ `COHORT_3_CAPTCHA_PREFILL` $\rightarrow$ `COHORT_4_AUTH_PORTAL`.
     * Enforced `max_open_tabs=5` per wave in `execute_batch()`, delegated `WORKDAY_STANDARD` directly to `ATSAssistedFiller._fill_workday()` inside `BulkApplyFastTrackEngine`, and added `python main.py bulk-apply --resume-tabs` (`resume_open_tabs()`).
-    * Completed **ABB (`4484098375`, Workday)** and marked **3 CGI (`4487503446`, `4487782762`, `4487783727`)** requisitions as `APPLIED` (`158` total `APPLIED` in SQLite).
+    * Completed **ABB (`4484098375`, Workday)**, **Neuron7.ai (`4484632954`, Lever)**, **Schneider Electric (`4486097044`, iCIMS)**, **Siemens (`4454763739`, `4481907699`, Avature)**, and marked **3 CGI (`4487503446`, `4487782762`, `4487783727`)** requisitions as `APPLIED` (`162` total `APPLIED` in SQLite, `40` applied today).
+    * Hardened `verify/autofix_lint.sh` with a strict post-format `ruff check . --no-cache` verification pass and exit-code propagation in `main.py` (`handle_lint()`).
 
 - **Milestone 76 — Multi-Tab Hybrid Deterministic-Agentic Bulk Application Engine (`BulkApplyFastTrackEngine`), Parallel Wave Execution & Workday End-to-End Auto-Submit:**
   - **Multi-Tab Isolated Fast-Track Engine (`src/autofill/bulk_apply_engine.py`, `main.py bulk-apply`, `/api/autofill/bulk-apply`):** Built `BulkApplyFastTrackEngine` combining `90%` deterministic multi-tab Playwright execution (`0` LLM tokens) with `10%` exception-driven agentic escalation:

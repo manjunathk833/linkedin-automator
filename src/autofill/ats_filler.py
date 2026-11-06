@@ -3323,8 +3323,6 @@ class ATSAssistedFiller:
                             target, prefix_drop, prefix_val
                         ) or await self._select_react_combobox(target, prefix_drop, prefix_val.rstrip(".")):
                             filled += 1
-                        elif await self._select_react_combobox(target, prefix_drop, prefix_val.rstrip(".")):
-                            filled += 1
 
                 # C. Country Dropdown
                 country_drop = target.locator(
