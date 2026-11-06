@@ -92,7 +92,7 @@ graph TD
 * **Design Pattern:** `argparse.add_subparsers()` decoupled into a `JobSearchPipelineRunner` controller.
 * **Capabilities:**
   * `python main.py run` (`pipeline`) `[--source all|linkedin|ats]` `[--headless]`: One-shot automated workflow (`sync` $\rightarrow$ unified `search` across all sources $\rightarrow$ `filter` $\rightarrow$ `dashboard`).
-  * `python main.py search [--source all|linkedin|ats] [--headless]`: Unified multi-source job discovery across Direct ATS boards (Greenhouse, Lever, Ashby) and LinkedIn multi-channel stealth search with AI resume tailoring and cross-source deduplication.
+  * `python main.py search [--source all|linkedin|ats|sniper|portals|posts] [--headless]`: Unified multi-source job discovery across Direct ATS boards (Greenhouse, Lever, Ashby, Workday), LinkedIn multi-channel stealth search, or fast midday `<24h` Sniper (`--source sniper`), with AI resume tailoring and cross-source deduplication.
   * `python main.py sync`: Syncs natural language markdown notes to the master knowledge bank.
   * `python main.py filter`: Evaluates experience threshold on raw scraped jobs across all sources.
   * `python main.py dashboard`: Launches FastAPI web dashboard.

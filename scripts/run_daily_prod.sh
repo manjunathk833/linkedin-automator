@@ -79,9 +79,12 @@ fi
 
 CURRENT_HOUR="$(date +%H)"
 if [[ $((10#${CURRENT_HOUR})) -ge 12 ]]; then
-    echo "Executing Afternoon Fast Sync & Naukri Resdex Refresh (Hour=${CURRENT_HOUR})..." >> "${RUN_LOG}"
+    echo "Executing Afternoon Fast Sync, Midday LinkedIn Sniper (<24h) & Naukri Resdex Refresh (Hour=${CURRENT_HOUR})..." >> "${RUN_LOG}"
     ${CMD_PREFIX} "${VENV_PYTHON}" main.py sync-ci --fetch-remote >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Afternoon CI sync exited with code $?" >> "${RUN_LOG}"
+    }
+    ${CMD_PREFIX} "${VENV_PYTHON}" main.py search --source sniper --headless >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
+        echo "⚠️ Afternoon LinkedIn Sniper (<24h) pass exited with code $?" >> "${RUN_LOG}"
     }
     ${CMD_PREFIX} "${VENV_PYTHON}" scripts/naukri_pinger.py --headless >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Afternoon Naukri refresh exited with code $?" >> "${RUN_LOG}"

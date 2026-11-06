@@ -266,6 +266,48 @@ def test_daily_runner_fault_isolation():
     print("  ✓ DailyPipelineRunner fault isolation verified")
 
 
+def test_midday_sniper_mode_wiring():
+    """Step 7: Asserts that run_search_stage(source='sniper') enables strictly <24h Sniper + <24h Posts and is wired into scripts/run_daily_prod.sh."""
+    print("Testing Midday Sniper (--source sniper) mode and run_daily_prod.sh wiring...")
+    runner = JobSearchPipelineRunner(
+        config={
+            "llm": {"use_ai": False},
+            "search_profiles": [{"keywords": "SDET", "location": "Bengaluru"}],
+            "discovery": {"headless": True, "enable_deep_search": True},
+        }
+    )
+
+    with (
+        patch("src.pipeline.runner.LinkedInJobFinder.search_all_channels", new_callable=AsyncMock) as m_li,
+        patch("src.posts.post_tracker.LinkedInPostTracker.discover_posts", new_callable=AsyncMock) as m_posts,
+        patch.object(runner, "run_filter_stage") as m_filter,
+    ):
+        m_li.return_value = [{"job_id": "sniper_1"}]
+        m_posts.return_value = [{"post_id": "post_sniper_1"}]
+
+        asyncio.run(runner.run_search_stage(source="sniper", headless=True))
+
+        assert m_li.called, "Track 2 LinkedIn Sniper must be called in --source sniper mode"
+        passed_cfg = m_li.call_args.kwargs.get("discovery_config", {})
+        assert passed_cfg.get("enable_sniper_24h") is True
+        assert passed_cfg.get("enable_deep_search") is False
+        assert passed_cfg.get("enable_jobs_hub_collections") is False
+        assert passed_cfg.get("enable_company_pages") is False
+        assert passed_cfg.get("enable_similar_jobs") is False
+
+        assert m_posts.called, "Track 3 Hiring Posts must be called in --source sniper mode"
+        assert m_posts.call_args.kwargs.get("date_filter") == "past-24h"
+        assert m_filter.called, "Filter stage must run automatically when sniper jobs are staged"
+
+    from pathlib import Path
+
+    prod_script = (Path(PROJECT_ROOT) / "scripts/run_daily_prod.sh").read_text(encoding="utf-8")
+    assert "main.py search --source sniper --headless" in prod_script, (
+        "scripts/run_daily_prod.sh afternoon block must execute 'main.py search --source sniper --headless'"
+    )
+    print("  ✓ Midday Sniper (--source sniper) and run_daily_prod.sh wiring verified")
+
+
 if __name__ == "__main__":
     print("\n" + "=" * 65)
     print("  RUNNING VERIFICATION GATE 77: DAILY RUN COMPREHENSIVE WIRING")
@@ -277,7 +319,8 @@ if __name__ == "__main__":
     test_email_reporter_all_capabilities_rendering()
     test_naukri_headless_fail_fast()
     test_daily_runner_fault_isolation()
+    test_midday_sniper_mode_wiring()
 
     print("\n" + "=" * 65)
-    print("🎉 VERIFICATION GATE 77 PASSED (6/6 TESTS SUCCESSFUL)!")
+    print("🎉 VERIFICATION GATE 77 PASSED (7/7 TESTS SUCCESSFUL)!")
     print("=" * 65 + "\n")

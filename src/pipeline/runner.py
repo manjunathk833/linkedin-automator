@@ -108,15 +108,34 @@ class JobSearchPipelineRunner:
         track2_yield: dict[str, int] = {}
         track2_verdict = "NOT_RUN"
         track2_auth: dict[str, Any] = {}
-        if target_source in ["all", "linkedin"]:
+        if target_source in ["all", "linkedin", "sniper"]:
             print("\n" + "-" * 55)
-            print("  💼 [TRACK 2] LINKEDIN MULTI-CHANNEL STEALTH DISCOVERY")
+            if target_source == "sniper":
+                print("  🎯 [TRACK 2] LINKEDIN MIDDAY SNIPER (<24H FRESH DROPS ONLY)")
+            else:
+                print("  💼 [TRACK 2] LINKEDIN MULTI-CHANNEL STEALTH DISCOVERY")
             print("-" * 55)
             profiles = self.config.get("search_profiles", [])
             if profiles:
                 try:
                     finder = LinkedInJobFinder(use_ai=self.use_ai)
-                    linkedin_jobs = await finder.search_all_channels(profiles, discovery_config=discovery_cfg)
+                    active_disc_cfg = dict(discovery_cfg)
+                    if target_source == "sniper":
+                        active_disc_cfg.update(
+                            {
+                                "enable_sniper_fresh_drops": True,
+                                "enable_sniper_24h": True,
+                                "max_pages_per_search": 0,
+                                "enable_deep_search": False,
+                                "enable_recommended_feed": False,
+                                "enable_jobs_hub_collections": False,
+                                "enable_target_company_pages": False,
+                                "enable_company_pages": False,
+                                "enable_recruiter_posts": False,
+                                "enable_similar_jobs": False,
+                            }
+                        )
+                    linkedin_jobs = await finder.search_all_channels(profiles, discovery_config=active_disc_cfg)
                     track2_yield = dict(getattr(finder, "channel_yield", {}))
                     track2_verdict = getattr(finder, "last_yield_verdict", "OK")
                     track2_auth = dict(getattr(finder, "last_auth_status", {}))
@@ -137,7 +156,7 @@ class JobSearchPipelineRunner:
         track3_raw_scanned = 0
         track3_verdict = "NOT_RUN"
         track3_auth: dict[str, Any] = {}
-        if target_source in ["all", "linkedin", "posts"]:
+        if target_source in ["all", "linkedin", "posts", "sniper"]:
             print("\n" + "-" * 55)
             print("  📢 [TRACK 3] LINKEDIN SOCIAL HIRING POSTS & LEADS SCOUTING")
             print("-" * 55)
@@ -146,7 +165,9 @@ class JobSearchPipelineRunner:
                 from src.storage.database import ApplicationDatabase
 
                 tracker = LinkedInPostTracker(db=ApplicationDatabase())
-                date_filter = discovery_cfg.get("posts_date_filter", "past-72h")
+                date_filter = (
+                    "past-24h" if target_source == "sniper" else discovery_cfg.get("posts_date_filter", "past-72h")
+                )
                 is_headless = discovery_cfg.get("headless", True)
                 posts_discovered = await tracker.discover_posts(date_filter=date_filter, headless=is_headless)
                 track3_raw_scanned = int(getattr(tracker, "last_raw_updates_scanned", 0))
@@ -180,6 +201,9 @@ class JobSearchPipelineRunner:
         print(f"   • LinkedIn Multi-Channel Jobs: {len(linkedin_jobs)}")
         print(f"   • Inbound Social Posts & Leads: {len(posts_discovered)}")
         print("=" * 60 + "\n")
+
+        if target_source == "sniper" and linkedin_jobs:
+            self.run_filter_stage()
 
         return linkedin_jobs
 
