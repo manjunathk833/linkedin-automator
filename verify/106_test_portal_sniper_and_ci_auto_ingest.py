@@ -27,6 +27,11 @@ if PROJECT_ROOT not in sys.path:
 
 from src.ingestion.ci_sync import CISyncIngestor
 from src.ingestion.extended_providers import (
+    AmazonJobsCollector,
+    AppleJobsCollector,
+    ComeetCollector,
+    EightfoldCollector,
+    GoogleCareersCollector,
     RecruiteeCollector,
     RipplingCollector,
     SmartRecruitersCollector,
@@ -117,7 +122,96 @@ def test_extended_collectors_parsing():
     rec_jobs = rec.parse_response("TestRec", "testrec", rec_raw, filter_sdet=True)
     assert len(rec_jobs) == 1
     assert rec_jobs[0].id == "recruitee_testrec_5544"
-    print("   ✅ Extended collectors parsed & filtered accurately.")
+
+    # 5. AmazonJobsCollector payload normalization
+    amz = AmazonJobsCollector()
+    amz_raw = {
+        "jobs": [
+            {
+                "id_icims": "3204998",
+                "title": "Software Development Engineer in Test II",
+                "normalized_location": "Bengaluru, KA, IND",
+                "posted_date": "October 30, 2026",
+                "job_path": "/en/jobs/3204998/sdet-ii",
+                "basic_qualifications": "5+ years QA automation",
+                "preferred_qualifications": "Playwright, Java",
+            }
+        ]
+    }
+    amz_jobs = amz.parse_response("Amazon India", "amazon-india", amz_raw, filter_sdet=True)
+    assert len(amz_jobs) == 1
+    assert amz_jobs[0].id == "amazon_amazon-india_3204998"
+    assert amz_jobs[0].posted_at is not None
+
+    # 6. EightfoldCollector payload normalization
+    ef = EightfoldCollector()
+    ef_raw = {
+        "data": {
+            "positions": [
+                {
+                    "id": 1970393556702849,
+                    "name": "Software Engineer II - Quality & Test Automation",
+                    "locations": ["Hyderabad, Telangana, India"],
+                    "postedTs": int(datetime.now(timezone.utc).timestamp()),
+                    "positionUrl": "/careers/job/1970393556702849",
+                    "department": "Engineering",
+                }
+            ]
+        }
+    }
+    ef_jobs = ef.parse_response(
+        "Microsoft India (Careers)",
+        "microsoft-eightfold",
+        ef_raw,
+        base_portal_url="https://apply.careers.microsoft.com",
+        filter_sdet=True,
+    )
+    assert len(ef_jobs) == 1
+    assert ef_jobs[0].id == "eightfold_microsoft-eightfold_1970393556702849"
+    assert ef_jobs[0].posted_at is not None
+
+    # 7. AppleJobsCollector SSR HTML normalization
+    ap = AppleJobsCollector()
+    ap_html = """
+    <div class="job-row">
+      <a href="/en-in/details/200676934-1052/senior-sdet-engineer?team=SFTWR">Senior SDET Engineer</a>
+      <span>17 Aug 2026</span>
+      <span>Bengaluru, Karnataka, India</span>
+    </div>
+    """
+    ap_jobs = ap.parse_response("Apple India", "apple-india", ap_html, filter_sdet=True)
+    assert len(ap_jobs) == 1
+    assert ap_jobs[0].id == "apple_apple-india_200676934-1052"
+    assert ap_jobs[0].posted_at is not None
+
+    # 8. GoogleCareersCollector SSR HTML normalization
+    gc = GoogleCareersCollector()
+    gc_html = """
+    <li class="lLd3Je">
+      <h3 class="QJPWVe">Software Engineer in Test, AI Cloud</h3>
+      <span>Bengaluru, Karnataka, India</span>
+      <a href="jobs/results/78054192605831878-software-engineer-in-test-ai-cloud?location=India">Learn more</a>
+    </li>
+    """
+    gc_jobs = gc.parse_response("Google India", "google-india", gc_html, filter_sdet=True)
+    assert len(gc_jobs) == 1
+    assert gc_jobs[0].id == "google_google-india_78054192605831878"
+
+    # 9. ComeetCollector payload normalization
+    cm = ComeetCollector()
+    cm_raw = [
+        {
+            "uid": "E5.612",
+            "name": "QA Automation Engineer (Remote India)",
+            "location": {"name": "Remote, India", "is_remote": True},
+            "url_active_page": "https://www.comeet.com/jobs/onyx/BA.005/qa-automation/E5.612",
+            "time_updated": now_iso,
+        }
+    ]
+    cm_jobs = cm.parse_response("Onyx Security", "onyxsecurity", cm_raw, filter_sdet=True)
+    assert len(cm_jobs) == 1
+    assert cm_jobs[0].id == "comeet_onyxsecurity_E5.612"
+    print("   ✅ All 9 Extended & Enterprise Collectors parsed & filtered accurately.")
 
 
 async def test_portal_sniper_24h_delta_and_ledger():
@@ -252,6 +346,11 @@ def test_org_researcher_classification():
     assert "smartrecruiters" in summary["by_provider"]
     assert "rippling" in summary["by_provider"]
     assert "workday" in summary["by_provider"]
+    assert "amazon" in summary["by_provider"]
+    assert "eightfold" in summary["by_provider"]
+    assert "apple" in summary["by_provider"]
+    assert "google" in summary["by_provider"]
+    assert "comeet" in summary["by_provider"]
 
     # Test continuous URL auto-banking across providers (save=False so we don't mutate production file in test)
     gh_banked = researcher.extract_and_bank_ats_url(

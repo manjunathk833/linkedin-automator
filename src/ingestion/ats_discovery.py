@@ -16,6 +16,11 @@ from typing import Any
 
 from src.ingestion.ashby import AshbyCollector
 from src.ingestion.extended_providers import (
+    AmazonJobsCollector,
+    AppleJobsCollector,
+    ComeetCollector,
+    EightfoldCollector,
+    GoogleCareersCollector,
     RecruiteeCollector,
     RipplingCollector,
     SmartRecruitersCollector,
@@ -60,6 +65,11 @@ class ATSDiscoveryCoordinator:
         self.rippling = RipplingCollector()
         self.workable = WorkableCollector()
         self.recruitee = RecruiteeCollector()
+        self.amazon = AmazonJobsCollector()
+        self.eightfold = EightfoldCollector()
+        self.apple = AppleJobsCollector()
+        self.google = GoogleCareersCollector()
+        self.comeet = ComeetCollector()
         self.hirist = HiristCollector()
         self.instahyre = InstahyreCollector()
 
@@ -177,6 +187,26 @@ class ATSDiscoveryCoordinator:
                     coro = self.workable.fetch_board_jobs(company.name, company.slug)
                 elif provider == "recruitee":
                     coro = self.recruitee.fetch_board_jobs(company.name, company.slug)
+                elif provider == "amazon":
+                    coro = self.amazon.fetch_board_jobs(company.name, company.slug)
+                elif provider == "eightfold":
+                    coro = self.eightfold.fetch_board_jobs(
+                        company_name=company.name,
+                        slug=company.slug,
+                        domain=company.domain or "microsoft.com",
+                        career_url=company.career_url,
+                    )
+                elif provider == "apple":
+                    coro = self.apple.fetch_board_jobs(company.name, company.slug)
+                elif provider == "google":
+                    coro = self.google.fetch_board_jobs(company.name, company.slug)
+                elif provider == "comeet":
+                    coro = self.comeet.fetch_board_jobs(
+                        company_name=company.name,
+                        slug=company.slug,
+                        company_uid=company.site or "BA.005",
+                        token=company.career_url or "",
+                    )
                 elif provider == "hirist":
                     coro = self.hirist.fetch_board_jobs(company.name, company.slug)
                 elif provider == "instahyre":
