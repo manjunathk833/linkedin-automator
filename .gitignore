@@ -27,6 +27,8 @@ upcomingsprints.md
 
 # Databases, SQLite & Application Execution History
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 data/app_database.db

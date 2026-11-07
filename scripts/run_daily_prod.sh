@@ -83,15 +83,15 @@ if [[ $((10#${CURRENT_HOUR})) -ge 12 ]]; then
     ${CMD_PREFIX} "${VENV_PYTHON}" main.py sync-ci --fetch-remote >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Afternoon CI sync exited with code $?" >> "${RUN_LOG}"
     }
-    ${CMD_PREFIX} "${VENV_PYTHON}" main.py search --source sniper --headless >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
+    ${CMD_PREFIX} "${VENV_PYTHON}" main.py search --source sniper >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Afternoon LinkedIn Sniper (<24h) pass exited with code $?" >> "${RUN_LOG}"
     }
-    ${CMD_PREFIX} "${VENV_PYTHON}" scripts/naukri_pinger.py --headless >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
+    ${CMD_PREFIX} "${VENV_PYTHON}" scripts/naukri_pinger.py >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Afternoon Naukri refresh exited with code $?" >> "${RUN_LOG}"
     }
 else
-    echo "Executing Morning Full Pipeline: ${CMD_PREFIX} ${VENV_PYTHON} main.py daily --headless --skip-tests" >> "${RUN_LOG}"
-    ${CMD_PREFIX} "${VENV_PYTHON}" main.py daily --headless --skip-tests >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
+    echo "Executing Morning Full Pipeline: ${CMD_PREFIX} ${VENV_PYTHON} main.py daily --skip-tests" >> "${RUN_LOG}"
+    ${CMD_PREFIX} "${VENV_PYTHON}" main.py daily --skip-tests >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Daily run exited with error code $?" >> "${RUN_LOG}"
     }
 fi

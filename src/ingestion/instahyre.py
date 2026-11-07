@@ -194,25 +194,27 @@ class InstahyreCollector:
 
         now = datetime.utcnow()
 
+        self.last_status = "OK"
         try:
             from playwright.async_api import async_playwright
 
+            from src.browser.cdp_stealth import (
+                ensure_cdp_page_target,
+                is_cdp_port_open,
+                launch_stealth_browser,
+            )
+
             async with async_playwright() as p:
-                ctx = await p.chromium.launch_persistent_context(
-                    DEFAULT_STEALTH_DIR,
-                    headless=headless,
-                    channel="chrome",
-                    viewport={"width": 1440, "height": 900},
-                    user_agent=(
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-                    ),
-                    args=[
-                        "--disable-blink-features=AutomationControlled",
-                        "--no-sandbox",
-                        "--disable-infobars",
-                    ],
-                )
+                owns_context = False
+                ctx = None
+                if is_cdp_port_open(9222):
+                    ensure_cdp_page_target(9222)
+                    browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222", timeout=10000)
+                    ctx = browser.contexts[0] if browser.contexts else await browser.new_context()
+                else:
+                    ctx = await launch_stealth_browser(p, headless=headless)
+                    owns_context = True
+
                 page = await ctx.new_page()
                 try:
                     await page.goto(
@@ -313,8 +315,17 @@ class InstahyreCollector:
                             break
 
                 finally:
-                    await ctx.close()
+                    try:
+                        await page.close()
+                    except Exception:
+                        pass
+                    if owns_context and ctx:
+                        try:
+                            await ctx.close()
+                        except Exception:
+                            pass
         except Exception as e:
+            self.last_status = f"ERROR: {e}"
             print(f"⚠️ InstahyreCollector browser opportunity extraction warning: {e}")
 
         return listings

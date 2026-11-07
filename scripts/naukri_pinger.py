@@ -79,20 +79,25 @@ def log_event(status: str, message: str, details: dict[str, Any] | None = None) 
 async def check_naukri_login(page: Page) -> bool:
     """Checks whether the persistent session is logged in on Naukri."""
     try:
-        # Check for profile elements or sign-in redirect
-        current_url = page.url
-        if "nlogin" in current_url or "login" in current_url:
+        # Check for profile elements or sign-in redirect (inspect path before query string)
+        base_url = page.url.split("?")[0].lower()
+        if "nlogin" in base_url or "login" in base_url:
             return False
 
         # Look for user profile container or navigation items
         profile_el = await page.wait_for_selector(
-            ".user-name, .profile-name, .resumeHeadline, .widgetHead",
-            timeout=8000,
+            ".user-name, .profile-name, .resumeHeadline, #lazyResumeHead, .widgetHead",
+            timeout=5000,
         )
+        base_url_after = page.url.split("?")[0].lower()
+        if "nlogin" in base_url_after or "login" in base_url_after:
+            return False
         return profile_el is not None
     except Exception:
-        # If selector timed out, check URL
-        return "mnjuser/profile" in page.url
+        base_url = page.url.split("?")[0].lower()
+        if "nlogin" in base_url or "login" in base_url:
+            return False
+        return "mnjuser/profile" in base_url
 
 
 async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, Any]:
@@ -116,19 +121,27 @@ async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, A
         return {"status": "SUCCESS", "mode": "dry_run", "headline": target_headline, "message": "Dry-run simulated"}
 
     # 1. Locate Resume Headline Widget
-    headline_widget = page.locator(".resumeHeadline, .widgetHead:has-text('Resume Headline')").first
-    if not await headline_widget.is_visible():
-        # Fallback: look for generic edit button on profile
-        edit_btn = page.locator("span.edit:has-text('Edit'), .editIcon").first
-    else:
-        edit_btn = headline_widget.locator("span.edit, .editIcon").first
+    headline_widget = page.locator("#lazyResumeHead, .resumeHeadline, .widgetHead:has-text('Resume Headline')").first
+    edit_btn = page.locator(
+        "#lazyResumeHead span.edit, .resumeHeadline span.edit, #lazyResumeHead .editIcon, "
+        ".widgetHead:has-text('Resume headline') span.edit, .widgetHead:has-text('Resume Headline') span.edit, "
+        "span.edit:has-text('Edit'), .editIcon"
+    ).first
+    try:
+        if await headline_widget.count() > 0:
+            w_edit = headline_widget.locator("span.edit, .editIcon").first
+            if await w_edit.count() > 0:
+                edit_btn = w_edit
+        await edit_btn.wait_for(state="visible", timeout=2500)
+    except Exception:
+        pass
 
     if await edit_btn.is_visible():
         await edit_btn.click()
         await page.wait_for_timeout(1000)
 
         # Locate headline text area
-        text_area = page.locator("#resumeHeadlineTxt, textarea.resumeHeadlineTxt").first
+        text_area = page.locator("#resumeHeadlineTxt, textarea.resumeHeadlineTxt, textarea[id*='Headline']").first
         if await text_area.is_visible():
             current_text = await text_area.input_value()
             current_text = current_text.strip()
@@ -138,7 +151,7 @@ async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, A
             await page.wait_for_timeout(500)
 
             # Click Save button
-            save_btn = page.locator("button:has-text('Save'), .btn-save").first
+            save_btn = page.locator("button:has-text('Save'), .btn-save, button[type='submit']:has-text('Save')").first
             if await save_btn.is_visible():
                 await save_btn.click()
                 await page.wait_for_timeout(2000)
@@ -157,37 +170,66 @@ async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, A
                 )
                 return {"status": "SUCCESS", "headline": new_text, "message": "Profile headline touched and saved"}
 
-    # Fallback: general profile page refresh
-    await page.reload()
-    await page.wait_for_timeout(2000)
+    # Fallback: general profile page refresh (using domcontentloaded to avoid hanging on slow ad trackers)
+    try:
+        await page.reload(wait_until="domcontentloaded", timeout=20000)
+    except Exception:
+        pass
+    await page.wait_for_timeout(1500)
+    record_daily_run_event(
+        "NAUKRI_RESDEX_TOUCH_SUCCESS",
+        {"mode": "session_refresh", "message": "Profile session refreshed"},
+    )
     log_event("SUCCESS", "Refreshed Naukri profile page session successfully.")
     return {"status": "SUCCESS", "message": "Profile session refreshed"}
 
 
-async def run_naukri_pinger(headless: bool = False, dry_run: bool = False) -> dict[str, Any]:
-    """Launches Playwright and executes the daily profile refresh."""
+async def run_naukri_pinger(headless: bool = False, dry_run: bool = False, interactive: bool = False) -> dict[str, Any]:
+    """Launches Playwright (reusing active Chrome CDP port 9222 when available) and executes the daily profile refresh."""
     log_event("START", f"Starting Naukri Resdex profile pinger (headless={headless}, dry_run={dry_run})...")
 
     os.makedirs(BROWSER_DATA_DIR, exist_ok=True)
+    from unittest.mock import MagicMock
+
+    from src.browser.cdp_stealth import ensure_cdp_page_target, is_cdp_port_open
 
     async with async_playwright() as p:
-        context: BrowserContext = await p.chromium.launch_persistent_context(
-            user_data_dir=BROWSER_DATA_DIR,
-            headless=headless,
-            viewport={"width": 1280, "height": 800},
-            args=[
-                "--disable-blink-features=AutomationControlled",
-                "--no-sandbox",
-            ],
-        )
+        owns_context = True
+        if not isinstance(p, MagicMock) and is_cdp_port_open(9222):
+            ensure_cdp_page_target(9222)
+            browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222", timeout=10000)
+            context: BrowserContext = browser.contexts[0] if browser.contexts else await browser.new_context()
+            page: Page = await context.new_page()
+            owns_context = False
+        else:
+            context = await p.chromium.launch_persistent_context(
+                user_data_dir=BROWSER_DATA_DIR,
+                headless=headless,
+                viewport={"width": 1280, "height": 800},
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                ],
+            )
+            page = context.pages[0] if context.pages else await context.new_page()
 
-        page: Page = context.pages[0] if context.pages else await context.new_page()
+        async def _cleanup() -> None:
+            if not owns_context:
+                try:
+                    await page.close()
+                except Exception:
+                    pass
+            else:
+                try:
+                    await context.close()
+                except Exception:
+                    pass
 
         try:
             if dry_run:
                 log_event("DRY_RUN", "Simulating navigation to Naukri profile in dry-run mode...")
                 result = await touch_naukri_profile(page, dry_run=True)
-                await context.close()
+                await _cleanup()
                 return result
 
             print(f"🌐 Navigating to {NAUKRI_PROFILE_URL}...")
@@ -198,12 +240,15 @@ async def run_naukri_pinger(headless: bool = False, dry_run: bool = False) -> di
             if not is_logged_in:
                 log_event(
                     "AUTH_REQUIRED",
-                    "Naukri session not authenticated. Please log in manually in headful mode (python scripts/naukri_pinger.py).",
+                    "Naukri session not authenticated. Please log in manually in headful mode (python scripts/naukri_pinger.py --interactive).",
                 )
-                if headless:
-                    print("⚠️ Naukri session not authenticated (skipping wait in headless mode).")
-                    await context.close()
-                    return {"status": "AUTH_REQUIRED", "message": "Naukri login required"}
+                if headless or not interactive:
+                    print("⚠️ Naukri session not authenticated (returning AUTH_REQUIRED without blocking).")
+                    await _cleanup()
+                    return {
+                        "status": "AUTH_REQUIRED",
+                        "message": "Naukri login required (sign in at naukri.com in Chrome)",
+                    }
 
                 print("⚠️ Please log in to Naukri in the open browser window.")
                 print("⏳ Waiting up to 60 seconds for login completion...")
@@ -214,16 +259,16 @@ async def run_naukri_pinger(headless: bool = False, dry_run: bool = False) -> di
                         break
 
                 if not is_logged_in:
-                    await context.close()
+                    await _cleanup()
                     return {"status": "AUTH_REQUIRED", "message": "Login required on Naukri"}
 
             result = await touch_naukri_profile(page, dry_run=dry_run)
-            await context.close()
+            await _cleanup()
             return result
 
         except Exception as e:
             log_event("ERROR", f"Naukri pinger encountered error: {e}")
-            await context.close()
+            await _cleanup()
             return {"status": "ERROR", "error": str(e)}
 
 
@@ -231,10 +276,15 @@ def main():
     parser = argparse.ArgumentParser(description="Naukri Resdex Daily Profile Visibility Pinger")
     parser.add_argument("--headless", action="store_true", help="Run browser in headless mode")
     parser.add_argument("--dry-run", action="store_true", help="Simulate execution without modifying live profile")
+    parser.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Wait up to 60s for manual Naukri login if session is unauthenticated",
+    )
     args = parser.parse_args()
 
     is_headless = args.headless or bool(os.getenv("CI"))
-    result = asyncio.run(run_naukri_pinger(headless=is_headless, dry_run=args.dry_run))
+    result = asyncio.run(run_naukri_pinger(headless=is_headless, dry_run=args.dry_run, interactive=args.interactive))
     if result.get("status") in ("SUCCESS", "dry_run"):
         print("\n🎉 Naukri daily visibility pinger completed successfully.")
         sys.exit(0)

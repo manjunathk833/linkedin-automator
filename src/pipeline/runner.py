@@ -21,6 +21,8 @@ class JobSearchPipelineRunner:
         self.use_ai = config.get("llm", {}).get("use_ai", True)
         self.last_posts_discovered: list[dict[str, Any]] = []
         self.last_linkedin_telemetry: dict[str, Any] = {}
+        self.last_track1_telemetry: dict[str, Any] = {}
+        self.last_filter_summary: dict[str, Any] = {}
 
     def run_sync_stage(self) -> dict[str, Any]:
         """Stage 1: Ingests candidate_notes.md and translates to master_knowledge_bank.json."""
@@ -73,8 +75,21 @@ class JobSearchPipelineRunner:
                     listings.extend(portal_listings)
 
                 ats_saved_paths = coordinator.save_listings_to_queue(listings, tailor=True)
+                prov_tel = getattr(coordinator, "last_ingestion_telemetry", {})
+                portal_tel = getattr(coordinator, "last_portal_telemetry", {})
+                orgs_polled = sum(int(v.get("orgs_polled", 0)) for v in prov_tel.values())
+                self.last_track1_telemetry = {
+                    "status": "OK",
+                    "orgs_polled": orgs_polled,
+                    "providers_count": len(prov_tel),
+                    "ats_retained": len(listings),
+                    "ats_queued": len(ats_saved_paths),
+                    "provider_telemetry": prov_tel,
+                    "portal_telemetry": portal_tel,
+                }
                 print(f"✅ Track 1 Complete: {len(ats_saved_paths)} enterprise & direct portal role(s) queued.\n")
             except Exception as e:
+                self.last_track1_telemetry = {"status": f"ERROR: {e}", "ats_queued": 0}
                 print(f"⚠️ Track 1 (ATS Ingestion) encountered warning: {e}\n")
         elif target_source in ["hirist", "instahyre"]:
             print("\n" + "-" * 55)
@@ -207,14 +222,16 @@ class JobSearchPipelineRunner:
 
         return linkedin_jobs
 
-    def run_filter_stage(self):
+    def run_filter_stage(self) -> dict[str, Any]:
         """Stage 3: Runs standalone experience-level threshold filter on pending queue."""
         print("\n" + "=" * 60)
         print("  STAGE 3: RUNNING EXPERIENCE-LEVEL FILTER ENGINE")
         print("=" * 60)
         job_filter = LinkedInJobFilter()
-        job_filter.filter_pending_queue()
+        res = job_filter.filter_pending_queue()
+        self.last_filter_summary = res if isinstance(res, dict) else {}
         print("✅ STAGE 3 COMPLETE: Queue filtering finished.\n")
+        return self.last_filter_summary
 
     def run_dashboard_stage(self):
         """Stage 4: Launches FastAPI Approval Gate Web Dashboard on http://127.0.0.1:8000."""
