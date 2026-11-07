@@ -226,24 +226,36 @@ class InstahyreCollector:
 
                     raw_opps = await page.evaluate(
                         """() => {
-                            const el = document.querySelector('.employer-row') || document.querySelector('[ng-controller]');
+                            const el = (
+                                document.querySelector('[ng-controller="candidateOpportunitiesCtrl"]') ||
+                                document.querySelector('.employer-block') ||
+                                document.querySelector('.employer-row') ||
+                                document.querySelector('[ng-controller]')
+                            );
                             if (!el || !window.angular) return [];
                             const scope = window.angular.element(el).scope();
                             if (!scope) return [];
-                            const opps = scope.opportunities || scope.opps || [];
+                            const opps = scope.opportunities || scope._opportunities_cached || scope.opps || [];
                             return opps.map(o => ({
                                 id: String(o.id || (o.job && o.job.id) || ''),
                                 job_id: String(o.job_id || (o.job && o.job.id) || ''),
-                                title: o.job ? o.job.title : '',
-                                company: o.employer ? o.employer.company_name : '',
+                                title: o.job ? (o.job.title || o.job.candidate_title || '') : '',
+                                company: o.employer ? (o.employer.company_name || '') : '',
                                 location: o.job ? (o.job.locations || 'Bengaluru') : 'Bengaluru',
-                                skills: o.job ? (o.job.skills || []) : [],
-                                summary: o.employer ? (o.employer.summary || '') : '',
-                                opportunity_url: o.job ? o.job.opportunity_url : '',
+                                skills: o.job ? (o.job.keywords || o.job.skills || []) : [],
+                                summary: o.employer ? (o.employer.instahyre_note || o.employer.summary || '') : '',
+                                opportunity_url: o.job ? (o.job.opportunity_url || '') : '',
                             }));
                         }"""
                     )
 
+                    # Sort by numeric job_id descending so the newest requisitions are inspected first
+                    raw_opps.sort(
+                        key=lambda x: int(x.get("job_id") or 0) if str(x.get("job_id") or "").isdigit() else 0,
+                        reverse=True,
+                    )
+
+                    stale_streak = 0
                     for o in raw_opps:
                         jid = o.get("job_id") or o.get("id")
                         title = o.get("title") or ""
@@ -278,8 +290,12 @@ class InstahyreCollector:
                                 dt = datetime.fromisoformat(date_str)
                                 age_days = (now - dt).total_seconds() / 86400.0
                                 if age_days > max_age_days:
-                                    # Stale historical mandate (>3d) — REJECT
+                                    # Stale historical mandate (>max_age_days) — REJECT
+                                    stale_streak += 1
+                                    if stale_streak >= 3:
+                                        break
                                     continue
+                                stale_streak = 0
                                 posted_dt = dt
                             else:
                                 # If datePosted cannot be verified on Instahyre, discard to prevent false positives

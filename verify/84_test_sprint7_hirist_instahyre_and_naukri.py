@@ -111,6 +111,13 @@ def test_instahyre_collector_parsing():
         "location": "Bengaluru",
     }
     assert collector.parse_job_payload(sec_payload, filter_sdet=True) is None
+
+    # Case C: Evaluation Engineer title recognition + candidateOpportunitiesCtrl selector
+    import inspect
+
+    assert is_sdet_title("Senior Evaluation Engineer") is True
+    src_code = inspect.getsource(InstahyreCollector.fetch_opportunities_via_browser)
+    assert "candidateOpportunitiesCtrl" in src_code
     print("   ✅ InstahyreCollector parsing, qualification, and filtering verified.")
 
 
