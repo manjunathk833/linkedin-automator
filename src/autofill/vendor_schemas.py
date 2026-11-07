@@ -7,6 +7,7 @@ DOM selector mappings for Greenhouse, Lever, Ashby, Workday, and LinkedIn Easy A
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -153,6 +154,10 @@ def load_candidate_master_data(file_path: Path | str | None = None) -> Candidate
 
     with open(target, "r", encoding="utf-8") as f:
         data = json.load(f)
+
+    personal_dict = data.get("personal")
+    if isinstance(personal_dict, dict) and not personal_dict.get("workday_default_password"):
+        personal_dict["workday_default_password"] = os.getenv("WORKDAY_DEFAULT_PASSWORD", "CandidateMockSecret123!")
 
     return CandidateMasterData.model_validate(data)
 

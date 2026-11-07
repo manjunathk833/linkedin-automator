@@ -2248,7 +2248,7 @@ class ATSAssistedFiller:
         print(f"  🔗 LinkedIn:        {linkedin}")
         print(f"  💻 GitHub:          {github}")
         print(f"  🌐 Portfolio:       {portfolio}")
-        print(f"  🔑 Portal Password: {workday_pwd}")
+        print("  🔑 Portal Password: ********")
         if resume_pdf_path:
             print(f"  📄 Resume PDF:      {os.path.abspath(resume_pdf_path)}")
         print("=" * 70)
