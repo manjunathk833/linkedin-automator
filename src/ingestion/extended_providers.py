@@ -466,7 +466,7 @@ class AmazonJobsCollector:
 class EightfoldCollector:
     """Async collector for Eightfold AI PCSX Career Portals (Microsoft, Qualcomm, PayPal, Micron, Booking, etc.)."""
 
-    DEFAULT_QUERIES = ("SDET", "Quality Engineer", "Test Automation")
+    DEFAULT_QUERIES = ("Software Engineer in Test", "SDET", "Test Automation")
 
     def __init__(self, timeout_seconds: float = 12.0):
         self.timeout = timeout_seconds
@@ -558,7 +558,7 @@ class EightfoldCollector:
                 for q in queries:
                     res = await client.get(
                         api_url,
-                        params={"domain": domain, "query": q, "location": "India", "start": 0, "sort_by": "timestamp"},
+                        params={"domain": domain, "query": q, "location": "India", "start": 0, "sort_by": "relevance"},
                     )
                     if res.status_code != 200:
                         continue
