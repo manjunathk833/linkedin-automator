@@ -268,7 +268,7 @@
   - Enhanced `src/automation/easy_apply.py` to navigate live job pages (`/jobs/view/{job_id}/`), trigger the real "Easy Apply" modal, auto-fill forms, upload PDFs, and halt in dry-run mode.
   - Verified via `verify/10_test_linkedin_live_flow.py`.
 - **Phase 75 (Milestone 68): Daily Pipeline Cloud CI Drop Auto-Ingest & Environment Sourcing Stabilization (Gate 108)**:
-  - Diagnosed macOS launchd service `com.linkedin.automator.daily` failure (exit status 127). Discovered unquoted `GMAIL_APP_PASSWORD=aioe qnyk brps nlyb` in `.env` caused bash `source .env` syntax crash (`qnyk: command not found`). Quoted password across workspaces.
+  - Diagnosed macOS launchd service `com.linkedin.automator.daily` failure (exit status 127). Discovered unquoted `GMAIL_APP_PASSWORD=<REDACTED_APP_PASSWORD>` in `.env` caused bash `source .env` syntax crash (`<redacted>: command not found`). Quoted password across workspaces.
   - Reconfigured GitHub Actions CI schedule (`.github/workflows/daily_portal_sniper.yml`) to `0 2,13 * * *` (07:30 AM IST & 06:30 PM IST), establishing a tight 30-minute staging window right before the local 08:00 AM IST morning run.
   - Wired `CISyncIngestor(use_ai=True).sync_latest_drops(fetch_remote=True)` directly into Step 3 of `DailyPipelineRunner.execute_daily_run()`, automatically pulling and tailoring fresh drops from `origin/ci-job-drops`, banking to SQLite, and including them in the daily email briefing.
   - Authored and verified Gate 108 (`verify/108_test_daily_ci_sync_and_env_sourcing.py`). Reloaded launchd service with clean exit code 0 (`launchctl list | grep com.linkedin.automator.daily`).

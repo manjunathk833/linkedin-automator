@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Pre-commit Secret & Credential Sanitization Guard (Zero Hardcoded Secrets)
+set -euo pipefail
+
+# 1. Block committing .env or sensitive local profile files
+STAGED_FILES=$(git diff --cached --name-only)
+if echo "$STAGED_FILES" | grep -E -q '(^|/)\.env$|candidate_master_data\.json$|candidate_notes\.md$'; then
+    echo "❌ [PRE-COMMIT SECRET GUARD] Blocked attempt to commit sensitive local file (.env / candidate_master_data.json / candidate_notes.md)."
+    exit 1
+fi
+
+ADDED_LINES=$(git diff --cached -U0 | grep -E '^\+[^+]' || true)
+if [ -z "$ADDED_LINES" ]; then
+    exit 0
+fi
+
+# 2. Dynamic .env Secret Value Leak Check (reads actual values from local git-ignored .env at runtime)
+if [ -f ".env" ]; then
+    while IFS='=' read -r key raw_val; do
+        # Skip comments and empty lines
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        # Strip surrounding quotes and whitespace
+        val=$(echo "$raw_val" | sed -E 's/^[[:space:]]*["'\'']?//; s/["'\'']?[[:space:]]*$//')
+        # Only check non-placeholder values of length >= 6
+        if [ "${#val}" -ge 6 ] && [[ ! "$val" =~ ^(your_|xxxx|http|true|false) ]]; then
+            if echo "$ADDED_LINES" | grep -F -q "$val"; then
+                echo "❌ [PRE-COMMIT SECRET GUARD] Blocked commit: staged diff contains the live value of '$key' from .env!"
+                exit 1
+            fi
+        fi
+    done < ".env"
+fi
+
+# 3. Block standard cloud/API token formats
+if echo "$ADDED_LINES" | grep -E -q '(AIza[0-9A-Za-z_-]{35}|ghp_[0-9A-Za-z]{36}|github_pat_[0-9A-Za-z_]{80}|gsk_[0-9A-Za-z]{20,})'; then
+    echo "❌ [PRE-COMMIT SECRET GUARD] Blocked attempt to commit live API key or token."
+    exit 1
+fi
+
+# 4. Run Python repo-wide credential & mock-allowlist sanitizer
+if [ -x "venv/bin/python" ]; then
+    venv/bin/python -c "import importlib.util; spec = importlib.util.spec_from_file_location('g103', 'verify/103_test_expanded_collections_and_keywords.py'); mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod); mod.test_repo_wide_credential_sanitization()"
+fi
+
+exit 0

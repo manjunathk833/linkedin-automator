@@ -139,6 +139,77 @@ def test_multi_collection_scraper_deduplication():
     asyncio.run(run_test())
 
 
+def test_repo_wide_credential_sanitization():
+    """Verify zero git-tracked files contain live .env secrets or non-mock portal passwords."""
+    import re
+    import subprocess
+
+    out = subprocess.check_output(["git", "ls-files"], cwd=PROJECT_ROOT, text=True)
+    tracked_files = [line.strip() for line in out.splitlines() if line.strip()]
+
+    # 1. Load live secret values dynamically from local git-ignored .env (if present)
+    env_secrets: dict[str, str] = {}
+    env_path = PROJECT_ROOT / ".env"
+    if env_path.is_file():
+        for raw_line in env_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k = k.strip()
+            v = v.strip().strip("\"'")
+            if (
+                len(v) >= 6
+                and any(tok in k.upper() for tok in ("PASSWORD", "SECRET", "KEY", "TOKEN"))
+                and not v.startswith(("your_", "xxxx"))
+            ):
+                env_secrets[k] = v
+
+    secret_regex = re.compile(
+        r"(AIza[0-9A-Za-z_-]{35}|ghp_[0-9A-Za-z]{36}|github_pat_[0-9A-Za-z_]{80}|gsk_[0-9A-Za-z]{20,})"
+    )
+    allowed_mock_pwds = {
+        "CandidateMockSecret123!",
+        "TEST_MOCK_PASSWORD_123!",
+        "MockSecretPassword123!",
+        "WORKDAY_DEFAULT_PASSWORD",
+        "workday_default_password",
+    }
+    pwd_assign_regex = re.compile(
+        r"(?:workday_default_password|default_pwd|workday_pwd)[^\n]*?['\"]([A-Za-z0-9@#$%^&*!_~+=?-]{8,})['\"]"
+    )
+
+    violations = []
+    for rel_path in tracked_files:
+        p = PROJECT_ROOT / rel_path
+        if not p.is_file() or p.suffix in {".png", ".jpg", ".jpeg", ".pdf", ".woff2", ".db"}:
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="ignore")
+        except OSError as exc:
+            print(f"⚠️ Skipping unreadable file {rel_path}: {exc}")
+            continue
+
+        for env_key, secret_val in env_secrets.items():
+            if secret_val in text:
+                violations.append(f"{rel_path}: contains live secret value from .env ({env_key})")
+
+        m = secret_regex.search(text)
+        if m:
+            violations.append(f"{rel_path}: contains secret token matching {m.group(0)[:8]}...")
+
+        for pwd_match in pwd_assign_regex.finditer(text):
+            candidate_literal = pwd_match.group(1)
+            if candidate_literal not in allowed_mock_pwds:
+                violations.append(f"{rel_path}: contains non-mock password literal in assignment/fallback")
+
+    assert not violations, f"Credential sanitization violations found: {violations}"
+    print(
+        f"✅ Repo-wide credential sanitization passed across {len(tracked_files)} tracked files "
+        f"(checked {len(env_secrets)} dynamic .env secret(s) + mock allowlist)."
+    )
+
+
 if __name__ == "__main__":
     print("\n" + "=" * 65)
     print("  VERIFY GATE 103: MULTI-COLLECTION & KEYWORD RESILIENCE")
@@ -146,4 +217,5 @@ if __name__ == "__main__":
     test_keyword_matching_swiggy_syntax()
     test_discovery_config_collections()
     test_multi_collection_scraper_deduplication()
+    test_repo_wide_credential_sanitization()
     print("\n🎉 ALL GATE 103 TESTS PASSED (100% SUCCESS)!\n")
