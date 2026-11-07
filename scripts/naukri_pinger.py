@@ -33,14 +33,16 @@ NAUKRI_PROFILE_URL = "https://www.naukri.com/mnjuser/profile"
 
 # High-converting Naukri Resdex Headline Variants (<= 250 chars).
 # Evidence-gated: only tools backed by the master resume (no learning-roadmap tools such as DeepEval/RAGAS).
+# Both variants retain full boolean keyword density (Java, Python, Selenium, Playwright, REST Assured, Docker, CI/CD, AI).
 HEADLINE_VARIANT_A = (
-    "Senior SDET (7 YOE) | Java, Python, Selenium, API Automation, Docker & AI-Driven Testing | "
-    "Ex-Dunzo, Tata Elxsi | Notice: 60 Days (Negotiable to 30d / Buyout)"
+    "Senior SDET (7 YOE) | Java, Python, Selenium, Playwright, REST Assured, API & Microservices Automation | "
+    "Docker, CI/CD & AI-Driven Testing | Ex-Dunzo, Tata Elxsi | Notice: 60 Days (Negotiable / 30d Buyout)"
 )
 HEADLINE_VARIANT_B = (
-    "Senior SDET & AI QA Architect | Playwright, REST Assured, Python, Agentic AI & CI/CD | "
-    "Ex-Dunzo, Tata Elxsi | Notice: 60 Days (Early Release / 30d Buyout)"
+    "Senior SDET & AI QA Architect (7 YOE) | Java, Python, Playwright, REST Assured, Selenium, Docker & CI/CD | "
+    "Agentic AI & API Automation | Ex-Dunzo, Tata Elxsi | Notice: 60 Days (Early Release / 30d Buyout)"
 )
+DEFAULT_MASTER_RESUME_PDF = os.path.join(PROJECT_ROOT, "data", "profile", "Manjunath_HK_Resume.pdf")
 
 
 def get_next_headline(current_headline: str) -> str:
@@ -48,7 +50,7 @@ def get_next_headline(current_headline: str) -> str:
     Deterministically rotates between high-signal headline variants to ensure
     the profile text meaningfully updates and forces Resdex re-indexing.
     """
-    if "Agentic AI" in current_headline or "REST Assured" in current_headline:
+    if current_headline.strip() == HEADLINE_VARIANT_B or "Agentic AI" in current_headline:
         return HEADLINE_VARIANT_A
     return HEADLINE_VARIANT_B
 
@@ -101,7 +103,31 @@ async def check_naukri_login(page: Page) -> bool:
         return "mnjuser/profile" in base_url
 
 
-async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, Any]:
+async def upload_naukri_resume(page: Page, resume_path: str = DEFAULT_MASTER_RESUME_PDF) -> bool:
+    """Uploads the standardized Master Resume PDF via Naukri's input#attachCV widget."""
+    if not os.path.exists(resume_path):
+        log_event("WARNING", f"Master resume PDF not found at {resume_path}")
+        return False
+    try:
+        file_input = page.locator("input#attachCV").first
+        if await file_input.count() == 0:
+            return False
+        await file_input.set_input_files(resume_path)
+        await page.wait_for_timeout(3000)
+        confirm_btn = page.locator("button:has-text('Yes, upload new'), a:has-text('Yes, upload new')").first
+        if await confirm_btn.is_visible():
+            await confirm_btn.click()
+            await page.wait_for_timeout(1500)
+            await file_input.set_input_files(resume_path)
+            await page.wait_for_timeout(3000)
+        log_event("SUCCESS", f"Uploaded standardized resume PDF to Naukri: {os.path.basename(resume_path)}")
+        return True
+    except Exception as exc:
+        log_event("WARNING", f"Resume upload warning on Naukri: {exc}")
+        return False
+
+
+async def touch_naukri_profile(page: Page, dry_run: bool = False, upload_resume: bool = False) -> dict[str, Any]:
     """
     Touches candidate profile headline or summary to refresh the last-updated timestamp.
     """
@@ -121,6 +147,15 @@ async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, A
         )
         return {"status": "SUCCESS", "mode": "dry_run", "headline": target_headline, "message": "Dry-run simulated"}
 
+    if upload_resume:
+        await upload_naukri_resume(page)
+
+    # Dismiss any active promotional or confirmation modal before clicking edit
+    try:
+        await page.keyboard.press("Escape")
+    except Exception:
+        pass
+
     # 1. Locate Resume Headline Widget
     headline_widget = page.locator("#lazyResumeHead, .resumeHeadline, .widgetHead:has-text('Resume Headline')").first
     edit_btn = page.locator(
@@ -138,7 +173,10 @@ async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, A
         pass
 
     if await edit_btn.is_visible():
-        await edit_btn.click()
+        try:
+            await edit_btn.click(timeout=3000)
+        except Exception:
+            await edit_btn.evaluate("el => el.click()")
         await page.wait_for_timeout(1000)
 
         # Locate headline text area
@@ -151,10 +189,18 @@ async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, A
             await text_area.fill(new_text)
             await page.wait_for_timeout(500)
 
-            # Click Save button
-            save_btn = page.locator("button:has-text('Save'), .btn-save, button[type='submit']:has-text('Save')").first
-            if await save_btn.is_visible():
-                await save_btn.click()
+            # Click Save button (excluding hidden photo upload button .save-photo)
+            save_btn = page.locator(
+                "form[name='resumeHeadlineForm'] button[type='submit'], "
+                ".lightbox.model_open button.btn-dark-ot:not(.save-photo), "
+                "button.btn-dark-ot[type='submit']:not(.save-photo), "
+                ".btn-save:not(.save-photo)"
+            ).first
+            if await save_btn.count() > 0:
+                try:
+                    await save_btn.click(timeout=3000)
+                except Exception:
+                    await save_btn.evaluate("el => el.click()")
                 await page.wait_for_timeout(2000)
                 record_daily_run_event(
                     "NAUKRI_RESDEX_TOUCH_SUCCESS",
@@ -185,7 +231,12 @@ async def touch_naukri_profile(page: Page, dry_run: bool = False) -> dict[str, A
     return {"status": "SUCCESS", "message": "Profile session refreshed"}
 
 
-async def run_naukri_pinger(headless: bool = False, dry_run: bool = False, interactive: bool = False) -> dict[str, Any]:
+async def run_naukri_pinger(
+    headless: bool = False,
+    dry_run: bool = False,
+    interactive: bool = False,
+    upload_resume: bool = False,
+) -> dict[str, Any]:
     """Launches Playwright (reusing active Chrome CDP port 9222 when available) and executes the daily profile refresh."""
     log_event("START", f"Starting Naukri Resdex profile pinger (headless={headless}, dry_run={dry_run})...")
 
@@ -263,7 +314,7 @@ async def run_naukri_pinger(headless: bool = False, dry_run: bool = False, inter
                     await _cleanup()
                     return {"status": "AUTH_REQUIRED", "message": "Login required on Naukri"}
 
-            result = await touch_naukri_profile(page, dry_run=dry_run)
+            result = await touch_naukri_profile(page, dry_run=dry_run, upload_resume=upload_resume)
             await _cleanup()
             return result
 
@@ -282,10 +333,22 @@ def main():
         action="store_true",
         help="Wait up to 60s for manual Naukri login if session is unauthenticated",
     )
+    parser.add_argument(
+        "--upload-resume",
+        action="store_true",
+        help="Also upload data/profile/Manjunath_HK_Resume.pdf to Naukri",
+    )
     args = parser.parse_args()
 
     is_headless = args.headless or bool(os.getenv("CI"))
-    result = asyncio.run(run_naukri_pinger(headless=is_headless, dry_run=args.dry_run, interactive=args.interactive))
+    result = asyncio.run(
+        run_naukri_pinger(
+            headless=is_headless,
+            dry_run=args.dry_run,
+            interactive=args.interactive,
+            upload_resume=args.upload_resume,
+        )
+    )
     if result.get("status") in ("SUCCESS", "dry_run"):
         print("\n🎉 Naukri daily visibility pinger completed successfully.")
         sys.exit(0)

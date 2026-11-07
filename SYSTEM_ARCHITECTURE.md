@@ -98,6 +98,7 @@ graph TD
   * `python main.py search [--source all|linkedin|ats|sniper|portals|posts] [--headless]`: Unified multi-source job discovery across Direct ATS boards (Greenhouse, Lever, Ashby, Workday), LinkedIn multi-channel stealth search, or fast midday `<24h` Sniper (`--source sniper`), with AI resume tailoring and cross-source deduplication.
   * `python main.py sync`: Syncs natural language markdown notes to the master knowledge bank.
   * `python main.py resume [sync|check] [--dry-run]`: Validates `Manjunath_HK_Master_Resume.json` (`check`: ATS formatting, ligatures, plain-text URLs, stacked roles, zero roadmap leaks) and deterministically regenerates `data/resume_profile.json`, `data/profile/allowed_tools_whitelist.json`, and `data/master_knowledge_bank.json` (`sync`).
+  * `python scripts/naukri_pinger.py [--headless] [--dry-run] [--interactive] [--upload-resume]`: Rotates evidence-gated Resdex headlines (`<=250` chars, full boolean keyword coverage across both variants) and optionally uploads `data/profile/Manjunath_HK_Resume.pdf` via `input#attachCV`.
   * `python main.py filter`: Evaluates experience threshold on raw scraped jobs across all sources.
   * `python main.py dashboard`: Launches FastAPI web dashboard.
   * `python main.py apply [--no-dry-run]`: Executes Easy Apply automation on approved jobs.
