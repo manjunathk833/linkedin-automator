@@ -8,7 +8,9 @@ __pycache__/
 
 # Browser Profile & Session Cookies (Sensitive Credentials)
 .browser_data/
+.browser_data_cdp/
 .browser_data_test/
+.browser_data*/
 
 # Candidate Personal Information, Profile & Private Notes
 singlepageresume.json

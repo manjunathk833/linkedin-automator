@@ -20771,5 +20771,246 @@
     "slug": "micron-eightfold",
     "is_dream_org": true,
     "status": "VERIFIED_ACTIVE"
+  },
+  {
+    "name": "Upstart",
+    "ats_provider": "greenhouse",
+    "slug": "upstart",
+    "domain": "upstart.com",
+    "active": true,
+    "industry": "AI Lending & Fintech",
+    "is_dream_org": true
+  },
+  {
+    "name": "hims & hers",
+    "ats_provider": "ashby",
+    "slug": "hims-and-hers",
+    "domain": "forhims.com",
+    "active": true,
+    "industry": "Digital Health & Telemedicine",
+    "is_dream_org": true
+  },
+  {
+    "name": "UserGems",
+    "ats_provider": "greenhouse",
+    "slug": "usergems",
+    "domain": "usergems.com",
+    "active": true,
+    "industry": "B2B Revenue AI",
+    "is_dream_org": false
+  },
+  {
+    "name": "Faire",
+    "ats_provider": "greenhouse",
+    "slug": "faire",
+    "domain": "faire.com",
+    "active": true,
+    "industry": "Wholesale Marketplace",
+    "is_dream_org": true
+  },
+  {
+    "name": "Very Good Security",
+    "ats_provider": "lever",
+    "slug": "verygoodsecurity",
+    "domain": "verygoodsecurity.com",
+    "active": true,
+    "industry": "Data Security & Vault",
+    "is_dream_org": true
+  },
+  {
+    "name": "VAST Data",
+    "ats_provider": "greenhouse",
+    "slug": "vast",
+    "domain": "vastdata.com",
+    "active": true,
+    "industry": "AI Storage Infrastructure",
+    "is_dream_org": true
+  },
+  {
+    "name": "Upwork",
+    "ats_provider": "greenhouse",
+    "slug": "upwork",
+    "domain": "upwork.com",
+    "active": true,
+    "industry": "Global Remote Work Marketplace",
+    "is_dream_org": true
+  },
+  {
+    "name": "DealHub.io",
+    "ats_provider": "comeet",
+    "slug": "86.005",
+    "site": "685271E6853AAD1A14D0A2099138F2DA33428",
+    "domain": "dealhub.io",
+    "active": true,
+    "industry": "Revenue & CPQ SaaS",
+    "is_dream_org": true
+  },
+  {
+    "name": "Funded.club",
+    "ats_provider": "greenhouse",
+    "slug": "fundedclub",
+    "domain": "funded.club",
+    "active": true,
+    "industry": "Startup Recruiting Platform",
+    "is_dream_org": false
+  },
+  {
+    "name": "Workiva",
+    "ats_provider": "workday",
+    "slug": "workiva",
+    "site": "careers",
+    "datacenter": "wd1",
+    "domain": "workiva.com",
+    "active": true,
+    "industry": "Cloud Financial Reporting",
+    "is_dream_org": true
+  },
+  {
+    "name": "Cengage Group",
+    "ats_provider": "workday",
+    "slug": "cengage",
+    "site": "CengageIndiaCareers",
+    "datacenter": "wd5",
+    "domain": "cengage.com",
+    "active": true,
+    "industry": "EdTech",
+    "is_dream_org": false
+  },
+  {
+    "name": "MissionWired",
+    "ats_provider": "lever",
+    "slug": "MissionWired",
+    "domain": "missionwired.com",
+    "active": true,
+    "industry": "Digital Technology",
+    "is_dream_org": false
+  },
+  {
+    "name": "Workera",
+    "ats_provider": "greenhouse",
+    "slug": "workera",
+    "domain": "workera.ai",
+    "active": true,
+    "industry": "AI Skills Intelligence",
+    "is_dream_org": true
+  },
+  {
+    "name": "Quantum",
+    "ats_provider": "ashby",
+    "slug": "quantum",
+    "domain": "quantum.com",
+    "active": true,
+    "industry": "Data & Storage Technology",
+    "is_dream_org": false
+  },
+  {
+    "name": "DigitalOcean",
+    "ats_provider": "greenhouse",
+    "slug": "digitalocean98",
+    "domain": "digitalocean.com",
+    "active": true,
+    "industry": "Developer Cloud Infrastructure",
+    "is_dream_org": true
+  },
+  {
+    "name": "Appcues",
+    "ats_provider": "ashby",
+    "slug": "appcues",
+    "domain": "appcues.com",
+    "active": true,
+    "industry": "Product Adoption SaaS",
+    "is_dream_org": false
+  },
+  {
+    "name": "Buffer",
+    "ats_provider": "ashby",
+    "slug": "buffer",
+    "domain": "buffer.com",
+    "active": true,
+    "industry": "Remote Social Media SaaS",
+    "is_dream_org": true
+  },
+  {
+    "name": "Constructor",
+    "ats_provider": "ashby",
+    "slug": "constructor",
+    "domain": "constructor.com",
+    "active": true,
+    "industry": "AI E-Commerce Search",
+    "is_dream_org": true
+  },
+  {
+    "name": "Contra",
+    "ats_provider": "ashby",
+    "slug": "contra",
+    "domain": "contra.com",
+    "active": true,
+    "industry": "Independent Work Network",
+    "is_dream_org": true
+  },
+  {
+    "name": "Doist",
+    "ats_provider": "ashby",
+    "slug": "todoist-inc",
+    "domain": "doist.com",
+    "active": true,
+    "industry": "Remote Productivity Software",
+    "is_dream_org": true
+  },
+  {
+    "name": "DuckDuckGo",
+    "ats_provider": "ashby",
+    "slug": "duck-duck-go",
+    "domain": "duckduckgo.com",
+    "active": true,
+    "industry": "Privacy Search Engine",
+    "is_dream_org": true
+  },
+  {
+    "name": "Bold Commerce",
+    "ats_provider": "greenhouse",
+    "slug": "bold",
+    "domain": "boldcommerce.com",
+    "active": true,
+    "industry": "E-Commerce Checkout SaaS",
+    "is_dream_org": false
+  },
+  {
+    "name": "Cloudbeds",
+    "ats_provider": "greenhouse",
+    "slug": "cloudbeds",
+    "domain": "cloudbeds.com",
+    "active": true,
+    "industry": "Hospitality Management SaaS",
+    "is_dream_org": false
+  },
+  {
+    "name": "Xapo Bank",
+    "ats_provider": "greenhouse",
+    "slug": "xapo61",
+    "domain": "xapobank.com",
+    "active": true,
+    "industry": "Global Remote Fintech Bank",
+    "is_dream_org": true
+  },
+  {
+    "name": "Beekeeper",
+    "ats_provider": "smartrecruiters",
+    "slug": "beekeeper",
+    "domain": "beekeeper.io",
+    "active": true,
+    "industry": "Frontline Workforce SaaS",
+    "is_dream_org": false
+  },
+  {
+    "name": "DealHub.io",
+    "ats_provider": "comeet",
+    "slug": "dealhub",
+    "site": "86.005",
+    "career_url": "685271E6853AAD1A14D0A2099138F2DA33428",
+    "domain": "dealhub.io",
+    "active": true,
+    "industry": "Revenue & CPQ SaaS",
+    "is_dream_org": true
   }
 ]

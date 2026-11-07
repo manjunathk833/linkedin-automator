@@ -25,7 +25,7 @@ echo "✅ Google Chrome found."
 
 # Step 2: Launch Chrome with remote debugging on port 9222
 echo "🚀 Launching Chrome with --remote-debugging-port=9222..."
-"$CHROME_PATH" --remote-debugging-port=9222 --user-data-dir="$PROJECT_DIR/.browser_data_cdp" &
+"$CHROME_PATH" --remote-debugging-port=9222 --user-data-dir="$PROJECT_DIR/.browser_data_test" &
 CHROME_PID=$!
 echo "   Chrome PID: $CHROME_PID"
 
