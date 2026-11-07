@@ -41,6 +41,7 @@ POSITIVE_SDET_REGEX = re.compile(
     r"ai qa|"
     r"ai test|"
     r"llm evaluation|"
+    r"evaluation engineer|"
     r"ai quality|"
     r"genai qa|"
     r"ml quality|"
