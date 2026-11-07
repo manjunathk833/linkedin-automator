@@ -16,7 +16,7 @@
             {{ profile.personal_details.phone }} &bull; 
             <a href="mailto:{{ profile.personal_details.email }}">{{ profile.personal_details.email }}</a>
             {% for social in profile.personal_details.profiles %}
-                &bull; <a href="{{ social.url }}">{{ social.network }}</a>
+                &bull; <a href="{{ social.url }}">{{ social.url | replace('https://www.', '') | replace('http://www.', '') | replace('https://', '') | replace('http://', '') }}</a>
             {% endfor %}
         </div>
     </div>
@@ -76,12 +76,10 @@
                 {% if proj.url %} | <a href="{{ proj.url }}" style="font-size: 8pt; color: #555;">Link</a>{% endif %}
             </div>
             <div class="date-range">
-                {% if proj.start_date %}{{ proj.start_date.strftime('%b %Y') }}{% endif %}
-                {% if proj.start_date and proj.end_date %} – {% endif %}
-                {% if proj.end_date %}{{ proj.end_date.strftime('%b %Y') }}{% endif %}
+                {% if proj.start_date %}{{ proj.start_date.strftime('%b %Y') }} – {% if proj.end_date %}{{ proj.end_date.strftime('%b %Y') }}{% else %}Present{% endif %}{% endif %}
             </div>
         </div>
-        {% if proj.description %}<p class="summary-text" style="margin-bottom: 2pt;">{{ proj.description }}</p>{% endif %}
+        {% if proj.description and (not proj.highlights or proj.description | trim != proj.highlights[0] | trim) %}<p class="summary-text" style="margin-bottom: 2pt;">{{ proj.description }}</p>{% endif %}
         <ul>
             {% for highlight in proj.highlights %}
             <li>{{ highlight }}</li>

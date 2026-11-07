@@ -32,10 +32,13 @@ The **LinkedIn Job Search & Application Automator** is an autonomous, 100% zero-
 
 ```mermaid
 graph TD
-    subgraph "1. Candidate Knowledge Ingestion"
-        A["Candidate Plain Notes<br/>(data/candidate_notes.md)"] --> B["Knowledge Translator<br/>(src/tailor/knowledge_translator.py)"]
-        B -->|Gemini/Ollama STAR Parser| C["Master Knowledge Bank<br/>(data/master_knowledge_bank.json)"]
-        D["Base Resume Profile<br/>(data/resume_profile.json)"]
+    subgraph "1. Candidate Knowledge & Master Resume Ingestion"
+        M0["Master Resume JSON (rxresu.me)<br/>(Manjunath_HK_Master_Resume.json)"] --> MS["Deterministic Master Sync Engine<br/>(src/resume_store/master_sync.py)"]
+        MS -->|Derives Canonical Profile| D["Base Resume Profile<br/>(data/resume_profile.json)"]
+        MS -->|Derives Evidence-Gated Whitelist| WL["Allowed Tools & Learning Roadmap<br/>(data/profile/allowed_tools_whitelist.json)"]
+        MS -->|Syncs Canonical Bullets| C["Master Knowledge Bank<br/>(data/master_knowledge_bank.json)"]
+        A["Candidate Plain Notes<br/>(data/candidate_notes.md)"] --> B["Section-Aware Knowledge Translator<br/>(src/tailor/knowledge_translator.py)"]
+        B -->|Employer-Scoped STAR Parser| C
     end
 
     subgraph "2. Dual-Track Discovery & Ingestion Layer"
@@ -94,6 +97,7 @@ graph TD
   * `python main.py run` (`pipeline`) `[--source all|linkedin|ats]` `[--headless]`: One-shot automated workflow (`sync` $\rightarrow$ unified `search` across all sources $\rightarrow$ `filter` $\rightarrow$ `dashboard`).
   * `python main.py search [--source all|linkedin|ats|sniper|portals|posts] [--headless]`: Unified multi-source job discovery across Direct ATS boards (Greenhouse, Lever, Ashby, Workday), LinkedIn multi-channel stealth search, or fast midday `<24h` Sniper (`--source sniper`), with AI resume tailoring and cross-source deduplication.
   * `python main.py sync`: Syncs natural language markdown notes to the master knowledge bank.
+  * `python main.py resume [sync|check] [--dry-run]`: Validates `Manjunath_HK_Master_Resume.json` (`check`: ATS formatting, ligatures, plain-text URLs, stacked roles, zero roadmap leaks) and deterministically regenerates `data/resume_profile.json`, `data/profile/allowed_tools_whitelist.json`, and `data/master_knowledge_bank.json` (`sync`).
   * `python main.py filter`: Evaluates experience threshold on raw scraped jobs across all sources.
   * `python main.py dashboard`: Launches FastAPI web dashboard.
   * `python main.py apply [--no-dry-run]`: Executes Easy Apply automation on approved jobs.
@@ -144,12 +148,12 @@ graph TD
   * `HybridLLMProvider`: Primary provider Google Gemini Free Tier (`models/gemini-flash-lite-latest`, `temperature=0.0`) with 4.0s minimum interval rate pacer, 60s quota cooldown circuit-breaker, and multi-model fallback chain (`models/gemini-flash-latest`, `models/gemini-3.5-flash`, `gemini-3.8-flash`); automatic fallback to local Ollama (`qwen2.5:7b`).
   * Request Telemetry Logging: Every API invocation records timestamp, model, duration (ms), status (SUCCESS/FAILED), and error details to `data/logs/llm_requests.log`.
   * Pydantic schema validation (`TailoredBulletsResponse`, `ParsedKnowledgeResponse`, `ScreeningAnswerResponse`).
-* **Anti-Fabrication Defense-in-Depth:**
-  * **Level 1 (Prompt Grounding):** Strict prompt instructions and negative few-shot examples forbidding hallucination of tools outside candidate history.
-  * **Level 2 (Deterministic Code Gate):** `FabricationDetector` builds an `allowed_tools` set from `resume_profile.json` and `master_knowledge_bank.json`. Any AI bullet containing unallowed tools (e.g., Cypress, Golang, Terraform) is **stripped and discarded** prior to queueing.
-* **Knowledge Bank Translation Layer:**
-  * Candidates write plain text notes in `data/candidate_notes.md`.
-  * `KnowledgeBankTranslator` parses bullet points, chunks them into batches of 5, translates them to STAR format, deduplicates via MD5 hashing, and atomically writes to `data/master_knowledge_bank.json` via `os.replace()`.
+* **Anti-Fabrication Defense-in-Depth & Evidence-Gated Boundaries:**
+  * **Level 1 (Prompt Grounding):** Strict prompt instructions and negative few-shot examples forbidding hallucination of tools outside candidate history or on the candidate's `learning_roadmap`.
+  * **Level 2 (Deterministic Evidence-Gated Boundary Gate):** `FabricationDetector` and `ResumeVerificationGate` load `allowed_tools`, per-tool `tool_evidence` (mapping each tool to the exact employers/projects where the master resume contains evidence for it), `learning_roadmap`, and `disallowed_hallucinations` from `data/profile/allowed_tools_whitelist.json`. Any AI bullet containing unallowed/roadmap tools or using a tool outside its evidenced employer boundary is **stripped or sanitized** prior to queueing.
+* **Master Resume Sync & Section-Aware Knowledge Translation Layer:**
+  * `Manjunath_HK_Master_Resume.json` (Reactive Resume `rxresu.me` schema) serves as the single human-editable source of truth (`python main.py resume sync`), deterministically deriving `data/resume_profile.json`, `data/profile/allowed_tools_whitelist.json`, and `data/master_knowledge_bank.json`.
+  * Candidates may also write plain text notes under employer headings in `data/candidate_notes.md` (with unbuilt items isolated under `## Learning Roadmap (NOT FOR RESUME)`). `KnowledgeBankTranslator` parses section headings deterministically, skips roadmap sections, translates notes to STAR format, and merges them cleanly.
 
 ---
 

@@ -67,6 +67,12 @@ def test_llm_integration():
     assert "tailored_resume" in tailored
     t_profile = ResumeProfile(**tailored["tailored_resume"])
     assert len(t_profile.experience_history[0].achievements) >= 1
+    # Evidence-gated: the mocked LLM's roadmap claims (TypeScript, Pact) must never survive tailoring
+    from src.resume_store.master_resume import load_learning_roadmap, tool_mentioned
+
+    all_bullets = " ".join(a for exp in t_profile.experience_history for a in exp.achievements)
+    leaked = [t for t in load_learning_roadmap() if tool_mentioned(t, all_bullets)]
+    assert not leaked, f"Roadmap tools leaked into tailored resume: {leaked}"
     print(f"✅ Tailored profile created for: {t_profile.personal_details.full_name}")
     print(f"   Top bullet: {t_profile.experience_history[0].achievements[0][:80]}...")
 

@@ -2,10 +2,10 @@
 """
 Verification Gate 65: Sprint 1 Stack Realignment, Whitelist Expansion & Inbound Traps
 =====================================================================================
-Validates:
-1. Tool whitelist expansion: modern product tools authorized, unverified tools blocked.
-2. Anti-fabrication detector: zero-rejection on modern tools, catching unverified tools.
-3. Master Knowledge Bank & Employment Boundary Isolation: independent projects cleanly scoped.
+Validates (evidence-gated model — the master resume is the single source of truth):
+1. Tool registry: evidenced tools allowed, learning-roadmap and never-used tools blocked.
+2. Anti-fabrication detector: evidenced tools accepted, roadmap/unverified tools flagged.
+3. Master Knowledge Bank: zero roadmap-tool claims.
 4. Candidate Resume Profile: Pydantic validation and skills matrix integrity.
 5. Naukri Resdex visibility engine: CLI and logging contract.
 """
@@ -25,36 +25,41 @@ from src.resume_store.models import ResumeProfile
 from src.tailor.fabrication_detector import FabricationDetector
 
 
-def test_whitelist_expansion_and_boundaries():
-    print("--- 1. Testing Tool Whitelist Expansion & Boundary Integrity ---")
+def _load_registry() -> dict:
     whitelist_path = os.path.join(PROJECT_ROOT, "data", "profile", "allowed_tools_whitelist.json")
     with open(whitelist_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+        return json.load(f)
 
-    allowed = set(data.get("allowed_tools", []))
-    disallowed = set(data.get("disallowed_hallucinations", []))
 
-    expected_allowed = [
-        "playwright",
-        "typescript",
-        "docker",
-        "kubernetes",
-        "k8s",
-        "kafka",
-        "wiremock",
-        "pact",
-    ]
-    for tool in expected_allowed:
-        assert tool in allowed, f"Tool '{tool}' must be present in allowed_tools"
-        assert tool not in disallowed, f"Tool '{tool}' must NOT be in disallowed_hallucinations"
-        print(f"  ✓ Verified allowed: {tool}")
+def test_whitelist_expansion_and_boundaries():
+    print("--- 1. Testing Evidence-Gated Tool Registry & Boundary Integrity ---")
+    data = _load_registry()
+
+    allowed = {t.lower() for t in data.get("allowed_tools", [])}
+    disallowed = {t.lower() for t in data.get("disallowed_hallucinations", [])}
+    roadmap = {t.lower() for t in data.get("learning_roadmap", [])}
+    evidence = data.get("tool_evidence", {})
+
+    # Every allowed tool that is a real tool (not a generic practice) must carry master-resume evidence.
+    for tool, boundaries in evidence.items():
+        assert boundaries, f"Tool '{tool}' has an empty evidence list"
+        assert tool in allowed, f"Evidenced tool '{tool}' must be present in allowed_tools"
+    print(f"  ✓ {len(evidence)} evidenced tools all present in allowed_tools")
+
+    # Learning-roadmap tools are blocked everywhere: never allowed, never evidenced.
+    assert roadmap, "learning_roadmap must be defined in allowed_tools_whitelist.json"
+    for tool in roadmap:
+        assert tool not in allowed, f"Roadmap tool '{tool}' must NOT be in allowed_tools until it graduates"
+        assert tool not in evidence, f"Roadmap tool '{tool}' must NOT have master-resume evidence"
+    print(f"  ✓ Roadmap tools blocked: {sorted(roadmap)}")
 
     expected_blocked = ["cypress", "golang", "go", "rust", "terraform", "ansible"]
     for tool in expected_blocked:
         assert tool in disallowed, f"Unverified tool '{tool}' must remain in disallowed_hallucinations"
-        print(f"  ✓ Verified blocked boundary: {tool}")
+        assert tool not in allowed, f"Unverified tool '{tool}' must not be allowed"
+    print("  ✓ Never-used tools remain in disallowed_hallucinations")
 
-    print("✅ Tool whitelist expansion and boundaries verified.\n")
+    print("✅ Evidence-gated tool registry verified.\n")
 
 
 def test_fabrication_detector_grounding():
@@ -73,53 +78,51 @@ def test_fabrication_detector_grounding():
         bank = json.load(f)
 
     detector = FabricationDetector(profile=profile, master_knowledge_bank=bank)
+    roadmap = sorted(detector.learning_roadmap)
 
-    # Valid bullets utilizing the newly whitelisted product tools
-    valid_bullets = [
-        "Architected a modular Playwright + TypeScript test automation framework with parallel test execution.",
-        "Containerized ephemeral test runners using Docker and Kubernetes across GitHub Actions CI workflows.",
-        "Engineered asynchronous event-driven validation pipelines for Kafka message queues with latency monitoring.",
-        "Implemented microservice API contract testing using Pact and WireMock service virtualization.",
+    # Bullets with evidenced tools must pass the fabrication check
+    evidenced = [
+        t for t in ("docker", "kubernetes", "kafka", "selenium", "rest assured") if t in detector.allowed_tools
     ]
-    for b in valid_bullets:
-        res = detector.check_bullet(b)
-        assert res["is_valid"], f"Bullet was unexpectedly flagged as fabricated: {b} -> {res}"
-        assert len(res["fabricated_tools"]) == 0
-        print(f"  ✓ Validated authentic: {b[:70]}...")
+    for tool in evidenced:
+        bullet = f"Ran regression suites with {tool} across microservices in CI/CD."
+        res = detector.check_bullet(bullet)
+        assert res["is_valid"], f"Evidenced tool bullet unexpectedly flagged: {bullet} -> {res}"
+    print(f"  ✓ Evidenced tools accepted: {evidenced}")
+
+    # Learning-roadmap tools must be flagged as fabricated
+    for tool in roadmap:
+        res = detector.check_bullet(f"Built contract tests using {tool} in CI.")
+        assert not res["is_valid"], f"Roadmap tool '{tool}' must be flagged until it graduates"
+    print(f"  ✓ Roadmap tools flagged: {roadmap}")
 
     # Invalid bullet utilizing unverified external tools
     invalid_bullet = "Engineered microservice end-to-end automation using Cypress, Golang, and Rust."
     res_invalid = detector.check_bullet(invalid_bullet)
     assert not res_invalid["is_valid"], "Unverified tools must be flagged by detector"
-    assert "Cypress" in res_invalid["fabricated_tools"] or "Golang" in res_invalid["fabricated_tools"]
     print(f"  ✓ Successfully flagged fabricated tools: {res_invalid['fabricated_tools']}")
 
     print("✅ FabricationDetector grounding verified.\n")
 
 
 def test_master_knowledge_bank_and_boundaries():
-    print("--- 3. Testing Master Knowledge Bank & Employment Boundary Isolation ---")
+    print("--- 3. Testing Master Knowledge Bank & Evidence-Gated Boundary Isolation ---")
     bank_path = os.path.join(PROJECT_ROOT, "data", "master_knowledge_bank.json")
     with open(bank_path, "r", encoding="utf-8") as f:
         bank = json.load(f)
+    roadmap = {t.lower() for t in _load_registry().get("learning_roadmap", [])}
 
     vault = bank.get("master_achievements_vault", [])
-    assert len(vault) >= 15, f"Expected at least 15 STAR achievements in vault, found {len(vault)}"
+    assert len(vault) >= 10, f"Expected at least 10 STAR achievements in vault, found {len(vault)}"
 
-    project_achievements = [a for a in vault if a.get("company") == "Technical Projects"]
-    assert len(project_achievements) >= 4, (
-        f"Expected at least 4 Technical Projects achievements, found {len(project_achievements)}"
-    )
+    # No vault entry may claim a learning-roadmap tool
+    from src.resume_store.master_resume import tool_mentioned
 
-    for pa in project_achievements:
-        print(f"  ✓ Project achievement: {pa['domain']} -> {pa['tools']}")
-
-    # Verify that company boundaries are strictly preserved
-    valuelabs_bullets = [a for a in vault if a.get("company") == "Value Labs"]
-    for v in valuelabs_bullets:
-        star_lower = v["star_achievement"].lower()
-        assert "playwright" not in star_lower, "Value Labs history must not claim Playwright"
-        assert "kubernetes" not in star_lower, "Value Labs history must not claim Kubernetes"
+    for item in vault:
+        text = item.get("star_achievement", "")
+        leaked = [t for t in roadmap if tool_mentioned(t, text)]
+        assert not leaked, f"Roadmap tool(s) {leaked} leaked into vault entry: {text[:80]}"
+    print(f"  ✓ {len(vault)} vault entries contain zero roadmap tools")
 
     print("✅ Master Knowledge Bank and employment boundaries verified.\n")
 
@@ -135,14 +138,14 @@ def test_resume_profile_schema():
 
     skills = profile.skills_matrix
     assert isinstance(skills, dict)
-    assert "Playwright" in skills.get("Languages & UI Automation", [])
-    assert "TypeScript" in skills.get("Languages & UI Automation", [])
-    assert "Kubernetes" in skills.get("CI/CD & Infra", [])
-    assert "Kafka" in skills.get("API Automation", [])
-    assert "WireMock" in skills.get("API Automation", [])
-    assert "Pact" in skills.get("API Automation", [])
+    flat = {s.lower() for v in skills.values() if isinstance(v, list) for s in v}
+    roadmap = {t.lower() for t in _load_registry().get("learning_roadmap", [])}
+    leaked = sorted(flat & roadmap)
+    assert not leaked, f"Roadmap tools listed in skills_matrix: {leaked}"
+    for tool in ("java", "python", "selenium"):
+        assert tool in flat, f"Core skill '{tool}' missing from skills_matrix"
 
-    print("  ✓ Verified skills matrix contains Playwright, TypeScript, Kubernetes, Kafka, WireMock, Pact")
+    print("  ✓ Skills matrix contains core skills and zero roadmap tools")
     print("✅ ResumeProfile schema verified.\n")
 
 

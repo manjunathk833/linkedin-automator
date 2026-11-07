@@ -236,18 +236,6 @@ def get_mock_resume_profile() -> dict:
                 ],
                 "tech_tags": ["Appium", "Python", "Charles Proxy", "Postman"],
             },
-            {
-                "name": "AI Quality & Red-Teaming CI/CD (Technical Projects)",
-                "description": "Architected an automated AI Quality and Security CI/CD evaluation gate measuring Faithfulness and Context Recall.",
-                "url": None,
-                "start_date": "2024-01-01",
-                "end_date": None,
-                "highlights": [
-                    "Engineered automated LLM-as-a-Judge test suites using DeepEval and RAGAS.",
-                    "Automated adversarial security red-teaming with Promptfoo and Garak against OWASP LLM Top 10.",
-                ],
-                "tech_tags": ["Python", "DeepEval", "RAGAS", "Promptfoo", "Garak", "GitHub Actions"],
-            },
         ],
         "skills_matrix": {
             "API Automation": [
@@ -256,26 +244,15 @@ def get_mock_resume_profile() -> dict:
                 "TestNG",
                 "Cucumber BDD",
                 "Postman",
-                "WireMock",
-                "Pact",
                 "Kafka",
             ],
             "Languages & UI Automation": [
                 "Java",
                 "Python",
-                "TypeScript",
                 "Selenium",
                 "Playwright",
                 "Appium",
                 "Chrome DevTools Protocol",
-            ],
-            "AI & Evaluation": [
-                "DeepEval",
-                "RAGAS",
-                "Promptfoo",
-                "OWASP LLM",
-                "Garak",
-                "CDP",
             ],
             "CI/CD & Infra": [
                 "Jenkins",
@@ -417,20 +394,6 @@ def get_mock_master_knowledge_bank() -> dict:
                 "metric": "Accelerated bug triage cycles",
             },
             {
-                "domain": "Modern Test Architecture & Parallel Execution",
-                "company": "Technical Projects",
-                "star_achievement": "Architected end-to-end parallel test execution suites utilizing Playwright and TypeScript with distributed CI worker sharding.",
-                "tools": ["Playwright", "TypeScript", "CI/CD"],
-                "metric": "70% regression execution speedup",
-            },
-            {
-                "domain": "API Contract Testing & Service Virtualization",
-                "company": "Technical Projects",
-                "star_achievement": "Integrated consumer-driven contract testing and service virtualization leveraging Pact and WireMock across microservices.",
-                "tools": ["Pact", "WireMock", "REST API"],
-                "metric": "Zero contract drift across microservice boundaries",
-            },
-            {
                 "domain": "Event-Driven Stream Validation",
                 "company": "Technical Projects",
                 "star_achievement": "Engineered asynchronous message queue validation suites leveraging Kafka and Python to ensure schema integrity and sub-second event latency.",
@@ -443,13 +406,6 @@ def get_mock_master_knowledge_bank() -> dict:
                 "star_achievement": "Containerized ephemeral test runners using Docker and Kubernetes across GitHub Actions CI workflows.",
                 "tools": ["Docker", "Kubernetes", "CI/CD", "GitHub Actions"],
                 "metric": "75% faster feedback cycles via ephemeral containerized test runners",
-            },
-            {
-                "domain": "AI Quality and Security CI/CD",
-                "company": "Technical Projects",
-                "star_achievement": "Architected an automated 2-stage AI Quality and Security CI/CD evaluation gate using Python, PyTest, GitHub Actions, Promptfoo, Garak, DeepEval, and RAGAS, successfully blocking staging builds on hallucination regressions and measuring Faithfulness, Answer Relevancy, and Context Recall.",
-                "tools": ["Python", "PyTest", "GitHub Actions", "Promptfoo", "Garak", "DeepEval", "RAGAS"],
-                "metric": "100% automated blocking of staging builds on hallucination regressions",
             },
             {
                 "domain": "Autonomous Browser Automation and LLM Orchestration",

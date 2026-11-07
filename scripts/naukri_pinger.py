@@ -31,9 +31,10 @@ LOG_FILE = os.path.join(PROJECT_ROOT, "data", "logs", "naukri_pinger.log")
 DAILY_RUNS_LOG = os.path.join(PROJECT_ROOT, "data", "logs", "daily_runs.jsonl")
 NAUKRI_PROFILE_URL = "https://www.naukri.com/mnjuser/profile"
 
-# High-converting Naukri Resdex Headline Variants (<= 250 chars)
+# High-converting Naukri Resdex Headline Variants (<= 250 chars).
+# Evidence-gated: only tools backed by the master resume (no learning-roadmap tools such as DeepEval/RAGAS).
 HEADLINE_VARIANT_A = (
-    "Senior SDET (7 YOE) | Playwright, Java, Python, AI & LLM Evaluation (DeepEval, RAGAS) | "
+    "Senior SDET (7 YOE) | Java, Python, Selenium, API Automation, Docker & AI-Driven Testing | "
     "Ex-Dunzo, Tata Elxsi | Notice: 60 Days (Negotiable to 30d / Buyout)"
 )
 HEADLINE_VARIANT_B = (

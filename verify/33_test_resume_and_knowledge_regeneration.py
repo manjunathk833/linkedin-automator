@@ -1,7 +1,7 @@
 """
 Verification Gate 33: Test Resume and Master Knowledge Bank Regeneration
 Ensures:
-1. Manjunathhkstandardresume.json is completely sanitized (0 Cypress/Golang mentions).
+1. Manjunath_HK_Master_Resume.json is completely sanitized (0 Cypress/Golang mentions).
 2. data/resume_profile.json strictly complies with Pydantic ResumeProfile schema.
 3. data/master_knowledge_bank.json contains grounded STAR achievements with zero hallucinations.
 4. Full test suite compatibility with verify/02, verify/06, and verify/25.
@@ -22,17 +22,17 @@ from src.tailor.fabrication_detector import FabricationDetector
 
 
 def test_standard_resume_sanitization():
-    resume_path = os.path.join(PROJECT_ROOT, "Manjunathhkstandardresume.json")
+    resume_path = os.path.join(PROJECT_ROOT, "Manjunath_HK_Master_Resume.json")
     if not os.path.exists(resume_path):
         print(
-            "ℹ️ Manjunathhkstandardresume.json not present in clean CI clone. Skipping standard resume sanitization check."
+            "ℹ️ Manjunath_HK_Master_Resume.json not present in clean CI clone. Skipping standard resume sanitization check."
         )
         return
     with open(resume_path, "r", encoding="utf-8") as f:
         content = f.read()
     assert "cypress" not in content.lower(), "Disallowed tool Cypress found in standard resume!"
     assert "golang" not in content.lower(), "Disallowed tool Golang found in standard resume!"
-    print("✅ Manjunathhkstandardresume.json sanitization verified: 0 unverified tools.")
+    print("✅ Manjunath_HK_Master_Resume.json sanitization verified: 0 unverified tools.")
 
 
 def test_resume_profile_validation():

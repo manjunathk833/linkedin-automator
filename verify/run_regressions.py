@@ -115,6 +115,8 @@ TIER_1_CORE = [
     "105_test_interview_engine_and_batch_autofill.py",
     "106_test_portal_sniper_and_ci_auto_ingest.py",
     "107_test_mark_applied_force_override.py",
+    "110_test_master_resume_integrity.py",
+    "111_test_skill_graduation_and_evidence_gate.py",
 ]
 
 

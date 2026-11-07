@@ -61,6 +61,21 @@ def test_pdf_generation():
         "   1. Professional Summary -> 2. Core Technical Skills -> 3. Experience -> 4. Projects -> 5. Certifications & Awards -> 6. Education (bottom)"
     )
 
+    # Verify ATS fixes in CSS & HTML template
+    with open(generator.css_path, "r", encoding="utf-8") as css_f:
+        css_text = css_f.read()
+    assert "font-variant-ligatures: none" in css_text, "CSS must disable font ligatures for ATS parsing"
+    for social in profile.personal_details.profiles:
+        stripped_url = (
+            str(social.url)
+            .replace("https://www.", "")
+            .replace("http://www.", "")
+            .replace("https://", "")
+            .replace("http://", "")
+        )
+        assert stripped_url in rendered_html, f"Expected visible URL '{stripped_url}' in rendered HTML"
+    print("✅ Verified ATS anti-ligature CSS and visible profile URLs in HTML template.")
+
 
 if __name__ == "__main__":
     test_pdf_generation()

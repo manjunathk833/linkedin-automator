@@ -11,9 +11,9 @@ To prevent context rot and instruction bloat in the primary conversation, delega
 - **`apply_agent` (`.agents/agents/apply_agent.md` & `.agents/skills/apply/SKILL.md`):** Activate when draining `data/approved_queue/` via `/apply`.
 
 ## 2. Non-Negotiable Domain & Engineering Invariants
-1. **Candidate Profile & Employment Boundary Isolation:**
-   - Ground all tailoring and form filling strictly in `data/profile/candidate_master_data.json`, `data/resume_profile.json`, and `data/master_knowledge_bank.json` (`Notice Period: 60 Days`, `Current CTC: 17 LPA`, `Expected CTC: 27 LPA`, `6.8 YOE`).
-   - Whitelisted modern architecture tools (`playwright`, `typescript`, `docker`, `kubernetes`, `kafka`, `wiremock`, `pact`) must remain scoped strictly to `Technical Projects` / `Personal` boundaries and NEVER leak into historical employer blocks (`Value Labs`, `Dunzo`, `Tata Elxsi`). Unverified tools (`cypress`, `golang`, etc.) remain strictly blocked.
+1. **Candidate Profile & Evidence-Gated Employment Boundary Isolation:**
+   - Ground all tailoring and form filling strictly in `Manjunath_HK_Master_Resume.json` (and the derived `data/resume_profile.json`, `data/master_knowledge_bank.json`, `data/profile/allowed_tools_whitelist.json`) plus `data/profile/candidate_master_data.json` (`Notice Period: 60 Days`, `Current CTC: 17 LPA`, `Expected CTC: 27 LPA`, `6.8 YOE`).
+   - A tool may appear in a tailored bullet only within the employer or project boundary where the master resume contains evidence for it (`tool_evidence` in `allowed_tools_whitelist.json`). Tools listed in `learning_roadmap` (`typescript`, `wiremock`, `pact`, `deepeval`, `ragas`, `promptfoo`, `garak`, etc.) and `disallowed_hallucinations` (`cypress`, `golang`, `rust`, etc.) are blocked across all boundaries. A roadmap tool graduates to `allowed_tools` automatically once added to the master resume with an experience or project bullet and synced via `python main.py resume sync`.
 2. **3-Tier Interview Routing (`InterviewRouter`):**
    - Route jobs into `TIER_0_POST_AUTHOR` (direct hiring post outreach), `TIER_1_SNIPER_APPLY` (`<24h` fresh postings for rapid application), or `TIER_2_REFERRAL_SLA` (Dream Enterprises / Workday roles held for a 36-hour low-key peer/alumni referral outreach window before cold applying).
    - Referral scoring (`score_referral_candidate`) must reject `>3,000` follower influencers and `"Ex-<Company>"` former employees.
