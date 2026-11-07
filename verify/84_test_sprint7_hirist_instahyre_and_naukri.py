@@ -169,10 +169,11 @@ def test_naukri_pinger_headline_rotation():
     for tool in load_learning_roadmap():
         assert not tool_mentioned(tool, HEADLINE_VARIANT_A), f"Roadmap tool '{tool}' leaked into Variant A"
         assert not tool_mentioned(tool, HEADLINE_VARIANT_B), f"Roadmap tool '{tool}' leaked into Variant B"
-    assert "Java" in HEADLINE_VARIANT_A and "Python" in HEADLINE_VARIANT_A
+    for core_kw in ("Java", "Python", "Selenium", "Playwright", "REST Assured", "Docker", "CI/CD"):
+        assert core_kw in HEADLINE_VARIANT_A, f"Missing '{core_kw}' in Variant A"
+        assert core_kw in HEADLINE_VARIANT_B, f"Missing '{core_kw}' in Variant B"
     assert "30d" in HEADLINE_VARIANT_A or "Buyout" in HEADLINE_VARIANT_A
-
-    assert "Playwright" in HEADLINE_VARIANT_B and "Agentic AI" in HEADLINE_VARIANT_B
+    assert "Agentic AI" in HEADLINE_VARIANT_B
     assert "30d" in HEADLINE_VARIANT_B or "Buyout" in HEADLINE_VARIANT_B
 
     # 3. Deterministic rotation check
