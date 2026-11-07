@@ -695,6 +695,8 @@ class LinkedInPostTracker:
                     print(f"🌐 URL: {url} (card cutoff: {date_filter})")
 
                     try:
+                        if page.is_closed():
+                            page = await context.new_page()
                         await page.goto(url, wait_until="domcontentloaded", timeout=35000)
                         await asyncio.sleep(3.0)
 

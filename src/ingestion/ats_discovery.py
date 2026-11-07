@@ -313,6 +313,12 @@ class ATSDiscoveryCoordinator:
             max_age_days if max_age_days is not None else (3.0 if datetime.datetime.utcnow().weekday() == 0 else 2.0)
         )
         all_portal_jobs: list[JobListing] = []
+        portal_tel: dict[str, Any] = {
+            "hirist_status": "OK",
+            "hirist_count": 0,
+            "instahyre_status": "OK",
+            "instahyre_count": 0,
+        }
         try:
             h_jobs = await asyncio.wait_for(
                 self.hirist.fetch_jobs(
@@ -320,8 +326,10 @@ class ATSDiscoveryCoordinator:
                 ),
                 timeout=45.0,
             )
+            portal_tel["hirist_count"] = len(h_jobs)
             all_portal_jobs.extend(h_jobs)
         except Exception as e:
+            portal_tel["hirist_status"] = f"WARN ({e})"
             print(f"⚠️ Hirist portal ingestion error: {e}")
 
         try:
@@ -331,6 +339,9 @@ class ATSDiscoveryCoordinator:
                 ),
                 timeout=45.0,
             )
+            insta_err = getattr(self.instahyre, "last_status", "OK")
+            if insta_err != "OK":
+                portal_tel["instahyre_status"] = insta_err
             if not i_jobs:
                 for slug in self.instahyre.CURATED_SLUGS[:2]:
                     feed_jobs = await asyncio.wait_for(
@@ -340,10 +351,13 @@ class ATSDiscoveryCoordinator:
                         timeout=20.0,
                     )
                     i_jobs.extend(feed_jobs)
+            portal_tel["instahyre_count"] = len(i_jobs)
             all_portal_jobs.extend(i_jobs)
         except Exception as e:
+            portal_tel["instahyre_status"] = f"WARN ({e})"
             print(f"⚠️ Instahyre portal ingestion error: {e}")
 
+        self.last_portal_telemetry = portal_tel
         return all_portal_jobs
 
     @staticmethod

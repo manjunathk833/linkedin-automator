@@ -53,9 +53,12 @@ class EmailReporter:
         hiring_posts: list[dict[str, Any]] | None = None,
         naukri_status: dict[str, Any] | None = None,
         linkedin_telemetry: dict[str, Any] | None = None,
+        run_id: str | None = None,
+        stage_summary: list[dict[str, str]] | None = None,
     ) -> str:
         """Generates modern, responsive Glassmorphic HTML email body."""
         date_str = run_date or datetime.date.today().strftime("%B %d, %Y")
+        active_run_id = run_id or f"daily_{datetime.date.today().strftime('%Y%m%d')}"
         total_jobs = len(staged_jobs)
         posts = hiring_posts or []
         dream_jobs = [j for j in staged_jobs if j.get("is_dream_org")]
@@ -95,6 +98,88 @@ class EmailReporter:
             naukri_badge = '<span style="background: #f59e0b; color: #ffffff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">Naukri Resdex: Login Required ⚠️</span>'
         else:
             naukri_badge = f'<span style="background: #64748b; color: #ffffff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">Naukri Resdex: {n_st}</span>'
+
+        # Stage-by-Stage Execution Summary table rows
+        effective_stages = stage_summary or [
+            {
+                "stage": "Step 1: Regression Health",
+                "status": "PASS" if regression_passed else "FAIL",
+                "metrics": regression_summary,
+            },
+            {
+                "stage": "Step 2B: Track 1 Direct ATS",
+                "status": "PASS",
+                "metrics": f"{len(ats_jobs)} enterprise & direct portal role(s) in queue",
+            },
+            {
+                "stage": "Step 2C: Track 2 LinkedIn Jobs",
+                "status": "PASS" if t2_verdict in ("OK", "NOT_RUN") else "WARN",
+                "metrics": f"{len(linkedin_jobs)} LinkedIn role(s) in queue (verdict={t2_verdict})",
+            },
+            {
+                "stage": "Step 2D: Track 3 Social Posts",
+                "status": "PASS" if t3_verdict in ("OK", "NOT_RUN") else "WARN",
+                "metrics": f"{len(posts)} social hiring lead(s) (verdict={t3_verdict})",
+            },
+            {
+                "stage": "Step 3: Filter Engine",
+                "status": "PASS",
+                "metrics": f"{total_jobs} pending roles ready ({len(dream_jobs)} Dream Orgs)",
+            },
+            {
+                "stage": "Step 4: Naukri Resdex",
+                "status": "PASS" if n_st in ("SUCCESS", "dry_run") else ("SKIP" if n_st == "SKIPPED" else "WARN"),
+                "metrics": (naukri_status or {}).get("message")
+                or (naukri_status or {}).get("error")
+                or f"Status: {n_st}",
+            },
+        ]
+
+        stage_rows_html = []
+        for s_item in effective_stages:
+            s_name = s_item.get("stage", "Stage")
+            s_raw_st = str(s_item.get("status", "PASS")).upper()
+            s_metrics = s_item.get("metrics", "")
+            if "FAIL" in s_raw_st or "ERR" in s_raw_st:
+                st_bg, st_fg, st_label = "#fee2e2", "#b91c1c", "❌ FAIL"
+            elif "WARN" in s_raw_st or "AUTH" in s_raw_st:
+                st_bg, st_fg, st_label = "#fef3c7", "#b45309", "⚠️ WARN"
+            elif "SKIP" in s_raw_st:
+                st_bg, st_fg, st_label = "#f1f5f9", "#475569", "⏭️ SKIP"
+            else:
+                st_bg, st_fg, st_label = "#dcfce7", "#15803d", "✅ PASS"
+
+            stage_rows_html.append(
+                f"""
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 8px 10px; font-weight: 600; color: #0f172a; white-space: nowrap;">{s_name}</td>
+                    <td style="padding: 8px 10px; white-space: nowrap;">
+                        <span style="background: {st_bg}; color: {st_fg}; font-size: 10.5px; padding: 2px 7px; border-radius: 4px; font-weight: 700;">{st_label}</span>
+                    </td>
+                    <td style="padding: 8px 10px; color: #334155; font-size: 11.5px;">{s_metrics}</td>
+                </tr>
+                """
+            )
+
+        stage_summary_section = f"""
+        <div style="margin-bottom: 22px;">
+            <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #0f172a;">
+                🧭 Stage-by-Stage Execution Summary (<code style="font-size: 12px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">{active_run_id}</code>)
+            </h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Stage</th>
+                        <th>Status</th>
+                        <th>Key Metrics &amp; Verification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {"".join(stage_rows_html)}
+                </tbody>
+            </table>
+        </div>
+        """
 
         # Build job table rows (top 10 jobs)
         rows_html = []
@@ -264,6 +349,8 @@ class EmailReporter:
       <strong>Regression Health:</strong> {regression_summary}. All newly scraped roles have been deduplicated, experience-filtered, and enriched with AI-grounded STAR achievements.
     </p>
 
+    {stage_summary_section}
+
     <h3 style="font-size: 14px; margin: 0 0 10px 0; color: #0f172a;">💼 Staged Job Requisitions (Tracks 1 & 2)</h3>
     <table>
       <thead>
@@ -303,6 +390,8 @@ class EmailReporter:
         hiring_posts: list[dict[str, Any]] | None = None,
         naukri_status: dict[str, Any] | None = None,
         linkedin_telemetry: dict[str, Any] | None = None,
+        run_id: str | None = None,
+        stage_summary: list[dict[str, str]] | None = None,
     ) -> bool:
         """
         Builds report, saves fallback HTML to disk, and attempts SSL dispatch via Gmail SMTP.
@@ -316,6 +405,8 @@ class EmailReporter:
             hiring_posts=hiring_posts,
             naukri_status=naukri_status,
             linkedin_telemetry=linkedin_telemetry,
+            run_id=run_id,
+            stage_summary=stage_summary,
         )
 
         # 1. Always save fallback archive HTML to disk

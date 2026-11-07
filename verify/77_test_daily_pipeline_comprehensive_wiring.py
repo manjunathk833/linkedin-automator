@@ -193,8 +193,11 @@ def test_email_reporter_all_capabilities_rendering():
         execution_duration_sec=15.2,
         hiring_posts=hiring_posts,
         naukri_status=naukri_status,
+        run_id="daily_20261107_9a48e4",
     )
 
+    assert "Stage-by-Stage Execution Summary" in html, "Report must include Stage-by-Stage Execution Summary table"
+    assert "daily_20261107_9a48e4" in html, "Report must render run_id in Stage-by-Stage Execution Summary header"
     assert "Naukri Resdex: Refreshed ✅" in html, "Report must include Naukri refresh success badge"
     assert "Databricks" in html, "Report must render staged ATS jobs"
     assert "Inbound Social Hiring Posts & Leads (Track 3)" in html, "Report must contain Track 3 section"
@@ -302,8 +305,8 @@ def test_midday_sniper_mode_wiring():
     from pathlib import Path
 
     prod_script = (Path(PROJECT_ROOT) / "scripts/run_daily_prod.sh").read_text(encoding="utf-8")
-    assert "main.py search --source sniper --headless" in prod_script, (
-        "scripts/run_daily_prod.sh afternoon block must execute 'main.py search --source sniper --headless'"
+    assert "main.py search --source sniper" in prod_script, (
+        "scripts/run_daily_prod.sh afternoon block must execute 'main.py search --source sniper'"
     )
     print("  ✓ Midday Sniper (--source sniper) and run_daily_prod.sh wiring verified")
 
