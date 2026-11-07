@@ -163,8 +163,13 @@ def test_naukri_pinger_headline_rotation():
     assert len(HEADLINE_VARIANT_A) <= 250, f"Variant A too long: {len(HEADLINE_VARIANT_A)}"
     assert len(HEADLINE_VARIANT_B) <= 250, f"Variant B too long: {len(HEADLINE_VARIANT_B)}"
 
-    # 2. Check essential high-converting keywords
-    assert "Playwright" in HEADLINE_VARIANT_A and "DeepEval" in HEADLINE_VARIANT_A
+    # 2. Check essential high-converting keywords (evidence-gated: no learning-roadmap tools)
+    from src.resume_store.master_resume import load_learning_roadmap, tool_mentioned
+
+    for tool in load_learning_roadmap():
+        assert not tool_mentioned(tool, HEADLINE_VARIANT_A), f"Roadmap tool '{tool}' leaked into Variant A"
+        assert not tool_mentioned(tool, HEADLINE_VARIANT_B), f"Roadmap tool '{tool}' leaked into Variant B"
+    assert "Java" in HEADLINE_VARIANT_A and "Python" in HEADLINE_VARIANT_A
     assert "30d" in HEADLINE_VARIANT_A or "Buyout" in HEADLINE_VARIANT_A
 
     assert "Playwright" in HEADLINE_VARIANT_B and "Agentic AI" in HEADLINE_VARIANT_B

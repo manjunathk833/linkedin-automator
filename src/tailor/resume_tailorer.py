@@ -45,7 +45,7 @@ class ResumeTailorer:
         self.fabrication_detector = FabricationDetector(self.master_profile, self.knowledge_bank)
 
     def extract_keywords(self, text: str) -> list[str]:
-        """Extracts key tech stack keywords from job text."""
+        """Extracts key tech stack keywords from job text, gated by allowed_tools."""
         known_keywords = [
             "REST Assured",
             "Python",
@@ -58,6 +58,7 @@ class ResumeTailorer:
             "Cucumber",
             "BDD",
             "Kibana",
+            "Dynatrace",
             "GCP",
             "Docker",
             "Kubernetes",
@@ -65,16 +66,24 @@ class ResumeTailorer:
             "WireMock",
             "Pact",
             "Jenkins",
+            "Harness",
+            "TeamCity",
+            "GitHub Actions",
             "Azure DevOps",
             "PostgreSQL",
             "Allure",
             "Postman",
             "ReadyAPI",
             "Groovy",
+            "JMeter",
+            "Locust",
+            "TestNG",
+            "Pytest",
             "Microservices",
         ]
+        roadmap_lower = getattr(self.fabrication_detector, "learning_roadmap", set())
         text_lower = text.lower()
-        matched = [kw for kw in known_keywords if kw.lower() in text_lower]
+        matched = [kw for kw in known_keywords if kw.lower() in text_lower and kw.lower() not in roadmap_lower]
         return matched if matched else ["API Testing", "Automation", "Python", "Java"]
 
     def tailor_job_payload(self, job_payload: dict[str, Any]) -> dict[str, Any]:

@@ -13,16 +13,17 @@ import re
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_WHITELIST_PATH = os.path.join(PROJECT_ROOT, "data", "profile", "allowed_tools_whitelist.json")
 
-# Common tool substitution dictionary to recover sentences gracefully
+# Substitutions for tools the candidate has NEVER used (disallowed hallucinations) or is still
+# learning (learning roadmap). Tools with master-resume evidence (e.g. Playwright, Kubernetes, Kafka)
+# are never rewritten — they are legitimate and enforced per-boundary by FabricationDetector.
 TOOL_SUBSTITUTIONS = {
-    "playwright": "Selenium",
     "cypress": "Selenium",
-    "kubernetes": "Docker",
-    "k8s": "Docker",
     "golang": "Python",
     "go": "Python",
     "rust": "Java",
-    "kafka": "REST API",
+    "typescript": "Java",
+    "wiremock": "REST Assured",
+    "pact": "REST Assured",
 }
 
 
@@ -38,7 +39,7 @@ class ResumeVerificationGate:
         self._load_whitelist()
 
     def _load_whitelist(self) -> None:
-        """Loads allowed tools and known hallucination targets from JSON."""
+        """Loads allowed tools, disallowed hallucinations and learning-roadmap tools from JSON."""
         if not os.path.exists(self.whitelist_path):
             return
 
@@ -46,7 +47,8 @@ class ResumeVerificationGate:
             data = json.load(f)
 
         self.allowed_tools = {tool.strip().lower() for tool in data.get("allowed_tools", [])}
-        self.disallowed_tools = {tool.strip().lower() for tool in data.get("disallowed_hallucinations", [])}
+        blocked = list(data.get("disallowed_hallucinations", [])) + list(data.get("learning_roadmap", []))
+        self.disallowed_tools = {tool.strip().lower() for tool in blocked} - self.allowed_tools
 
     def detect_unauthorized_tools(self, text: str) -> list[str]:
         """
@@ -72,6 +74,8 @@ class ResumeVerificationGate:
         sanitized = bullet
 
         for dis, replacement in TOOL_SUBSTITUTIONS.items():
+            if dis in self.allowed_tools:
+                continue  # graduated / evidenced tool: never rewrite it
             pattern = re.compile(rf"\b{re.escape(dis)}\b", re.IGNORECASE)
             if pattern.search(sanitized):
                 sanitized = pattern.sub(replacement, sanitized)

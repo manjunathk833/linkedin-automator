@@ -92,8 +92,8 @@ Your task is to select and polish the candidate's authentic technical achievemen
 
 ### ABSOLUTE GROUNDING MANDATES (ZERO FABRICATION & ZERO HALLUCINATION):
 1. NO TOOL HALLUCINATION: You may ONLY use tools, frameworks, and languages that appear in the Candidate's Master Vault or Resume Profile.
-2. UNSUPPORTED JD KEYWORDS: If the Target JD asks for a tool the candidate has NOT used (e.g., Cypress, Golang, C#, Rust, Tosca), NEVER claim experience with that tool. Instead, highlight the candidate's closest authentic equivalent (e.g. REST Assured, Selenium, Playwright, Appium, Python, Java).
-3. STRICT EMPLOYER BOUNDARY ISOLATION: Modern architecture & AI evaluation tools (Playwright, TypeScript, Docker, Kubernetes, Kafka, WireMock, Pact, DeepEval, RAGAS, Promptfoo, Garak) belong strictly to Technical Projects / Personal Architecture and must NEVER be attributed to historical employers (Value Labs, Dunzo, Tata Elxsi).
+2. UNSUPPORTED & LEARNING-ROADMAP JD KEYWORDS: If the Target JD asks for a tool the candidate has NOT used (e.g., Cypress, Golang, C#, Rust, Tosca) or a tool on the candidate's learning roadmap (e.g., TypeScript, WireMock, Pact, DeepEval, RAGAS, Promptfoo, Garak), NEVER claim experience with that tool. Instead, highlight the candidate's closest authentic equivalent (e.g. REST Assured, Selenium, Playwright, Appium, Python, Java).
+3. EVIDENCE-GATED EMPLOYER BOUNDARY ISOLATION: A tool may appear in a tailored bullet ONLY within the employer or project boundary where the Candidate's Vault contains explicit evidence for it (e.g., Docker in ValueLabs and Dunzo; Kubernetes in Dunzo; Dynatrace and Kafka event-log monitoring in ValueLabs; Appium in Tata Elxsi). Never leak tools across employers where they were not used.
 4. FACTUAL METRICS & COMPANIES: Never invent companies, dates, or quantitative outcomes not present in the Candidate's Vault.
 
 ### GOOD vs BAD EXAMPLES:
@@ -158,8 +158,8 @@ Your task is to convert raw candidate notes into structured STAR achievement obj
 
 Convert each note into a structured JSON achievement containing:
 - domain: Classified technical domain (e.g., Performance Testing, API Automation, Event-Driven Architecture, Cloud Certification)
-- company: Associated company name (e.g. Value Labs, Dunzo, Tata Elxsi) or "Personal / Certification".
-  STRICT EMPLOYMENT BOUNDARY MANDATE: Modern tools (Playwright, TypeScript, Docker, Kubernetes, Kafka, WireMock, Pact) must ALWAYS be assigned to "Personal / Certification", NEVER to Value Labs, Dunzo, or Tata Elxsi.
+- company: Associated company name (e.g. ValueLabs, Dunzo, Tata Elxsi) or "Personal / Certification".
+  STRICT EVIDENCE-GATED BOUNDARY MANDATE: Assign each achievement strictly to the employer heading under which it appears. Never include unbuilt or learning-roadmap tools (TypeScript, WireMock, Pact, DeepEval, RAGAS, Promptfoo, Garak).
 - star_achievement: STAR-formatted bullet point [Action Verb] + [Tools] + [Outcome]
 - tools: Array of tech tools (e.g. ["Locust", "Python", "API"])
 - metric: Extracted metric or ROI outcome (e.g. "35% latency reduction")

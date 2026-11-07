@@ -30,10 +30,10 @@ def test_verification_gate_purging():
         f"🛡️ Whitelist Loaded: {len(gate.allowed_tools)} allowed tools, {len(gate.disallowed_tools)} disallowed targets."
     )
 
-    # 1. Deliberately inject unauthorized tools
+    # 1. Deliberately inject unauthorized tools (never-used + learning-roadmap) alongside evidenced tools
     injected_bullets = [
         "Architected E2E test suites using Cypress and Kubernetes pipelines for CI/CD.",
-        "Built microservice testing frameworks in Golang and Playwright for real-time Kafka event streams.",
+        "Built microservice testing frameworks in Golang and TypeScript with Pact contract tests.",
         "Spearheaded API automation using REST Assured and Java with Jenkins CI/CD integration.",
     ]
 
@@ -47,17 +47,18 @@ def test_verification_gate_purging():
     for s in sanitized:
         print(f"   Output: '{s}'")
 
-    # Assertions
+    # Assertions: never-used (Cypress, Golang) and roadmap (TypeScript, Pact) tools are purged
     for item in sanitized:
         lower_item = item.lower()
-        for forbidden in ["cypress", "kubernetes", "golang", "playwright", "kafka"]:
+        for forbidden in ["cypress", "golang", "typescript", "pact"]:
             assert forbidden not in lower_item, f"LEAK DETECTED! Forbidden skill '{forbidden}' survived in: {item}"
 
+    # Evidence-gated tools present in allowed_tools (e.g. Kubernetes) must NOT be rewritten
+    if "kubernetes" in gate.allowed_tools:
+        assert "Kubernetes" in sanitized[0], "Evidenced tool Kubernetes was erroneously substituted!"
     assert "REST Assured" in sanitized[2], "Authentic skill REST Assured was erroneously removed!"
     assert "Java" in sanitized[2], "Authentic skill Java was erroneously removed!"
-    print(
-        "\n✅ 100% of injected unauthorized skills (Cypress, Kubernetes, Golang, Playwright, Kafka) were purged or substituted!"
-    )
+    print("\n✅ Never-used & roadmap skills (Cypress, Golang, TypeScript, Pact) purged; evidenced tools preserved!")
 
 
 def test_pdf_compilation():

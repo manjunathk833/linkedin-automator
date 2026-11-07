@@ -2,14 +2,15 @@
 """
 Verification Gate 82: Sprint 5 AI Evaluation & Red-Teaming Knowledge Grounding.
 
+Evidence-gated model (master resume = single source of truth). AI-evaluation tools
+(DeepEval, RAGAS, Promptfoo, Garak, OWASP LLM, LangSmith...) are on the candidate's
+learning roadmap until a built project is added to the master resume.
+
 Asserts:
-1. allowed_tools_whitelist.json contains deepeval, ragas, promptfoo, owasp llm, garak, and cdp.
-2. FabricationDetector permits a Technical Projects bullet containing
-   "DeepEval, RAGAS, and Promptfoo for OWASP LLM red-teaming".
-3. FabricationDetector rejects/strips "DeepEval" and "Promptfoo" when passed inside
-   a Tata Elxsi, Dunzo, or Value Labs employer bullet.
-4. master_knowledge_bank.json contains newly grounded STAR achievements with zero
-   cross-employer contamination.
+1. allowed_tools_whitelist.json lists the AI-eval tools under learning_roadmap and NOT in allowed_tools.
+2. FabricationDetector flags a project bullet claiming DeepEval/RAGAS/Promptfoo (not yet built).
+3. FabricationDetector rejects AI-eval tools inside Tata Elxsi, Dunzo, or Value Labs employer bullets.
+4. master_knowledge_bank.json contains zero AI-eval roadmap claims.
 """
 
 from __future__ import annotations
@@ -25,9 +26,11 @@ if PROJECT_ROOT not in sys.path:
 from src.resume_store.models import ResumeProfile
 from src.tailor.fabrication_detector import FabricationDetector
 
+AI_EVAL_TOOLS = ["deepeval", "ragas", "promptfoo", "owasp llm", "garak", "langsmith"]
+
 
 def test_allowed_tools_whitelist():
-    print("🔍 Step 1: Validating allowed_tools_whitelist.json...")
+    print("🔍 Step 1: Validating allowed_tools_whitelist.json (AI-eval tools on learning roadmap)...")
     whitelist_path = os.path.join(PROJECT_ROOT, "data", "profile", "allowed_tools_whitelist.json")
     assert os.path.exists(whitelist_path), f"Whitelist not found: {whitelist_path}"
 
@@ -35,14 +38,17 @@ def test_allowed_tools_whitelist():
         data = json.load(f)
 
     allowed = {t.lower() for t in data.get("allowed_tools", [])}
-    required_tools = ["deepeval", "ragas", "promptfoo", "owasp llm", "garak", "cdp", "langsmith", "fastapi"]
-    for t in required_tools:
-        assert t in allowed, f"Required tool '{t}' missing from allowed_tools_whitelist.json"
-    print("   ✅ All required AI Evaluation & CDP tools present in whitelist.")
+    roadmap = {t.lower() for t in data.get("learning_roadmap", [])}
+    for t in AI_EVAL_TOOLS:
+        if t in data.get("tool_evidence", {}):
+            continue  # graduated via the master resume — allowed by design
+        assert t in roadmap, f"AI-eval tool '{t}' must be listed in learning_roadmap until it graduates"
+        assert t not in allowed, f"AI-eval tool '{t}' must NOT be in allowed_tools without master-resume evidence"
+    print("   ✅ AI-eval tools are blocked on the learning roadmap (no master-resume evidence yet).")
 
 
 def test_fabrication_detector_project_scope():
-    print("\n🔍 Step 2: Testing FabricationDetector with Technical Projects bullets...")
+    print("\n🔍 Step 2: Testing FabricationDetector flags unbuilt AI-eval project claims...")
     profile_path = os.path.join(PROJECT_ROOT, "data", "resume_profile.json")
     with open(profile_path, "r", encoding="utf-8") as f:
         profile_data = json.load(f)
@@ -60,16 +66,12 @@ def test_fabrication_detector_project_scope():
         "AI Evaluation Pipeline [DeepEval · RAGAS · Promptfoo · OWASP LLM]: Architected automated "
         "LLM-as-a-Judge test harness measuring Faithfulness and Context Recall."
     )
-    # 2A. Bullet check should be valid (not flagged as hallucinated tool)
     check_res = detector.check_bullet(project_bullet)
-    assert check_res["is_valid"], f"Expected project bullet to be valid, got: {check_res['fabricated_tools']}"
-
-    # 2B. Company contamination check under Technical Projects should be clean
-    contam_proj = detector.check_company_contamination("Technical Projects", project_bullet)
-    assert contam_proj["is_clean"], (
-        f"Expected Technical Projects bullet to be clean, got violations: {contam_proj['violating_companies']}"
-    )
-    print("   ✅ Technical Projects bullet with DeepEval & RAGAS successfully permitted.")
+    if any(t in detector.allowed_tools for t in ("deepeval", "ragas", "promptfoo")):
+        print("   ℹ️ AI-eval tools graduated via master resume; skipping roadmap block assertion.")
+        return
+    assert not check_res["is_valid"], "Unbuilt AI-eval project bullet must be flagged until it graduates"
+    print(f"   ✅ Unbuilt AI-eval claims flagged: {check_res['fabricated_tools']}")
 
 
 def test_fabrication_detector_employer_isolation():
@@ -111,27 +113,17 @@ def test_master_knowledge_bank_integrity():
     vault = bank_data.get("master_achievements_vault", [])
     assert len(vault) > 0, "Vault is empty"
 
-    # Verify new AI eval achievements exist
-    eval_achievements = [
-        item
-        for item in vault
-        if any(tool.lower() in ["deepeval", "ragas", "promptfoo", "garak", "cdp"] for tool in item.get("tools", []))
-        or "deepeval" in item.get("star_achievement", "").lower()
-        or "promptfoo" in item.get("star_achievement", "").lower()
-    ]
-    assert len(eval_achievements) > 0, "No AI evaluation achievements found in master_knowledge_bank.json"
+    # Verify zero AI-eval roadmap claims anywhere in the vault
+    from src.resume_store.master_resume import tool_mentioned
 
-    # Verify zero cross-employer contamination in vault
-    forbidden_employers = {"Value Labs", "Dunzo", "Tata Elxsi"}
-    for item in eval_achievements:
-        comp = item.get("company", "")
-        assert comp not in forbidden_employers, (
-            f"Contamination detected! AI evaluation achievement assigned to historical employer '{comp}': "
-            f"{item.get('star_achievement', '')[:80]}"
-        )
-    print(
-        f"   ✅ Master knowledge bank verified: {len(eval_achievements)} AI evaluation achievements cleanly isolated."
-    )
+    leaked = [
+        item.get("star_achievement", "")[:80]
+        for item in vault
+        if any(tool_mentioned(t, item.get("star_achievement", "")) for t in AI_EVAL_TOOLS)
+        or any(tool.lower() in AI_EVAL_TOOLS for tool in item.get("tools", []))
+    ]
+    assert not leaked, f"AI-eval roadmap claims found in knowledge bank: {leaked}"
+    print(f"   ✅ Master knowledge bank verified: {len(vault)} entries, zero AI-eval roadmap claims.")
 
 
 if __name__ == "__main__":

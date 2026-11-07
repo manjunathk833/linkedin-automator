@@ -24,9 +24,10 @@ This manual provides the complete operational reference for running, configuring
 | `python main.py posts` | Discovers and manages Track 3 LinkedIn social hiring posts from EMs, QA Leads, and recruiters. | `discover`, `list`, `stats`, `--headless` |
 | `python main.py search` | Runs unified discovery across Track 1 (Direct ATS: Greenhouse, Lever, Ashby, Workday), Track 2 (LinkedIn Multi-Channel + `<24h` Sniper), and Track 3 (`<24h`/`<72h` Hiring Posts). | `--source [all|ats|linkedin|sniper|portals|posts]`, `--headless`, `--max-jobs` |
 | `python main.py dashboard` | Launches the 4-Tab FastAPI Command Center at `http://127.0.0.1:8000`. | `--host 127.0.0.1`, `--port 8000` |
-| `python main.py sync` | Translates plain-English notes in `data/candidate_notes.md` into boundary-isolated STAR achievements in `data/master_knowledge_bank.json`. | None |
+| `python main.py resume` | Validates `Manjunath_HK_Master_Resume.json` and deterministically syncs `resume_profile.json`, `allowed_tools_whitelist.json`, and `master_knowledge_bank.json`. | `sync` (default), `check`, `--dry-run` |
+| `python main.py sync` | Translates plain-English notes in `data/candidate_notes.md` into employer-scoped STAR achievements in `data/master_knowledge_bank.json` (skipping `Learning Roadmap` sections). | None |
 | `python main.py session` | Inspects or exports portable Playwright authentication cookies (`storage_state.json`). | `status`, `export` |
-| `python main.py test` | Executes the Standardized Multi-Tier Regression Suite (62 Tier 1 Core gates). | `--tier [core|autofill|all]`, `--live` |
+| `python main.py test` | Executes the Standardized Multi-Tier Regression Suite (70 Tier 1 Core gates). | `--tier [core|autofill|all]`, `--live` |
 | `python main.py lint` | Runs Ruff auto-fix linter and formatter across all 174+ Python files in `<1s`. | None |
 
 ---
@@ -53,21 +54,25 @@ safety_governor:
   daily_limit: 200
 ```
 
-### `data/profile/allowed_tools_whitelist.json` (Boundary-Isolated Whitelist)
+### `data/profile/allowed_tools_whitelist.json` (Evidence-Gated Whitelist & Learning Roadmap)
+Generated deterministically via `python main.py resume sync` from `Manjunath_HK_Master_Resume.json`:
 ```json
 {
   "allowed_tools": [
-    "java", "python", "typescript", "javascript", "sql",
+    "java", "python", "javascript", "sql",
     "selenium", "playwright", "appium", "rest assured", "ekam",
-    "docker", "kubernetes", "k8s", "kafka", "wiremock", "pact",
-    "testng", "pytest", "cucumber", "bdd", "jenkins", "harness", "git"
+    "docker", "kubernetes", "k8s", "kafka", "dynatrace", "kibana",
+    "testng", "pytest", "cucumber", "bdd", "jenkins", "harness", "teamcity", "github actions", "git"
+  ],
+  "learning_roadmap": [
+    "typescript", "wiremock", "pact", "deepeval", "ragas", "promptfoo", "garak", "pyrit", "langsmith", "langfuse"
   ],
   "disallowed_hallucinations": [
     "cypress", "golang", "go", "rust", "ruby", "c#", ".net", "tosca", "katalon", "webdriverio"
   ]
 }
 ```
-*(Note: Modern tools `playwright`, `typescript`, `docker`, `kubernetes`, `kafka`, `wiremock`, and `pact` are programmatically isolated to the `Technical Projects` boundary and blocked from leaking into historical `Value Labs`, `Dunzo`, or `Tata Elxsi` experience blocks).*
+*(Note: Each tool in `allowed_tools` is mapped in `tool_evidence` to the exact employer or project boundaries where the master resume evidences it. Tools in `learning_roadmap` are blocked everywhere until added to `Manjunath_HK_Master_Resume.json` with an experience/project bullet and synced via `python main.py resume sync`).*
 
 ---
 

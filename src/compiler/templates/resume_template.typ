@@ -1,6 +1,6 @@
 // Clean, ATS-Compliant Single-Column Resume Template in Typst
 #set page(paper: "a4", margin: (x: 1.8cm, y: 1.8cm))
-#set text(font: "Helvetica", size: 9.5pt)
+#set text(font: "Helvetica", size: 9.5pt, ligatures: false)
 #set par(justify: false, leading: 0.55em)
 
 // Header

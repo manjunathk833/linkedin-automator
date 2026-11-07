@@ -143,6 +143,39 @@ def handle_lint():
         sys.exit(ret.returncode)
 
 
+def handle_resume(action: str = "sync", dry_run: bool = False):
+    """Master resume (rxresu.me JSON) single-source-of-truth tooling."""
+    from src.resume_store.master_resume import MASTER_RESUME_PATH, check_integrity, load_master_resume
+
+    master = load_master_resume()
+    if master is None:
+        print(f"❌ Master resume not found: {MASTER_RESUME_PATH}")
+        print("   Export it from rxresu.me (Export → JSON) and save it at that path, then re-run.")
+        sys.exit(1)
+
+    issues = check_integrity(master)
+    if issues:
+        print("⚠️  Master resume ATS / authenticity issues:")
+        for issue in issues:
+            print(f"   - {issue}")
+    else:
+        print("✅ Master resume passes all ATS & authenticity integrity checks.")
+    if action == "check":
+        sys.exit(1 if issues else 0)
+
+    from src.resume_store.master_sync import format_report, run_sync
+
+    report = run_sync(write=not dry_run)
+    print()
+    print(format_report(report))
+    if dry_run:
+        print("\nℹ️  Dry run: no files were written.")
+    else:
+        print(
+            "\n💾 Updated data/resume_profile.json, data/profile/allowed_tools_whitelist.json, data/master_knowledge_bank.json"
+        )
+
+
 def handle_test(tier: str = "core", live: bool = False):
     """Runs the standardized regression test suite across specified tiers."""
     script = os.path.join(os.path.dirname(__file__), "verify", "run_regressions.py")
@@ -1085,6 +1118,22 @@ def main():
     parser_orgres.add_argument("--audit", action="store_true", help="Audit live endpoint responsiveness for watchlist")
     parser_orgres.add_argument("--limit", type=int, default=15, help="Number of watchlist orgs to live-probe in audit")
 
+    # 19. resume (Master Resume single source of truth: rxresu.me JSON -> profile, whitelist, knowledge bank)
+    parser_resume = subparsers.add_parser(
+        "resume",
+        help="Master resume tools: 'sync' regenerates profile/whitelist/knowledge bank from the rxresu.me export",
+    )
+    parser_resume.add_argument(
+        "action",
+        choices=["sync", "check"],
+        nargs="?",
+        default="sync",
+        help="'sync' (default) regenerates derived files; 'check' runs ATS integrity checks only (no writes)",
+    )
+    parser_resume.add_argument(
+        "--dry-run", action="store_true", help="With 'sync': print the report without writing any files"
+    )
+
     args = parser.parse_args()
     config = load_config(args.config)
     runner = JobSearchPipelineRunner(config)
@@ -1103,6 +1152,8 @@ def main():
         asyncio.run(runner.run_search_stage(source=args.source, headless=args.headless))
     elif cmd in ["sync", "sync-knowledge"]:
         runner.run_sync_stage()
+    elif cmd == "resume":
+        handle_resume(action=args.action, dry_run=getattr(args, "dry_run", False))
     elif cmd in ["filter", "filterjobs"]:
         runner.run_filter_stage()
     elif cmd == "dashboard":

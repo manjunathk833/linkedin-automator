@@ -12,7 +12,7 @@ def clean_html(text):
 
 def run_detailed_audit():
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    src_path = os.path.join(root, "Manjunathhkstandardresume.json")
+    src_path = os.path.join(root, "Manjunath_HK_Master_Resume.json")
     mapped_path = os.path.join(root, "data", "resume_profile.json")
 
     if not os.path.exists(src_path):
@@ -113,7 +113,7 @@ def run_detailed_audit():
 
     assert b.get("name") == m_p.get("full_name"), "Name mismatch"
     assert b.get("email") == m_p.get("email"), "Email mismatch"
-    assert b.get("phone") == m_p.get("phone"), "Phone mismatch"
+    assert re.sub(r"[\s\-()]", "", b.get("phone", "")) == m_p.get("phone"), "Phone mismatch"
     assert len(s_exp) == len(m_exp), "Experience count mismatch"
     assert len(s_edu) == len(m_edu), "Education count mismatch"
     assert len(s_awards) == len(m_awards), "Awards count mismatch"

@@ -21,14 +21,24 @@ class KnowledgeBankTranslator:
         self.llm_provider = HybridLLMProvider() if use_ai else None
 
     def extract_bullet_lines(self, notes_text: str) -> list[str]:
-        """Extracts bullet point lines starting with '-' from candidate_notes.md."""
-        lines = notes_text.split("\n")
-        bullets = []
-        for line in lines:
-            stripped = line.strip()
-            if stripped.startswith("- ") and len(stripped) > 5:
-                bullets.append(stripped[2:].strip())
-        return bullets
+        """Extracts bullet point lines starting with '-' from candidate_notes.md (skipping the Learning Roadmap)."""
+        return [bullet for _, bullet in self.extract_sectioned_bullets(notes_text)]
+
+    def extract_sectioned_bullets(self, notes_text: str) -> list[tuple[str, str]]:
+        """
+        Returns (employer_label, bullet) pairs. The employer label is the heading the bullet sits under
+        (e.g. '## Value Labs (Jun 2023 – Present)' -> 'Value Labs'). Bullets under a
+        'Learning Roadmap' heading (and its sub-headings) are excluded — they are never synced.
+        """
+        from src.resume_store.master_sync import is_roadmap_section, notes_sections
+
+        out = []
+        for section, bullet in notes_sections(notes_text):
+            if is_roadmap_section(section):
+                continue
+            label = section.split("(")[0].strip()
+            out.append((label, bullet))
+        return out
 
     def chunk_bullets(self, bullets: list[str], chunk_size: int = 5) -> list[list[str]]:
         """Splits bullets into chunks of N items to respect API rate limits."""
@@ -53,10 +63,21 @@ class KnowledgeBankTranslator:
 
         notes_sha256 = hashlib.sha256(notes_content.encode("utf-8")).hexdigest()
 
-        bullets = self.extract_bullet_lines(notes_content)
+        sectioned = self.extract_sectioned_bullets(notes_content)
+        bullets = [b for _, b in sectioned]
         if not bullets:
             print("ℹ️ No bullet points found in candidate_notes.md.")
             return {"status": "NO_BULLETS", "added": 0}
+
+        from src.resume_store.master_resume import load_learning_roadmap, tool_mentioned
+
+        roadmap = load_learning_roadmap()
+        known_employers = {
+            "value labs": "Value Labs",
+            "valuelabs": "Value Labs",
+            "dunzo": "Dunzo",
+            "tata elxsi": "Tata Elxsi",
+        }
 
         # Load existing Master Knowledge Bank
         bank_data: dict[str, Any] = {"version": "1.0.0", "master_achievements_vault": []}
@@ -74,13 +95,22 @@ class KnowledgeBankTranslator:
 
         existing_hashes = {self.generate_achievement_hash(item.get("star_achievement", "")) for item in existing_vault}
 
-        # Process in chunks of 5
-        chunks = self.chunk_bullets(bullets, chunk_size=5)
+        from src.resume_store.master_sync import _near_duplicate
+
+        # Group bullets by employer section so every chunk maps to exactly one boundary,
+        # then process in chunks of 5 to respect API rate limits.
+        by_section: dict[str, list[str]] = {}
+        for label, bullet in sectioned:
+            by_section.setdefault(label, []).append(bullet)
+        chunks: list[tuple[str, list[str]]] = [
+            (label, chunk) for label, items in by_section.items() for chunk in self.chunk_bullets(items, chunk_size=5)
+        ]
         added_count = 0
 
-        for chunk_idx, chunk in enumerate(chunks):
+        for chunk_idx, (section_label, chunk) in enumerate(chunks):
             chunk_text = "\n".join([f"- {b}" for b in chunk])
             print(f"\n🔄 Translating Batch #{chunk_idx + 1} ({len(chunk)} bullet(s))...")
+            employer = known_employers.get(section_label.lower())
 
             parsed_items = None
             if self.use_ai and self.llm_provider:
@@ -104,29 +134,19 @@ class KnowledgeBankTranslator:
                         "Locust",
                         "Kafka",
                         "Playwright",
-                        "TypeScript",
                         "Docker",
                         "Kubernetes",
-                        "WireMock",
-                        "Pact",
-                        "DeepEval",
-                        "RAGAS",
-                        "Promptfoo",
-                        "Garak",
-                        "PyRIT",
-                        "OWASP LLM",
-                        "LangSmith",
-                        "Langfuse",
-                        "CDP",
-                        "Pydantic",
-                        "FastAPI",
+                        "Dynatrace",
+                        "Kibana",
+                        "Harness",
+                        "Selenium",
                     ]:
                         if kw.lower() in b.lower():
                             tools.append(kw)
                     parsed_items.append(
                         {
                             "domain": "Tooling & Automation Architecture",
-                            "company": "Personal / Tooling",
+                            "company": employer or "Personal / Tooling",
                             "star_achievement": b,
                             "tools": tools if tools else ["Automation"],
                             "metric": "Engineering ROI / Tooling Optimization",
@@ -134,43 +154,31 @@ class KnowledgeBankTranslator:
                     )
 
             for item in parsed_items:
-                # Rule 02 Employment Boundary Isolation:
-                # Modern project tools must NOT leak into Value Labs, Dunzo, or Tata Elxsi.
-                modern_tools = {
-                    "playwright",
-                    "typescript",
-                    "kubernetes",
-                    "docker",
-                    "pact",
-                    "wiremock",
-                    "kafka",
-                    "deepeval",
-                    "ragas",
-                    "promptfoo",
-                    "garak",
-                    "pyrit",
-                    "owasp llm",
-                    "langsmith",
-                    "langfuse",
-                    "cdp",
-                }
-                star_lower = item.get("star_achievement", "").lower()
-                tools_lower = {t.lower() for t in item.get("tools", [])}
-                if (any(t in star_lower for t in modern_tools) or (tools_lower & modern_tools)) and item.get(
-                    "company"
-                ) in ["Value Labs", "Dunzo", "Tata Elxsi"]:
-                    item["company"] = "Personal / Certification"
+                # Employer label comes deterministically from the notes heading, never from the LLM.
+                if employer:
+                    item["company"] = employer
 
                 star_text = item.get("star_achievement", "")
-                a_hash = self.generate_achievement_hash(star_text)
+                # Evidence-gated rule: learning-roadmap tools are never banked.
+                blocked = [
+                    t
+                    for t in roadmap
+                    if tool_mentioned(t, star_text) or t in {x.lower() for x in item.get("tools", [])}
+                ]
+                if blocked:
+                    print(f"  🚫 Skipping roadmap-tool achievement {blocked}: {star_text[:60]}...")
+                    continue
 
-                if a_hash not in existing_hashes:
-                    existing_vault.append(item)
-                    existing_hashes.add(a_hash)
-                    added_count += 1
-                    print(f"  ✨ Added new STAR achievement: {star_text[:70]}...")
-                else:
+                a_hash = self.generate_achievement_hash(star_text)
+                if a_hash in existing_hashes or any(
+                    _near_duplicate(star_text, v.get("star_achievement", "")) for v in existing_vault
+                ):
                     print(f"  ⏭️  Skipping duplicate achievement: {star_text[:50]}...")
+                    continue
+                existing_vault.append(item)
+                existing_hashes.add(a_hash)
+                added_count += 1
+                print(f"  ✨ Added new STAR achievement: {star_text[:70]}...")
 
         # Atomic Write via temp file and os.replace()
         bank_data["last_synced_notes_sha256"] = notes_sha256
