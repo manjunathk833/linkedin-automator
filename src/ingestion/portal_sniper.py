@@ -162,6 +162,7 @@ class PortalSniperEngine:
             "fresh_drops_count": len(fresh_drops),
             "skipped_already_seen": skipped_seen,
             "skipped_older_than_window": skipped_stale,
+            "provider_telemetry": getattr(self.coordinator, "last_ingestion_telemetry", {}),
             "drops": fresh_drops,
         }
 
@@ -180,11 +181,36 @@ class PortalSniperEngine:
             f"- **Verified Fresh Drops (`<={int(bundle['max_age_hours'])}h`):** `{bundle['fresh_drops_count']}`",
             f"- **Filtered Out:** `{bundle['skipped_already_seen']}` previously seen | `{bundle['skipped_older_than_window']}` older than {int(bundle['max_age_hours'])}h",
             "",
-            "---",
-            "",
-            "## 🔥 Verified `<24h` Fresh QA / SDET Openings",
-            "",
         ]
+
+        prov_tel = bundle.get("provider_telemetry") or {}
+        if prov_tel:
+            lines.extend(
+                [
+                    "## 📊 Per-Provider Ingestion Telemetry (`13` Keyless Providers)",
+                    "",
+                    "| Provider | Orgs Polled | Orgs w/ SDET Matches | Total SDET/QA Roles Retrieved | Sample Matched Orgs |",
+                    "| :--- | :---: | :---: | :---: | :--- |",
+                ]
+            )
+            for prov_name, st in sorted(
+                prov_tel.items(), key=lambda kv: (-kv[1].get("sdet_matches_found", 0), -kv[1].get("orgs_polled", 0))
+            ):
+                orgs_str = ", ".join(st.get("matched_orgs", [])[:5]) or "—"
+                lines.append(
+                    f"| `{prov_name}` | `{st.get('orgs_polled', 0)}` | `{st.get('orgs_with_matches', 0)}` | "
+                    f"**`{st.get('sdet_matches_found', 0)}`** | {orgs_str} |"
+                )
+            lines.append("")
+
+        lines.extend(
+            [
+                "---",
+                "",
+                "## 🔥 Verified `<24h` Fresh QA / SDET Openings",
+                "",
+            ]
+        )
 
         drops = bundle.get("drops", [])
         if not drops:

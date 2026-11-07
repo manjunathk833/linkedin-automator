@@ -125,17 +125,21 @@ class WorkdayCollector:
                         try:
                             res = await client.post(jobs_endpoint, json=payload, headers=headers)
                             if res.status_code != 200:
-                                # Try fallback without datacenter in hostname if failed
+                                # If redirected to Workday's weekly maintenance page or dead endpoint, exit early
+                                if "maintenance-page" in str(res.url) or "maintenance-page" in str(
+                                    res.headers.get("location", "")
+                                ):
+                                    return listings
                                 if datacenter:
                                     fallback_url = f"https://{slug}.myworkdayjobs.com/wday/cxs/{slug}/{site}/jobs"
                                     res = await client.post(fallback_url, json=payload, headers=headers)
                                     if res.status_code != 200:
-                                        break
+                                        return listings
                                 else:
-                                    break
+                                    return listings
                             data: dict[str, Any] = res.json()
                         except Exception:
-                            break
+                            return listings
 
                         job_postings = data.get("jobPostings", [])
                         if not job_postings:

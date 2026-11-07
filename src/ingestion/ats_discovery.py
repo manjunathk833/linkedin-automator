@@ -213,7 +213,7 @@ class ATSDiscoveryCoordinator:
                     coro = self.instahyre.fetch_board_jobs(company.name, company.slug)
                 else:
                     return []
-                listings = await asyncio.wait_for(coro, timeout=15.0)
+                listings = await asyncio.wait_for(coro, timeout=20.0)
             except asyncio.TimeoutError:
                 return []
             except Exception:
@@ -254,15 +254,47 @@ class ATSDiscoveryCoordinator:
 
         all_listings: list[JobListing] = []
         skipped_stale = 0
-        for res in results:
+        provider_stats: dict[str, dict[str, Any]] = {}
+
+        for comp, res in zip(companies, results):
+            prov = comp.ats_provider.lower().strip()
+            pstat = provider_stats.setdefault(
+                prov,
+                {
+                    "orgs_polled": 0,
+                    "orgs_with_matches": 0,
+                    "sdet_matches_found": 0,
+                    "retained_within_window": 0,
+                    "matched_orgs": [],
+                },
+            )
+            pstat["orgs_polled"] += 1
+
             if isinstance(res, list):
+                if res:
+                    pstat["orgs_with_matches"] += 1
+                    pstat["sdet_matches_found"] += len(res)
+                    if len(pstat["matched_orgs"]) < 8:
+                        pstat["matched_orgs"].append(f"{comp.name} ({len(res)})")
                 for item in res:
                     if self.is_listing_within_age_limit(item, max_age_days=max_age_days):
                         all_listings.append(item)
+                        pstat["retained_within_window"] += 1
                     else:
                         skipped_stale += 1
             elif isinstance(res, Exception):
-                print(f"⚠️ Ingestion error: {res}")
+                print(f"⚠️ Ingestion error ({comp.name}): {res}")
+
+        self.last_ingestion_telemetry = provider_stats
+        print("  📊 Per-Provider Ingestion Telemetry:")
+        for prov_name, st in sorted(
+            provider_stats.items(), key=lambda kv: (-kv[1]["sdet_matches_found"], -kv[1]["orgs_polled"])
+        ):
+            orgs_str = ", ".join(st["matched_orgs"][:5]) if st["matched_orgs"] else "-"
+            print(
+                f"     • {prov_name:<16} | Orgs: {st['orgs_polled']:<4} | "
+                f"Matches: {st['sdet_matches_found']:<4} (Retained: {st['retained_within_window']:<4}) | {orgs_str}"
+            )
 
         print(
             f"✅ Ingestion complete: {len(all_listings)} fresh SDET/QA role(s) retained "
