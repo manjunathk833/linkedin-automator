@@ -1,0 +1,143 @@
+{
+  "generated_at": "2026-11-07T08:04:27.728464Z",
+  "max_age_hours": 24.0,
+  "total_orgs_polled": 1095,
+  "total_sdet_matches_scanned": 92,
+  "fresh_drops_count": 0,
+  "skipped_already_seen": 92,
+  "skipped_older_than_window": 0,
+  "provider_telemetry": {
+    "greenhouse": {
+      "orgs_polled": 345,
+      "orgs_with_matches": 23,
+      "sdet_matches_found": 31,
+      "retained_within_window": 31,
+      "matched_orgs": [
+        "Okta (1)",
+        "Zscaler (1)",
+        "Fivetran (1)",
+        "Airbnb (1)",
+        "Storyblok (1)",
+        "Ping Identity (2)",
+        "Bitwarden (2)",
+        "OneTrust (1)"
+      ]
+    },
+    "lever": {
+      "orgs_polled": 79,
+      "orgs_with_matches": 7,
+      "sdet_matches_found": 15,
+      "retained_within_window": 15,
+      "matched_orgs": [
+        "Mindtickle (1)",
+        "Veeva Systems (5)",
+        "JumpCloud (1)",
+        "HighLevel (4)",
+        "Neuron7.ai (1)",
+        "Acceldata (2)",
+        "Aeva (1)"
+      ]
+    },
+    "ashby": {
+      "orgs_polled": 254,
+      "orgs_with_matches": 11,
+      "sdet_matches_found": 20,
+      "retained_within_window": 20,
+      "matched_orgs": [
+        "Tekion (8)",
+        "Snyk (1)",
+        "Midjourney (1)",
+        "Cerebras (2)",
+        "Skydio (1)",
+        "Adjoe (1)",
+        "Seon (1)",
+        "Cognition (1)"
+      ]
+    },
+    "workday": {
+      "orgs_polled": 318,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "smartrecruiters": {
+      "orgs_polled": 59,
+      "orgs_with_matches": 4,
+      "sdet_matches_found": 6,
+      "retained_within_window": 6,
+      "matched_orgs": [
+        "Endava (2)",
+        "IntegriChain (2)",
+        "QAD (1)",
+        "Shipsy (1)"
+      ]
+    },
+    "rippling": {
+      "orgs_polled": 21,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "workable": {
+      "orgs_polled": 4,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "recruitee": {
+      "orgs_polled": 6,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "comeet": {
+      "orgs_polled": 2,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "google": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 1,
+      "retained_within_window": 1,
+      "matched_orgs": [
+        "Google India (1)"
+      ]
+    },
+    "eightfold": {
+      "orgs_polled": 4,
+      "orgs_with_matches": 2,
+      "sdet_matches_found": 8,
+      "retained_within_window": 8,
+      "matched_orgs": [
+        "Qualcomm India (Careers) (7)",
+        "Micron India (Careers) (1)"
+      ]
+    },
+    "amazon": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 10,
+      "retained_within_window": 10,
+      "matched_orgs": [
+        "Amazon India (10)"
+      ]
+    },
+    "apple": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 1,
+      "retained_within_window": 1,
+      "matched_orgs": [
+        "Apple India (1)"
+      ]
+    }
+  },
+  "drops": []
+}
