@@ -11,6 +11,12 @@
 - None. All backend modules are backed by verified scripts in `verify/`. 100% compliant with Ruff linter (105 files clean).
 
 # Verification History
+- **Phase 81: Re-Opened (`<24h`) Requisition Ingestion, Reposted-Applied Follow-Up Engine (`TIER_0_REPOST_FOLLOWUP`), Pre-Click Location Gate & `<3h` Early-Applicant Sniper Wave (Gate 112)**:
+  - Repaired `.env` formatting across main and production worktrees (`REPORT_RECIPIENT` newline separation & quoted `GMAIL_APP_PASSWORD`), added RFC 5321 `_sanitize_email_address()` in `EmailReporter` and self-healing closed-tab recovery (`_recover_closed_page()`) in `LinkedInJobFinder`, and dispatched today's (`2026-11-08`) Executive Briefing email (`30` jobs & `12` social leads) live to `manjunathhk833@gmail.com`.
+  - Upgraded `PortalSniperEngine.is_reopened_fresh()`, `CISyncIngestor.sync_latest_drops()`, and `ATSDiscoveryCoordinator.is_duplicate()` so previously seen requisitions whose `posted_at` timestamp was refreshed within `<24h` (after a `>=24h` gap) are re-staged as `🔄 REOPENED (<24h)`.
+  - Added `ApplicationDatabase.get_applied_job_details()` & `is_reapply_eligible()` (allowing re-application after `>=30` days on a new requisition ID while routing `<30`d reposts to `TIER_0_REPOST_FOLLOWUP` with a `<300`-char `ReferralNoteGenerator.generate_repost_followup_note()` and `resolve_direct_ats_portal_url()`).
+  - Added a Pre-Click Foreign Location Gate in `LinkedInJobFinder._extract_card_payload()`, `extract_linkedin_applicant_metrics()` (`🎯 FIRST 25 APPLICANTS` `+25` priority boost), a `past_3h` (`f_TPR=r10800`) Ultra-Fresh Sniper Wave, and 6x/day Cloud CI + 5x/day macOS `launchd` scheduling.
+  - Standardized Tier 1 Core Regressions: **71/71 PASSED (100% SUCCESS)**; Ruff linter clean with **0 errors**.
 - **Phase 66: Explicit 100+ Org CI/CD Career Portal Sniper & Local DB Auto-Ingest (Gate 106)**:
   - Built `SmartRecruitersCollector`, `RipplingCollector`, `WorkableCollector`, and `RecruiteeCollector` (`src/ingestion/extended_providers.py`) and expanded `data/config/target_companies.json` to 107 explicit product organizations (90 Dream Orgs).
   - Built `OrgResearcher` (`src/ingestion/org_researcher.py`), `PortalSniperEngine` (`src/ingestion/portal_sniper.py`), and `CISyncIngestor` (`src/ingestion/ci_sync.py`) with `POST /api/ci-sync` and `.github/workflows/daily_portal_sniper.yml`.

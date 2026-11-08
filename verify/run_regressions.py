@@ -117,6 +117,7 @@ TIER_1_CORE = [
     "107_test_mark_applied_force_override.py",
     "110_test_master_resume_integrity.py",
     "111_test_skill_graduation_and_evidence_gate.py",
+    "112_test_reopened_reposted_and_early_sniper.py",
 ]
 
 

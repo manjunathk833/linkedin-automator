@@ -62,11 +62,18 @@ if [[ ! -f "${VENV_PYTHON}" ]]; then
 fi
 
 if [[ -f "${TARGET_DIR}/.env" ]]; then
-    # Export environment variables from .env
-    set -a
-    # shellcheck disable=SC1091
-    source "${TARGET_DIR}/.env"
-    set +a
+    # Safely export environment variables from .env without failing on unquoted spaces
+    while IFS='=' read -r raw_key raw_val || [[ -n "${raw_key}" ]]; do
+        key="$(echo "${raw_key}" | xargs)"
+        if [[ -z "${key}" ]] || [[ "${key}" == \#* ]]; then
+            continue
+        fi
+        val="${raw_val%\"}"
+        val="${val#\"}"
+        val="${val%\'}"
+        val="${val#\'}"
+        export "${key}=${val}"
+    done < "${TARGET_DIR}/.env"
 fi
 
 # 4. Execute scheduled automation pipeline based on time of day:
@@ -78,8 +85,8 @@ if command -v caffeinate >/dev/null 2>&1; then
 fi
 
 CURRENT_HOUR="$(date +%H)"
-if [[ $((10#${CURRENT_HOUR})) -ge 12 ]]; then
-    echo "Executing Afternoon Fast Sync, Midday LinkedIn Sniper (<24h) & Naukri Resdex Refresh (Hour=${CURRENT_HOUR})..." >> "${RUN_LOG}"
+if [[ $((10#${CURRENT_HOUR})) -ge 11 ]]; then
+    echo "Executing Intraday Fast Sync, LinkedIn Sniper (<3h & <24h) & Naukri Resdex Refresh (Hour=${CURRENT_HOUR})..." >> "${RUN_LOG}"
     ${CMD_PREFIX} "${VENV_PYTHON}" main.py sync-ci --fetch-remote >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Afternoon CI sync exited with code $?" >> "${RUN_LOG}"
     }

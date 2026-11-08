@@ -11,7 +11,7 @@
         <string>/Users/yeshwinmanjunath/development/linkedinjobsearchautomation/scripts/run_daily_prod.sh</string>
     </array>
 
-    <!-- Tri-Daily Schedule: Morning Full Pipeline (08:00 IST), Afternoon Sniper & Resdex (14:15 IST), Evening CI & Sniper Sync (20:00 IST) -->
+    <!-- 5x Daily Schedule: Morning Full Pipeline (08:00 IST) + Fast Sniper/CI Pulses (11:30, 14:15, 17:30, 20:00 IST) -->
     <key>StartCalendarInterval</key>
     <array>
         <dict>
@@ -22,9 +22,21 @@
         </dict>
         <dict>
             <key>Hour</key>
+            <integer>11</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
             <integer>14</integer>
             <key>Minute</key>
             <integer>15</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>17</integer>
+            <key>Minute</key>
+            <integer>30</integer>
         </dict>
         <dict>
             <key>Hour</key>

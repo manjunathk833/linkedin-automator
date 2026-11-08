@@ -54,54 +54,85 @@ class LinkedInJobFinder:
         norm = f"{company.strip().lower()}_{title.strip().lower()}"
         return hashlib.md5(norm.encode("utf-8")).hexdigest()
 
-    def is_duplicate(self, job_id: str, company: str, title: str) -> bool:
+    def is_duplicate(self, job_id: str, company: str, title: str, reopened_fresh: bool = False) -> bool:
         """
         Checks if a job_id or (company + title) combination has already been processed across
         all system queues (processed_jobs.json, pending_queue, approved_queue, applied_queue, application_history.json).
+        If `reopened_fresh=True` (freshly reposted <24h after >=24h gap), allows re-staging when not
+        currently sitting in pending/approved queues and not applied within 30 days.
         """
-        data = self.load_processed_jobs()
-        job_ids = data.get("job_ids", {})
-        composite_hashes = data.get("composite_hashes", {})
+        # 0. Check active pending/approved queues first
+        for qdir in ["data/pending_queue", "data/approved_queue"]:
+            if os.path.exists(qdir) and f"{job_id}.json" in os.listdir(qdir):
+                return True
 
-        # 0. Check SQLite persistent database for completed applications (exact ID & company+role)
+        # 1. Check SQLite persistent database for completed applications (exact ID & company+role)
         try:
             from src.storage.database import ApplicationDatabase
 
             db = ApplicationDatabase()
             if db.is_job_applied(job_id) or db.is_company_role_applied(company, title):
-                return True
+                return not (reopened_fresh and db.is_reapply_eligible(job_id, company, title, min_days=30.0))
         except Exception:
             pass
 
-        # 1. Check primary job_id
-        if job_id in job_ids:
+        if (
+            not reopened_fresh
+            and os.path.exists("data/applied_queue")
+            and f"{job_id}.json" in os.listdir("data/applied_queue")
+        ):
             return True
 
-        # 2. Check composite hash
+        data = self.load_processed_jobs()
+        job_ids = data.get("job_ids", {})
+        composite_hashes = data.get("composite_hashes", {})
+
+        # 2. Check primary job_id and composite hash
         c_hash = self.generate_composite_hash(company, title)
-        if c_hash in composite_hashes:
-            return True
-
-        # 3. Check physical file queues
-        for qdir in ["data/pending_queue", "data/approved_queue", "data/applied_queue"]:
-            if os.path.exists(qdir) and f"{job_id}.json" in os.listdir(qdir):
-                return True
+        if job_id in job_ids or c_hash in composite_hashes:
+            return not reopened_fresh
 
         return False
+
+    def _was_seen_more_than_24h_ago(self, job_id: str, company: str, title: str) -> bool:
+        """Returns True if job_id or (company, title) was recorded in processed_jobs.json >= 24h ago."""
+        data = self.load_processed_jobs()
+        job_ids = data.get("job_ids", {})
+        composite_hashes = data.get("composite_hashes", {})
+        c_hash = self.generate_composite_hash(company, title)
+        entry = job_ids.get(job_id) or composite_hashes.get(c_hash)
+        if not isinstance(entry, dict):
+            return False
+        raw_ts = str(entry.get("last_seen") or entry.get("first_seen") or "").strip()
+        if not raw_ts:
+            return False
+        try:
+            dt = datetime.datetime.fromisoformat(raw_ts.replace("Z", ""))
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+            return (datetime.datetime.utcnow() - dt).total_seconds() >= 24.0 * 3600.0
+        except Exception:
+            return False
 
     def mark_job_processed(self, job_id: str, company: str, title: str, status: str = "PENDING"):
         """Registers a job into the master deduplication index."""
         data = self.load_processed_jobs()
         now = datetime.datetime.utcnow().isoformat() + "Z"
         c_hash = self.generate_composite_hash(company, title)
+        existing = data.get("job_ids", {}).get(job_id) or {}
 
         data.setdefault("job_ids", {})[job_id] = {
             "title": title,
             "company": company,
-            "first_seen": now,
+            "first_seen": existing.get("first_seen") or now,
+            "last_seen": now,
             "status": status,
         }
-        data.setdefault("composite_hashes", {})[c_hash] = {"job_id": job_id, "first_seen": now}
+        data.setdefault("composite_hashes", {})[c_hash] = {
+            "job_id": job_id,
+            "first_seen": existing.get("first_seen") or now,
+            "last_seen": now,
+        }
         self.save_processed_jobs(data)
 
     def build_search_url(
@@ -211,41 +242,76 @@ class LinkedInJobFinder:
                 cleaned_lines.append(stripped)
         return "\n\n".join(cleaned_lines)
 
+    async def _recover_closed_page(self, page: Any) -> Any:
+        """
+        Self-healing tab recovery: if the active Playwright page was closed mid-run
+        (e.g. 'Target page, context or browser has been closed' on shared CDP port 9222),
+        spawns a fresh tab from `self._active_context`.
+        """
+        ctx = getattr(self, "_active_context", None)
+        if ctx is None:
+            return page
+        try:
+            if hasattr(page, "is_closed") and page.is_closed():
+                new_page = await ctx.new_page()
+                self._active_page = new_page
+                print("🔄 Self-healed closed Playwright tab via context.new_page().")
+                return new_page
+        except Exception:
+            try:
+                new_page = await ctx.new_page()
+                self._active_page = new_page
+                print("🔄 Self-healed closed Playwright tab via context.new_page().")
+                return new_page
+            except Exception:
+                pass
+        return page
+
     async def _safe_goto(self, page: Any, url: str, timeout: int = 35000) -> bool:
         """
         Resilient Playwright navigation wrapper that recovers from timeouts, net::ERR_TIMED_OUT
-        (`chrome-error://chromewebdata/`), and LinkedIn client-side redirect interruptions
-        (`Navigation to <N> is interrupted by another navigation to <N-1>`).
+        (`chrome-error://chromewebdata/`), closed tab targets (`Target page, context or browser has been closed`),
+        and LinkedIn client-side redirect interruptions.
         """
+        active_page = await self._recover_closed_page(getattr(self, "_active_page", None) or page)
         try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+            await active_page.goto(url, wait_until="domcontentloaded", timeout=timeout)
             return True
         except Exception as first_err:
             err_line = str(first_err).splitlines()[0] if str(first_err) else "Navigation error"
             print(f"⚠️ Navigation warning on {url[:90]}...: {err_line}")
+            if "has been closed" in err_line.lower():
+                try:
+                    ctx = getattr(self, "_active_context", None)
+                    if ctx is not None:
+                        active_page = await ctx.new_page()
+                        self._active_page = active_page
+                        print("🔄 Recreated closed discovery tab for navigation retry.")
+                except Exception:
+                    pass
             await asyncio.sleep(1.5)
             try:
-                await page.evaluate("() => window.stop()")
+                await active_page.evaluate("() => window.stop()")
             except Exception:
                 pass
             try:
-                await page.goto("about:blank", wait_until="commit", timeout=5000)
+                await active_page.goto("about:blank", wait_until="commit", timeout=5000)
             except Exception:
                 pass
             await asyncio.sleep(0.8)
             try:
-                await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+                await active_page.goto(url, wait_until="domcontentloaded", timeout=timeout)
                 return True
             except Exception as retry_err:
                 retry_line = str(retry_err).splitlines()[0] if str(retry_err) else "Retry failed"
                 print(f"⚠️ Navigation retry failed for {url[:90]}...: {retry_line}")
                 await asyncio.sleep(1.0)
                 try:
-                    await page.evaluate("() => window.stop()")
+                    await active_page.evaluate("() => window.stop()")
                 except Exception:
                     pass
                 try:
-                    await page.goto("about:blank", wait_until="commit", timeout=5000)
+                    await active_page.goto("about:blank", wait_until="commit", timeout=5000)
                 except Exception:
                     pass
                 await asyncio.sleep(0.5)
@@ -689,15 +755,16 @@ class LinkedInJobFinder:
                     print(f"⏭️  Skipping non-SDET LinkedIn card: {title} @ {company} (ID: {job_id})")
                     return None
 
-            # 4. INSTANT DEDUPLICATION CHECK BEFORE CLICKING!
-            if self.is_duplicate(job_id, company, title):
-                print(f"⏭️  Skipping duplicate job: {title} @ {company} (ID: {job_id})")
-                return None
+            # 3d. Pre-Click Location Gate: Reject explicit foreign/US/UK/EU card locations before clicking or invoking Gemini
+            if raw_loc and raw_loc.strip():
+                from src.ingestion.filters import is_india_or_remote_location
 
-            loc = (raw_loc or "Remote").strip()
+                if not is_india_or_remote_location(raw_loc.strip(), allow_unspecified=True):
+                    print(
+                        f"⏭️  Skipping foreign-location LinkedIn card (pre-click): {title} @ {company} [{raw_loc.strip()}] (ID: {job_id})"
+                    )
+                    return None
 
-            # 5. Full Job Description Scraping with Title Click, "See more" expansion, and noise cleaning
-            desc_text = f"Position for {title} @ {company} requiring automation experience in Python, Java, API testing, REST Assured, Playwright, and CI/CD."
             resolved_channel = channel or getattr(self, "_active_channel", "search") or "search"
             raw_meta_and_desc = ""
             try:
@@ -706,6 +773,143 @@ class LinkedInJobFinder:
                     raw_meta_and_desc = card_meta.strip()
             except Exception:
                 pass
+
+            is_card_reposted_or_24h = bool(
+                resolved_channel in ("sniper_fresh_24h", "sniper_ultra_3h")
+                or re.search(
+                    r"\b(?:reposted|\d+\s+(?:minute|hour)s?\s+ago|1\s+day\s+ago)\b",
+                    raw_meta_and_desc,
+                    re.IGNORECASE,
+                )
+            )
+
+            # 4. SMART DEDUPLICATION, RE-OPENED (<24h) & REPOSTED-APPLIED FOLLOW-UP GATE BEFORE CLICKING!
+            reopened_fresh = False
+            try:
+                from src.storage.database import ApplicationDatabase
+
+                db = ApplicationDatabase()
+                applied_details = db.get_applied_job_details(job_id, company, title)
+                if applied_details is not None:
+                    if is_card_reposted_or_24h and db.is_reapply_eligible(job_id, company, title, min_days=30.0):
+                        reopened_fresh = True
+                        print(
+                            f"🔄 Re-staging reposted role (>30d since applied on new ID): {title} @ {company} (ID: {job_id})"
+                        )
+                    else:
+                        days_ago = float(applied_details.get("days_since_applied") or 0.0)
+                        if is_card_reposted_or_24h and 2.0 <= days_ago < 30.0:
+                            try:
+                                from src.tailor.referral_generator import (
+                                    ReferralNoteGenerator,
+                                    resolve_direct_ats_portal_url,
+                                )
+
+                                existing_outreach = db.get_referral_outreach(job_id=job_id, limit=5)
+                                if not any(r.get("outreach_type") == "REPOST_FOLLOWUP" for r in existing_outreach):
+                                    direct_portal = resolve_direct_ats_portal_url(company)
+                                    followup_note = ReferralNoteGenerator.generate_repost_followup_note(
+                                        {
+                                            "job_id": job_id,
+                                            "company_name": company,
+                                            "job_title": title,
+                                            "job_url": f"https://www.linkedin.com/jobs/view/{job_id}/",
+                                        },
+                                        days_since_applied=days_ago,
+                                    )
+                                    db.log_referral_outreach(
+                                        job_id=job_id,
+                                        company_name=company,
+                                        job_title=title,
+                                        outreach_type="REPOST_FOLLOWUP",
+                                        note_content=followup_note,
+                                        requisition_id=job_id,
+                                        contact_linkedin_url=direct_portal
+                                        or f"https://www.linkedin.com/jobs/view/{job_id}/",
+                                    )
+                                    print(
+                                        f"📨 Logged REPOST_FOLLOWUP note for reposted applied role ({days_ago:.1f}d ago): {title} @ {company}"
+                                    )
+                            except Exception:
+                                pass
+                        print(f"⏭️  Skipping already-applied job: {title} @ {company} (ID: {job_id})")
+                        return None
+                elif is_card_reposted_or_24h and self._was_seen_more_than_24h_ago(job_id, company, title):
+                    reopened_fresh = True
+            except Exception:
+                pass
+
+            if self.is_duplicate(job_id, company, title, reopened_fresh=reopened_fresh):
+                print(f"⏭️  Skipping duplicate job: {title} @ {company} (ID: {job_id})")
+                return None
+
+            loc = (raw_loc or "Remote").strip()
+
+            # 5. Full Job Description Scraping with Title Click, "See more" expansion, and noise cleaning
+            desc_text = f"Position for {title} @ {company} requiring automation experience in Python, Java, API testing, REST Assured, Playwright, and CI/CD."
+
+            try:
+                from src.storage.database import ApplicationDatabase
+
+                db = ApplicationDatabase()
+                applied_details = db.get_applied_job_details(job_id, company, title)
+                if applied_details is not None:
+                    if is_card_reposted_or_24h and db.is_reapply_eligible(job_id, company, title, min_days=30.0):
+                        reopened_fresh = True
+                        print(
+                            f"🔄 Re-staging reposted role (>30d since applied on new ID): {title} @ {company} (ID: {job_id})"
+                        )
+                    else:
+                        days_ago = float(applied_details.get("days_since_applied") or 0.0)
+                        if is_card_reposted_or_24h and 2.0 <= days_ago < 30.0:
+                            try:
+                                from src.tailor.referral_generator import (
+                                    ReferralNoteGenerator,
+                                    resolve_direct_ats_portal_url,
+                                )
+
+                                existing_outreach = db.get_referral_outreach(job_id=job_id, limit=5)
+                                if not any(r.get("outreach_type") == "REPOST_FOLLOWUP" for r in existing_outreach):
+                                    direct_portal = resolve_direct_ats_portal_url(company)
+                                    followup_note = ReferralNoteGenerator.generate_repost_followup_note(
+                                        {
+                                            "job_id": job_id,
+                                            "company_name": company,
+                                            "job_title": title,
+                                            "job_url": f"https://www.linkedin.com/jobs/view/{job_id}/",
+                                        },
+                                        days_since_applied=days_ago,
+                                    )
+                                    db.log_referral_outreach(
+                                        job_id=job_id,
+                                        company_name=company,
+                                        job_title=title,
+                                        outreach_type="REPOST_FOLLOWUP",
+                                        note_content=followup_note,
+                                        requisition_id=job_id,
+                                        contact_linkedin_url=direct_portal
+                                        or f"https://www.linkedin.com/jobs/view/{job_id}/",
+                                    )
+                                    print(
+                                        f"📨 Logged REPOST_FOLLOWUP note for reposted applied role ({days_ago:.1f}d ago): {title} @ {company}"
+                                    )
+                            except Exception:
+                                pass
+                        print(f"⏭️  Skipping already-applied job: {title} @ {company} (ID: {job_id})")
+                        return None
+                elif is_card_reposted_or_24h and self._was_seen_more_than_24h_ago(job_id, company, title):
+                    reopened_fresh = True
+            except Exception:
+                pass
+
+            if self.is_duplicate(job_id, company, title, reopened_fresh=reopened_fresh):
+                print(f"⏭️  Skipping duplicate job: {title} @ {company} (ID: {job_id})")
+                return None
+
+            loc = (raw_loc or "Remote").strip()
+
+            # 5. Full Job Description Scraping with Title Click, "See more" expansion, and noise cleaning
+            desc_text = f"Position for {title} @ {company} requiring automation experience in Python, Java, API testing, REST Assured, Playwright, and CI/CD."
 
             try:
                 if await card.is_visible():
@@ -800,6 +1004,10 @@ class LinkedInJobFinder:
             except Exception:
                 pass
 
+            from src.ingestion.filters import extract_linkedin_applicant_metrics
+
+            applicant_metrics = extract_linkedin_applicant_metrics(raw_meta_and_desc, application_type=application_type)
+
             job_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
             resolved_channel = channel or getattr(self, "_active_channel", "search") or "search"
             raw_job = {
@@ -811,6 +1019,8 @@ class LinkedInJobFinder:
                 "job_url": job_url,
                 "is_dream_org": is_dream,
                 "application_type": application_type,
+                "reopened_fresh": reopened_fresh,
+                "applicant_metrics": applicant_metrics,
                 "job_details": {
                     "title": title,
                     "company": company,
@@ -818,6 +1028,8 @@ class LinkedInJobFinder:
                     "job_url": job_url,
                     "external_url": external_url,
                     "is_dream_org": is_dream,
+                    "reopened_fresh": reopened_fresh,
+                    "applicant_metrics": applicant_metrics,
                     "requirements": desc_text[:3000],
                 },
             }
@@ -884,6 +1096,9 @@ class LinkedInJobFinder:
                     print(f"⚠️ CDP fallback also failed: {e2}")
                     return all_jobs
 
+            self._active_context = context
+            self._active_page = page
+
             # -------------------------------------------------------------
             # PRE-FLIGHT: LINKEDIN SESSION & AUTHWALL VERIFICATION
             # -------------------------------------------------------------
@@ -904,46 +1119,56 @@ class LinkedInJobFinder:
                 return all_jobs
 
             # -------------------------------------------------------------
-            # STEP 0: SNIPER FRESH DROPS PASS (<24h, Sort by Date)
+            # STEP 0: SNIPER FRESH DROPS PASS (Wave 1: <3h Ultra-Fresh First-25, Wave 2: <24h)
             # -------------------------------------------------------------
             if enable_sniper and search_profiles:
                 print("\n" + "=" * 50)
-                print(f"🎯 STEP 0: LINKEDIN SNIPER FRESH DROPS PASS ({sniper_time_posted}, sort={sniper_sort_by})")
+                print(
+                    f"🎯 STEP 0: LINKEDIN SNIPER FRESH DROPS PASS (Wave 1: past_3h [First-25], Wave 2: {sniper_time_posted}, sort={sniper_sort_by})"
+                )
                 print("=" * 50)
-                for s_idx, sp in enumerate(search_profiles):
-                    s_kw = sp.get("keywords", "Senior SDET")
-                    s_loc = sp.get("location", "Remote")
-                    s_url = self.build_search_url(
-                        keywords=s_kw,
-                        location=s_loc,
-                        work_types=sp.get("work_types"),
-                        experience_levels=sp.get("experience_levels"),
-                        time_posted=sniper_time_posted,
-                        start=0,
-                        easy_apply_only=sp.get("easy_apply_only", discovery_config.get("easy_apply_only", False)),
-                        distance=sp.get("distance", discovery_config.get("distance")),
-                        sort_by=sniper_sort_by,
-                    )
-                    print(f"🎯 Sniper Profile #{s_idx + 1}: {s_url}")
-                    try:
-                        if not await self._safe_goto(page, s_url):
-                            continue
-                        await asyncio.sleep(2.5)
-                        await self.scroll_results_pane(page, scrolls=3)
-                        s_cards = await page.locator(
-                            ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], div[role='button'][componentkey^='job-card-component-ref-']"
-                        ).all()
-                        print(f"   Found {len(s_cards)} fresh <24h card(s) on Sniper Profile #{s_idx + 1}.")
-                        self._record_yield("sniper_fresh_24h", len(s_cards))
-                        self._active_channel = "sniper_fresh_24h"
-                        for c_idx, card in enumerate(s_cards[:15]):
-                            job = await self._extract_card_payload(
-                                page, card, c_idx, default_prefix=f"sniper_{s_idx + 1}"
-                            )
-                            if job:
-                                all_jobs.append(job)
-                    except Exception as e:
-                        print(f"⚠️ Sniper pass warning on profile #{s_idx + 1}: {e}")
+                sniper_waves: list[tuple[str, list[dict[str, Any]]]] = []
+                if sniper_time_posted != "past_3h":
+                    sniper_waves.append(("past_3h", search_profiles[:2]))
+                sniper_waves.append((sniper_time_posted, search_profiles))
+
+                for wave_tpr, wave_profiles in sniper_waves:
+                    for s_idx, sp in enumerate(wave_profiles):
+                        s_kw = sp.get("keywords", "Senior SDET")
+                        s_loc = sp.get("location", "Remote")
+                        s_url = self.build_search_url(
+                            keywords=s_kw,
+                            location=s_loc,
+                            work_types=sp.get("work_types"),
+                            experience_levels=sp.get("experience_levels"),
+                            time_posted=wave_tpr,
+                            start=0,
+                            easy_apply_only=sp.get("easy_apply_only", discovery_config.get("easy_apply_only", False)),
+                            distance=sp.get("distance", discovery_config.get("distance")),
+                            sort_by=sniper_sort_by,
+                        )
+                        print(f"🎯 Sniper [{wave_tpr}] Profile #{s_idx + 1}: {s_url}")
+                        try:
+                            if not await self._safe_goto(page, s_url):
+                                page = getattr(self, "_active_page", None) or page
+                                continue
+                            page = getattr(self, "_active_page", None) or page
+                            await asyncio.sleep(2.5)
+                            await self.scroll_results_pane(page, scrolls=3)
+                            s_cards = await page.locator(
+                                ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], div[role='button'][componentkey^='job-card-component-ref-']"
+                            ).all()
+                            print(f"   Found {len(s_cards)} fresh ({wave_tpr}) card(s) on Sniper Profile #{s_idx + 1}.")
+                            self._record_yield("sniper_fresh_24h", len(s_cards))
+                            self._active_channel = "sniper_fresh_24h"
+                            for c_idx, card in enumerate(s_cards[:15]):
+                                job = await self._extract_card_payload(
+                                    page, card, c_idx, default_prefix=f"sniper_{wave_tpr}_{s_idx + 1}"
+                                )
+                                if job:
+                                    all_jobs.append(job)
+                        except Exception as e:
+                            print(f"⚠️ Sniper pass warning on profile #{s_idx + 1} ({wave_tpr}): {e}")
 
             # -------------------------------------------------------------
             # STEP 1: DEEP PAGINATED SEARCH (Pages 1, 2, 3 + Early Break)
