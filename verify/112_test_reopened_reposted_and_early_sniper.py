@@ -296,6 +296,42 @@ def test_early_applicant_metrics_and_preclick_location_gate() -> None:
     assert is_india_or_remote_location("Bengaluru, Karnataka, India", allow_unspecified=True) is True
     assert is_india_or_remote_location("India (Remote)", allow_unspecified=True) is True
 
+    # Verify SDUI 'Be an early applicant' string is recognized as <25 early-applicant bucket
+    m_sdui_early = extract_linkedin_applicant_metrics(
+        "India (Remote) · 1 hour ago · Be an early applicant",
+        application_type="EASY_APPLY",
+    )
+    assert m_sdui_early["is_early_applicant"] is True
+    assert m_sdui_early["applicant_bucket"] == "<25"
+    assert m_sdui_early["competition_badge"] == "🎯 FIRST 25 APPLICANTS"
+
+    # Verify concatenated SDUI spans ('0 applicantsCompany review time', 'Over 100 people clicked applyPromoted')
+    m_sdui_zero = extract_linkedin_applicant_metrics(
+        "Bengaluru South, Karnataka, India · 42 minutes ago · 0 applicantsCompany review time is typically 1 weekOn-siteFull-timeEasy ApplySave\nBe an early applicant",
+        application_type="LINKEDIN_EXTERNAL",
+    )
+    assert m_sdui_zero["applicant_count"] == 0
+    assert m_sdui_zero["applicant_bucket"] == "<10"
+    assert m_sdui_zero["priority_boost"] == 30
+    assert m_sdui_zero["competition_badge"] == "🎯 EARLY (<10: 0 APPLICANTS)"
+
+    m_sdui_over100_concat = extract_linkedin_applicant_metrics(
+        "Bengaluru, Karnataka, India · Reposted 20 hours ago · Over 100 people clicked applyPromoted by hirer · Responses managed off LinkedIn",
+        application_type="LINKEDIN_EXTERNAL",
+    )
+    assert m_sdui_over100_concat["is_saturated"] is True
+    assert m_sdui_over100_concat["applicant_bucket"] == "100+"
+    assert m_sdui_over100_concat["estimated_completed_applies"] == 25
+
+    # Verify LinkedInJobFinder.build_search_url injects canonical geoId for Bengaluru & India
+    # so LinkedIn's /jobs/search-results/ SDUI redirect does not fall back to United States
+    finder = LinkedInJobFinder(use_ai=False)
+    blr_url = finder.build_search_url(keywords="SDET", location="Bengaluru", time_posted="past_3h")
+    assert "geoId=105214831" in blr_url, f"Expected Bengaluru geoId=105214831 in {blr_url}"
+    assert "f_TPR=r10800" in blr_url, f"Expected f_TPR=r10800 in {blr_url}"
+    ind_url = finder.build_search_url(keywords="QA Automation", location="India", time_posted="past_24h")
+    assert "geoId=102713980" in ind_url, f"Expected India geoId=102713980 in {ind_url}"
+
     # Verify recycled repost + Over 100 saturation is rejected
     valid, reason = is_linkedin_posting_fresh_and_unsaturated(
         "Reposted 3 hours ago · Over 100 people clicked apply",
@@ -303,7 +339,7 @@ def test_early_applicant_metrics_and_preclick_location_gate() -> None:
         is_sniper_24h=True,
     )
     assert valid is False and reason == "reposted_and_saturated_over_100_applicants"
-    print("  ✅ Early-Applicant (<25) metrics & Pre-Click Location Gate passed.")
+    print("  ✅ Early-Applicant (<25) metrics, geoId URL builder & Pre-Click Location Gate passed.")
 
 
 if __name__ == "__main__":

@@ -168,6 +168,28 @@ class LinkedInJobFinder:
 
         base_url = "https://www.linkedin.com/jobs/search/?"
         params = {"keywords": clean_kw, "location": location}
+
+        # Map Indian locations to canonical LinkedIn geoId so LinkedIn's /jobs/search-results/
+        # SDUI redirect never strips `location=` and falls back to United States.
+        loc_norm = (location or "").strip().lower()
+        geo_id_map = {
+            "bengaluru": "105214831",
+            "bangalore": "105214831",
+            "india": "102713980",
+            "remote": "102713980",
+            "hyderabad": "105556991",
+            "pune": "114806696",
+            "chennai": "106888327",
+            "mumbai": "106164952",
+            "delhi": "102713980",
+            "gurgaon": "102713980",
+            "gurugram": "102713980",
+            "noida": "102713980",
+        }
+        for loc_key, gid in geo_id_map.items():
+            if loc_key in loc_norm:
+                params["geoId"] = gid
+                break
         if sort_by and sort_by.lower() in ["date", "dd", "newest"]:
             params["sortBy"] = "DD"
         elif sort_by and sort_by.lower() in ["relevance_explicit", "r"]:
@@ -242,26 +264,43 @@ class LinkedInJobFinder:
                 cleaned_lines.append(stripped)
         return "\n\n".join(cleaned_lines)
 
-    async def _recover_closed_page(self, page: Any) -> Any:
+    async def _recover_closed_page(self, page: Any, force_recreate: bool = False) -> Any:
         """
         Self-healing tab recovery: if the active Playwright page was closed mid-run
         (e.g. 'Target page, context or browser has been closed' on shared CDP port 9222),
-        spawns a fresh tab from `self._active_context`.
+        spawns a fresh tab from `self._active_context`, or reconnects to CDP if the context dropped.
         """
         ctx = getattr(self, "_active_context", None)
-        if ctx is None:
+        is_closed = force_recreate
+        if not is_closed and page is not None:
+            try:
+                is_closed = bool(hasattr(page, "is_closed") and page.is_closed())
+            except Exception:
+                is_closed = True
+
+        if not is_closed:
             return page
-        try:
-            if hasattr(page, "is_closed") and page.is_closed():
-                new_page = await ctx.new_page()
-                self._active_page = new_page
-                print("🔄 Self-healed closed Playwright tab via context.new_page().")
-                return new_page
-        except Exception:
+
+        if ctx is not None:
             try:
                 new_page = await ctx.new_page()
                 self._active_page = new_page
                 print("🔄 Self-healed closed Playwright tab via context.new_page().")
+                return new_page
+            except Exception:
+                pass
+
+        pw = getattr(self, "_active_playwright", None)
+        if pw is not None:
+            try:
+                from src.browser.cdp_connector import launch_persistent_browser
+
+                new_ctx, new_page = await launch_persistent_browser(
+                    pw, headless=bool(getattr(self, "_is_headless", False))
+                )
+                self._active_context = new_ctx
+                self._active_page = new_page
+                print("🔄 Self-healed closed CDP connection via launch_persistent_browser().")
                 return new_page
             except Exception:
                 pass
@@ -281,14 +320,7 @@ class LinkedInJobFinder:
             err_line = str(first_err).splitlines()[0] if str(first_err) else "Navigation error"
             print(f"⚠️ Navigation warning on {url[:90]}...: {err_line}")
             if "has been closed" in err_line.lower():
-                try:
-                    ctx = getattr(self, "_active_context", None)
-                    if ctx is not None:
-                        active_page = await ctx.new_page()
-                        self._active_page = active_page
-                        print("🔄 Recreated closed discovery tab for navigation retry.")
-                except Exception:
-                    pass
+                active_page = await self._recover_closed_page(active_page, force_recreate=True)
             await asyncio.sleep(1.5)
             try:
                 await active_page.evaluate("() => window.stop()")
@@ -951,7 +983,9 @@ class LinkedInJobFinder:
                     ).first
                     if await details_elem.count() > 0:
                         raw_desc = await details_elem.text_content()
-                        raw_meta_and_desc = f"{raw_meta_and_desc}\n{raw_desc or ''}".strip()
+                        # Prepend raw_desc so the authoritative right-pane top card header
+                        # ('India · 42 minutes ago · 0 applicantsCompany') appears first in [:800]
+                        raw_meta_and_desc = f"{raw_desc or ''}\n{raw_meta_and_desc}".strip()
                         cleaned = self.clean_job_description(raw_desc or "")
                         if cleaned and len(cleaned) > 50:
                             desc_text = cleaned
@@ -992,6 +1026,11 @@ class LinkedInJobFinder:
                         href = await apply_btn.get_attribute("href")
                         if href and href.startswith("http"):
                             external_url = href
+                elif (
+                    "Easy Apply" in raw_meta_and_desc[:500]
+                    and "Responses managed off LinkedIn" not in raw_meta_and_desc[:500]
+                ):
+                    application_type = "EASY_APPLY"
             except Exception:
                 pass
 
@@ -1035,6 +1074,8 @@ class LinkedInJobFinder:
             }
 
             tailored = self.tailorer.tailor_job_payload(raw_job)
+            if not tailored.get("freshness_badge"):
+                tailored["freshness_badge"] = tailored.get("routing_strategy", {}).get("freshness_badge")
             self.save_job_to_queue(tailored)
             self.mark_job_processed(job_id, company, title)
             return tailored
@@ -1096,6 +1137,8 @@ class LinkedInJobFinder:
                     print(f"⚠️ CDP fallback also failed: {e2}")
                     return all_jobs
 
+            self._active_playwright = p
+            self._is_headless = is_headless
             self._active_context = context
             self._active_page = page
 

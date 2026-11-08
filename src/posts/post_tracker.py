@@ -660,6 +660,10 @@ class LinkedInPostTracker:
                 ensure_cdp_page_target(9222)
                 browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222", timeout=10000)
                 context = browser.contexts[0] if browser.contexts else await browser.new_context()
+                try:
+                    context._browser_ref = browser  # type: ignore[attr-defined]
+                except Exception:
+                    pass
                 page = await context.new_page()
             else:
                 context, page = await launch_persistent_browser(
@@ -667,6 +671,21 @@ class LinkedInPostTracker:
                 )
                 owns_context = True
             print(f"🚀 Launching LinkedIn Posts Tracker (Headless: {headless}, Filter: {date_filter})")
+
+            async def _ensure_live_page(cur_ctx: Any, cur_page: Any) -> tuple[Any, Any]:
+                if cur_page is not None and not cur_page.is_closed():
+                    return cur_ctx, cur_page
+                print("🔄 [LinkedInPostTracker] Active page was closed; spawning fresh recovery tab...")
+                try:
+                    return cur_ctx, await cur_ctx.new_page()
+                except Exception:
+                    print(
+                        "🔄 [LinkedInPostTracker] BrowserContext disconnected; reconnecting via CDP/persistent browser..."
+                    )
+                    new_ctx, new_pg = await launch_persistent_browser(
+                        p, profile_dir=str(DEFAULT_PROFILE_DIR), headless=headless
+                    )
+                    return new_ctx, new_pg
 
             try:
                 offline_auth = check_profile_session(DEFAULT_PROFILE_DIR)
@@ -695,9 +714,15 @@ class LinkedInPostTracker:
                     print(f"🌐 URL: {url} (card cutoff: {date_filter})")
 
                     try:
-                        if page.is_closed():
-                            page = await context.new_page()
-                        await page.goto(url, wait_until="domcontentloaded", timeout=35000)
+                        context, page = await _ensure_live_page(context, page)
+                        try:
+                            await page.goto(url, wait_until="domcontentloaded", timeout=35000)
+                        except Exception as nav_err:
+                            if "has been closed" in str(nav_err).lower():
+                                context, page = await _ensure_live_page(context, None)
+                                await page.goto(url, wait_until="domcontentloaded", timeout=35000)
+                            else:
+                                raise
                         await asyncio.sleep(3.0)
 
                         # Progressive smooth scrolls to hydrate feed updates deep into the feed
