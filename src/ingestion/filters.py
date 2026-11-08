@@ -444,6 +444,106 @@ def is_global_remote_eligible(
     return is_india_or_remote_location(location_str, allow_unspecified=allow_unspecified, text_snippet=text_snippet)
 
 
+def extract_linkedin_applicant_metrics(
+    text: str | None,
+    application_type: str = "LINKEDIN_EXTERNAL",
+) -> dict[str, Any]:
+    """
+    Parses LinkedIn top-card header text to extract applicant competition metrics:
+    - 'Be among the first 25 applicants' / 'Under 25 applicants'
+    - 'N people clicked apply' / 'N applicants'
+    - 'Over 100 people clicked apply' / 'Over 100 applicants'
+    Distinguishes LINKEDIN_EASY_APPLY (true completed submissions) from LINKEDIN_EXTERNAL
+    (outbound link clicks where only ~22% complete the external ATS form).
+    """
+    header_text = (text or "")[:1000]
+    is_reposted = bool(re.search(r"\breposted\b", header_text, re.IGNORECASE))
+    is_easy_apply = "EASY_APPLY" in (application_type or "").upper()
+
+    # 1. Check Over 100 saturation
+    if re.search(r"\bover\s+100\s+(?:people\s+clicked\s+apply|applicants)\b", header_text, re.IGNORECASE):
+        est_completed = 100 if is_easy_apply else 25
+        return {
+            "applicant_count": 100,
+            "applicant_bucket": "100+",
+            "is_early_applicant": False,
+            "is_saturated": True,
+            "is_reposted": is_reposted,
+            "estimated_completed_applies": est_completed,
+            "priority_boost": 0,
+            "competition_badge": "🔥 100+ EASY APPLY" if is_easy_apply else "🔗 100+ CLICKS (~25 COMPLETED)",
+        }
+
+    # 2. Check 'Be among the first 25 applicants' or 'Under 25 applicants'
+    if re.search(r"\b(?:first\s+25\s+applicants|under\s+25\s+applicants)\b", header_text, re.IGNORECASE):
+        return {
+            "applicant_count": 12,
+            "applicant_bucket": "<25",
+            "is_early_applicant": True,
+            "is_saturated": False,
+            "is_reposted": is_reposted,
+            "estimated_completed_applies": 12 if is_easy_apply else 4,
+            "priority_boost": 25,
+            "competition_badge": "🎯 FIRST 25 APPLICANTS",
+        }
+
+    # 3. Check explicit numeric count: '14 people clicked apply' or '8 applicants'
+    num_match = re.search(
+        r"\b(\d{1,3})\s+(?:people\s+clicked\s+apply|applicants?)\b",
+        header_text,
+        re.IGNORECASE,
+    )
+    if num_match:
+        cnt = int(num_match.group(1))
+        if cnt < 10:
+            bucket = "<10"
+            is_early = True
+            boost = 30
+            badge = f"🎯 EARLY (<10: {cnt} APPLICANTS)"
+        elif cnt < 25:
+            bucket = "<25"
+            is_early = True
+            boost = 25
+            badge = f"🎯 FIRST 25 ({cnt} APPLICANTS)"
+        elif cnt <= 50:
+            bucket = "25-50"
+            is_early = False
+            boost = 10
+            badge = f"⚡ LOW COMPETITION ({cnt})"
+        elif cnt <= 100:
+            bucket = "50-100"
+            is_early = False
+            boost = 0
+            badge = f"📊 MODERATE ({cnt})"
+        else:
+            bucket = "100+"
+            is_early = False
+            boost = 0
+            badge = "🔥 100+ APPLICANTS"
+        est_completed = cnt if is_easy_apply else max(1, round(cnt * 0.22))
+        return {
+            "applicant_count": cnt,
+            "applicant_bucket": bucket,
+            "is_early_applicant": is_early,
+            "is_saturated": cnt >= 100,
+            "is_reposted": is_reposted,
+            "estimated_completed_applies": est_completed,
+            "priority_boost": boost,
+            "competition_badge": badge,
+        }
+
+    return {
+        "applicant_count": None,
+        "applicant_bucket": "unknown",
+        "is_early_applicant": False,
+        "is_saturated": False,
+        "is_reposted": is_reposted,
+        "estimated_completed_applies": None,
+        "priority_boost": 0,
+        "competition_badge": "",
+    }
+
+
 def is_linkedin_posting_fresh_and_unsaturated(
     text: str | None,
     max_days: int = 3,
@@ -478,15 +578,8 @@ def is_linkedin_posting_fresh_and_unsaturated(
             return False, f"stale_age_{num}_days_ago"
 
     # 2. Check recycled Reposted + Over 100 applicants saturation
-    is_reposted = bool(re.search(r"\breposted\b", header_text, re.IGNORECASE))
-    is_saturated = bool(
-        re.search(
-            r"\bover\s+100\s+(?:people\s+clicked\s+apply|applicants)\b",
-            header_text,
-            re.IGNORECASE,
-        )
-    )
-    if is_reposted and is_saturated:
+    metrics = extract_linkedin_applicant_metrics(header_text)
+    if metrics["is_reposted"] and metrics["is_saturated"]:
         return False, "reposted_and_saturated_over_100_applicants"
 
     return True, "fresh"

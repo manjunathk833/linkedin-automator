@@ -8,12 +8,42 @@ from __future__ import annotations
 
 import datetime
 import os
+import re
 import smtplib
 from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+_ENV_CONCAT_TAIL_RE = re.compile(r"([A-Z][A-Z0-9_]{2,}=.*)$")
+_EMAIL_EXTRACT_RE = re.compile(r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,10})")
+
+
+def _sanitize_email_address(raw: str | None) -> str | None:
+    """
+    Extracts a clean RFC 5321 email address from an env var value,
+    protecting against missing newlines that concatenate adjacent KEY=VALUE lines
+    (e.g. 'user@gmail.comWORKDAY_DEFAULT_PASSWORD=...').
+    """
+    if not raw:
+        return None
+    cleaned = str(raw).strip().strip("'").strip('"')
+    # Strip any trailing UPPERCASE_KEY=value concatenation first
+    cleaned = _ENV_CONCAT_TAIL_RE.sub("", cleaned).strip()
+    match = _EMAIL_EXTRACT_RE.search(cleaned)
+    if match:
+        return match.group(1)
+    return cleaned or None
+
+
+def _sanitize_app_password(raw: str | None) -> str | None:
+    """Normalizes a Gmail App Password by stripping quotes and internal whitespace."""
+    if not raw:
+        return None
+    cleaned = str(raw).strip().strip("'").strip('"')
+    cleaned = _ENV_CONCAT_TAIL_RE.sub("", cleaned).strip()
+    return cleaned or None
 
 
 class EmailReporter:
@@ -27,15 +57,18 @@ class EmailReporter:
         app_password: str | None = None,
         recipient_email: str | None = None,
     ):
-        self.sender = (
+        raw_sender = (
             sender_email
             if sender_email is not None
             else (os.environ.get("GMAIL_USER") or os.environ.get("GMAIL_SENDER"))
         )
-        self.password = app_password if app_password is not None else os.environ.get("GMAIL_APP_PASSWORD")
-        self.recipient = (
+        raw_password = app_password if app_password is not None else os.environ.get("GMAIL_APP_PASSWORD")
+        self.sender = _sanitize_email_address(raw_sender)
+        self.password = _sanitize_app_password(raw_password)
+        raw_recipient = (
             recipient_email if recipient_email is not None else (os.environ.get("REPORT_RECIPIENT") or self.sender)
         )
+        self.recipient = _sanitize_email_address(raw_recipient) or self.sender
         self.log_dir = PROJECT_ROOT / "data" / "logs"
         self.log_dir.mkdir(parents=True, exist_ok=True)
 

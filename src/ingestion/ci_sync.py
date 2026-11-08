@@ -138,18 +138,30 @@ class CISyncIngestor:
             jd = raw_drop.get("job_details") or {}
             company = str(jd.get("company") or raw_drop.get("company_name") or "Unknown").strip()
             title = str(jd.get("title") or raw_drop.get("job_title") or "SDET").strip()
+            reopened_fresh = bool(raw_drop.get("reopened_fresh") or jd.get("reopened_fresh"))
+            posted_at_str = raw_drop.get("posted_at") or jd.get("posted_at")
 
             # Check duplicate across SQLite, processed_jobs.json, and physical queues
-            if (
-                db.is_job_applied(job_id)
-                or db.is_company_role_applied(company, title)
-                or self.coordinator.is_duplicate(job_id, company, title)
+            is_applied = db.is_job_applied(job_id) or db.is_company_role_applied(company, title)
+            if is_applied and not (reopened_fresh and db.is_reapply_eligible(job_id, company, title, min_days=30.0)):
+                skipped_dups += 1
+                continue
+
+            if self.coordinator.is_duplicate(
+                job_id,
+                company,
+                title,
+                posted_at=posted_at_str,
+                reopened_fresh=reopened_fresh,
             ):
                 skipped_dups += 1
                 continue
 
             payload = dict(raw_drop)
             payload["ci_onboarded"] = True
+            if reopened_fresh:
+                payload["reopened_fresh"] = True
+                payload["freshness_badge"] = "🔄 REOPENED (<24h)"
 
             if tailorer and "tailored_resume" not in payload:
                 try:
@@ -160,7 +172,13 @@ class CISyncIngestor:
             target_path = self.pending_dir / f"{job_id}.json"
             target_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
-            self.coordinator.mark_job_processed(job_id, company, title, status="PENDING")
+            self.coordinator.mark_job_processed(
+                job_id,
+                company,
+                title,
+                status="PENDING",
+                posted_at=str(posted_at_str) if posted_at_str else None,
+            )
 
             try:
                 db.sync_requisition(

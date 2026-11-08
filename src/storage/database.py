@@ -962,6 +962,98 @@ class ApplicationDatabase:
             )
             return cursor.fetchone() is not None
 
+    def get_applied_job_details(
+        self,
+        job_id: str,
+        company_name: str = "",
+        job_title: str = "",
+    ) -> dict[str, Any] | None:
+        """
+        Returns metadata for the most recent applied record matching either `job_id` or
+        `(company_name, job_title)`, including `days_since_applied` and `is_exact_id_match`.
+        """
+        clean_id = (job_id or "").strip()
+        clean_company = (company_name or "").strip().lower()
+        clean_title = (job_title or "").strip().lower()
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            row = None
+            if clean_id:
+                cursor.execute(
+                    """
+                    SELECT id, source, company_name, job_title, job_url, applied_at
+                    FROM job_applications
+                    WHERE id = ? AND status = 'applied'
+                    ORDER BY applied_at DESC
+                    LIMIT 1;
+                    """,
+                    (clean_id,),
+                )
+                row = cursor.fetchone()
+            if row is None and clean_company and clean_title:
+                cursor.execute(
+                    """
+                    SELECT id, source, company_name, job_title, job_url, applied_at
+                    FROM job_applications
+                    WHERE LOWER(TRIM(company_name)) = ?
+                      AND LOWER(TRIM(job_title)) = ?
+                      AND status = 'applied'
+                    ORDER BY applied_at DESC
+                    LIMIT 1;
+                    """,
+                    (clean_company, clean_title),
+                )
+                row = cursor.fetchone()
+
+        if not row:
+            return None
+
+        applied_at_raw = str(row["applied_at"] or "").strip()
+        days_since = 0.0
+        if applied_at_raw:
+            try:
+                norm_ts = applied_at_raw.replace("Z", "")
+                applied_dt = datetime.datetime.fromisoformat(norm_ts)
+                if applied_dt.tzinfo is not None:
+                    applied_dt = applied_dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+                delta_sec = (datetime.datetime.utcnow() - applied_dt).total_seconds()
+                days_since = max(0.0, round(delta_sec / 86400.0, 2))
+            except Exception:
+                days_since = 0.0
+
+        return {
+            "id": str(row["id"]),
+            "source": str(row["source"] or ""),
+            "company_name": str(row["company_name"] or ""),
+            "job_title": str(row["job_title"] or ""),
+            "job_url": str(row["job_url"] or ""),
+            "applied_at": applied_at_raw,
+            "days_since_applied": days_since,
+            "is_exact_id_match": bool(clean_id and str(row["id"]) == clean_id),
+        }
+
+    def is_reapply_eligible(
+        self,
+        job_id: str,
+        company_name: str = "",
+        job_title: str = "",
+        min_days: float = 30.0,
+    ) -> bool:
+        """
+        Determines whether a previously applied role is eligible for a fresh re-application:
+        - Returns True if never applied.
+        - Returns False if it is the exact same LinkedIn job ID (LinkedIn locks same jobId forever).
+        - Returns True if `days_since_applied >= min_days` (default 30 days) on a new requisition ID
+          or direct ATS portal.
+        """
+        details = self.get_applied_job_details(job_id, company_name, job_title)
+        if details is None:
+            return True
+        if details["is_exact_id_match"] and "linkedin" in details["source"].lower():
+            return False
+        return float(details["days_since_applied"]) >= min_days
+
     def get_applied_composite_hashes(self) -> set[str]:
         """Returns set of md5(company_title) composite hashes for all applied jobs."""
         with self._get_connection() as conn:

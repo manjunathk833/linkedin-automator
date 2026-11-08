@@ -95,58 +95,127 @@ class ATSDiscoveryCoordinator:
         norm = f"{company.strip().lower()}_{title.strip().lower()}"
         return hashlib.md5(norm.encode("utf-8")).hexdigest()
 
-    def is_duplicate(self, job_id: str, company: str, title: str) -> bool:
+    @staticmethod
+    def _parse_iso_naive_utc(raw_val: datetime.datetime | str | None) -> datetime.datetime | None:
+        if raw_val is None:
+            return None
+        if isinstance(raw_val, datetime.datetime):
+            if raw_val.tzinfo is not None:
+                return raw_val.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+            return raw_val
+        if isinstance(raw_val, str):
+            cleaned = raw_val.strip()
+            cleaned = cleaned.removesuffix("Z")
+            try:
+                dt = datetime.datetime.fromisoformat(cleaned)
+                if dt.tzinfo is not None:
+                    return dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+                return dt
+            except Exception:
+                return None
+        return None
+
+    @classmethod
+    def _is_entry_reopened_within_24h(
+        cls,
+        posted_at: datetime.datetime | str | None,
+        prev_entry: dict[str, Any] | None,
+    ) -> bool:
+        """
+        Returns True if `posted_at` is within <=24h of UTC now AND at least 24h newer than
+        the previous `posted_at` or `first_seen` recorded in `processed_jobs.json`.
+        """
+        post_dt = cls._parse_iso_naive_utc(posted_at)
+        if post_dt is None or not isinstance(prev_entry, dict):
+            return False
+        now_utc = datetime.datetime.utcnow()
+        age_hours = (now_utc - post_dt).total_seconds() / 3600.0
+        if age_hours > 24.0:
+            return False
+        prev_ts = prev_entry.get("posted_at") or prev_entry.get("first_seen")
+        prev_dt = cls._parse_iso_naive_utc(prev_ts)
+        if prev_dt is None:
+            return False
+        return (post_dt - prev_dt).total_seconds() >= 24.0 * 3600.0
+
+    def is_duplicate(
+        self,
+        job_id: str,
+        company: str,
+        title: str,
+        posted_at: datetime.datetime | str | None = None,
+        reopened_fresh: bool = False,
+    ) -> bool:
         """
         Checks if a job_id or (company + title) has already been applied or processed across
         SQLite persistent database, processed_jobs.json, and physical file queues.
+        Allows genuinely re-opened (<24h refreshed) requisitions through if they are not currently
+        sitting in pending/approved queues and were not applied within the last 30 days.
         """
-        # 0. Check SQLite persistent database for completed applications (exact ID & company+role)
+        # 0. Check physical file queues first: if already sitting in pending or approved queue, it's active
+        for qdir in [
+            self.queue_dir,
+            os.path.join(PROJECT_ROOT, "data", "approved_queue"),
+        ]:
+            if os.path.exists(qdir) and f"{job_id}.json" in os.listdir(qdir):
+                return True
+
+        data = self.load_processed_jobs()
+        job_ids = data.get("job_ids", {})
+        composite_hashes = data.get("composite_hashes", {})
+        c_hash = self.generate_composite_hash(company, title)
+
+        prev_entry = job_ids.get(job_id) or composite_hashes.get(c_hash)
+        is_reopened = reopened_fresh or self._is_entry_reopened_within_24h(posted_at, prev_entry)
+
+        # 1. Check SQLite persistent database for completed applications (exact ID & company+role)
         try:
             from src.storage.database import ApplicationDatabase
 
             db = ApplicationDatabase()
             if db.is_job_applied(job_id) or db.is_company_role_applied(company, title):
-                return True
+                return not (is_reopened and db.is_reapply_eligible(job_id, company, title, min_days=30.0))
         except Exception:
             pass
 
-        data = self.load_processed_jobs()
-        job_ids = data.get("job_ids", {})
-        composite_hashes = data.get("composite_hashes", {})
-
-        # 1. Check primary job_id
-        if job_id in job_ids:
-            return True
-
-        # 2. Check composite hash (cross-source duplicate protection)
-        c_hash = self.generate_composite_hash(company, title)
-        if c_hash in composite_hashes:
-            return True
-
-        # 3. Check physical file queues
-        for qdir in [
-            self.queue_dir,
-            os.path.join(PROJECT_ROOT, "data", "approved_queue"),
-            os.path.join(PROJECT_ROOT, "data", "applied_queue"),
-        ]:
-            if os.path.exists(qdir) and f"{job_id}.json" in os.listdir(qdir):
+        if not is_reopened:
+            applied_qdir = os.path.join(PROJECT_ROOT, "data", "applied_queue")
+            if os.path.exists(applied_qdir) and f"{job_id}.json" in os.listdir(applied_qdir):
                 return True
+
+        # 2. Check primary job_id and composite hash in processed_jobs.json
+        if job_id in job_ids or c_hash in composite_hashes:
+            return not is_reopened
 
         return False
 
-    def mark_job_processed(self, job_id: str, company: str, title: str, status: str = "PENDING"):
+    def mark_job_processed(
+        self,
+        job_id: str,
+        company: str,
+        title: str,
+        status: str = "PENDING",
+        posted_at: str | None = None,
+    ):
         """Registers an ATS job into the master deduplication index."""
         data = self.load_processed_jobs()
         now = datetime.datetime.utcnow().isoformat() + "Z"
         c_hash = self.generate_composite_hash(company, title)
+        existing = data.get("job_ids", {}).get(job_id) or {}
 
         data.setdefault("job_ids", {})[job_id] = {
             "title": title,
             "company": company,
-            "first_seen": now,
+            "first_seen": existing.get("first_seen") or now,
+            "last_seen": now,
+            "posted_at": posted_at or existing.get("posted_at") or now,
             "status": status,
         }
-        data.setdefault("composite_hashes", {})[c_hash] = {"job_id": job_id, "first_seen": now}
+        data.setdefault("composite_hashes", {})[c_hash] = {
+            "job_id": job_id,
+            "first_seen": existing.get("first_seen") or now,
+            "posted_at": posted_at or existing.get("posted_at") or now,
+        }
         self.save_processed_jobs(data)
 
     def load_target_companies(self) -> list[TargetCompany]:
@@ -396,9 +465,15 @@ class ATSDiscoveryCoordinator:
             except Exception as e:
                 print(f"⚠️ Could not initialize ResumeTailorer for ATS ingestion: {e}")
 
+        proc_snapshot = self.load_processed_jobs()
+        proc_ids = proc_snapshot.get("job_ids", {})
+        proc_hashes = proc_snapshot.get("composite_hashes", {})
+
         for item in listings:
-            # Cross-platform and applied reseed guard
-            if self.is_duplicate(item.id, item.company_name, item.job_title):
+            c_hash = self.generate_composite_hash(item.company_name, item.job_title)
+            was_previously_seen = item.id in proc_ids or c_hash in proc_hashes
+            # Cross-platform and applied reseed guard (allows genuinely re-opened <24h roles)
+            if self.is_duplicate(item.id, item.company_name, item.job_title, posted_at=item.posted_at):
                 skipped_count += 1
                 continue
 
@@ -413,6 +488,7 @@ class ATSDiscoveryCoordinator:
                 "discovery_channel": (item.source or "direct_ats").lower().strip(),
                 "application_type": f"ATS_{item.source.upper()}",
                 "is_dream_org": item.is_dream_org,
+                "reopened_fresh": bool(was_previously_seen),
                 "job_details": {
                     "title": item.job_title,
                     "company": item.company_name,
@@ -423,6 +499,7 @@ class ATSDiscoveryCoordinator:
                     "is_remote": item.is_remote,
                     "salary_range": item.salary_range,
                     "is_dream_org": item.is_dream_org,
+                    "reopened_fresh": bool(was_previously_seen),
                 },
                 "job_url": item.url,
                 "url": item.url,
@@ -442,14 +519,24 @@ class ATSDiscoveryCoordinator:
 
                 routing = InterviewRouter.classify_job_strategy(payload)
                 payload["routing_strategy"] = routing
-                payload["freshness_badge"] = routing.get("freshness_badge", "📅 STANDARD")
+                if was_previously_seen:
+                    payload["freshness_badge"] = "🔄 REOPENED (<24h)"
+                    routing["freshness_badge"] = "🔄 REOPENED (<24h)"
+                else:
+                    payload["freshness_badge"] = routing.get("freshness_badge", "📅 STANDARD")
             except Exception:
                 pass
 
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2)
 
-            self.mark_job_processed(item.id, item.company_name, item.job_title, status="PENDING")
+            self.mark_job_processed(
+                item.id,
+                item.company_name,
+                item.job_title,
+                status="PENDING",
+                posted_at=item.posted_at.isoformat() if item.posted_at else None,
+            )
 
             # Requisition State Engine: Sync to SQLite with SHA-256 change detection
             try:

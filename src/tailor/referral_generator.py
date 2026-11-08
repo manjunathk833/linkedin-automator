@@ -7,10 +7,15 @@ and candidate architecture metrics while strictly enforcing platform character l
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import urllib.parse
 from datetime import datetime, timezone
 from typing import Any
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+TARGET_COMPANIES_CONFIG = os.path.join(PROJECT_ROOT, "data", "config", "target_companies.json")
 
 CANDIDATE_PORTFOLIO = "https://manjunathhk.netlify.app/"
 CANDIDATE_LINKEDIN = "https://www.linkedin.com/in/manjunath-h-k-ab30b1146/"
@@ -270,6 +275,44 @@ class InterviewRouter:
             freshness_badge = "📅 STANDARD"
             priority_boost = 0
 
+        # Early-Applicant (<25 applicants) & Re-Opened (<24h) Priority Boosts
+        app_metrics = job_payload.get("applicant_metrics") or details.get("applicant_metrics") or {}
+        if isinstance(app_metrics, dict) and app_metrics.get("is_early_applicant"):
+            priority_boost += int(app_metrics.get("priority_boost") or 25)
+            if freshness_badge != "🔥 SNIPER (<3h old)":
+                freshness_badge = str(app_metrics.get("competition_badge") or "🎯 FIRST 25 APPLICANTS")
+
+        if job_payload.get("reopened_fresh") or details.get("reopened_fresh"):
+            priority_boost += 20
+            freshness_badge = "🔄 REOPENED (<24h)"
+
+        # Tier 0B: Reposted Role Where Candidate Already Applied (<30d ago) -> Recruiter / HM Follow-Up + Direct ATS Bypass
+        if job_payload.get("repost_of_applied") or details.get("repost_of_applied"):
+            comp_name = extract_company_name(job_payload)
+            days_ago = float(job_payload.get("days_since_applied") or details.get("days_since_applied") or 7.0)
+            direct_portal = resolve_direct_ats_portal_url(comp_name)
+            followup_note = ReferralNoteGenerator.generate_repost_followup_note(
+                job_payload, days_since_applied=days_ago
+            )
+            return {
+                "routing_tier": "TIER_0_REPOST_FOLLOWUP",
+                "allow_immediate_apply": bool(direct_portal),
+                "referral_sla_hours": 0.0,
+                "age_hours": age_hours,
+                "freshness_badge": "🔄 REPOSTED — FOLLOW UP",
+                "priority_boost": priority_boost + 25,
+                "associated_post_url": "",
+                "post_author_name": "",
+                "post_author_url": "",
+                "direct_ats_portal_url": direct_portal or "",
+                "repost_followup_note": followup_note,
+                "rationale": (
+                    f"Role reposted {round(days_ago)}d after initial application -> "
+                    "Send <300-char Recruiter/HM follow-up note to surface existing application"
+                    + (f" or apply directly via {direct_portal}." if direct_portal else ".")
+                ),
+            }
+
         # Tier 0: Direct Hiring Post Match exists!
         if matched_posts:
             best_post = matched_posts[0]
@@ -483,8 +526,79 @@ def extract_requisition_id(job_payload: dict[str, Any]) -> str:
     return "open req"
 
 
+def resolve_direct_ats_portal_url(company_name: str) -> str | None:
+    """
+    Resolves the direct ATS career board URL (Greenhouse, Lever, Ashby, SmartRecruiters, Workday, etc.)
+    for `company_name` from `data/config/target_companies.json`.
+    Used to bypass locked LinkedIn 'Applied' buttons when a role is reposted on LinkedIn.
+    """
+    target = (company_name or "").strip().lower()
+    if not target or not os.path.exists(TARGET_COMPANIES_CONFIG):
+        return None
+    try:
+        with open(TARGET_COMPANIES_CONFIG, "r", encoding="utf-8") as f:
+            companies = json.load(f)
+        for c in companies:
+            c_name = str(c.get("name") or "").strip().lower()
+            c_slug = str(c.get("slug") or "").strip().lower()
+            if target == c_name or target == c_slug or (len(target) >= 4 and (target in c_name or c_name in target)):
+                if c.get("career_url"):
+                    return str(c["career_url"]).strip()
+                prov = str(c.get("ats_provider") or "").strip().lower()
+                slug = str(c.get("slug") or "").strip()
+                if prov == "greenhouse" and slug:
+                    return f"https://boards.greenhouse.io/{slug}"
+                if prov == "lever" and slug:
+                    return f"https://jobs.lever.co/{slug}"
+                if prov == "ashby" and slug:
+                    return f"https://jobs.ashbyhq.com/{slug}"
+                if prov == "smartrecruiters" and slug:
+                    return f"https://careers.smartrecruiters.com/{slug}"
+                if prov == "rippling" and slug:
+                    return f"https://ats.rippling.com/{slug}/jobs"
+                if prov == "workday" and slug:
+                    dc = str(c.get("datacenter") or "wd3").strip()
+                    site = str(c.get("site") or slug).strip()
+                    return f"https://{slug}.{dc}.myworkdayjobs.com/{site}"
+    except Exception:
+        return None
+    return None
+
+
 class ReferralNoteGenerator:
     """Generates tailored LinkedIn Connection Notes and InMail pitches for Dream Org referrals."""
+
+    @staticmethod
+    def generate_repost_followup_note(
+        job_payload: dict[str, Any],
+        days_since_applied: float = 7.0,
+        recipient_name: str = "there",
+        max_chars: int = 300,
+    ) -> str:
+        """
+        Generates a <300-character Recruiter / Hiring Manager follow-up note when a role
+        the candidate already applied to (<30 days ago) is freshly reposted on LinkedIn.
+        """
+        company = extract_company_name(job_payload) or "your team"
+        raw_title = extract_job_title(job_payload) or "Senior SDET"
+        req_id = extract_requisition_id(job_payload)
+        name = recipient_name.strip() if recipient_name and recipient_name.lower() != "there" else "there"
+        portfolio = CANDIDATE_PORTFOLIO.replace("https://", "").rstrip("/")
+        days_int = max(1, round(days_since_applied))
+        title = raw_title if len(raw_title) <= 26 else raw_title[:23] + "..."
+
+        note = (
+            f"Hi {name}, noticed the {title} role (Req: {req_id}) at {company} was just reposted! "
+            f"I applied {days_int}d ago & remain very keen ({CANDIDATE_EXPERIENCE} SDET, Java/Python/Playwright). "
+            f"Portfolio: {portfolio} — would love to be considered!"
+        )
+        if len(note) > max_chars:
+            note = (
+                f"Hi {name}, saw the {title} role at {company} was just reposted! "
+                f"I applied {days_int}d ago & remain very keen ({CANDIDATE_EXPERIENCE} SDET). "
+                f"Portfolio: {portfolio} — would love to connect!"
+            )
+        return note[:max_chars].strip()
 
     @staticmethod
     def generate_connection_note(

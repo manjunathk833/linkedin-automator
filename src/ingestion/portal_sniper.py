@@ -72,6 +72,52 @@ class PortalSniperEngine:
         delta_sec = (now - dt).total_seconds()
         return max(0.0, round(delta_sec / 3600.0, 2))
 
+    @staticmethod
+    def _parse_iso_utc(raw_ts: str | None) -> datetime | None:
+        """Parses an ISO-8601 timestamp string into naive UTC datetime."""
+        if not raw_ts or not isinstance(raw_ts, str):
+            return None
+        cleaned = raw_ts.strip()
+        cleaned = cleaned.removesuffix("Z")
+        try:
+            dt = datetime.fromisoformat(cleaned)
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+            return dt
+        except Exception:
+            return None
+
+    @classmethod
+    def is_reopened_fresh(
+        cls,
+        listing: JobListing,
+        ledger_entry: dict[str, Any],
+        age_hours: float | None,
+        max_age_hours: float = 24.0,
+        min_refresh_gap_hours: float = 24.0,
+    ) -> bool:
+        """
+        Determines whether a previously seen requisition was genuinely re-opened or refreshed
+        within the <24h window.
+        Requires:
+        1. listing.posted_at is present and age_hours <= max_age_hours (<=24h old right now).
+        2. listing.posted_at is at least `min_refresh_gap_hours` (24h) newer than the previously
+           recorded `posted_at` or `first_seen_at` in `portal_seen_ledger.json`.
+        """
+        if listing.posted_at is None or age_hours is None or age_hours > max_age_hours:
+            return False
+        item_dt = listing.posted_at
+        if item_dt.tzinfo is not None:
+            item_dt = item_dt.astimezone(timezone.utc).replace(tzinfo=None)
+
+        prev_ts_str = ledger_entry.get("posted_at") or ledger_entry.get("first_seen_at")
+        prev_dt = cls._parse_iso_utc(prev_ts_str)
+        if prev_dt is None:
+            return False
+
+        refresh_delta_hours = (item_dt - prev_dt).total_seconds() / 3600.0
+        return refresh_delta_hours >= min_refresh_gap_hours
+
     def filter_and_package_drops(
         self,
         listings: list[JobListing],
@@ -79,7 +125,8 @@ class PortalSniperEngine:
     ) -> dict[str, Any]:
         """
         Cross-references discovered SDET/QA listings against:
-        1. Stateful portal_seen_ledger.json (must not have been seen in a prior scan).
+        1. Stateful portal_seen_ledger.json (must not have been seen in a prior scan, UNLESS
+           its native posted_at/updated_at timestamp was refreshed within <24h after >=24h gap).
         2. Post timestamp <= max_age_hours (or newly appeared in ledger if provider omits timestamp).
         Writes latest_ci_drops.json, portal_seen_ledger.json, and latest_daily_report.md.
         """
@@ -90,23 +137,42 @@ class PortalSniperEngine:
         fresh_drops: list[dict[str, Any]] = []
         skipped_seen = 0
         skipped_stale = 0
+        reopened_count = 0
 
         for item in listings:
             age_hours = self.compute_listing_age_hours(item, now_utc=now)
+            reopened_fresh = False
+            previous_first_seen_at: str | None = None
 
-            # 1. Check stateful seen ledger first (prevents typo edits on old jobs from re-triggering)
+            # 1. Check stateful seen ledger first (prevents typo edits on old jobs from re-triggering,
+            #    while allowing genuinely re-opened / <24h refreshed requisitions through)
             if item.id in ledger:
-                skipped_seen += 1
-                continue
-
-            # Record in ledger so future runs know when we first saw this requisition ID
-            ledger[item.id] = {
-                "company": item.company_name,
-                "title": item.job_title,
-                "source": item.source,
-                "first_seen_at": now_iso,
-                "posted_at": item.posted_at.isoformat() if item.posted_at else None,
-            }
+                existing_entry = ledger[item.id]
+                if self.is_reopened_fresh(item, existing_entry, age_hours, max_age_hours=self.max_age_hours):
+                    reopened_fresh = True
+                    reopened_count += 1
+                    previous_first_seen_at = existing_entry.get("first_seen_at")
+                    ledger[item.id] = {
+                        **existing_entry,
+                        "company": item.company_name,
+                        "title": item.job_title,
+                        "source": item.source,
+                        "posted_at": item.posted_at.isoformat() if item.posted_at else existing_entry.get("posted_at"),
+                        "last_reopened_at": now_iso,
+                        "reopen_count": int(existing_entry.get("reopen_count", 0)) + 1,
+                    }
+                else:
+                    skipped_seen += 1
+                    continue
+            else:
+                # Record in ledger so future runs know when we first saw this requisition ID
+                ledger[item.id] = {
+                    "company": item.company_name,
+                    "title": item.job_title,
+                    "source": item.source,
+                    "first_seen_at": now_iso,
+                    "posted_at": item.posted_at.isoformat() if item.posted_at else None,
+                }
 
             # 2. Enforce <24h freshness window if portal provides posted_at timestamp
             if age_hours is not None and age_hours > self.max_age_hours:
@@ -124,6 +190,8 @@ class PortalSniperEngine:
                 "posted_at": item.posted_at.isoformat() if item.posted_at else now_iso,
                 "age_hours": age_hours if age_hours is not None else 0.5,
                 "discovered_at": now_iso,
+                "reopened_fresh": reopened_fresh,
+                "previous_first_seen_at": previous_first_seen_at,
                 "job_url": item.url,
                 "url": item.url,
                 "job_details": {
@@ -137,11 +205,16 @@ class PortalSniperEngine:
                     "salary_range": item.salary_range,
                     "is_dream_org": item.is_dream_org,
                     "posted_at": item.posted_at.isoformat() if item.posted_at else now_iso,
+                    "reopened_fresh": reopened_fresh,
                 },
             }
             routing = InterviewRouter.classify_job_strategy(payload)
             payload["routing_strategy"] = routing
-            payload["freshness_badge"] = routing.get("freshness_badge", "⚡ EARLY (<24h old)")
+            if reopened_fresh:
+                payload["freshness_badge"] = "🔄 REOPENED (<24h)"
+                routing["freshness_badge"] = "🔄 REOPENED (<24h)"
+            else:
+                payload["freshness_badge"] = routing.get("freshness_badge", "⚡ EARLY (<24h old)")
             fresh_drops.append(payload)
 
         # Sort fresh drops: Dream Orgs & lowest age_hours first
@@ -160,6 +233,7 @@ class PortalSniperEngine:
             "total_orgs_polled": total_orgs_polled,
             "total_sdet_matches_scanned": len(listings),
             "fresh_drops_count": len(fresh_drops),
+            "reopened_fresh_count": reopened_count,
             "skipped_already_seen": skipped_seen,
             "skipped_older_than_window": skipped_stale,
             "provider_telemetry": getattr(self.coordinator, "last_ingestion_telemetry", {}),
