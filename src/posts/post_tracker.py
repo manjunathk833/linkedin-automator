@@ -304,13 +304,14 @@ class LinkedInPostTracker:
             except Exception:
                 pass
 
-        # 3. React Fiber / SDUI Props Inspection (<5ms)
+        # 3. React Fiber / SDUI Props Inspection (<5ms, bounded node count)
         if not post_url:
             try:
                 fiber_url = await card.evaluate("""
                     (el) => {
+                        let visited = 0;
                         function searchFiber(fiber, depth = 0) {
-                            if (!fiber || depth > 12) return null;
+                            if (!fiber || depth > 8 || ++visited > 35) return null;
                             const props = fiber.memoizedProps;
                             if (props) {
                                 if (typeof props.url === 'string' && props.url.includes('linkedin.com/posts/')) {
@@ -369,30 +370,67 @@ class LinkedInPostTracker:
 
         return post_url
 
-    async def _extract_post_from_card(self, card: Any, page: Any) -> dict[str, Any] | None:
-        """Extracts text, author, and links from a single DOM update card."""
+    async def _extract_post_from_card(
+        self, card: Any, page: Any, date_filter: str | None = None
+    ) -> dict[str, Any] | None:
+        """Extracts text, author, and links from a single DOM update card with fast <5ms pre-screening and 2.0s hard cap."""
         try:
-            # 1. Expand '...see more' if present
-            see_more = card.locator(
-                ".feed-shared-inline-show-more-text__see-more-less-toggle, button:has-text('see more'), button:has-text('...more')"
-            ).first
-            if await see_more.count() > 0:
-                try:
-                    if await see_more.is_visible(timeout=500):
-                        await see_more.click(timeout=1000)
-                        await asyncio.sleep(0.1)
-                except Exception:
-                    pass
+            return await asyncio.wait_for(
+                self._extract_post_from_card_inner(card, page, date_filter=date_filter),
+                timeout=2.0,
+            )
+        except Exception:
+            return None
+
+    async def _extract_post_from_card_inner(
+        self, card: Any, page: Any, date_filter: str | None = None
+    ) -> dict[str, Any] | None:
+        try:
+            # 0. Fast Pre-Screen: Read card textContent once (<5ms; includes CSS-clamped text without clicking '...more')
+            raw_text = (await card.text_content(timeout=800) or "").strip()
+            if len(raw_text) < 25:
+                return None
+
+            if date_filter:
+                fast_rel = extract_relative_timestamp_from_card_text(raw_text)
+                if fast_rel != "recent" and not self.is_post_within_age_limit(fast_rel, date_filter):
+                    return None
+
+            if raw_text.startswith("Feed post"):
+                raw_text = raw_text[len("Feed post") :].strip()
+
+            # 1b. Fast keyword signal pre-screen before running DOM locators
+            raw_lower = raw_text.lower()
+            if not any(
+                kw in raw_lower
+                for kw in (
+                    "hiring",
+                    "opening",
+                    "opportunity",
+                    "referral",
+                    "refer",
+                    "looking for",
+                    "join our",
+                    "dm",
+                    "resume",
+                    "cv",
+                    "sdet",
+                    "qa",
+                    "automation",
+                    "test",
+                )
+            ):
+                return None
 
             # 2. Extract Author details (skipping candidate's own reaction header link on /recent-activity/reactions/)
             author_links = await card.locator("a[href*='/in/'], a[href*='/company/']").all()
             author_name = "Unknown"
             author_url = ""
-            for al in author_links:
+            for al in author_links[:6]:
                 href_val = (await al.get_attribute("href") or "").split("?")[0]
                 if self.candidate_slug and self.candidate_slug in href_val.lower():
                     continue
-                ltxt = (await al.text_content(timeout=1000) or "").strip()
+                ltxt = (await al.text_content(timeout=600) or "").strip()
                 clean_name = ltxt.split("•")[0].strip()
                 if clean_name and clean_name.lower() not in [
                     "view profile",
@@ -410,12 +448,7 @@ class LinkedInPostTracker:
                     ".update-components-actor__name, .feed-shared-actor__name, a[data-field='actor_name']"
                 ).first
                 if await author_name_loc.count() > 0:
-                    author_name = (await author_name_loc.text_content(timeout=1000) or "").strip()
-
-            # 3. Extract Post text
-            raw_text = (await card.text_content(timeout=2000) or "").strip()
-            if raw_text.startswith("Feed post"):
-                raw_text = raw_text[len("Feed post") :].strip()
+                    author_name = (await author_name_loc.text_content(timeout=600) or "").strip()
 
             author_title_loc = card.locator(
                 ".update-components-actor__description, .feed-shared-actor__description, .update-components-actor__headline, .entity-result__primary-subtitle, span[data-anonymize='headline']"
@@ -580,11 +613,11 @@ class LinkedInPostTracker:
         print(f"\n❤️ [Step 0] Scanning Candidate Liked Posts / Reactions: {reactions_url}")
         try:
             await page.goto(reactions_url, wait_until="domcontentloaded", timeout=35000)
-            await asyncio.sleep(3.0)
+            await asyncio.sleep(1.5)
 
             for _ in range(max_scrolls):
                 await page.evaluate("window.scrollBy(0, 1000)")
-                await asyncio.sleep(1.2)
+                await asyncio.sleep(0.8)
 
             cards_loc = page.locator(
                 "div:has(> h2:has-text('Feed post')), div:has(> span:has-text('Feed post')), "
@@ -598,7 +631,7 @@ class LinkedInPostTracker:
 
             for c_idx in range(card_count):
                 card = cards_loc.nth(c_idx)
-                post_lead = await self._extract_post_from_card(card, page)
+                post_lead = await self._extract_post_from_card(card, page, date_filter=date_filter)
                 if post_lead:
                     rel_t = str(post_lead.get("posted_at_relative") or "")
                     if date_filter and not self.is_post_within_age_limit(rel_t, date_filter):
@@ -646,6 +679,7 @@ class LinkedInPostTracker:
             if date_filter in ("past-24h", "past_24h")
             else ("past-month" if date_filter in ("past-month", "past_month") else "past-week")
         )
+        effective_max_scrolls = min(max_scrolls, 3) if url_date_filter == "past-24h" else max_scrolls
 
         from src.browser.cdp_stealth import ensure_cdp_page_target, is_cdp_port_open
         from src.browser.linkedin_auth import (
@@ -699,8 +733,9 @@ class LinkedInPostTracker:
 
                 # Step 0: Scan candidate's own Liked Posts / Reactions feed (enforcing same date_filter)
                 if include_liked:
+                    liked_scrolls = 2 if url_date_filter == "past-24h" else min(max_scrolls, 4)
                     liked_leads = await self.scrape_liked_posts(
-                        page, max_scrolls=min(max_scrolls, 4), date_filter=date_filter
+                        page, max_scrolls=liked_scrolls, date_filter=date_filter
                     )
                     discovered_leads.extend(liked_leads)
 
@@ -723,12 +758,7 @@ class LinkedInPostTracker:
                                 await page.goto(url, wait_until="domcontentloaded", timeout=35000)
                             else:
                                 raise
-                        await asyncio.sleep(3.0)
-
-                        # Progressive smooth scrolls to hydrate feed updates deep into the feed
-                        for s in range(max_scrolls):
-                            await page.evaluate("window.scrollBy(0, 1000)")
-                            await asyncio.sleep(1.5)
+                        await asyncio.sleep(1.8)
 
                         # Match modern card locators
                         cards_loc = page.locator(
@@ -737,13 +767,24 @@ class LinkedInPostTracker:
                             "div[data-view-name*='search-entity-result'], "
                             ".artdeco-card:has(.feed-shared-text, .update-components-text)"
                         )
+
+                        # Progressive smooth scrolls with early-exit when feed stops growing
+                        prev_count = await cards_loc.count()
+                        for _ in range(effective_max_scrolls):
+                            await page.evaluate("window.scrollBy(0, 1000)")
+                            await asyncio.sleep(0.9)
+                            cur_count = await cards_loc.count()
+                            if cur_count <= prev_count:
+                                break
+                            prev_count = cur_count
+
                         card_count = await cards_loc.count()
                         self.last_raw_updates_scanned += int(card_count)
                         print(f"📦 Scanned {card_count} raw feed update(s).")
 
                         for c_idx in range(card_count):
                             card = cards_loc.nth(c_idx)
-                            post_lead = await self._extract_post_from_card(card, page)
+                            post_lead = await self._extract_post_from_card(card, page, date_filter=date_filter)
                             if post_lead:
                                 rel_t = str(post_lead.get("posted_at_relative") or "")
                                 if not self.is_post_within_age_limit(rel_t, date_filter):

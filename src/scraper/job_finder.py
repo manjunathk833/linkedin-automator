@@ -27,6 +27,15 @@ class LinkedInJobFinder:
         self.channel_yield: dict[str, int] = {}
         self.last_auth_status: dict[str, Any] = {}
         self.last_yield_verdict: str = "NOT_RUN"
+        self.session_seen_job_ids: set[str] = set()
+        self._pre_filter: Any = None
+
+    def _get_pre_filter(self) -> Any:
+        if self._pre_filter is None:
+            from src.filter.job_filter import LinkedInJobFilter
+
+            self._pre_filter = LinkedInJobFilter(db_file=self.db_file)
+        return self._pre_filter
 
     def _record_yield(self, surface: str, count: int) -> None:
         """Accumulates raw card counts per LinkedIn surface for zero-yield diagnostics."""
@@ -349,20 +358,60 @@ class LinkedInJobFinder:
                 await asyncio.sleep(0.5)
                 return False
 
+    async def _wait_for_job_cards(self, page: Any, max_wait_sec: float = 6.5) -> int:
+        """
+        Waits for LinkedIn's /jobs/search/ -> /jobs/search-results/ client-side SDUI redirect
+        to initiate (1.8s), then polls job card selectors until cards hydrate or max_wait_sec elapses.
+        """
+        await asyncio.sleep(1.8)
+        cards_loc = page.locator(
+            ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], div[role='button'][componentkey^='job-card-component-ref-']"
+        )
+        no_results_loc = page.locator(
+            ".jobs-search-no-results-banner, h1:has-text('No matching jobs found'), p:has-text('No matching jobs found')"
+        )
+        elapsed = 1.8
+        step = 0.4
+        while elapsed < max_wait_sec:
+            try:
+                cnt = await cards_loc.count()
+                if cnt > 0:
+                    await asyncio.sleep(0.35)
+                    return await cards_loc.count()
+                if elapsed >= 3.0 and await no_results_loc.count() > 0:
+                    return 0
+            except Exception:
+                pass
+            await asyncio.sleep(step)
+            elapsed += step
+        return 0
+
     async def scroll_results_pane(self, page: Any, scrolls: int = 5):
-        """Scrolls the LinkedIn search / collection results pane down to trigger lazy loading of cards."""
+        """Scrolls the LinkedIn search / collection results pane down to trigger lazy loading of cards with early break."""
         try:
+            cards_loc = page.locator(
+                ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], div[role='button'][componentkey^='job-card-component-ref-']"
+            )
             pane = page.locator(
                 ".jobs-search-results-list, .jobs-search__results-list, .scaffold-layout__list, div[componentkey='SearchResultsMainContent']"
             ).first
-            if await pane.count() > 0:
-                for _ in range(scrolls):
-                    await pane.evaluate("node => node.scrollTop += 700")
-                    await asyncio.sleep(0.8)
-            else:
-                for _ in range(scrolls):
+            has_pane = await pane.count() > 0
+            prev_count = await cards_loc.count()
+            unchanged_streak = 0
+            for _ in range(scrolls):
+                if has_pane:
+                    await pane.evaluate("node => node.scrollTop += 800")
+                else:
                     await page.evaluate("window.scrollBy(0, 800)")
-                    await asyncio.sleep(0.8)
+                await asyncio.sleep(0.5)
+                cur_count = await cards_loc.count()
+                if cur_count <= prev_count and cur_count > 0:
+                    unchanged_streak += 1
+                    if unchanged_streak >= 2:
+                        break
+                else:
+                    unchanged_streak = 0
+                prev_count = cur_count
         except Exception as e:
             print(f"⚠️ Scroll warning: {e}")
 
@@ -722,6 +771,13 @@ class LinkedInJobFinder:
             if not job_id or not job_id.isdigit():
                 job_id = f"{default_prefix}_{idx + 1}"
 
+            # 1b. Fast in-memory session deduplication (0ms skip across Sniper Wave 1 -> Wave 2)
+            if job_id.isdigit() and job_id in self.session_seen_job_ids:
+                print(f"⏭️  Skipping session-seen card (fast-path): ID {job_id}")
+                return None
+            if job_id.isdigit():
+                self.session_seen_job_ids.add(job_id)
+
             # 2. Extract title directly from list card DOM element (stripping LinkedIn .sr-only prefix)
             title_elem = card.locator(
                 '.job-card-list__title, .job-card-container__link, a[data-control-name="job_card_title"], .job-card-square__title, .artdeco-entity-lockup__title'
@@ -881,69 +937,6 @@ class LinkedInJobFinder:
             desc_text = f"Position for {title} @ {company} requiring automation experience in Python, Java, API testing, REST Assured, Playwright, and CI/CD."
 
             try:
-                from src.storage.database import ApplicationDatabase
-
-                db = ApplicationDatabase()
-                applied_details = db.get_applied_job_details(job_id, company, title)
-                if applied_details is not None:
-                    if is_card_reposted_or_24h and db.is_reapply_eligible(job_id, company, title, min_days=30.0):
-                        reopened_fresh = True
-                        print(
-                            f"🔄 Re-staging reposted role (>30d since applied on new ID): {title} @ {company} (ID: {job_id})"
-                        )
-                    else:
-                        days_ago = float(applied_details.get("days_since_applied") or 0.0)
-                        if is_card_reposted_or_24h and 2.0 <= days_ago < 30.0:
-                            try:
-                                from src.tailor.referral_generator import (
-                                    ReferralNoteGenerator,
-                                    resolve_direct_ats_portal_url,
-                                )
-
-                                existing_outreach = db.get_referral_outreach(job_id=job_id, limit=5)
-                                if not any(r.get("outreach_type") == "REPOST_FOLLOWUP" for r in existing_outreach):
-                                    direct_portal = resolve_direct_ats_portal_url(company)
-                                    followup_note = ReferralNoteGenerator.generate_repost_followup_note(
-                                        {
-                                            "job_id": job_id,
-                                            "company_name": company,
-                                            "job_title": title,
-                                            "job_url": f"https://www.linkedin.com/jobs/view/{job_id}/",
-                                        },
-                                        days_since_applied=days_ago,
-                                    )
-                                    db.log_referral_outreach(
-                                        job_id=job_id,
-                                        company_name=company,
-                                        job_title=title,
-                                        outreach_type="REPOST_FOLLOWUP",
-                                        note_content=followup_note,
-                                        requisition_id=job_id,
-                                        contact_linkedin_url=direct_portal
-                                        or f"https://www.linkedin.com/jobs/view/{job_id}/",
-                                    )
-                                    print(
-                                        f"📨 Logged REPOST_FOLLOWUP note for reposted applied role ({days_ago:.1f}d ago): {title} @ {company}"
-                                    )
-                            except Exception:
-                                pass
-                        print(f"⏭️  Skipping already-applied job: {title} @ {company} (ID: {job_id})")
-                        return None
-                elif is_card_reposted_or_24h and self._was_seen_more_than_24h_ago(job_id, company, title):
-                    reopened_fresh = True
-            except Exception:
-                pass
-
-            if self.is_duplicate(job_id, company, title, reopened_fresh=reopened_fresh):
-                print(f"⏭️  Skipping duplicate job: {title} @ {company} (ID: {job_id})")
-                return None
-
-            loc = (raw_loc or "Remote").strip()
-
-            # 5. Full Job Description Scraping with Title Click, "See more" expansion, and noise cleaning
-            desc_text = f"Position for {title} @ {company} requiring automation experience in Python, Java, API testing, REST Assured, Playwright, and CI/CD."
-
-            try:
                 if await card.is_visible():
                     # Click title link explicitly for reliable detail pane rendering
                     title_click_elem = card.locator(
@@ -953,7 +946,22 @@ class LinkedInJobFinder:
                         await title_click_elem.click(timeout=2000)
                     else:
                         await card.click(timeout=2000)
-                    await asyncio.sleep(1.2)
+
+                    # Adaptive detail-pane hydration wait (0.35s minimum, up to 0.8s max)
+                    await asyncio.sleep(0.35)
+                    details_elem = page.locator(
+                        "#job-details, .jobs-description__content, .jobs-search__job-details, article.jobs-description__container, [data-testid='expandable-text-box'], [data-sdui-screen*='SemanticJobDetails']"
+                    ).first
+                    title_probe = title[:12].lower().strip()
+                    for _ in range(3):
+                        try:
+                            if await details_elem.count() > 0:
+                                cur_txt = (await details_elem.text_content() or "").lower()
+                                if len(cur_txt) > 120 and (not title_probe or title_probe in cur_txt):
+                                    break
+                        except Exception:
+                            pass
+                        await asyncio.sleep(0.15)
 
                     # Capture top-card metadata (posting age, Reposted flag, applicant volume) if rendered separately
                     top_card_elem = page.locator(
@@ -1007,6 +1015,17 @@ class LinkedInJobFinder:
                         f"⏭️  Skipping stale/saturated LinkedIn job ({fresh_reason}, channel={resolved_channel}): {title} @ {company} (ID: {job_id})"
                     )
                     return None
+
+            # 5c. Pre-Tailoring Experience Ceiling & Jurisdiction Gate (<1ms before calling Gemini)
+            is_elig, elig_reason = self._get_pre_filter().evaluate_pre_tailoring_eligibility(
+                title=title, location=loc, requirements=desc_text
+            )
+            if not is_elig:
+                print(
+                    f"⏭️  Skipping ineligible LinkedIn job pre-tailoring ({elig_reason}): {title} @ {company} (ID: {job_id})"
+                )
+                self.mark_job_processed(job_id, company, title, status="FILTERED_OUT")
+                return None
 
             # 6. Detect Application Type (EASY_APPLY vs LINKEDIN_EXTERNAL)
             application_type = "LINKEDIN_EXTERNAL"
@@ -1196,8 +1215,8 @@ class LinkedInJobFinder:
                                 page = getattr(self, "_active_page", None) or page
                                 continue
                             page = getattr(self, "_active_page", None) or page
-                            await asyncio.sleep(2.5)
-                            await self.scroll_results_pane(page, scrolls=3)
+                            await self._wait_for_job_cards(page, max_wait_sec=7.5)
+                            await self.scroll_results_pane(page, scrolls=2)
                             s_cards = await page.locator(
                                 ".job-card-container, .job-card-list, .jobs-search-results-list__list-item, div[data-job-id], div[role='button'][componentkey^='job-card-component-ref-']"
                             ).all()

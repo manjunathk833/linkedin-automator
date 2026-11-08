@@ -38,6 +38,7 @@ class JobSearchPipelineRunner:
         self,
         source: str = "all",
         headless: bool | None = None,
+        skip_static_ats: bool = False,
     ) -> list[dict[str, Any]]:
         """
         Stage 2: Runs unified multi-source discovery (Direct Keyless ATS + LinkedIn Multi-Channel + Social Posts)
@@ -67,9 +68,13 @@ class JobSearchPipelineRunner:
                 coordinator = ATSDiscoveryCoordinator(use_ai=self.use_ai)
                 ats_max_age = float(discovery_cfg.get("ats_max_age_days", 3.0))
                 listings = []
-                if target_source in ["all", "ats", "trio"]:
+                if target_source in ["all", "ats", "trio"] and not skip_static_ats:
                     ats_listings = await coordinator.ingest_all_sources(filter_sdet=True, max_age_days=ats_max_age)
                     listings.extend(ats_listings)
+                elif skip_static_ats:
+                    print(
+                        "⚡ Skipping redundant local 1,119-board ATS poll (Cloud CI origin/ci-job-drops synced <6h ago)."
+                    )
                 if target_source in ["all", "ats", "trio", "portals"]:
                     portal_listings = await coordinator.ingest_direct_portals(filter_sdet=True)
                     listings.extend(portal_listings)

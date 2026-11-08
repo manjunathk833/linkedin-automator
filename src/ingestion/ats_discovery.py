@@ -46,7 +46,7 @@ class ATSDiscoveryCoordinator:
         self,
         config_path: str = DEFAULT_CONFIG_PATH,
         queue_dir: str = DEFAULT_QUEUE_DIR,
-        max_concurrency: int = 40,
+        max_concurrency: int = 60,
         db_file: str = DEFAULT_DB_FILE,
         use_ai: bool = True,
     ):
@@ -282,7 +282,7 @@ class ATSDiscoveryCoordinator:
                     coro = self.instahyre.fetch_board_jobs(company.name, company.slug)
                 else:
                     return []
-                listings = await asyncio.wait_for(coro, timeout=20.0)
+                listings = await asyncio.wait_for(coro, timeout=10.0)
             except asyncio.TimeoutError:
                 return []
             except Exception:
@@ -469,6 +469,22 @@ class ATSDiscoveryCoordinator:
         proc_ids = proc_snapshot.get("job_ids", {})
         proc_hashes = proc_snapshot.get("composite_hashes", {})
 
+        pre_filter = None
+        try:
+            from src.filter.job_filter import LinkedInJobFilter
+
+            pre_filter = LinkedInJobFilter(db_file=self.db_file)
+        except Exception:
+            pre_filter = None
+
+        app_db = None
+        try:
+            from src.storage.database import ApplicationDatabase
+
+            app_db = ApplicationDatabase()
+        except Exception:
+            app_db = None
+
         for item in listings:
             c_hash = self.generate_composite_hash(item.company_name, item.job_title)
             was_previously_seen = item.id in proc_ids or c_hash in proc_hashes
@@ -481,6 +497,29 @@ class ATSDiscoveryCoordinator:
             requirements_text = self._extract_requirements_text(
                 item.job_description_clean or item.job_description_raw or ""
             )
+
+            # Fast (<1ms) Pre-Tailoring Experience Ceiling & Jurisdiction Check
+            if pre_filter is not None:
+                is_elig, elig_reason = pre_filter.evaluate_pre_tailoring_eligibility(
+                    title=item.job_title,
+                    location=item.location or "",
+                    requirements=requirements_text,
+                    description=item.job_description_clean or "",
+                )
+                if not is_elig:
+                    print(
+                        f"⏭️  Skipping ineligible ATS job pre-tailoring ({elig_reason}): {item.job_title} @ {item.company_name} (ID: {item.id})"
+                    )
+                    self.mark_job_processed(
+                        item.id,
+                        item.company_name,
+                        item.job_title,
+                        status="FILTERED_OUT",
+                        posted_at=item.posted_at.isoformat() if item.posted_at else None,
+                    )
+                    skipped_count += 1
+                    continue
+
             payload = {
                 "job_id": item.id,
                 "source": item.source,
@@ -539,22 +578,20 @@ class ATSDiscoveryCoordinator:
             )
 
             # Requisition State Engine: Sync to SQLite with SHA-256 change detection
-            try:
-                from src.storage.database import ApplicationDatabase
-
-                db = ApplicationDatabase()
-                db.sync_requisition(
-                    requisition_id=item.id,
-                    company_slug=item.company_name.lower().replace(" ", "_"),
-                    ats_provider=item.source,
-                    job_title=item.job_title,
-                    location=item.location,
-                    job_url=item.url,
-                    description_clean=item.job_description_clean,
-                    is_dream_org=item.is_dream_org,
-                )
-            except Exception:
-                pass
+            if app_db is not None:
+                try:
+                    app_db.sync_requisition(
+                        requisition_id=item.id,
+                        company_slug=item.company_name.lower().replace(" ", "_"),
+                        ats_provider=item.source,
+                        job_title=item.job_title,
+                        location=item.location,
+                        job_url=item.url,
+                        description_clean=item.job_description_clean,
+                        is_dream_org=item.is_dream_org,
+                    )
+                except Exception:
+                    pass
 
             saved_paths.append(filepath)
 
