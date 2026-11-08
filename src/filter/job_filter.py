@@ -71,6 +71,31 @@ class LinkedInJobFilter:
                     pass
         return years
 
+    def evaluate_pre_tailoring_eligibility(
+        self, title: str, location: str, requirements: str, description: str = ""
+    ) -> tuple[bool, str | None]:
+        """
+        Fast (<1ms) deterministic pre-tailoring eligibility check so we never burn 12-20s of Gemini API
+        calls tailoring a job that requires >10 YOE or has a US/UK citizen/security-clearance lock.
+        """
+        years_found = self.parse_required_years(requirements or "")
+        if years_found:
+            req_max = max(years_found)
+            if req_max > self.max_exp_years:
+                return False, f"Requires {req_max}+ years exp (exceeds max threshold of {self.max_exp_years} years)"
+            if req_max < self.min_exp_years:
+                return False, f"Requires {req_max} years exp (below min threshold of {self.min_exp_years} years)"
+
+        from src.ingestion.filters import evaluate_global_remote_signal, has_jurisdiction_restriction
+
+        full_text = f"{requirements or ''} {description or ''}".strip()
+        if full_text:
+            remote_eval = evaluate_global_remote_signal(title=title, location=location, description=full_text)
+            if not remote_eval.get("is_usd_eor_remote") and has_jurisdiction_restriction(full_text):
+                return False, "Ineligible due to jurisdiction / US-citizen / security clearance restriction"
+
+        return True, None
+
     def update_processed_jobs_status(self, status_map: dict[str, str]):
         """Updates status field for job_ids in data/processed_jobs.json."""
         if not os.path.exists(self.db_file):

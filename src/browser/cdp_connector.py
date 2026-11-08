@@ -16,6 +16,9 @@ DEFAULT_PROFILE_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".browser_data"
 )
 
+# Retain live Browser references so Python's GC never disconnects shared CDP sessions mid-run
+_ACTIVE_CDP_BROWSERS: list = []
+
 
 async def connect_cdp(playwright, cdp_url: str = "http://localhost:9222") -> tuple:
     """
@@ -47,7 +50,9 @@ async def connect_cdp(playwright, cdp_url: str = "http://localhost:9222") -> tup
     print(f"   WebSocket: {ws_url[:60]}...")
 
     browser = await playwright.chromium.connect_over_cdp(ws_url)
+    _ACTIVE_CDP_BROWSERS.append(browser)
     context = browser.contexts[0] if browser.contexts else await browser.new_context()
+    context._browser_ref = browser
     page = context.pages[0] if context.pages else await context.new_page()
     return browser, page
 
@@ -100,8 +105,10 @@ async def launch_persistent_browser(
         if is_cdp_port_open(9222) and os.path.abspath(profile_dir) == os.path.abspath(DEFAULT_PROFILE_DIR):
             ensure_cdp_page_target(9222)
             browser = await playwright.chromium.connect_over_cdp("http://127.0.0.1:9222", timeout=10000)
+            _ACTIVE_CDP_BROWSERS.append(browser)
             context = browser.contexts[0] if browser.contexts else await browser.new_context()
             context._is_shared_cdp = True
+            context._browser_ref = browser
             state_file = os.path.join(profile_dir, "storage_state.json")
             if os.path.exists(state_file):
                 try:

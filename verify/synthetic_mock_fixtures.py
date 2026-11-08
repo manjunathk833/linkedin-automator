@@ -338,6 +338,13 @@ def get_mock_master_knowledge_bank() -> dict:
                 "metric": "60% delivery time reduction via STLC automation",
             },
             {
+                "domain": "PNR & SSR Microservices Validation",
+                "company": "Value Labs",
+                "star_achievement": "PNR Linking & SSR Automation: Automated over 300+ API test cases for airline Special Service Request workflows using REST Assured, Java, and BDD integrated with Harness pipelines.",
+                "tools": ["REST Assured", "Java", "BDD", "Harness"],
+                "metric": "300+ API test cases automated across airline SSR workflows",
+            },
+            {
                 "domain": "Ekam Microservices Framework",
                 "company": "Dunzo",
                 "star_achievement": "Automated end-to-end API flows and DB validations using the Ekam Java Framework for 4 key features, achieving 60% test coverage in a microservices-based Merchant Service suite.",
@@ -357,6 +364,13 @@ def get_mock_master_knowledge_bank() -> dict:
                 "star_achievement": "Streamlined QA release sign-offs by collaborating in Agile sprints, performing rigorous root-cause analysis, and logging actionable defects in Jira.",
                 "tools": ["Jira", "Agile", "Root Cause Analysis"],
                 "metric": "100% on-time sprint sign-offs with zero production blocker escapes",
+            },
+            {
+                "domain": "Merchant Service Kubernetes Validation",
+                "company": "Dunzo",
+                "star_achievement": "Validated distributed Merchant Service microservices on Kubernetes and PostgreSQL using Java and Jenkins pipelines.",
+                "tools": ["Java", "Kubernetes", "PostgreSQL", "Jenkins"],
+                "metric": "High-reliability release validation across Merchant Service microservices",
             },
             {
                 "domain": "Mobile & UI Automation Framework",

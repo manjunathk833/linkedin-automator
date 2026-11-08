@@ -458,10 +458,19 @@ def extract_linkedin_applicant_metrics(
     """
     header_text = (text or "")[:1000]
     is_reposted = bool(re.search(r"\breposted\b", header_text, re.IGNORECASE))
-    is_easy_apply = "EASY_APPLY" in (application_type or "").upper()
+    if "EASY_APPLY" in (application_type or "").upper():
+        is_easy_apply = True
+    elif "Responses managed off LinkedIn" in header_text:
+        is_easy_apply = False
+    elif "Easy Apply" in header_text:
+        is_easy_apply = True
+    else:
+        is_easy_apply = False
 
-    # 1. Check Over 100 saturation
-    if re.search(r"\bover\s+100\s+(?:people\s+clicked\s+apply|applicants)\b", header_text, re.IGNORECASE):
+    # 1. Check Over 100 saturation (note: SDUI text_content() often concatenates adjacent spans
+    # like 'Over 100 people clicked applyPromoted' or 'Over 100 applicantsNo response', so do not
+    # require a trailing word boundary \b after 'apply'/'applicants').
+    if re.search(r"\bover\s+100\s+(?:people\s+clicked\s+apply|applicants?)", header_text, re.IGNORECASE):
         est_completed = 100 if is_easy_apply else 25
         return {
             "applicant_count": 100,
@@ -474,26 +483,18 @@ def extract_linkedin_applicant_metrics(
             "competition_badge": "🔥 100+ EASY APPLY" if is_easy_apply else "🔗 100+ CLICKS (~25 COMPLETED)",
         }
 
-    # 2. Check 'Be among the first 25 applicants' or 'Under 25 applicants'
-    if re.search(r"\b(?:first\s+25\s+applicants|under\s+25\s+applicants)\b", header_text, re.IGNORECASE):
-        return {
-            "applicant_count": 12,
-            "applicant_bucket": "<25",
-            "is_early_applicant": True,
-            "is_saturated": False,
-            "is_reposted": is_reposted,
-            "estimated_completed_applies": 12 if is_easy_apply else 4,
-            "priority_boost": 25,
-            "competition_badge": "🎯 FIRST 25 APPLICANTS",
-        }
-
-    # 3. Check explicit numeric count: '14 people clicked apply' or '8 applicants'
+    # 2. Check explicit numeric count first ('0 applicantsCompany', '4 people clicked applyPromoted',
+    # '37 people clicked applyResponses') so exact right-pane counts override generic left-card badges.
     num_match = re.search(
-        r"\b(\d{1,3})\s+(?:people\s+clicked\s+apply|applicants?)\b",
+        r"(?<!\d)(\d{1,3})\s+(?:people\s+clicked\s+apply|applicants?)",
         header_text,
         re.IGNORECASE,
     )
-    if num_match:
+    if num_match and not re.search(
+        r"\b(?:first|under)\s+25\s+applicants",
+        header_text[max(0, num_match.start() - 12) : num_match.end() + 5],
+        re.IGNORECASE,
+    ):
         cnt = int(num_match.group(1))
         if cnt < 10:
             bucket = "<10"
@@ -530,6 +531,23 @@ def extract_linkedin_applicant_metrics(
             "estimated_completed_applies": est_completed,
             "priority_boost": boost,
             "competition_badge": badge,
+        }
+
+    # 3. Check 'Be among the first 25 applicants', 'Under 25 applicants', or SDUI 'Be an early applicant'
+    if re.search(
+        r"\b(?:first\s+25\s+applicants|under\s+25\s+applicants|be\s+an\s+early\s+applicant)",
+        header_text,
+        re.IGNORECASE,
+    ):
+        return {
+            "applicant_count": 12,
+            "applicant_bucket": "<25",
+            "is_early_applicant": True,
+            "is_saturated": False,
+            "is_reposted": is_reposted,
+            "estimated_completed_applies": 12 if is_easy_apply else 4,
+            "priority_boost": 25,
+            "competition_badge": "🎯 FIRST 25 APPLICANTS",
         }
 
     return {

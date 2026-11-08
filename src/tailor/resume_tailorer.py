@@ -110,6 +110,31 @@ class ResumeTailorer:
         any_ai_applied = False
         total_custom_bullets = 0
 
+        # Pre-compute eligible companies that have vault variants to choose from/polish
+        eligible_company_vaults: dict[str, list[dict]] = {}
+        if self.use_ai and self.llm_provider:
+            for exp in tailored_data.get("experience_history", []):
+                comp_raw = exp.get("company", "").strip()
+                comp_norm = "Value Labs" if "value" in comp_raw.lower() else comp_raw
+                comp_vault = vault_by_company.get(comp_norm, [])
+                canonical_bullets = exp.get("achievements", [])
+                if len(comp_vault) > len(canonical_bullets):
+                    eligible_company_vaults[comp_norm] = comp_vault
+
+        # Single-pass multi-company AI tailoring when 2+ company sections are eligible
+        batch_ai_bullets: dict[str, list[str]] = {}
+        if len(eligible_company_vaults) >= 2 and self.llm_provider:
+            try:
+                raw_batch = self.llm_provider.generate_multi_company_tailored_bullets(
+                    company_vaults=eligible_company_vaults,
+                    job_description=job_reqs,
+                    profile=self.master_profile,
+                )
+                if isinstance(raw_batch, dict) and any(isinstance(v, list) for v in raw_batch.values()):
+                    batch_ai_bullets = raw_batch
+            except Exception as e:
+                print(f"⚠️ Single-pass multi-company AI tailoring skipped (using fallback): {e}")
+
         # Tailor each experience block strictly within its own company scope
         for exp in tailored_data.get("experience_history", []):
             comp_raw = exp.get("company", "").strip()
@@ -121,12 +146,17 @@ class ResumeTailorer:
             # 1. AI Tailoring: Only if this company has vault variants to choose from/polish
             if self.use_ai and self.llm_provider and len(comp_vault) > len(canonical_bullets):
                 try:
-                    ai_bullets = self.llm_provider.generate_company_tailored_bullets(
-                        company_name=comp_norm,
-                        job_description=job_reqs,
-                        profile=self.master_profile,
-                        company_vault=comp_vault,
-                    )
+                    ai_bullets = batch_ai_bullets.get(comp_norm)
+                    if not isinstance(ai_bullets, list):
+                        if len(eligible_company_vaults) >= 2 and batch_ai_bullets:
+                            ai_bullets = []
+                        else:
+                            ai_bullets = self.llm_provider.generate_company_tailored_bullets(
+                                company_name=comp_norm,
+                                job_description=job_reqs,
+                                profile=self.master_profile,
+                                company_vault=comp_vault,
+                            )
                     # Validate against both Tool Fabrication AND Cross-Company Contamination
                     clean_ai = self.fabrication_detector.validate_company_bullets(comp_norm, ai_bullets)
                     if clean_ai and len(clean_ai) >= 2:

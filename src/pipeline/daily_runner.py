@@ -236,7 +236,11 @@ class DailyPipelineRunner:
                 except Exception as ci_err:
                     print(f"⚠️ Cloud CI sync non-blocking warning: {ci_err}")
 
-                await self.pipeline_runner.run_search_stage(source="all", headless=headless)
+                ci_fresh = bool(ci_res.get("ci_branch_fresh", False))
+                if ci_fresh:
+                    await self.pipeline_runner.run_search_stage(source="all", headless=headless, skip_static_ats=True)
+                else:
+                    await self.pipeline_runner.run_search_stage(source="all", headless=headless)
                 self.pipeline_runner.run_filter_stage()
                 staged_jobs = self.get_staged_jobs()
                 dream_orgs = [j for j in staged_jobs if j.get("is_dream_org")]

@@ -7,6 +7,7 @@ so every `<24h` fresh drop appears automatically in the Command Center UI (`http
 
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import subprocess
@@ -75,6 +76,21 @@ class CISyncIngestor:
             pass
         return False
 
+    @staticmethod
+    def _is_bundle_fresh(bundle: dict[str, Any], max_age_hours: float = 6.0) -> bool:
+        """Returns True if the CI drops bundle was generated within max_age_hours."""
+        raw_gen = str(bundle.get("generated_at") or "").strip()
+        if not raw_gen:
+            return False
+        try:
+            dt = datetime.datetime.fromisoformat(raw_gen.removesuffix("Z"))
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+            age_h = (datetime.datetime.utcnow() - dt).total_seconds() / 3600.0
+            return -1.0 <= age_h <= max_age_hours
+        except Exception:
+            return False
+
     def sync_latest_drops(self, fetch_remote: bool = False) -> dict[str, Any]:
         """
         Reads `data/ci_inbox/latest_ci_drops.json`, deduplicates against SQLite and `pending_queue/`,
@@ -108,10 +124,12 @@ class CISyncIngestor:
             }
 
         drops = bundle.get("drops", [])
+        ci_branch_fresh = self._is_bundle_fresh(bundle, max_age_hours=6.0)
         if not isinstance(drops, list) or not drops:
             return {
                 "status": "ok",
                 "pulled_remote": pulled_remote,
+                "ci_branch_fresh": ci_branch_fresh,
                 "ingested_count": 0,
                 "skipped_duplicates": 0,
                 "ingested_job_ids": [],
@@ -125,6 +143,14 @@ class CISyncIngestor:
             tailorer = ResumeTailorer(use_ai=self.use_ai)
         except Exception:
             tailorer = None
+
+        pre_filter = None
+        try:
+            from src.filter.job_filter import LinkedInJobFilter
+
+            pre_filter = LinkedInJobFilter(db_file=self.processed_db_file)
+        except Exception:
+            pre_filter = None
 
         db = ApplicationDatabase(db_path=self.sqlite_db_path)
 
@@ -156,6 +182,24 @@ class CISyncIngestor:
             ):
                 skipped_dups += 1
                 continue
+
+            if pre_filter is not None:
+                is_elig, _reason = pre_filter.evaluate_pre_tailoring_eligibility(
+                    title=title,
+                    location=str(jd.get("location") or ""),
+                    requirements=str(jd.get("requirements") or jd.get("description") or ""),
+                    description=str(jd.get("description") or ""),
+                )
+                if not is_elig:
+                    self.coordinator.mark_job_processed(
+                        job_id,
+                        company,
+                        title,
+                        status="FILTERED_OUT",
+                        posted_at=str(posted_at_str) if posted_at_str else None,
+                    )
+                    skipped_dups += 1
+                    continue
 
             payload = dict(raw_drop)
             payload["ci_onboarded"] = True
@@ -199,6 +243,7 @@ class CISyncIngestor:
         return {
             "status": "ok",
             "pulled_remote": pulled_remote,
+            "ci_branch_fresh": ci_branch_fresh,
             "ingested_count": len(ingested_ids),
             "skipped_duplicates": skipped_dups,
             "ingested_job_ids": ingested_ids,

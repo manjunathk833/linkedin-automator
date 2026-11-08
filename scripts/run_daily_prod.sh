@@ -85,7 +85,7 @@ if command -v caffeinate >/dev/null 2>&1; then
 fi
 
 CURRENT_HOUR="$(date +%H)"
-if [[ $((10#${CURRENT_HOUR})) -ge 11 ]]; then
+if [[ $((10#${CURRENT_HOUR})) -ge 10 ]]; then
     echo "Executing Intraday Fast Sync, LinkedIn Sniper (<3h & <24h) & Naukri Resdex Refresh (Hour=${CURRENT_HOUR})..." >> "${RUN_LOG}"
     ${CMD_PREFIX} "${VENV_PYTHON}" main.py sync-ci --fetch-remote >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Afternoon CI sync exited with code $?" >> "${RUN_LOG}"
