@@ -40,15 +40,24 @@ def test_single_pass_multi_company_tailoring():
     assert "companies" in schema.get("properties", {}), "Schema must define 'companies' list"
 
     tailorer = ResumeTailorer(use_ai=True)
+    # Ensure both local and CI synthetic fixtures have > len(canonical_bullets) vault variants
+    existing_vault = list(tailorer.knowledge_bank.get("master_achievements_vault", []))
+    for i in range(8):
+        existing_vault.append(
+            {"company": "Value Labs", "star_achievement": f"VL variant {i}", "tools": ["REST Assured", "Java"]}
+        )
+        existing_vault.append({"company": "Dunzo", "star_achievement": f"DZ variant {i}", "tools": ["Java", "Ekam"]})
+    tailorer.knowledge_bank = {"master_achievements_vault": existing_vault}
+
     mock_llm = MagicMock()
     mock_llm.generate_multi_company_tailored_bullets.return_value = {
         "Value Labs": [
             "Mosaic Order Automation Framework [REST Assured · Selenium · BDD · Java]: Built 2000+ test cases cutting regression time by 90%.",
-            "PNR Linking & SSR [REST Assured · ReadyAPI · BDD · Java]: Architected API automation suites across airline microservices.",
+            "Observability & Defect Detection [Kibana · Azure DevOps · Java]: Automated daily error log analysis across 30+ microservices.",
         ],
         "Dunzo": [
             "Ekam Microservices Framework [Java · Ekam · PostgreSQL]: Automated backend merchant and order microservices.",
-            "Cloud Order Fulfillment Validation [Java · Docker · Kubernetes · GCP]: Validated event-driven order fulfillment flows.",
+            "Continuous Regression Suites [Postman · Jenkins · Jira]: Maintained daily regression validation for order and payment flows.",
         ],
     }
     tailorer.llm_provider = mock_llm
