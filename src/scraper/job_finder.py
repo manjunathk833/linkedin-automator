@@ -1062,20 +1062,28 @@ class LinkedInJobFinder:
             except Exception:
                 pass
 
-            from src.ingestion.filters import extract_linkedin_applicant_metrics
+            from src.ingestion.filters import evaluate_global_remote_signal, extract_linkedin_applicant_metrics
 
             applicant_metrics = extract_linkedin_applicant_metrics(raw_meta_and_desc, application_type=application_type)
+            remote_sig = evaluate_global_remote_signal(
+                title=title,
+                location=loc,
+                description=desc_text,
+            )
+            is_usd_remote = bool(remote_sig.get("is_usd_eor_remote"))
+            track_name = "TRACK_4_GLOBAL_REMOTE" if is_usd_remote else "TRACK_2_LINKEDIN"
 
             job_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
             resolved_channel = channel or getattr(self, "_active_channel", "search") or "search"
             raw_job = {
                 "job_id": job_id,
                 "source": "linkedin",
-                "discovery_track": "TRACK_2_LINKEDIN",
+                "discovery_track": track_name,
                 "discovery_channel": resolved_channel,
                 "url": job_url,
                 "job_url": job_url,
                 "is_dream_org": is_dream,
+                "is_usd_eor_remote": is_usd_remote,
                 "application_type": application_type,
                 "reopened_fresh": reopened_fresh,
                 "applicant_metrics": applicant_metrics,
@@ -1086,6 +1094,7 @@ class LinkedInJobFinder:
                     "job_url": job_url,
                     "external_url": external_url,
                     "is_dream_org": is_dream,
+                    "is_usd_eor_remote": is_usd_remote,
                     "reopened_fresh": reopened_fresh,
                     "applicant_metrics": applicant_metrics,
                     "requirements": desc_text[:3000],

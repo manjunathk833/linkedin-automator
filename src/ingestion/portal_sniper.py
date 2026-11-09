@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 
 from src.ingestion.ats_discovery import ATSDiscoveryCoordinator
+from src.ingestion.filters import evaluate_global_remote_signal
+from src.ingestion.global_remote_providers import GLOBAL_REMOTE_SOURCES
 from src.storage.models import JobListing
 from src.tailor.referral_generator import InterviewRouter
 
@@ -182,11 +184,25 @@ class PortalSniperEngine:
             requirements_text = ATSDiscoveryCoordinator._extract_requirements_text(
                 item.job_description_clean or item.job_description_raw or ""
             )
+            src_low = (item.source or "direct_ats").lower().strip()
+            remote_sig = evaluate_global_remote_signal(
+                title=item.job_title,
+                location=item.location,
+                description=item.job_description_clean or item.job_description_raw or "",
+                compensation_str=item.salary_range or "",
+            )
+            is_track4_remote = src_low in GLOBAL_REMOTE_SOURCES or bool(remote_sig.get("is_usd_eor_remote"))
+            track_name = "TRACK_4_GLOBAL_REMOTE" if is_track4_remote else "PORTAL_SNIPER"
+            app_type = f"GLOBAL_{src_low.upper()}" if src_low in GLOBAL_REMOTE_SOURCES else f"ATS_{item.source.upper()}"
+
             payload: dict[str, Any] = {
                 "job_id": item.id,
                 "source": item.source,
-                "application_type": f"ATS_{item.source.upper()}",
+                "discovery_track": track_name,
+                "discovery_channel": src_low,
+                "application_type": app_type,
                 "is_dream_org": item.is_dream_org,
+                "is_usd_eor_remote": is_track4_remote,
                 "posted_at": item.posted_at.isoformat() if item.posted_at else now_iso,
                 "age_hours": age_hours if age_hours is not None else 0.5,
                 "discovered_at": now_iso,
@@ -204,6 +220,7 @@ class PortalSniperEngine:
                     "is_remote": item.is_remote,
                     "salary_range": item.salary_range,
                     "is_dream_org": item.is_dream_org,
+                    "is_usd_eor_remote": is_track4_remote,
                     "posted_at": item.posted_at.isoformat() if item.posted_at else now_iso,
                     "reopened_fresh": reopened_fresh,
                 },

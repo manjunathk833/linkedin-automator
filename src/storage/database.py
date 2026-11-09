@@ -494,7 +494,7 @@ class ApplicationDatabase:
         if hours_val is None:
             ch = str(item.get("discovery_channel") or "").lower()
             tr = str(item.get("discovery_track") or "").upper()
-            if ch in ("sniper_fresh_24h", "portal_sniper") or tr == "PORTAL_SNIPER":
+            if ch in ("sniper_fresh_24h", "portal_sniper") or tr in ("PORTAL_SNIPER", "TRACK_4_GLOBAL_REMOTE"):
                 hours_val = 4.5
             elif tr == "TRACK_1_DIRECT_ATS":
                 hours_val = 14.0
@@ -605,7 +605,7 @@ class ApplicationDatabase:
         if hours_val is None:
             ch = str(item.get("discovery_channel") or "").lower()
             tr = str(item.get("discovery_track") or "").upper()
-            if ch in ("sniper_fresh_24h", "portal_sniper") or tr == "PORTAL_SNIPER":
+            if ch in ("sniper_fresh_24h", "portal_sniper") or tr in ("PORTAL_SNIPER", "TRACK_4_GLOBAL_REMOTE"):
                 hours_val = 4.5
             elif tr == "TRACK_1_DIRECT_ATS":
                 hours_val = 14.0
@@ -861,6 +861,8 @@ class ApplicationDatabase:
             "PORTAL_SNIPER", {}
         ).get("applied", 0)
         direct_ats_pct = round(direct_ats_cnt / total_apps * 100.0, 1) if total_apps > 0 else 0.0
+        global_remote_cnt = by_track.get("TRACK_4_GLOBAL_REMOTE", {}).get("applied", 0)
+        global_remote_pct = round(global_remote_cnt / total_apps * 100.0, 1) if total_apps > 0 else 0.0
 
         top_3_topics = [t["topic"] for t in sorted_topics[:3]] or ["Playwright", "Java", "API / REST Assured"]
         best_track = (
@@ -914,6 +916,8 @@ class ApplicationDatabase:
                     "ai_role_pct": ai_qa_pct,
                     "direct_ats_count": direct_ats_cnt,
                     "direct_ats_pct": direct_ats_pct,
+                    "global_remote_count": global_remote_cnt,
+                    "global_remote_pct": global_remote_pct,
                 },
                 "inferences": inferences,
             },

@@ -18,3 +18,5 @@ trigger: always_on
    EVERY plan that modifies application logic, parsers, classifiers, databases, APIs, or UI components MUST explicitly include a dedicated phase:
    *"Phase N: Mandatory Post-Implementation Dry Run & System Flow Verification"*.
    Passing unit or regression tests alone is strictly insufficient. The plan MUST specify how authentic live execution, real data persistence, and UI rendering (on `http://localhost:8000` or browser) will be verified BEFORE declaring the task complete or opening/updating a Pull Request. Any plan that omits an explicit post-implementation dry run phase is an immediate protocol violation.
+7. **Mandatory Pre-Plan Live Reconnaissance Dry Run (Zero Schema Hallucination):**
+   Whenever a task involves external APIs, job feeds, ATS providers, browser DOM selectors, or search filters, you MUST run a read-only live API/browser probe BEFORE finalizing the implementation plan. Ground every proposed collector, filter, and parser in the exact JSON keys, HTTP status codes, query parameters, and DOM structures observed during the live recon dry run so the subsequent implementation succeeds in one shot without bugs.

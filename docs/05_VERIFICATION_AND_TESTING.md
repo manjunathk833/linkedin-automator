@@ -9,7 +9,7 @@ Per Workspace Rule #2 and Rule #8, every browser interaction, DOM selector, LLM 
 Execute the standardized test suite via `main.py`:
 
 ```bash
-# Run Tier 1 Core Regression Suite (62 self-contained tests in ~60s — Mandatory before every commit/PR):
+# Run Tier 1 Core Regression Suite (73 self-contained tests in ~80s — Mandatory before every commit/PR):
 ./venv/bin/python main.py test --tier core
 
 # Run Tier 2 Playwright Autofill Simulation Suite (18 vendor form simulation gates):
@@ -63,3 +63,9 @@ Execute the standardized test suite via `main.py`:
 | **104** | `verify/104_test_search_sort_and_company_discovery.py` | Configurable relevance vs. date sorting (`sort_by: "relevance"`) and Channel 5 Company Jobs Tab scraper (`scrape_company_jobs`) | **PASSED** |
 | **105** | `verify/105_test_interview_engine_and_batch_autofill.py` | Zero-contamination country/dial-code combobox scorer (`TERRITORY_EXCLUSIONS`, `+91`), `UniversalBatchFormFiller` Phase A & Phase B closed-loop learning, 60-Day Notice Lock, ATS publish timestamps, 3-Tier `InterviewRouter`, and Low-Key Referral Scorer | **PASSED** |
 | **106** | `verify/106_test_portal_sniper_and_ci_auto_ingest.py` | Extended Collectors (`SmartRecruiters`, `Rippling`, `Workable`, `Recruitee`), `OrgResearcher` 107-org watchlist audit, `PortalSniperEngine` `<24h` delta & seen-ledger filter, and `CISyncIngestor` + `/api/ci-sync` onboarding | **PASSED** |
+| **107** | `verify/107_test_mark_applied_force_override.py` | Manual human application override (`force=true`), `[object Object]` UI error guard, and 59-org remote onboarding audit | **PASSED** |
+| **110** | `verify/110_test_master_resume_integrity.py` | `Manjunath_HK_Master_Resume.json` schema, ATS ligature/arrow invariants, and deterministic `master_sync` parity | **PASSED** |
+| **111** | `verify/111_test_skill_graduation_and_evidence_gate.py` | Evidence-gated tool boundary isolation (`tool_evidence`, `learning_roadmap`, `disallowed_hallucinations`) & automatic graduation | **PASSED** |
+| **112** | `verify/112_test_reopened_reposted_and_early_sniper.py` | Re-opened `<24h` requisition re-staging, `TIER_0_REPOST_FOLLOWUP`, `<25 applicants` priority boost, and pre-click location gate | **PASSED** |
+| **113** | `verify/113_test_pipeline_speed_optimizations.py` | Single-pass multi-company Gemini tailoring (`50%` call reduction), pre-tailoring eligibility gate, and `<6h` Cloud-CI `skip_static_ats` | **PASSED** |
+| **114** | `verify/114_test_global_usd_eur_gbp_remote_sniper.py` | `TRACK_4_GLOBAL_REMOTE` (`🌍 Track 4: Global Remote USD/GBP/EUR`), `GlobalRemoteAggregatorCollector` (`Mercor`, `Jobicy`, `Arbeitnow`, `RemoteOK`, `Himalayas`, `WWR`, `WorkingNomads`, `Remotive`), pre-click Worldwide/APAC location priority, `InterviewRouter` `+25` priority boost, and Tab 3 Track 4 analytics | **PASSED** |
