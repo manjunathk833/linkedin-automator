@@ -41,7 +41,15 @@ POSITIVE_SDET_REGEX = re.compile(
     r"ai qa|"
     r"ai test|"
     r"llm evaluation|"
+    r"code evaluation|"
+    r"(?:software|sdet|qa|test|code|swe|engineer|developer|benchmark)[^\n]{0,40}\bai evaluation|"
+    r"ai evaluation\s*(?:&|and)?\s*(?:benchmarks?|engineer)|"
     r"evaluation engineer|"
+    r"evaluations?\s+engineer|"
+    r"engineer,\s*evaluations?\b|"
+    r"swe-bench|"
+    r"test systems|"
+    r"automation builders?|"
     r"ai quality|"
     r"genai qa|"
     r"ml quality|"
@@ -104,6 +112,12 @@ NEGATIVE_TITLE_REGEX = re.compile(
     r"data annotator|"
     r"ai trainer|"
     r"manual tester|"
+    r"audiobook qa|"
+    r"design quality|"
+    r"electrical\s+test|"
+    r"entry[- ]level|"
+    r"quality\s+assurance\s+raters?|"
+    r"qa\s+raters?|"
     r"plc|"
     r"fpga|"
     r"dft|"
@@ -167,6 +181,15 @@ FOREIGN_LOCATION_REGEX = re.compile(
     r"sydney|"
     r"melbourne|"
     r"singapore|"
+    r"hong kong|"
+    r"taiwan|"
+    r"south korea|"
+    r"seoul|"
+    r"taipei|"
+    r"jakarta|"
+    r"bangkok|"
+    r"manila|"
+    r"kuala lumpur|"
     r"netherlands|"
     r"amsterdam|"
     r"france|"
@@ -218,8 +241,13 @@ GLOBAL_REMOTE_REGEX = re.compile(
     r"\b("
     r"worldwide|"
     r"anywhere|"
+    r"anywhere in the world|"
     r"global remote|"
+    r"global|"
+    r"apac|"
     r"work from anywhere|"
+    r"home[\s-]+based\s*-\s*(?:worldwide|apac|global|india)|"
+    r"remote\s*[-–(]\s*(?:worldwide|global|apac|anywhere|india)|"
     r"remote - global|"
     r"remote - apac|"
     r"remote - emea/apac|"
@@ -268,8 +296,8 @@ FOREIGN_CURRENCY_REGEX = re.compile(
     r"\$\s?\d{2,3}(?:,\d{3})+(?:\s?-\s?\$\s?\d{2,3}(?:,\d{3})+)?|"
     r"\$\d{2,3}[kK]\s?-\s?\$\d{2,3}[kK]|"
     r"\bUSD\s?\d{2,3}[kK]?|"
-    r"\b(?:EUR|€|GBP|£)\s?\d{2,3}[kK,]+|"
-    r"\$\d{2,3}\s?/\s?(?:hr|hour)"
+    r"(?:EUR|€|GBP|£)\s?\d{2,3}(?:[,\d]{3}|[kK])+|"
+    r"\$\s?\d{2,3}(?:\s?-\s?\$?\s?\d{2,3})?\s?/\s?(?:hr|hour)"
     r")",
     re.IGNORECASE,
 )
@@ -278,10 +306,17 @@ FOREIGN_CURRENCY_REGEX = re.compile(
 EOR_B2B_REGEX = re.compile(
     r"\b("
     r"deel|"
-    r"oyster\s?hr|"
+    r"oyster(?:\s?hr)?|"
     r"remote\.com|"
     r"multiplier|"
     r"papaya\s?global|"
+    r"mercor|"
+    r"turing|"
+    r"proxify|"
+    r"toptal|"
+    r"testgorilla|"
+    r"jobgether|"
+    r"alignerr|"
     r"b2b\s+contract(?:or)?|"
     r"independent\s+contractor|"
     r"work\s+from\s+anywhere|"
@@ -360,13 +395,15 @@ def is_india_or_remote_location(
     if INDIAN_LOCATIONS_REGEX.search(loc):
         return True
 
-    # Priority 2: Explicit Foreign Country rejection
-    if FOREIGN_LOCATION_REGEX.search(loc):
-        return False
-
-    # Priority 3: Verified Global Remote
+    # Priority 2: Verified Global Remote / Worldwide / APAC (evaluates BEFORE foreign rejection so
+    # 'United Kingdom (Remote - Worldwide)' or 'United States (Remote - Global)' is allowed,
+    # while 'United States (Remote)' without Worldwide/Global/APAC is still rejected below)
     if GLOBAL_REMOTE_REGEX.search(loc):
         return True
+
+    # Priority 3: Explicit Foreign Country rejection
+    if FOREIGN_LOCATION_REGEX.search(loc):
+        return False
 
     # Priority 4: Generic Remote without foreign territory
     return bool(re.search(r"\bremote\b", loc, re.IGNORECASE))
@@ -380,7 +417,7 @@ def evaluate_global_remote_signal(
 ) -> dict[str, Any]:
     """
     Evaluates 3-stage global remote eligibility:
-    1. Foreign Currency / High USD compensation
+    1. Foreign Currency / High USD/GBP/EUR compensation
     2. Cross-Border EOR / B2B Contractor signal
     3. Absence of hard jurisdiction / residency lock
     """
@@ -393,18 +430,19 @@ def evaluate_global_remote_signal(
     has_jurisdiction = has_jurisdiction_restriction(full_text)
 
     is_remote_context = "remote" in loc_str or bool(GLOBAL_REMOTE_REGEX.search(loc_str))
+    is_explicit_global_loc = bool(GLOBAL_REMOTE_REGEX.search(loc_str))
 
     reasons: list[str] = []
     if has_currency:
-        reasons.append("Matches USD/EUR foreign currency compensation")
+        reasons.append("Matches USD/EUR/GBP foreign currency compensation")
     if has_eor:
-        reasons.append("Matches EOR / B2B contractor signal (Deel/Oyster/B2B/global remote)")
+        reasons.append("Matches EOR / B2B contractor signal (Deel/Oyster/Mercor/B2B/global remote)")
     if has_jurisdiction:
         reasons.append("Flagged with jurisdiction or residency restriction")
 
     # Global remote override rule:
-    # If remote context is present, has EOR/B2B signal, and NO jurisdiction lock
-    is_usd_eor = is_remote_context and has_eor and not has_jurisdiction
+    # If remote context is present, has EOR/B2B signal (or explicit global location + foreign currency), and NO jurisdiction lock
+    is_usd_eor = is_remote_context and (has_eor or (is_explicit_global_loc and has_currency)) and not has_jurisdiction
     eligible = is_usd_eor or is_india_or_remote_location(location, text_snippet=full_text)
 
     return {

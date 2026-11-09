@@ -202,6 +202,25 @@ function formatSourceBadge(source, appType) {
             icon: '💠'
         };
     }
+    if (s.includes('mercor') || a.includes('MERCOR')) {
+        return {
+            label: '🌍 Mercor (USD/hr)',
+            cssClass: 'badge-greenhouse',
+            icon: '🌍'
+        };
+    }
+    if (
+        s.includes('jobicy') || s.includes('arbeitnow') || s.includes('remoteok') ||
+        s.includes('himalayas') || s.includes('wwr') || s.includes('workingnomads') ||
+        s.includes('remotive') || a.startsWith('GLOBAL_')
+    ) {
+        const cleanName = (source || 'Global Remote').toUpperCase();
+        return {
+            label: `🌍 ${cleanName} Remote`,
+            cssClass: 'badge-greenhouse',
+            icon: '🌍'
+        };
+    }
     const fallbackText = (source || 'ATS').toUpperCase();
     return {
         label: `💼 ${fallbackText} ATS`,
@@ -1197,6 +1216,9 @@ function renderAnalyticsEngine(funnel, apps) {
             </span>
             <span style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3);">
                 🎯 Direct ATS Portals: <strong>${pv.direct_ats_pct || 0}% (${pv.direct_ats_count || 0})</strong>
+            </span>
+            <span onclick="applyQuickTrackFilter('TRACK_4_GLOBAL_REMOTE')" style="cursor:pointer; font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.3);" title="Filter Track 4 Global Remote (USD/GBP/EUR) Roles">
+                🌍 Track 4 Global Remote: <strong>${pv.global_remote_pct || 0}% (${pv.global_remote_count || 0})</strong>
             </span>
         `;
     }

@@ -71,6 +71,15 @@ search_profiles:
     easy_apply_only: false
     max_jobs: 25
 
+  - name: "Track 4 Global Remote (USD/GBP/EUR EOR & B2B Contractor SDET)"
+    keywords: '("SDET" OR "QA Automation" OR "Playwright" OR "Test Engineer" OR "AI Evaluation" OR "Evaluation Engineer") AND ("Deel" OR "Remote.com" OR "Oyster" OR "B2B" OR "USD" OR "Worldwide" OR "Global") NOT (Intern OR Junior OR Fresher)'
+    location: "Remote"
+    work_types: ["remote"]
+    experience_levels: ["mid_senior"]
+    time_posted: "past_72h"
+    easy_apply_only: false
+    max_jobs: 25
+
 resume_path: "data/resume_profile.json"
 browser_profile_dir: ".browser_data"
 

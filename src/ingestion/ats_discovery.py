@@ -26,6 +26,8 @@ from src.ingestion.extended_providers import (
     SmartRecruitersCollector,
     WorkableCollector,
 )
+from src.ingestion.filters import evaluate_global_remote_signal
+from src.ingestion.global_remote_providers import GLOBAL_REMOTE_SOURCES, GlobalRemoteAggregatorCollector
 from src.ingestion.greenhouse import GreenhouseCollector
 from src.ingestion.hirist import HiristCollector
 from src.ingestion.instahyre import InstahyreCollector
@@ -72,6 +74,7 @@ class ATSDiscoveryCoordinator:
         self.comeet = ComeetCollector()
         self.hirist = HiristCollector()
         self.instahyre = InstahyreCollector()
+        self.global_remote = GlobalRemoteAggregatorCollector()
 
     def load_processed_jobs(self) -> dict[str, Any]:
         """Loads master deduplication index from data/processed_jobs.json."""
@@ -280,9 +283,12 @@ class ATSDiscoveryCoordinator:
                     coro = self.hirist.fetch_board_jobs(company.name, company.slug)
                 elif provider == "instahyre":
                     coro = self.instahyre.fetch_board_jobs(company.name, company.slug)
+                elif provider in GLOBAL_REMOTE_SOURCES:
+                    coro = self.global_remote.fetch_board_jobs(company.name, company.slug)
                 else:
                     return []
-                listings = await asyncio.wait_for(coro, timeout=10.0)
+                timeout_sec = 22.0 if provider in GLOBAL_REMOTE_SOURCES else 10.0
+                listings = await asyncio.wait_for(coro, timeout=timeout_sec)
             except asyncio.TimeoutError:
                 return []
             except Exception:
@@ -520,13 +526,25 @@ class ATSDiscoveryCoordinator:
                     skipped_count += 1
                     continue
 
+            src_low = (item.source or "direct_ats").lower().strip()
+            remote_sig = evaluate_global_remote_signal(
+                title=item.job_title,
+                location=item.location,
+                description=item.job_description_clean or item.job_description_raw or "",
+                compensation_str=item.salary_range or "",
+            )
+            is_track4_remote = src_low in GLOBAL_REMOTE_SOURCES or bool(remote_sig.get("is_usd_eor_remote"))
+            track_name = "TRACK_4_GLOBAL_REMOTE" if is_track4_remote else "TRACK_1_DIRECT_ATS"
+            app_type = f"GLOBAL_{src_low.upper()}" if src_low in GLOBAL_REMOTE_SOURCES else f"ATS_{item.source.upper()}"
+
             payload = {
                 "job_id": item.id,
                 "source": item.source,
-                "discovery_track": "TRACK_1_DIRECT_ATS",
-                "discovery_channel": (item.source or "direct_ats").lower().strip(),
-                "application_type": f"ATS_{item.source.upper()}",
+                "discovery_track": track_name,
+                "discovery_channel": src_low,
+                "application_type": app_type,
                 "is_dream_org": item.is_dream_org,
+                "is_usd_eor_remote": is_track4_remote,
                 "reopened_fresh": bool(was_previously_seen),
                 "job_details": {
                     "title": item.job_title,
@@ -538,6 +556,7 @@ class ATSDiscoveryCoordinator:
                     "is_remote": item.is_remote,
                     "salary_range": item.salary_range,
                     "is_dream_org": item.is_dream_org,
+                    "is_usd_eor_remote": is_track4_remote,
                     "reopened_fresh": bool(was_previously_seen),
                 },
                 "job_url": item.url,

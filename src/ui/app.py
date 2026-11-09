@@ -372,9 +372,26 @@ def normalize_job_source_metadata(payload: dict[str, Any]) -> tuple[str, str]:
     job_id = str(payload.get("job_id") or payload.get("id") or "").strip().lower()
     url = str(payload.get("url") or payload.get("job_url") or "").strip().lower()
 
+    global_remote_sources = (
+        "mercor",
+        "jobicy",
+        "arbeitnow",
+        "remoteok",
+        "himalayas",
+        "wwr",
+        "workingnomads",
+        "remotive",
+        "global_remote",
+    )
+
     # 1. Infer platform source
-    if raw_source in ("greenhouse", "lever", "ashby", "workday", "hirist", "instahyre"):
+    if (
+        raw_source in ("greenhouse", "lever", "ashby", "workday", "hirist", "instahyre")
+        or raw_source in global_remote_sources
+    ):
         source = raw_source
+    elif any(job_id.startswith(f"{gr}_") for gr in global_remote_sources):
+        source = next(gr for gr in global_remote_sources if job_id.startswith(f"{gr}_"))
     elif raw_source == "linkedin":
         source = "linkedin"
     elif (
@@ -459,6 +476,9 @@ def normalize_job_source_metadata(payload: dict[str, Any]) -> tuple[str, str]:
     elif source == "instahyre":
         if not app_type or app_type in ("ATS", "UNKNOWN"):
             app_type = "ATS_INSTAHYRE"
+    elif source in global_remote_sources:
+        if not app_type or app_type in ("ATS", "UNKNOWN") or not app_type.startswith("GLOBAL_"):
+            app_type = f"GLOBAL_{source.upper()}"
     elif not app_type:
         app_type = "ATS"
 
@@ -594,6 +614,14 @@ async def get_pending_jobs():
                     diff_payload["source"] = norm_source
                     diff_payload["application_type"] = norm_app_type
                     diff_payload["source_platform"] = norm_source.upper()
+                    diff_payload["discovery_track"] = raw_payload.get("discovery_track")
+                    diff_payload["is_usd_eor_remote"] = bool(
+                        raw_payload.get("is_usd_eor_remote") or jd.get("is_usd_eor_remote")
+                    )
+                    if raw_payload.get("routing_strategy"):
+                        diff_payload["routing_strategy"] = raw_payload.get("routing_strategy")
+                    if raw_payload.get("freshness_badge"):
+                        diff_payload["freshness_badge"] = raw_payload.get("freshness_badge")
 
                     # Dream Org priority flag resolution
                     is_dream = bool(raw_payload.get("is_dream_org") or jd.get("is_dream_org"))
