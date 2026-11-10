@@ -6,6 +6,7 @@ Zero-cost, unauthenticated HTTP polling with defensive pagination and SHA-256 in
 
 from __future__ import annotations
 
+import asyncio
 import html
 import re
 from datetime import datetime, timedelta
@@ -45,6 +46,8 @@ DEFAULT_WORKDAY_SEARCH_TERMS = [
     "SDET India",
     "QA India",
     "Software Engineer in Test India",
+    "Quality Engineer India",
+    "Test Engineer Bangalore",
     "Automation India",
     "SDET",
 ]
@@ -112,7 +115,13 @@ class WorkdayCollector:
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-                for term in terms:
+                candidate_items: list[dict[str, Any]] = []
+                active_cxs_url = base_cxs_url
+                search_sem = asyncio.Semaphore(4)
+
+                async def _search_term(term: str) -> list[dict[str, Any]]:
+                    nonlocal active_cxs_url, jobs_endpoint
+                    term_items: list[dict[str, Any]] = []
                     for page_idx in range(max_pages):
                         offset = page_idx * limit
                         payload = {
@@ -121,103 +130,122 @@ class WorkdayCollector:
                             "offset": offset,
                             "searchText": term,
                         }
-
-                        try:
-                            res = await client.post(jobs_endpoint, json=payload, headers=headers)
-                            if res.status_code != 200:
-                                # If redirected to Workday's weekly maintenance page or dead endpoint, exit early
-                                if "maintenance-page" in str(res.url) or "maintenance-page" in str(
-                                    res.headers.get("location", "")
-                                ):
-                                    return listings
-                                if datacenter:
-                                    fallback_url = f"https://{slug}.myworkdayjobs.com/wday/cxs/{slug}/{site}/jobs"
-                                    res = await client.post(fallback_url, json=payload, headers=headers)
-                                    if res.status_code != 200:
-                                        return listings
-                                else:
-                                    return listings
-                            data: dict[str, Any] = res.json()
-                        except Exception:
-                            return listings
+                        async with search_sem:
+                            try:
+                                res = await client.post(jobs_endpoint, json=payload, headers=headers)
+                                if res.status_code != 200:
+                                    if "maintenance-page" in str(res.url) or "maintenance-page" in str(
+                                        res.headers.get("location", "")
+                                    ):
+                                        return term_items
+                                    if datacenter:
+                                        fallback_base = f"https://{slug}.myworkdayjobs.com/wday/cxs/{slug}/{site}"
+                                        fallback_url = f"{fallback_base}/jobs"
+                                        res = await client.post(fallback_url, json=payload, headers=headers)
+                                        if res.status_code != 200:
+                                            return term_items
+                                        active_cxs_url = fallback_base
+                                        jobs_endpoint = fallback_url
+                                    else:
+                                        return term_items
+                                data: dict[str, Any] = res.json()
+                            except Exception:
+                                return term_items
 
                         job_postings = data.get("jobPostings", [])
                         if not job_postings:
                             break
+                        term_items.extend(job_postings)
+                        total_available = data.get("total", 0)
+                        if offset + limit >= total_available:
+                            break
+                    return term_items
 
-                        new_items_in_page = 0
-                        for item in job_postings:
-                            ext_path = item.get("externalPath", "")
-                            if not ext_path or ext_path in seen_paths:
-                                continue
-                            seen_paths.add(ext_path)
-                            new_items_in_page += 1
+                term_batches = await asyncio.gather(*(_search_term(t) for t in terms))
+                for batch in term_batches:
+                    for item in batch:
+                        ext_path = item.get("externalPath", "")
+                        if not ext_path or ext_path in seen_paths:
+                            continue
+                        seen_paths.add(ext_path)
 
-                            title = item.get("title", "").strip()
-                            locations_text = item.get("locationsText", "")
-                            bullet_fields = item.get("bulletFields", [])
+                        title = item.get("title", "").strip()
+                        locations_text = item.get("locationsText", "").strip()
 
-                            # Title filtering
-                            if filter_sdet and not is_sdet_title(title):
-                                continue
+                        if filter_sdet and not is_sdet_title(title):
+                            continue
 
-                            # Location filtering
-                            if filter_india and locations_text and not is_india_or_remote_location(locations_text):
-                                continue
+                        is_multi_loc_badge = bool(re.match(r"^\d+\s+locations?$", locations_text, re.IGNORECASE))
+                        if (
+                            filter_india
+                            and locations_text
+                            and not is_multi_loc_badge
+                            and not is_india_or_remote_location(locations_text)
+                        ):
+                            continue
 
-                            # Extract external requisition ID
-                            req_id = (
-                                bullet_fields[0] if bullet_fields else re.sub(r"[^a-zA-Z0-9_-]", "", ext_path[-24:])
-                            )
-                            job_id = f"workday_{slug}_{req_id}".lower()
+                        candidate_items.append(item)
 
-                            # Resolve public external web link
-                            job_url = f"https://{slug}.myworkdayjobs.com/en-US/{site}{ext_path}"
+                detail_sem = asyncio.Semaphore(6)
 
-                            # Fetch rich job details
-                            detail_url = f"{base_cxs_url}{ext_path}"
-                            desc_raw = ""
-                            desc_clean = ""
-                            start_date_str = None
-                            try:
-                                d_res = await client.get(detail_url, headers=headers)
-                                if d_res.status_code == 200:
-                                    d_data = d_res.json().get("jobPostingInfo", {})
-                                    desc_raw = d_data.get("jobDescription", "")
-                                    desc_clean = clean_html_description(desc_raw)
-                                    start_date_str = d_data.get("startDate")
-                                    if d_data.get("externalUrl"):
-                                        job_url = d_data.get("externalUrl")
-                            except Exception:
-                                desc_clean = f"{title} at {company_name}. Location: {locations_text}"
+                async def _hydrate_item(item: dict[str, Any]) -> JobListing | None:
+                    ext_path = item.get("externalPath", "")
+                    title = item.get("title", "").strip()
+                    locations_text = item.get("locationsText", "").strip()
+                    bullet_fields = item.get("bulletFields", [])
+                    is_multi_loc_badge = bool(re.match(r"^\d+\s+locations?$", locations_text, re.IGNORECASE))
 
-                            is_remote = bool(
-                                re.search(r"\b(remote|anywhere)\b", f"{title} {locations_text}", re.IGNORECASE)
-                            )
-                            posted_dt = parse_workday_posted_on(item.get("postedOn"), start_date=start_date_str)
+                    req_id = bullet_fields[0] if bullet_fields else re.sub(r"[^a-zA-Z0-9_-]", "", ext_path[-24:])
+                    job_id = f"workday_{slug}_{req_id}".lower()
+                    job_url = f"https://{slug}.myworkdayjobs.com/en-US/{site}{ext_path}"
 
-                            listing = JobListing(
-                                id=job_id,
-                                source="workday",
-                                company_name=company_name,
-                                job_title=title,
-                                location=locations_text or "India",
-                                is_remote=is_remote,
-                                is_dream_org=is_dream_org,
-                                job_description_raw=desc_raw or desc_clean,
-                                job_description_clean=desc_clean,
-                                url=job_url,
-                                posted_at=posted_dt,
-                            )
-                            listings.append(listing)
+                    detail_url = f"{active_cxs_url}{ext_path}"
+                    desc_raw = ""
+                    desc_clean = ""
+                    start_date_str = None
+                    resolved_loc = locations_text
+                    async with detail_sem:
+                        try:
+                            d_res = await client.get(detail_url, headers=headers)
+                            if d_res.status_code == 200:
+                                d_data = d_res.json().get("jobPostingInfo", {})
+                                desc_raw = d_data.get("jobDescription", "")
+                                desc_clean = clean_html_description(desc_raw)
+                                start_date_str = d_data.get("startDate")
+                                if d_data.get("externalUrl"):
+                                    job_url = d_data.get("externalUrl")
+                                primary_loc = str(d_data.get("location") or "").strip()
+                                add_locs = [str(x) for x in (d_data.get("additionalLocations") or []) if x]
+                                all_locs = [x for x in ([primary_loc] + add_locs) if x]
+                                if is_multi_loc_badge and all_locs:
+                                    india_matches = [x for x in all_locs if is_india_or_remote_location(x)]
+                                    if filter_india and not india_matches:
+                                        return None
+                                    resolved_loc = india_matches[0] if india_matches else ", ".join(all_locs[:2])
+                        except Exception:
+                            if is_multi_loc_badge and filter_india:
+                                return None
+                            desc_clean = f"{title} at {company_name}. Location: {locations_text}"
 
-                    if new_items_in_page == 0:
-                        break
+                    is_remote = bool(re.search(r"\b(remote|anywhere)\b", f"{title} {resolved_loc}", re.IGNORECASE))
+                    posted_dt = parse_workday_posted_on(item.get("postedOn"), start_date=start_date_str)
 
-                    total_available = data.get("total", 0)
-                    offset += limit
-                    if offset >= total_available:
-                        break
+                    return JobListing(
+                        id=job_id,
+                        source="workday",
+                        company_name=company_name,
+                        job_title=title,
+                        location=resolved_loc or "India",
+                        is_remote=is_remote,
+                        is_dream_org=is_dream_org,
+                        job_description_raw=desc_raw or desc_clean,
+                        job_description_clean=desc_clean,
+                        url=job_url,
+                        posted_at=posted_dt,
+                    )
+
+                hydrated = await asyncio.gather(*(_hydrate_item(it) for it in candidate_items))
+                listings = [it for it in hydrated if it is not None]
 
         except Exception:
             return listings

@@ -1134,6 +1134,30 @@ def main():
         "--dry-run", action="store_true", help="With 'sync': print the report without writing any files"
     )
 
+    # 20. ats-ingest (Direct Keyless ATS Ingestion with optional --all-open backlog sweep)
+    parser_ats = subparsers.add_parser(
+        "ats-ingest",
+        help="Poll all explicit ATS boards and stage eligible QA/SDET roles into data/pending_queue/",
+    )
+    parser_ats.add_argument(
+        "--all-open",
+        action="store_true",
+        default=False,
+        help="Stage ALL open unapplied QA/SDET roles regardless of posting age or prior RETAINED/seen status",
+    )
+    parser_ats.add_argument(
+        "--max-age-days",
+        type=float,
+        default=3.0,
+        help="Max age in days when --all-open is not set (default: 3.0)",
+    )
+    parser_ats.add_argument(
+        "--no-ai",
+        action="store_true",
+        default=False,
+        help="Use deterministic fast tailoring without LLM API calls",
+    )
+
     args = parser.parse_args()
     config = load_config(args.config)
     runner = JobSearchPipelineRunner(config)
@@ -1281,6 +1305,16 @@ def main():
                 skip_tests=args.skip_tests,
                 launch_dashboard=args.launch_dashboard,
             )
+    elif cmd == "ats-ingest":
+        from src.ingestion.ats_discovery import ATSDiscoveryCoordinator
+
+        all_open = bool(getattr(args, "all_open", False))
+        age_limit = None if all_open else float(getattr(args, "max_age_days", 3.0))
+        use_ai = False if getattr(args, "no_ai", False) else runner.use_ai
+        coord = ATSDiscoveryCoordinator(use_ai=use_ai)
+        listings = asyncio.run(coord.ingest_all_sources(filter_sdet=True, max_age_days=age_limit))
+        saved = coord.save_listings_to_queue(listings, tailor=True, include_all_open=all_open)
+        print(f"🎯 ATS Ingest Complete: {len(saved)} open QA/SDET job(s) staged into data/pending_queue/!")
     else:
         parser.print_help()
 
