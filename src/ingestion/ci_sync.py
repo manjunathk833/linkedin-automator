@@ -70,7 +70,17 @@ class CISyncIngestor:
                 )
                 if show_res.returncode == 0 and show_res.stdout.strip():
                     self.inbox_dir.mkdir(parents=True, exist_ok=True)
-                    (self.inbox_dir / "latest_ci_drops.json").write_text(show_res.stdout, encoding="utf-8")
+                    local_file = self.inbox_dir / "latest_ci_drops.json"
+                    if local_file.exists():
+                        try:
+                            local_gen = str(json.loads(local_file.read_text(encoding="utf-8")).get("generated_at", ""))
+                            remote_gen = str(json.loads(show_res.stdout).get("generated_at", ""))
+                            if local_gen and remote_gen and local_gen > remote_gen:
+                                # Local bundle (e.g. from local portal-sniper fallback) is newer than remote CI branch
+                                return False
+                        except Exception:
+                            pass
+                    local_file.write_text(show_res.stdout, encoding="utf-8")
                     return True
         except Exception:
             pass
@@ -155,6 +165,7 @@ class CISyncIngestor:
         db = ApplicationDatabase(db_path=self.sqlite_db_path)
 
         ingested_ids: list[str] = []
+        repost_followup_ids: list[str] = []
         skipped_dups = 0
 
         for raw_drop in drops:
@@ -168,10 +179,49 @@ class CISyncIngestor:
             posted_at_str = raw_drop.get("posted_at") or jd.get("posted_at")
 
             # Check duplicate across SQLite, processed_jobs.json, and physical queues
-            is_applied = db.is_job_applied(job_id) or db.is_company_role_applied(company, title)
-            if is_applied and not (reopened_fresh and db.is_reapply_eligible(job_id, company, title, min_days=30.0)):
-                skipped_dups += 1
-                continue
+            applied_details = db.get_applied_job_details(job_id, company, title)
+            if applied_details is not None:
+                if reopened_fresh and db.is_reapply_eligible(job_id, company, title, min_days=30.0):
+                    pass  # Eligible for fresh re-application (>=30d on new ID)
+                else:
+                    days_ago = float(applied_details.get("days_since_applied") or 0.0)
+                    if reopened_fresh and 2.0 <= days_ago < 30.0:
+                        try:
+                            from src.tailor.referral_generator import (
+                                ReferralNoteGenerator,
+                                resolve_direct_ats_portal_url,
+                            )
+
+                            existing_outreach = db.get_referral_outreach(job_id=job_id, limit=5)
+                            if not any(r.get("outreach_type") == "REPOST_FOLLOWUP" for r in existing_outreach):
+                                job_url = str(raw_drop.get("url") or raw_drop.get("job_url") or "")
+                                direct_portal = resolve_direct_ats_portal_url(company) or job_url
+                                followup_note = ReferralNoteGenerator.generate_repost_followup_note(
+                                    {
+                                        "job_id": job_id,
+                                        "company_name": company,
+                                        "job_title": title,
+                                        "job_url": job_url,
+                                    },
+                                    days_since_applied=days_ago,
+                                )
+                                db.log_referral_outreach(
+                                    job_id=job_id,
+                                    company_name=company,
+                                    job_title=title,
+                                    outreach_type="REPOST_FOLLOWUP",
+                                    note_content=followup_note,
+                                    requisition_id=job_id,
+                                    contact_name="Recruiter / Hiring Manager (Repost Follow-Up)",
+                                    contact_title="Talent Acquisition / Engineering Leadership",
+                                    contact_linkedin_url=direct_portal,
+                                    status="REPOST_FOLLOWUP",
+                                )
+                                repost_followup_ids.append(job_id)
+                        except Exception:
+                            pass
+                    skipped_dups += 1
+                    continue
 
             if self.coordinator.is_duplicate(
                 job_id,
@@ -247,5 +297,7 @@ class CISyncIngestor:
             "ingested_count": len(ingested_ids),
             "skipped_duplicates": skipped_dups,
             "ingested_job_ids": ingested_ids,
+            "repost_followups_logged": len(repost_followup_ids),
+            "repost_followup_ids": repost_followup_ids,
             "generated_at": bundle.get("generated_at"),
         }

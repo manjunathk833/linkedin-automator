@@ -89,6 +89,46 @@ class PortalSniperEngine:
         except Exception:
             return None
 
+    @staticmethod
+    def is_date_only_timestamp(dt: datetime | None) -> bool:
+        """
+        Returns True if `dt` represents a calendar-date-only timestamp truncated to 00:00:00 UTC
+        (e.g. Workday CXS `startDate: "2026-11-07"` or Amazon Jobs `posted_date`).
+        """
+        if dt is None:
+            return False
+        return dt.hour == 0 and dt.minute == 0 and dt.second == 0 and dt.microsecond == 0
+
+    @classmethod
+    def effective_max_age_hours(
+        cls,
+        listing: JobListing,
+        max_age_hours: float = 24.0,
+        ledger_entry: dict[str, Any] | None = None,
+    ) -> float:
+        """
+        Computes the effective freshness window in hours.
+        For providers that only expose a calendar date (`YYYY-MM-DD 00:00:00` midnight UTC, such as Workday CXS
+        and Amazon Jobs), a role posted in US afternoon/evening hours already appears 24h-36h old in UTC on its
+        very first scan. Furthermore, if an existing requisition's `posted_at` jumped by >=7 days in
+        `portal_seen_ledger.json` (e.g. CrowdStrike R28268 jumping from 2026-10-14 to 2026-11-07 across a
+        weekend or dropped CI cron window), allow up to 96h so the reopen event is captured once before
+        updating `posted_at` in the ledger.
+        """
+        if listing.posted_at is None or not cls.is_date_only_timestamp(listing.posted_at):
+            return max_age_hours
+        if max_age_hours < 24.0:
+            return max_age_hours
+
+        if isinstance(ledger_entry, dict):
+            prev_dt = cls._parse_iso_utc(ledger_entry.get("posted_at") or ledger_entry.get("first_seen_at"))
+            item_dt = listing.posted_at
+            if item_dt.tzinfo is not None:
+                item_dt = item_dt.astimezone(timezone.utc).replace(tzinfo=None)
+            if prev_dt is not None and (item_dt - prev_dt).total_seconds() >= 7 * 86400.0:
+                return max(max_age_hours, 96.0)
+        return max(max_age_hours, 48.0)
+
     @classmethod
     def is_reopened_fresh(
         cls,
@@ -100,13 +140,14 @@ class PortalSniperEngine:
     ) -> bool:
         """
         Determines whether a previously seen requisition was genuinely re-opened or refreshed
-        within the <24h window.
+        within the freshness window.
         Requires:
-        1. listing.posted_at is present and age_hours <= max_age_hours (<=24h old right now).
+        1. listing.posted_at is present and age_hours <= effective_max_age_hours.
         2. listing.posted_at is at least `min_refresh_gap_hours` (24h) newer than the previously
            recorded `posted_at` or `first_seen_at` in `portal_seen_ledger.json`.
         """
-        if listing.posted_at is None or age_hours is None or age_hours > max_age_hours:
+        eff_max_hours = cls.effective_max_age_hours(listing, max_age_hours=max_age_hours, ledger_entry=ledger_entry)
+        if listing.posted_at is None or age_hours is None or age_hours > eff_max_hours:
             return False
         item_dt = listing.posted_at
         if item_dt.tzinfo is not None:
@@ -148,8 +189,11 @@ class PortalSniperEngine:
 
             # 1. Check stateful seen ledger first (prevents typo edits on old jobs from re-triggering,
             #    while allowing genuinely re-opened / <24h refreshed requisitions through)
-            if item.id in ledger:
-                existing_entry = ledger[item.id]
+            existing_entry = ledger.get(item.id)
+            eff_max_hours = self.effective_max_age_hours(
+                item, max_age_hours=self.max_age_hours, ledger_entry=existing_entry
+            )
+            if existing_entry is not None:
                 if self.is_reopened_fresh(item, existing_entry, age_hours, max_age_hours=self.max_age_hours):
                     reopened_fresh = True
                     reopened_count += 1
@@ -176,8 +220,8 @@ class PortalSniperEngine:
                     "posted_at": item.posted_at.isoformat() if item.posted_at else None,
                 }
 
-            # 2. Enforce <24h freshness window if portal provides posted_at timestamp
-            if age_hours is not None and age_hours > self.max_age_hours:
+            # 2. Enforce freshness window (with date-only 00:00:00 grace window) if portal provides posted_at timestamp
+            if age_hours is not None and age_hours > eff_max_hours:
                 skipped_stale += 1
                 continue
 

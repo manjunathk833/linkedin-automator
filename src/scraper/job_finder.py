@@ -63,6 +63,12 @@ class LinkedInJobFinder:
         norm = f"{company.strip().lower()}_{title.strip().lower()}"
         return hashlib.md5(norm.encode("utf-8")).hexdigest()
 
+    def generate_normalized_composite_hash(self, company: str, title: str) -> str:
+        """Generates a suffix-normalized composite hash for cross-channel (Workday vs LinkedIn) deduplication."""
+        from src.ingestion.ats_discovery import ATSDiscoveryCoordinator
+
+        return ATSDiscoveryCoordinator.generate_normalized_composite_hash(company, title)
+
     def is_duplicate(self, job_id: str, company: str, title: str, reopened_fresh: bool = False) -> bool:
         """
         Checks if a job_id or (company + title) combination has already been processed across
@@ -77,10 +83,16 @@ class LinkedInJobFinder:
 
         # 1. Check SQLite persistent database for completed applications (exact ID & company+role)
         try:
+            from src.ingestion.ats_discovery import ATSDiscoveryCoordinator
             from src.storage.database import ApplicationDatabase
 
             db = ApplicationDatabase()
-            if db.is_job_applied(job_id) or db.is_company_role_applied(company, title):
+            norm_comp = ATSDiscoveryCoordinator.normalize_company_name_for_dedup(company)
+            if (
+                db.is_job_applied(job_id)
+                or db.is_company_role_applied(company, title)
+                or (norm_comp and db.is_company_role_applied(norm_comp, title))
+            ):
                 return not (reopened_fresh and db.is_reapply_eligible(job_id, company, title, min_days=30.0))
         except Exception:
             pass
@@ -96,9 +108,10 @@ class LinkedInJobFinder:
         job_ids = data.get("job_ids", {})
         composite_hashes = data.get("composite_hashes", {})
 
-        # 2. Check primary job_id and composite hash
+        # 2. Check primary job_id and composite hash (both exact and suffix-normalized)
         c_hash = self.generate_composite_hash(company, title)
-        if job_id in job_ids or c_hash in composite_hashes:
+        norm_c_hash = self.generate_normalized_composite_hash(company, title)
+        if job_id in job_ids or c_hash in composite_hashes or norm_c_hash in composite_hashes:
             return not reopened_fresh
 
         return False
@@ -109,7 +122,8 @@ class LinkedInJobFinder:
         job_ids = data.get("job_ids", {})
         composite_hashes = data.get("composite_hashes", {})
         c_hash = self.generate_composite_hash(company, title)
-        entry = job_ids.get(job_id) or composite_hashes.get(c_hash)
+        norm_c_hash = self.generate_normalized_composite_hash(company, title)
+        entry = job_ids.get(job_id) or composite_hashes.get(c_hash) or composite_hashes.get(norm_c_hash)
         if not isinstance(entry, dict):
             return False
         raw_ts = str(entry.get("last_seen") or entry.get("first_seen") or "").strip()
@@ -128,6 +142,7 @@ class LinkedInJobFinder:
         data = self.load_processed_jobs()
         now = datetime.datetime.utcnow().isoformat() + "Z"
         c_hash = self.generate_composite_hash(company, title)
+        norm_c_hash = self.generate_normalized_composite_hash(company, title)
         existing = data.get("job_ids", {}).get(job_id) or {}
 
         data.setdefault("job_ids", {})[job_id] = {
@@ -137,11 +152,13 @@ class LinkedInJobFinder:
             "last_seen": now,
             "status": status,
         }
-        data.setdefault("composite_hashes", {})[c_hash] = {
+        hash_entry = {
             "job_id": job_id,
             "first_seen": existing.get("first_seen") or now,
             "last_seen": now,
         }
+        data.setdefault("composite_hashes", {})[c_hash] = hash_entry
+        data.setdefault("composite_hashes", {})[norm_c_hash] = hash_entry
         self.save_processed_jobs(data)
 
     def build_search_url(
