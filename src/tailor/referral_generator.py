@@ -529,9 +529,13 @@ def extract_requisition_id(job_payload: dict[str, Any]) -> str:
         return m.group(1)
 
     # Fallback to sanitized suffix of job_id if alphanumeric
-    clean_id = re.sub(r"^(workday|greenhouse|lever|ashby|linkedin)_", "", job_id)
-    tokens = clean_id.split("_")
-    if tokens and tokens[-1] and len(tokens[-1]) >= 4 and tokens[-1].isalnum():
+    clean_id = re.sub(
+        r"^(workday|greenhouse|lever|ashby|linkedin|mercor|alignerr|jobicy|arbeitnow|remoteok|himalayas|wwr|workingnomads|remotive)_",
+        "",
+        job_id,
+    )
+    tokens = [t for t in re.split(r"[_-]", clean_id) if t]
+    if tokens and len(tokens[-1]) >= 4 and tokens[-1].isalnum():
         return tokens[-1].upper()
 
     return "open req"

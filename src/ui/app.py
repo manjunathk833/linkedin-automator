@@ -374,6 +374,7 @@ def normalize_job_source_metadata(payload: dict[str, Any]) -> tuple[str, str]:
 
     global_remote_sources = (
         "mercor",
+        "alignerr",
         "jobicy",
         "arbeitnow",
         "remoteok",
@@ -846,6 +847,12 @@ async def autofill_job(job_id: str):
         db = ApplicationDatabase()
         job_details = job_data.get("job_details", {})
         norm_source, _ = normalize_job_source_metadata(job_data)
+        raw_track = job_data.get("discovery_track") if isinstance(job_data.get("discovery_track"), str) else None
+        raw_channel = (
+            job_data.get("discovery_channel")
+            if isinstance(job_data.get("discovery_channel"), str)
+            else (job_data.get("channel") if isinstance(job_data.get("channel"), str) else None)
+        )
         db.record_application(
             job_id=job_id,
             source=norm_source,
@@ -855,6 +862,8 @@ async def autofill_job(job_id: str):
             resume_path=pdf_path or "",
             tailored_data=job_data.get("tailored_resume", {}),
             status="copilot_launched",
+            discovery_track=raw_track,
+            discovery_channel=raw_channel,
         )
 
     fields_n = result.get("fields_filled", 0)
@@ -910,6 +919,12 @@ async def manual_apply_job(job_id: str):
     )
 
     norm_source, _ = normalize_job_source_metadata(job_data)
+    raw_track = job_data.get("discovery_track") if isinstance(job_data.get("discovery_track"), str) else None
+    raw_channel = (
+        job_data.get("discovery_channel")
+        if isinstance(job_data.get("discovery_channel"), str)
+        else (job_data.get("channel") if isinstance(job_data.get("channel"), str) else None)
+    )
     db = ApplicationDatabase()
     db.record_application(
         job_id=job_id,
@@ -920,6 +935,8 @@ async def manual_apply_job(job_id: str):
         resume_path=pdf_path or "",
         tailored_data=job_data.get("tailored_resume", {}),
         status="manual_takeover_opened",
+        discovery_track=raw_track,
+        discovery_channel=raw_channel,
     )
 
     return {

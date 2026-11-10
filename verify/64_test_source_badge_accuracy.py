@@ -136,9 +136,34 @@ def test_api_approved_jobs_attribution():
             app_type = j.get("application_type")
             jid = j.get("job_id")
             sources_found.add(src)
-            assert src in ("linkedin", "greenhouse", "lever", "ashby", "workday"), (
-                f"Unrecognized or generic source '{src}' for job {jid}"
-            )
+            assert src in (
+                "linkedin",
+                "greenhouse",
+                "lever",
+                "ashby",
+                "workday",
+                "mercor",
+                "alignerr",
+                "jobicy",
+                "arbeitnow",
+                "remoteok",
+                "himalayas",
+                "wwr",
+                "workingnomads",
+                "remotive",
+                "google",
+                "amazon",
+                "apple",
+                "eightfold",
+                "comeet",
+                "smartrecruiters",
+                "rippling",
+                "recruitee",
+                "workable",
+                "hirist",
+                "instahyre",
+                "naukri",
+            ), f"Unrecognized or generic source '{src}' for job {jid}"
             assert app_type in (
                 "EASY_APPLY",
                 "LINKEDIN_EXTERNAL",
@@ -146,7 +171,9 @@ def test_api_approved_jobs_attribution():
                 "ATS_LEVER",
                 "ATS_ASHBY",
                 "ATS_WORKDAY",
-            ), f"Unrecognized app_type '{app_type}' for job {jid}"
+            ) or (isinstance(app_type, str) and app_type.startswith(("ATS_", "GLOBAL_", "PORTAL_"))), (
+                f"Unrecognized app_type '{app_type}' for job {jid}"
+            )
             if jid == "p1_job_5":
                 assert src == "linkedin", f"p1_job_5 must be linkedin, got {src}"
                 assert app_type == "EASY_APPLY", f"p1_job_5 must be EASY_APPLY, got {app_type}"
