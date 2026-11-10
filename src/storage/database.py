@@ -16,6 +16,7 @@ from typing import Any
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_DB_PATH = os.path.join(PROJECT_ROOT, "data", "app_database.db")
+_INITIALIZED_DBS: set[tuple[str, int]] = set()
 
 
 class ApplicationDatabase:
@@ -28,7 +29,13 @@ class ApplicationDatabase:
         db_dir = os.path.dirname(self.db_path)
         if db_dir:
             os.makedirs(db_dir, exist_ok=True)
-        self._init_schema()
+        abs_path = os.path.abspath(self.db_path)
+        ino = os.stat(abs_path).st_ino if os.path.exists(abs_path) and os.path.getsize(abs_path) > 0 else 0
+        cache_key = (abs_path, ino)
+        if ino == 0 or cache_key not in _INITIALIZED_DBS:
+            self._init_schema()
+            if os.path.exists(abs_path):
+                _INITIALIZED_DBS.add((abs_path, os.stat(abs_path).st_ino))
 
     def _get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path, timeout=30.0)
@@ -201,6 +208,22 @@ class ApplicationDatabase:
                 c.execute(
                     """
                     UPDATE job_applications
+                    SET discovery_track = 'TRACK_4_GLOBAL_REMOTE',
+                        discovery_channel = LOWER(TRIM(source))
+                    WHERE (
+                        LOWER(TRIM(source)) IN (
+                            'mercor', 'alignerr', 'jobicy', 'arbeitnow', 'remoteok',
+                            'himalayas', 'wwr', 'workingnomads', 'remotive', 'global_remote'
+                        )
+                        OR LOWER(company_name) LIKE '%mercor%'
+                        OR LOWER(company_name) LIKE '%alignerr%'
+                    )
+                    AND (discovery_track IS NULL OR discovery_track = 'TRACK_2_LINKEDIN');
+                    """
+                )
+                c.execute(
+                    """
+                    UPDATE job_applications
                     SET application_mode = 'manual_takeover'
                     WHERE (LOWER(status) LIKE '%manual%' OR LOWER(source) LIKE '%manual%')
                     AND (application_mode IS NULL OR application_mode = 'batch_autofill');
@@ -293,8 +316,25 @@ class ApplicationDatabase:
             tier = str(discovery_track.get("routing_tier") or "")
             discovery_track = None if tier.startswith("TIER_") else (tier or None)
 
+        global_remote_sources = (
+            "mercor",
+            "alignerr",
+            "jobicy",
+            "arbeitnow",
+            "remoteok",
+            "himalayas",
+            "wwr",
+            "workingnomads",
+            "remotive",
+            "global_remote",
+        )
+        comp_low = (company_name or "").strip().lower()
         if not discovery_track or not isinstance(discovery_track, str):
-            if norm_source in (
+            if norm_source in global_remote_sources or any(
+                k in comp_low for k in ("mercor", "alignerr", "turing", "proxify", "toptal", "testgorilla")
+            ):
+                discovery_track = "TRACK_4_GLOBAL_REMOTE"
+            elif norm_source in (
                 "greenhouse",
                 "lever",
                 "ashby",
@@ -305,6 +345,11 @@ class ApplicationDatabase:
                 "rippling",
                 "workable",
                 "recruitee",
+                "amazon",
+                "eightfold",
+                "apple",
+                "google",
+                "comeet",
             ):
                 discovery_track = "TRACK_1_DIRECT_ATS"
             elif norm_source in ("social_lead", "post", "linkedin_post"):
@@ -317,7 +362,7 @@ class ApplicationDatabase:
         if not discovery_channel or not isinstance(discovery_channel, str):
             discovery_channel = (
                 norm_source
-                if "TRACK_1" in discovery_track
+                if ("TRACK_1" in discovery_track or "TRACK_4" in discovery_track)
                 else ("social_post" if "TRACK_3" in discovery_track else "search")
             )
 

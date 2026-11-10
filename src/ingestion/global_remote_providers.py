@@ -21,6 +21,7 @@ import httpx
 
 from src.ingestion.filters import (
     has_jurisdiction_restriction,
+    is_ai_coding_eval_contract,
     is_global_remote_eligible,
     is_sdet_title,
 )
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 GLOBAL_REMOTE_SOURCES = (
     "mercor",
+    "alignerr",
     "jobicy",
     "arbeitnow",
     "remoteok",
@@ -155,13 +157,12 @@ class GlobalRemoteAggregatorCollector:
                     continue
 
                 title = str(obj.get("title") or "").strip()
-                if not is_sdet_title(title):
+                desc_raw = str(obj.get("description") or "")
+                desc_clean = _strip_html(desc_raw)
+                if not is_ai_coding_eval_contract(title, desc_clean, source="mercor"):
                     continue
                 if not self._is_mercor_location_eligible(obj):
                     continue
-
-                desc_raw = str(obj.get("description") or "")
-                desc_clean = _strip_html(desc_raw)
                 rmin = obj.get("rateMin")
                 rmax = obj.get("rateMax")
                 if rmin is not None and rmax is not None:
@@ -493,6 +494,69 @@ class GlobalRemoteAggregatorCollector:
             )
         return results
 
+    def parse_alignerr_html(self, html_text: str) -> list[JobListing]:
+        """Parses Alignerr (Labelbox) SSR job cards from https://www.alignerr.com/jobs with SEO clone deduplication."""
+        if not html_text:
+            return []
+        results: list[JobListing] = []
+        seen_titles: set[str] = set()
+        seen_ids: set[str] = set()
+
+        for match in re.finditer(r'<a[^>]+href=["\'](/jobs/([0-9a-fA-F-]+))["\'][^>]*>(.*?)</a>', html_text, re.DOTALL):
+            rel_href, job_uuid, card_inner = match.group(1), match.group(2).strip(), match.group(3)
+            if not job_uuid or job_uuid in seen_ids:
+                continue
+
+            h3_match = re.search(r"<h[23][^>]*>(.*?)</h[23]>", card_inner, re.DOTALL)
+            if not h3_match:
+                continue
+            title = _strip_html(h3_match.group(1))
+            norm_title = title.lower().strip()
+            if not norm_title or norm_title in seen_titles:
+                continue
+
+            p_tags = [_strip_html(p) for p in re.findall(r"<p[^>]*>(.*?)</p>", card_inner, re.DOTALL)]
+            snippet = p_tags[0] if p_tags else _strip_html(card_inner)
+            rate_str = "USD Hourly Contract"
+            loc_str = "Remote - Worldwide"
+            for p_txt in p_tags[1:]:
+                if "$" in p_txt or "/hr" in p_txt.lower():
+                    rate_str = p_txt if "usd" in p_txt.lower() else f"{p_txt} USD"
+                elif p_txt and len(p_txt) <= 45:
+                    loc_str = p_txt
+            if rate_str == "USD Hourly Contract":
+                rate_match = re.search(r"(\$\s?\d+(?:\s*-\s*\$?\d+)?\s*/\s*hr)", card_inner, re.IGNORECASE)
+                if rate_match:
+                    rate_str = f"{rate_match.group(1).strip()} USD"
+
+            if not is_ai_coding_eval_contract(title, snippet, source="alignerr"):
+                continue
+            if not is_global_remote_eligible(loc_str, text_snippet=snippet, allow_unspecified=True):
+                continue
+
+            seen_ids.add(job_uuid)
+            seen_titles.add(norm_title)
+            if loc_str.lower() == "remote":
+                loc_str = "Remote - Worldwide"
+
+            results.append(
+                JobListing(
+                    id=f"alignerr_{job_uuid}",
+                    source="alignerr",
+                    company_name="Alignerr (Labelbox AI)",
+                    job_title=title,
+                    location=loc_str,
+                    url=f"https://www.alignerr.com{rel_href}",
+                    is_remote=True,
+                    salary_range=rate_str,
+                    job_description_raw=snippet,
+                    job_description_clean=f"{snippet} (Compensation: {rate_str} via Alignerr / Labelbox global AI evaluation platform)",
+                    posted_at=None,
+                    is_dream_org=True,
+                )
+            )
+        return results
+
     async def fetch_board_jobs(self, company_name: str, slug: str) -> list[JobListing]:
         """Unified async entry point dispatched by ATSDiscoveryCoordinator for `global_remote` providers."""
         target = slug.strip().lower()
@@ -501,6 +565,12 @@ class GlobalRemoteAggregatorCollector:
                 resp = await client.get("https://work.mercor.com/explore")
                 if resp.status_code == 200:
                     return self.parse_mercor_html(resp.text)
+                return []
+
+            if target == "alignerr":
+                resp = await client.get("https://www.alignerr.com/jobs")
+                if resp.status_code == 200:
+                    return self.parse_alignerr_html(resp.text)
                 return []
 
             if target == "jobicy":

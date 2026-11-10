@@ -151,7 +151,7 @@ def test_approved_queue_jobs_referral_pack():
 
         company = extract_company_name(payload)
         title = extract_job_title(payload)
-        extract_location(payload)
+        loc = extract_location(payload)
         job_url = extract_job_url(payload)
         clean_url = clean_job_url(job_url)
         req_id = extract_requisition_id(payload)
@@ -176,8 +176,9 @@ def test_approved_queue_jobs_referral_pack():
             assert encoded_company in url_str or company.replace(" ", "%20") in url_str or company in url_str, (
                 f"Company {company} missing from {key} URL: {url_str}"
             )
-            # All 7 approved jobs are in India / Bengaluru
-            assert "%20India" in url_str, f"Location token %20India missing from {key} URL: {url_str}"
+            # Assert %20India when the job location is an Indian hub
+            if any(k in loc.lower() for k in ("india", "bengaluru", "bangalore", "hyderabad", "pune")):
+                assert "%20India" in url_str, f"Location token %20India missing from {key} URL: {url_str}"
 
         # 3. Assert Connection Request Note Bounds and Direct Job Link
         conn_note = pack["connection_note"]

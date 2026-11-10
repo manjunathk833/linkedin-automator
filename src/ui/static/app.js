@@ -209,6 +209,13 @@ function formatSourceBadge(source, appType) {
             icon: '🌍'
         };
     }
+    if (s.includes('alignerr') || a.includes('ALIGNERR')) {
+        return {
+            label: '🌍 Alignerr (USD/hr)',
+            cssClass: 'badge-greenhouse',
+            icon: '🌍'
+        };
+    }
     if (
         s.includes('jobicy') || s.includes('arbeitnow') || s.includes('remoteok') ||
         s.includes('himalayas') || s.includes('wwr') || s.includes('workingnomads') ||

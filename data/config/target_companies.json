@@ -11724,5 +11724,15 @@
     "industry": "AI Evaluation & Observability Stack",
     "is_dream_org": true,
     "datacenter": "wd3"
+  },
+  {
+    "name": "Alignerr (Labelbox AI)",
+    "ats_provider": "global_remote",
+    "slug": "alignerr",
+    "domain": "alignerr.com",
+    "active": true,
+    "industry": "AI Evaluation & Coding RLHF Contractor Platform",
+    "is_dream_org": true,
+    "datacenter": "wd3"
   }
 ]

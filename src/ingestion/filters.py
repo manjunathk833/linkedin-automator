@@ -369,6 +369,59 @@ def is_sdet_title(title: str | None) -> bool:
     return bool(POSITIVE_SDET_REGEX.search(clean_title))
 
 
+SWE_ELIGIBLE_TITLE_REGEX = re.compile(
+    r"\b("
+    r"software\s+engineers?|"
+    r"software\s+engineering\s+experts?|"
+    r"software\s+developers?|"
+    r"sdet|qa|test|automation|evaluations?"
+    r")\b",
+    re.IGNORECASE,
+)
+
+AI_EVAL_CONTRACT_DESC_REGEX = re.compile(
+    r"\b("
+    r"ai\s+training\s+and\s+evaluation|"
+    r"ai\s+coding\s+assistants?|"
+    r"evaluate\s+ai\s+coding|"
+    r"software\s+engineering\s+evaluations?|"
+    r"frontier\s+(?:ai|coding\s+agents?|models?|model\s+training|large\s+language\s+models?)|"
+    r"paid\s+expert\s+interviews?|"
+    r"rubric\s+that\s+frontier\s+ai|"
+    r"choose\s+the\s+best\s+of\s+the\s+responses|"
+    r"build\s+and\s+refine\s+evaluations?|"
+    r"benchmark\s+and\s+improve\s+cutting-edge\s+ai"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def is_ai_coding_eval_contract(
+    title: str | None,
+    description: str | None = "",
+    source: str | None = "",
+) -> bool:
+    """
+    Evaluates whether a software/coding role on an AI-evaluation platform (e.g. Mercor, Alignerr)
+    represents an authentic AI coding evaluation, RLHF preference, or benchmark engineering contract
+    even when the title is a generic SWE title (e.g. 'Software Engineering Expert', 'Software Engineer - Project Creation').
+    """
+    if not title or not title.strip():
+        return False
+    clean_title = title.strip()
+    if NEGATIVE_TITLE_REGEX.search(clean_title):
+        return False
+    combined = f"{clean_title} {description or ''}"
+    if has_jurisdiction_restriction(combined):
+        return False
+    if is_sdet_title(clean_title):
+        return True
+    src_low = str(source or "").strip().lower()
+    if src_low in ("mercor", "alignerr", "global_remote", ""):
+        return bool(SWE_ELIGIBLE_TITLE_REGEX.search(clean_title) and AI_EVAL_CONTRACT_DESC_REGEX.search(combined))
+    return False
+
+
 def is_india_or_remote_location(
     location_str: str | None,
     allow_unspecified: bool = False,
