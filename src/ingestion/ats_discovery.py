@@ -93,9 +93,64 @@ class ATSDiscoveryCoordinator:
         with open(self.db_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
+    @staticmethod
+    def normalize_company_name_for_dedup(company: str) -> str:
+        """
+        Normalizes corporate/portal suffixes (e.g. 'Alcon Digital Health' -> 'alcon',
+        'Qualcomm India (Careers)' -> 'qualcomm', 'Citi Technology' -> 'citi') so cross-channel
+        listings (Workday vs LinkedIn) map to a shared canonical composite hash.
+        """
+        raw = re.sub(r"\(.*?\)", " ", (company or "").strip().lower())
+        raw = re.sub(r"[^a-z0-9\s]", " ", raw)
+        raw = re.sub(r"\s+", " ", raw).strip()
+        if not raw:
+            return ""
+        suffix_pattern = re.compile(
+            r"\b("
+            r"digital\s+health|"
+            r"global\s+software|"
+            r"global\s+tech|"
+            r"technology\s+center|"
+            r"technologies|"
+            r"technology|"
+            r"engineering|"
+            r"careers|"
+            r"private\s+limited|"
+            r"pvt\s+ltd|"
+            r"limited|"
+            r"ltd|"
+            r"inc|"
+            r"llc|"
+            r"corp|"
+            r"corporation|"
+            r"group|"
+            r"systems|"
+            r"solutions|"
+            r"india|"
+            r"global|"
+            r"digital"
+            r")\s*$"
+        )
+        cleaned = raw
+        for _ in range(3):
+            candidate = suffix_pattern.sub("", cleaned).strip()
+            if candidate:
+                cleaned = candidate
+            else:
+                break
+        return cleaned or raw
+
     def generate_composite_hash(self, company: str, title: str) -> str:
         """Generates a composite hash md5(company_title) for cross-platform duplicate detection."""
         norm = f"{company.strip().lower()}_{title.strip().lower()}"
+        return hashlib.md5(norm.encode("utf-8")).hexdigest()
+
+    @classmethod
+    def generate_normalized_composite_hash(cls, company: str, title: str) -> str:
+        """Generates a suffix-normalized composite hash so 'Alcon Digital Health' and 'Alcon' deduplicate."""
+        norm_comp = cls.normalize_company_name_for_dedup(company)
+        norm_title = re.sub(r"\s+", " ", (title or "").strip().lower())
+        norm = f"{norm_comp}_{norm_title}"
         return hashlib.md5(norm.encode("utf-8")).hexdigest()
 
     @staticmethod
@@ -125,21 +180,24 @@ class ATSDiscoveryCoordinator:
         prev_entry: dict[str, Any] | None,
     ) -> bool:
         """
-        Returns True if `posted_at` is within <=24h of UTC now AND at least 24h newer than
-        the previous `posted_at` or `first_seen` recorded in `processed_jobs.json`.
+        Returns True if `posted_at` is within <=24h (or <=48h/96h for date-only 00:00:00 timestamps)
+        of UTC now AND at least 24h newer than the previous `posted_at` or `first_seen` recorded in `processed_jobs.json`.
         """
         post_dt = cls._parse_iso_naive_utc(posted_at)
         if post_dt is None or not isinstance(prev_entry, dict):
             return False
         now_utc = datetime.datetime.utcnow()
         age_hours = (now_utc - post_dt).total_seconds() / 3600.0
-        if age_hours > 24.0:
-            return False
         prev_ts = prev_entry.get("posted_at") or prev_entry.get("first_seen")
         prev_dt = cls._parse_iso_naive_utc(prev_ts)
         if prev_dt is None:
             return False
-        return (post_dt - prev_dt).total_seconds() >= 24.0 * 3600.0
+        refresh_gap_hours = (post_dt - prev_dt).total_seconds() / 3600.0
+        if refresh_gap_hours < 24.0:
+            return False
+        is_date_only = post_dt.hour == 0 and post_dt.minute == 0 and post_dt.second == 0 and post_dt.microsecond == 0
+        max_allowed_age = (96.0 if refresh_gap_hours >= 7 * 24.0 else 48.0) if is_date_only else 24.0
+        return age_hours <= max_allowed_age
 
     def is_duplicate(
         self,
@@ -167,8 +225,9 @@ class ATSDiscoveryCoordinator:
         job_ids = data.get("job_ids", {})
         composite_hashes = data.get("composite_hashes", {})
         c_hash = self.generate_composite_hash(company, title)
+        norm_c_hash = self.generate_normalized_composite_hash(company, title)
 
-        prev_entry = job_ids.get(job_id) or composite_hashes.get(c_hash)
+        prev_entry = job_ids.get(job_id) or composite_hashes.get(c_hash) or composite_hashes.get(norm_c_hash)
         is_reopened = reopened_fresh or self._is_entry_reopened_within_24h(posted_at, prev_entry)
 
         # 1. Check SQLite persistent database for completed applications (exact ID & company+role)
@@ -176,7 +235,12 @@ class ATSDiscoveryCoordinator:
             from src.storage.database import ApplicationDatabase
 
             db = ApplicationDatabase()
-            if db.is_job_applied(job_id) or db.is_company_role_applied(company, title):
+            norm_comp = self.normalize_company_name_for_dedup(company)
+            if (
+                db.is_job_applied(job_id)
+                or db.is_company_role_applied(company, title)
+                or (norm_comp and db.is_company_role_applied(norm_comp, title))
+            ):
                 return not (is_reopened and db.is_reapply_eligible(job_id, company, title, min_days=30.0))
         except Exception:
             pass
@@ -186,8 +250,8 @@ class ATSDiscoveryCoordinator:
             if os.path.exists(applied_qdir) and f"{job_id}.json" in os.listdir(applied_qdir):
                 return True
 
-        # 2. Check primary job_id and composite hash in processed_jobs.json
-        if job_id in job_ids or c_hash in composite_hashes:
+        # 2. Check primary job_id and composite hash (both exact and suffix-normalized) in processed_jobs.json
+        if job_id in job_ids or c_hash in composite_hashes or norm_c_hash in composite_hashes:
             return not is_reopened
 
         return False
@@ -204,6 +268,7 @@ class ATSDiscoveryCoordinator:
         data = self.load_processed_jobs()
         now = datetime.datetime.utcnow().isoformat() + "Z"
         c_hash = self.generate_composite_hash(company, title)
+        norm_c_hash = self.generate_normalized_composite_hash(company, title)
         existing = data.get("job_ids", {}).get(job_id) or {}
 
         data.setdefault("job_ids", {})[job_id] = {
@@ -214,11 +279,13 @@ class ATSDiscoveryCoordinator:
             "posted_at": posted_at or existing.get("posted_at") or now,
             "status": status,
         }
-        data.setdefault("composite_hashes", {})[c_hash] = {
+        hash_entry = {
             "job_id": job_id,
             "first_seen": existing.get("first_seen") or now,
             "posted_at": posted_at or existing.get("posted_at") or now,
         }
+        data.setdefault("composite_hashes", {})[c_hash] = hash_entry
+        data.setdefault("composite_hashes", {})[norm_c_hash] = hash_entry
         self.save_processed_jobs(data)
 
     def load_target_companies(self) -> list[TargetCompany]:
@@ -493,9 +560,59 @@ class ATSDiscoveryCoordinator:
 
         for item in listings:
             c_hash = self.generate_composite_hash(item.company_name, item.job_title)
-            was_previously_seen = item.id in proc_ids or c_hash in proc_hashes
+            norm_c_hash = self.generate_normalized_composite_hash(item.company_name, item.job_title)
+            prev_entry = proc_ids.get(item.id) or proc_hashes.get(c_hash) or proc_hashes.get(norm_c_hash)
+            was_previously_seen = prev_entry is not None
+            is_reopened_now = self._is_entry_reopened_within_24h(item.posted_at, prev_entry)
+
             # Cross-platform and applied reseed guard (allows genuinely re-opened <24h roles)
             if self.is_duplicate(item.id, item.company_name, item.job_title, posted_at=item.posted_at):
+                if is_reopened_now and app_db is not None:
+                    applied_details = app_db.get_applied_job_details(item.id, item.company_name, item.job_title)
+                    if applied_details:
+                        days_ago = float(applied_details.get("days_since_applied", 0.0) or 0.0)
+                        if 2.0 <= days_ago < 30.0:
+                            try:
+                                from src.tailor.referral_generator import (
+                                    ReferralNoteGenerator,
+                                    resolve_direct_ats_portal_url,
+                                )
+
+                                existing_outreach = app_db.get_referral_outreach(job_id=item.id, limit=5)
+                                if not any(r.get("outreach_type") == "REPOST_FOLLOWUP" for r in existing_outreach):
+                                    direct_portal = resolve_direct_ats_portal_url(item.company_name) or (
+                                        item.application_url or ""
+                                    )
+                                    followup_note = ReferralNoteGenerator.generate_repost_followup_note(
+                                        {
+                                            "job_id": item.id,
+                                            "company_name": item.company_name,
+                                            "job_title": item.job_title,
+                                            "job_url": item.application_url or "",
+                                        },
+                                        days_since_applied=days_ago,
+                                    )
+                                    app_db.log_referral_outreach(
+                                        job_id=str(applied_details.get("job_id") or item.id),
+                                        company_name=item.company_name,
+                                        job_title=item.job_title,
+                                        outreach_type="REPOST_FOLLOWUP",
+                                        note_content=followup_note,
+                                        requisition_id=item.id,
+                                        contact_name="Recruiter / Hiring Manager (Repost Follow-Up)",
+                                        contact_title="Talent Acquisition / Engineering Leadership",
+                                        contact_linkedin_url=direct_portal,
+                                        status="REPOST_FOLLOWUP",
+                                    )
+                                self.mark_job_processed(
+                                    item.id,
+                                    item.company_name,
+                                    item.job_title,
+                                    status="APPLIED_REPOST_FOLLOWUP",
+                                    posted_at=item.posted_at.isoformat() if item.posted_at else None,
+                                )
+                            except Exception:
+                                pass
                 skipped_count += 1
                 continue
 

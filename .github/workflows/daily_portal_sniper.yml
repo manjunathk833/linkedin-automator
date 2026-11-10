@@ -2,8 +2,9 @@ name: Daily Career Portal Sniper (<24h Fresh Drops)
 
 on:
   schedule:
-    # Runs 6x daily every 3h across the IST workday: 07:30, 10:30, 13:30, 16:30, 19:30, and 22:30 IST
-    - cron: "0 2,5,8,11,14,17 * * *"
+    # Runs 6x daily every 3h at off-peak minute :23 (avoids GitHub :00 cron queue drops):
+    # 07:53, 10:53, 13:53, 16:53, 19:53, and 22:53 IST
+    - cron: "23 2,5,8,11,14,17 * * *"
   workflow_dispatch:
     inputs:
       hours:

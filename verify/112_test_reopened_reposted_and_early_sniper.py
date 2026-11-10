@@ -342,6 +342,119 @@ def test_early_applicant_metrics_and_preclick_location_gate() -> None:
     print("  ✅ Early-Applicant (<25) metrics, geoId URL builder & Pre-Click Location Gate passed.")
 
 
+def test_workday_date_only_reopen_repost_followup_and_cross_channel_dedup() -> None:
+    print("🧪 5. Testing Workday date-only (00:00:00) re-open, REPOST_FOLLOWUP logging & cross-channel dedup...")
+    from src.ingestion.ats_discovery import ATSDiscoveryCoordinator
+
+    now_utc = datetime.utcnow()
+    # Simulate Workday CrowdStrike R28268: originally posted 24 days ago (00:00:00), refreshed 3 days ago (00:00:00)
+    old_date_only = (now_utc - timedelta(days=24)).replace(hour=0, minute=0, second=0, microsecond=0)
+    refreshed_date_only = (now_utc - timedelta(days=3)).replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday_date_only = (now_utc - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        inbox_dir = os.path.join(tmpdir, "ci_inbox")
+        pending_dir = os.path.join(tmpdir, "pending_queue")
+        proc_file = os.path.join(tmpdir, "processed_jobs.json")
+        sqlite_db = os.path.join(tmpdir, "test_crowdstrike.db")
+
+        sniper = PortalSniperEngine(inbox_dir=inbox_dir, max_age_hours=24.0)
+        sniper.save_seen_ledger(
+            {
+                "workday_crowdstrike_r28268": {
+                    "company": "CrowdStrike",
+                    "title": "Engineer III – Cloud SDET",
+                    "source": "workday",
+                    "first_seen_at": old_date_only.isoformat() + "Z",
+                    "posted_at": old_date_only.isoformat(),
+                }
+            }
+        )
+
+        # 1. CrowdStrike R28268 refreshed 3 days ago (00:00:00) after 21-day jump -> detected via 96h date-only ledger jump window
+        cs_listing = JobListing(
+            id="workday_crowdstrike_r28268",
+            source="workday",
+            company_name="CrowdStrike",
+            job_title="Engineer III – Cloud SDET",
+            location="India - Bangalore",
+            url="https://crowdstrike.wd5.myworkdayjobs.com/en-US/crowdstrikecareers/job/India---Bangalore/Engineer-III---Cloud-SDET_R28268",
+            job_description_raw="Cloud SDET role requiring Python, Pytest, AWS, Kubernetes, API automation.",
+            job_description_clean="Cloud SDET role requiring Python, Pytest, AWS, Kubernetes, API automation.",
+            posted_at=refreshed_date_only,
+            is_dream_org=True,
+        )
+        # 2. First-seen date-only Workday/Amazon job posted yesterday (00:00:00, ~24-47h ago) -> passes 48h date-only grace
+        amz_listing = JobListing(
+            id="amazon_amazon-india_10600973",
+            source="amazon",
+            company_name="Amazon India",
+            job_title="Quality Assurance Engineer, IES Prime Tech",
+            location="Bengaluru, Karnataka, IND, India",
+            url="https://www.amazon.jobs/en/jobs/3196452",
+            job_description_raw="Quality Assurance Engineer role requiring Java, Selenium, Playwright, API testing.",
+            job_description_clean="Quality Assurance Engineer role requiring Java, Selenium, Playwright, API testing.",
+            posted_at=yesterday_date_only,
+            is_dream_org=True,
+        )
+
+        bundle = sniper.filter_and_package_drops([cs_listing, amz_listing], total_orgs_polled=2)
+        assert bundle["fresh_drops_count"] == 2, f"Expected 2 drops (CrowdStrike + Amazon), got: {bundle}"
+        assert bundle["reopened_fresh_count"] == 1
+
+        # Record CrowdStrike as applied 11 days ago in SQLite
+        db = ApplicationDatabase(db_path=sqlite_db)
+        db.record_application(
+            job_id="workday_crowdstrike_r28268",
+            source="workday",
+            company_name="CrowdStrike",
+            job_title="Engineer III – Cloud SDET",
+            job_url=cs_listing.url,
+            status="applied",
+        )
+        eleven_days_ago = (now_utc - timedelta(days=11)).strftime("%Y-%m-%d %H:%M:%S")
+        with sqlite3.connect(sqlite_db) as conn:
+            conn.execute(
+                "UPDATE job_applications SET applied_at = ? WHERE id = 'workday_crowdstrike_r28268'",
+                (eleven_days_ago,),
+            )
+            conn.commit()
+
+        ingestor = CISyncIngestor(
+            inbox_dir=inbox_dir,
+            pending_dir=pending_dir,
+            processed_db_file=proc_file,
+            sqlite_db_path=sqlite_db,
+            use_ai=False,
+        )
+        sync_res = ingestor.sync_latest_drops(fetch_remote=False)
+        # Amazon should be ingested to pending_queue, while CrowdStrike (applied 11d ago) logs a REPOST_FOLLOWUP!
+        assert sync_res["ingested_count"] == 1, f"Expected Amazon ingested, got {sync_res}"
+        assert sync_res.get("repost_followups_logged") == 1, f"Expected 1 repost followup logged, got {sync_res}"
+        assert "workday_crowdstrike_r28268" in sync_res.get("repost_followup_ids", [])
+
+        outreach_rows = db.get_referral_outreach(status="REPOST_FOLLOWUP")
+        assert len(outreach_rows) == 1, f"Expected 1 REPOST_FOLLOWUP row in SQLite, got {outreach_rows}"
+        assert outreach_rows[0]["company_name"] == "CrowdStrike"
+        assert len(outreach_rows[0]["note_content"]) <= 300
+
+        # 3. Cross-channel company suffix normalization: 'Alcon Digital Health' (Workday) vs 'Alcon' (LinkedIn)
+        coord = ATSDiscoveryCoordinator(queue_dir=pending_dir, db_file=proc_file, use_ai=False)
+        coord.mark_job_processed(
+            job_id="workday_alcon_r-2026-50801",
+            company="Alcon Digital Health",
+            title="Senior Verification Engineer, Connectivity / Web Platform",
+            status="REJECTED",
+        )
+        finder = LinkedInJobFinder(db_file=proc_file, use_ai=False)
+        assert finder.is_duplicate(
+            job_id="4489453768",
+            company="Alcon",
+            title="Senior Verification Engineer, Connectivity / Web Platform",
+        ), "Expected LinkedIn 'Alcon' role to match Workday 'Alcon Digital Health' via normalized composite hash!"
+    print("  ✅ Workday date-only re-open, REPOST_FOLLOWUP logging & cross-channel Alcon deduplication passed.")
+
+
 if __name__ == "__main__":
     print("=" * 72)
     print("🚀 RUNNING GATE 112: REOPENED (<24H), REPOSTED & EARLY-SNIPER VERIFICATION")
@@ -350,6 +463,7 @@ if __name__ == "__main__":
     test_reopened_24h_ci_and_portal_sniper()
     test_reposted_applied_jobs_and_followup_routing()
     test_early_applicant_metrics_and_preclick_location_gate()
+    test_workday_date_only_reopen_repost_followup_and_cross_channel_dedup()
     print("=" * 72)
     print("🎉 GATE 112 PASSED (100% ALL ASSERTIONS VERIFIED)")
     print("=" * 72)

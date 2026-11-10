@@ -90,6 +90,28 @@ if [[ $((10#${CURRENT_HOUR})) -ge 10 ]]; then
     ${CMD_PREFIX} "${VENV_PYTHON}" main.py sync-ci --fetch-remote >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Afternoon CI sync exited with code $?" >> "${RUN_LOG}"
     }
+    # If GitHub Actions dropped or delayed a scheduled cron run (>3.5h stale), trigger remote workflow and run local portal-sniper fallback
+    if "${VENV_PYTHON}" -c '
+import json, datetime, sys
+from pathlib import Path
+p = Path("data/ci_inbox/latest_ci_drops.json")
+if not p.exists():
+    sys.exit(0)
+try:
+    b = json.loads(p.read_text())
+    dt = datetime.datetime.fromisoformat(str(b.get("generated_at", "")).removesuffix("Z").replace("+00:00", ""))
+    age_h = (datetime.datetime.utcnow() - dt).total_seconds() / 3600.0
+    sys.exit(0 if age_h > 3.5 else 1)
+except Exception:
+    sys.exit(0)
+'; then
+        echo "⚡ Remote CI bundle is >3.5h old (GitHub cron delayed/skipped) -> Triggering gh workflow & running local portal-sniper delta scan..." >> "${RUN_LOG}"
+        if command -v gh >/dev/null 2>&1; then
+            gh workflow run daily_portal_sniper.yml >/dev/null 2>&1 || true
+        fi
+        ${CMD_PREFIX} "${VENV_PYTHON}" main.py portal-sniper --hours 24 >> "${RUN_LOG}" 2>> "${ERR_LOG}" || true
+        ${CMD_PREFIX} "${VENV_PYTHON}" main.py sync-ci >> "${RUN_LOG}" 2>> "${ERR_LOG}" || true
+    fi
     ${CMD_PREFIX} "${VENV_PYTHON}" main.py search --source sniper >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Afternoon LinkedIn Sniper (<24h) pass exited with code $?" >> "${RUN_LOG}"
     }
