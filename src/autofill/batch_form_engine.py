@@ -131,7 +131,7 @@ class UniversalBatchFormFiller:
             };
 
             const selectors = [
-                'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"])',
+                'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([data-automation-id="beecatcher"])',
                 'select',
                 'textarea',
                 'button[role="combobox"]',

@@ -3010,7 +3010,7 @@ class ATSAssistedFiller:
 
             # 12. Auth Gate: Sign In Mode (Must have password input visible, AND signInSubmitButton or /login URL)
             sign_in_submit = target.locator(
-                "button[data-automation-id='signInSubmitButton'], [data-automation-id='authDialog'] button:has-text('Sign In'), form button[type='submit']"
+                "button[data-automation-id='signInSubmitButton'], [data-automation-id='authDialog'] button:has-text('Sign In'), [data-automation-id='signInFormo'] button[type='submit']"
             ).first
             if has_pwd and (
                 (await sign_in_submit.count() > 0 and await sign_in_submit.is_visible()) or ("/login" in curr_url)
@@ -3021,6 +3021,54 @@ class ATSAssistedFiller:
             pass
 
         return "unknown"
+
+    async def _inject_fast_park_cheat_sheet(
+        self,
+        target: Any,
+        portal_name: str,
+        resume_pdf_path: str | None = None,
+        status_note: str = "Paused for quick user action",
+    ) -> None:
+        """Injects the floating Candidate Cheat Sheet badge without starting a blocking 600s monitor task."""
+        page = getattr(target, "page", target)
+        if not hasattr(page, "evaluate"):
+            return
+        try:
+            p = self.master_data.personal
+            workday_pwd = getattr(p, "workday_default_password", None) or os.getenv(
+                "WORKDAY_DEFAULT_PASSWORD", "CandidateMockSecret123!"
+            )
+            full_name = p.full_name or f"{p.first_name} {p.last_name}"
+            pdf_display = os.path.basename(resume_pdf_path) if resume_pdf_path else "Tailored Resume PDF"
+            card_js = f"""
+            (() => {{
+                const existing = document.getElementById('antigravity-copilot-helper');
+                if (existing) existing.remove();
+                const c = document.createElement('div');
+                c.id = 'antigravity-copilot-helper';
+                c.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:rgba(15,23,42,0.96);border:1px solid rgba(56,189,248,0.6);border-radius:12px;padding:14px 18px;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:12px;box-shadow:0 12px 28px rgba(0,0,0,0.6);backdrop-filter:blur(8px);max-width:350px;line-height:1.5;';
+                c.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px;">
+                        <span style="color:#38bdf8;font-weight:700;font-size:13px;">⚡ {portal_name}</span>
+                        <button onclick="document.getElementById('antigravity-copilot-helper').remove()" style="background:transparent;border:none;color:#94a3b8;font-size:16px;cursor:pointer;padding:0 4px;">✕</button>
+                    </div>
+                    <div style="color:#fde047;font-weight:600;margin-bottom:6px;">{status_note}</div>
+                    <div style="display:grid;gap:3px;">
+                        <div><span style="color:#94a3b8;">Name:</span> <strong>{full_name}</strong></div>
+                        <div><span style="color:#94a3b8;">Email:</span> <strong>{p.email}</strong></div>
+                        <div><span style="color:#94a3b8;">Phone:</span> <strong>{p.phone}</strong></div>
+                        <div><span style="color:#94a3b8;">Workday Pass:</span> <strong>{workday_pwd}</strong></div>
+                        <div style="margin-top:4px;padding-top:4px;border-top:1px dashed rgba(255,255,255,0.15);font-size:11px;color:#a5f3fc;word-break:break-all;">
+                            📄 Resume: {pdf_display}
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(c);
+            }})();
+            """
+            await page.evaluate(card_js)
+        except Exception:
+            pass
 
     async def _fill_workday(
         self,
@@ -3034,7 +3082,7 @@ class ATSAssistedFiller:
         fast_park_on_verify: bool = False,
     ) -> tuple[int, bool]:
         """Fills standard Workday application fields using an autonomous state machine loop.
-        Handles dynamic transitions across Job Overview, Modals, Create Account, Sign In,
+        Handles dynamic transitions across Job Overview, Modals, Sign In First -> Create Account Fallback,
         Post-Registration Verification, Stage 3 My Information, and Stage 4 My Experience."""
         filled = 0
         attached = False
@@ -3066,6 +3114,8 @@ class ATSAssistedFiller:
         transition_count = 0
         last_state = None
         state_stuck_count = 0
+        attempted_sign_in_first = False
+        attempted_register_fallback = False
 
         while transition_count < max_transitions:
             transition_count += 1
@@ -3090,6 +3140,14 @@ class ATSAssistedFiller:
                     )
                     await self._capture_workday_diagnostic(target, f"stuck_{curr_state}")
                     page_obj = getattr(target, "page", target)
+                    if fast_park_on_verify:
+                        await self._inject_fast_park_cheat_sheet(
+                            page_obj,
+                            portal_name=f"{company or 'Workday'} ({curr_state})",
+                            resume_pdf_path=resume_pdf_path,
+                            status_note=f"⏸️ Paused at Workday '{curr_state}' step — ready for quick review",
+                        )
+                        return filled, attached
                     await self._enter_manual_takeover_mode(
                         target=page_obj,
                         portal_name=f"{company or 'Workday'} Application",
@@ -3117,34 +3175,55 @@ class ATSAssistedFiller:
                     await apply_btn.click(force=True)
                 await asyncio.sleep(2.0)
 
-            # --- State 2: 'Start Your Application' Modal ---
+            # --- State 2: 'Start Your Application' Modal (Prioritize 'Use My Last Application' FIRST) ---
             elif curr_state == "modal":
-                apply_manually = target.locator(
-                    "[data-automation-id='applyManually'], button:has-text('Apply Manually'), a:has-text('Apply Manually'), [data-automation-id*='applyManually']"
+                use_last = target.locator(
+                    "[data-automation-id='useMyLastApplication'], button:has-text('Use My Last Application'), a:has-text('Use My Last Application')"
                 ).first
-                if await apply_manually.count() > 0 and await apply_manually.is_visible():
-                    print("📝 Selecting 'Apply Manually' in application modal...")
+                if await use_last.count() > 0 and await use_last.is_visible():
+                    print("⚡ Selecting 'Use My Last Application' in Workday modal (fast-track repeat org)...")
                     try:
-                        await apply_manually.click(timeout=3000)
+                        await use_last.click(timeout=3000)
                     except Exception:
-                        await apply_manually.click(force=True)
+                        await use_last.click(force=True)
                     await asyncio.sleep(2.0)
                 else:
-                    use_last = target.locator(
-                        "[data-automation-id='useMyLastApplication'], button:has-text('Use My Last Application')"
+                    apply_manually = target.locator(
+                        "[data-automation-id='applyManually'], button:has-text('Apply Manually'), a:has-text('Apply Manually'), [data-automation-id*='applyManually']"
                     ).first
-                    if await use_last.count() > 0 and await use_last.is_visible():
-                        print("📝 Selecting 'Use My Last Application' in application modal...")
+                    if await apply_manually.count() > 0 and await apply_manually.is_visible():
+                        print("📝 Selecting 'Apply Manually' in application modal...")
                         try:
-                            await use_last.click(timeout=3000)
+                            await apply_manually.click(timeout=3000)
                         except Exception:
-                            await use_last.click(force=True)
-                    await asyncio.sleep(2.0)
+                            await apply_manually.click(force=True)
+                        await asyncio.sleep(2.0)
 
-            # --- State 3A: Auth Gate - Create Account Mode ---
+            # --- State 3A: Auth Gate - Create Account Mode (Try Sign In First unless already attempted) ---
             elif curr_state == "auth_create":
+                if not attempted_sign_in_first:
+                    sign_in_switch = target.locator(
+                        "[data-automation-id='signInLink'], [data-automation-id='auth_signin_link'], "
+                        "[data-automation-id='auth_container'] button:has-text('Sign In'), "
+                        "[data-automation-id='authDialog'] button:has-text('Sign In'), "
+                        "button:has-text('Sign In'), a:has-text('Sign In')"
+                    ).first
+                    if await sign_in_switch.count() > 0 and await sign_in_switch.is_visible():
+                        print("🔑 Workday opened on Create Account — switching to 'Sign In' first...")
+                        attempted_sign_in_first = True
+                        last_state = None
+                        try:
+                            await sign_in_switch.click(timeout=2500)
+                        except Exception:
+                            await sign_in_switch.click(force=True)
+                        await asyncio.sleep(1.5)
+                        continue
+
                 print("📝 Populating 'Create Account' credentials and agreements...")
-                email_inp = target.locator("input[data-automation-id='email'], input#email, input[type='email']").first
+                attempted_register_fallback = True
+                email_inp = target.locator(
+                    "input[data-automation-id='email']:not([data-automation-id='beecatcher']), input#email, input[type='email']"
+                ).first
                 pwd_inp = target.locator(
                     "input[data-automation-id='password'], input#password, input[type='password']"
                 ).first
@@ -3152,7 +3231,7 @@ class ATSAssistedFiller:
                     "input[data-automation-id='verifyPassword'], input#verifyPassword"
                 ).first
                 create_acc_btn = target.locator(
-                    "button[data-automation-id='createAccountSubmitButton'], div[data-automation-id='click_filter'][aria-label='Create Account'], [data-automation-id='authDialog'] button:has-text('Create Account'), form button[type='submit']"
+                    "button[data-automation-id='createAccountSubmitButton'], div[data-automation-id='click_filter'][aria-label='Create Account'], [data-automation-id='authDialog'] button:has-text('Create Account'), [data-automation-id*='createAccount'] button[type='submit']"
                 ).first
 
                 if await email_inp.count() > 0 and await email_inp.is_visible():
@@ -3192,7 +3271,8 @@ class ATSAssistedFiller:
                 if await account_exists.count() > 0 and await account_exists.is_visible():
                     print("ℹ️ Account already exists on this tenant. Switching to Sign In...")
                     sign_in_link = target.locator(
-                        "button:has-text('Sign In'), a:has-text('Sign In'), [data-automation-id='signInLink'], "
+                        "[data-automation-id='signInLink'], [data-automation-id='auth_signin_link'], "
+                        "button:has-text('Sign In'), a:has-text('Sign In'), "
                         "button:has-text('Sign in'), a:has-text('Sign in'), a[href*='/login']"
                     ).first
                     if await sign_in_link.count() > 0 and await sign_in_link.is_visible():
@@ -3202,15 +3282,18 @@ class ATSAssistedFiller:
                             await sign_in_link.click(force=True)
                         await asyncio.sleep(1.5)
 
-            # --- State 3B: Auth Gate - Sign In Mode ---
+            # --- State 3B: Auth Gate - Sign In Mode (Fallback to Create Account on Error) ---
             elif curr_state == "auth_sign_in":
+                attempted_sign_in_first = True
                 print("🔑 Populating 'Sign In' credentials...")
-                email_inp = target.locator("input[data-automation-id='email'], input#email, input[type='email']").first
+                email_inp = target.locator(
+                    "input[data-automation-id='email']:not([data-automation-id='beecatcher']), input#email, input[type='email']"
+                ).first
                 pwd_inp = target.locator(
                     "input[data-automation-id='password'], input#password, input[type='password']"
                 ).first
                 sign_in_submit = target.locator(
-                    "button[data-automation-id='signInSubmitButton'], div[data-automation-id='click_filter'][aria-label='Sign In'], [data-automation-id='authDialog'] button:has-text('Sign In'), form button[type='submit']"
+                    "button[data-automation-id='signInSubmitButton'], div[data-automation-id='click_filter'][aria-label='Sign In'], [data-automation-id='authDialog'] button:has-text('Sign In'), [data-automation-id='signInFormo'] button[type='submit']"
                 ).first
 
                 if await email_inp.count() > 0 and await email_inp.is_visible():
@@ -3231,25 +3314,24 @@ class ATSAssistedFiller:
                         await sign_in_submit.click(force=True)
                     await asyncio.sleep(2.5)
 
-                # Check for pending verification / locked message
-                locked_alert = target.locator(
-                    "div[role='alert']:has-text('locked'), div:has-text('account might be locked'), "
-                    "div:has-text('activate your account'), div:has-text('verification link')"
+                # 1. Check for TRUE pending email activation message (do NOT match generic 'or your account might be locked')
+                activation_alert = target.locator(
+                    "div:has-text('activate your account'), div:has-text('verification link'), "
+                    "div[role='alert']:has-text('verify your account')"
                 ).first
-                if await locked_alert.count() > 0 and await locked_alert.is_visible():
-                    print("\n" + "=" * 70)
-                    print("🔔 ⚠️ WORKDAY ACCOUNT PENDING EMAIL ACTIVATION")
-                    print("🔔 Workday reported account locked or pending verification.")
-                    print(f"🔔 An activation link was sent to {p.email}.")
-                    print("🔔 Halting repeated attempts. Please click the activation link in your email.")
-                    print("=" * 70 + "\n")
-                    try:
-                        sys.stdout.write("\a\a")
-                        sys.stdout.flush()
-                    except Exception:
-                        pass
+                if await activation_alert.count() > 0 and await activation_alert.is_visible():
+                    print(f"🔔 Workday account pending email activation for {company} ({job_id}).")
+                    page_obj = getattr(target, "page", target)
+                    if fast_park_on_verify:
+                        await self._inject_fast_park_cheat_sheet(
+                            page_obj,
+                            portal_name=f"{company or 'Workday'} Email Verify",
+                            resume_pdf_path=resume_pdf_path,
+                            status_note=f"📧 Click verification link sent to {p.email}, then run Resume",
+                        )
+                        return filled, attached
                     await self._enter_manual_takeover_mode(
-                        target=getattr(target, "page", target),
+                        target=page_obj,
                         portal_name="Workday Email Activation Gate",
                         resume_pdf_path=resume_pdf_path,
                         job_id=job_id,
@@ -3259,26 +3341,40 @@ class ATSAssistedFiller:
                     )
                     return filled, attached
 
-                # Check if account does NOT exist
-                account_not_found = target.locator(
-                    "div[role='alert']:has-text('invalid'), div:has-text('not find an account'), [data-automation-id*='errorMessage']:has-text('invalid')"
+                # 2. Check if Sign In failed (account does not exist yet on this tenant -> switch to Create Account!)
+                sign_in_error = target.locator(
+                    "[data-automation-id='errorMessage'], [data-automation-id*='errorMessage'], "
+                    "div[role='alert']:has-text('invalid'), div[role='alert']:has-text('wrong email'), "
+                    "div:has-text('wrong email address or password'), div:has-text('not find an account')"
                 ).first
-                if await account_not_found.count() > 0 and await account_not_found.is_visible():
-                    print("ℹ️ No account found on this tenant. Switching to Create Account...")
+                if (
+                    await sign_in_error.count() > 0
+                    and await sign_in_error.is_visible()
+                    and not attempted_register_fallback
+                ):
+                    print("ℹ️ Sign In returned error (no account yet on this tenant). Switching to Create Account...")
                     create_acc_link = target.locator(
                         "[data-automation-id='createAccountLink'], button:has-text('Create Account'), a:has-text('Create Account')"
                     ).first
                     if await create_acc_link.count() > 0 and await create_acc_link.is_visible():
+                        last_state = None
                         try:
                             await create_acc_link.click(timeout=3000)
                         except Exception:
                             await create_acc_link.click(force=True)
                         await asyncio.sleep(1.5)
+                        continue
 
             # --- State 4: Post-Registration Email Verification Notice ---
             elif curr_state == "email_verify":
                 if fast_park_on_verify:
                     print(f"⏸️ Fast-parking Workday tab for {company} ({job_id}) at Email Verification Gate.")
+                    await self._inject_fast_park_cheat_sheet(
+                        target,
+                        portal_name=f"{company or 'Workday'} Email Verify",
+                        resume_pdf_path=resume_pdf_path,
+                        status_note=f"📧 Verify account via email sent to {p.email}, then run Resume",
+                    )
                     return filled, attached
                 await self._handle_workday_email_verification_loop(target, workday_pwd)
 
@@ -3286,6 +3382,12 @@ class ATSAssistedFiller:
             elif curr_state == "otp":
                 if fast_park_on_verify:
                     print(f"⏸️ Fast-parking Workday tab for {company} ({job_id}) at OTP Gate.")
+                    await self._inject_fast_park_cheat_sheet(
+                        target,
+                        portal_name=f"{company or 'Workday'} OTP Gate",
+                        resume_pdf_path=resume_pdf_path,
+                        status_note=f"🔢 Enter verification OTP sent to {p.email}",
+                    )
                     return filled, attached
                 print("=" * 65)
                 print("🔔 WORKDAY OTP / EMAIL VERIFICATION CODE DETECTED")

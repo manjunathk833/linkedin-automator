@@ -424,6 +424,7 @@ class BulkApplyFastTrackEngine:
         batch_size: int = 5,
         ignore_tiers: bool = True,
         job_ids: list[str] | None = None,
+        org_filter: str = "",
     ) -> list[dict[str, Any]]:
         """Loads the next batch of approved job payloads from `data/approved_queue/`."""
         if not os.path.exists(self.approved_dir):
@@ -438,6 +439,7 @@ class BulkApplyFastTrackEngine:
 
         selected: list[dict[str, Any]] = []
         target_set = {str(x).strip() for x in (job_ids or []) if str(x).strip()}
+        org_query = str(org_filter or "").strip().lower()
 
         for fpath in files:
             jid = os.path.basename(fpath).replace(".json", "")
@@ -465,6 +467,13 @@ class BulkApplyFastTrackEngine:
                 or jd.get("url")
                 or f"https://www.linkedin.com/jobs/view/{jid}/"
             )
+            if (
+                org_query
+                and org_query not in company.lower()
+                and org_query not in url.lower()
+                and org_query not in jid.lower()
+            ):
+                continue
             pdf_path = resolve_approved_job_pdf(jid, payload, self.approved_dir)
 
             selected.append(
@@ -1081,10 +1090,27 @@ class BulkApplyFastTrackEngine:
                         "tab_kept_open": not verif_res.get("verified"),
                     }
 
-                is_verify_gate = (
+                is_email_verify = (
                     "verify your email" in wd_body
                     or "verification link" in wd_body
-                    or await page.locator("input[type='password']:visible").count() > 0
+                    or "activate your account" in wd_body
+                    or "verify your account" in wd_body
+                )
+                is_otp_or_captcha = (
+                    "verification code" in wd_body
+                    or "one-time password" in wd_body
+                    or "verify you are human" in wd_body
+                )
+                has_pwd_gate = await page.locator("input[type='password']:visible").count() > 0
+                is_verify_gate = is_email_verify or is_otp_or_captcha or has_pwd_gate
+                hitl_reason = (
+                    "EMAIL_VERIFY_REQUIRED"
+                    if is_email_verify
+                    else "OTP_OR_CAPTCHA"
+                    if is_otp_or_captcha
+                    else "AUTH_GATE"
+                    if has_pwd_gate
+                    else "UNMAPPED_QUESTIONS_OR_REVIEW"
                 )
                 return {
                     "status": "NEEDS_AUTH_OR_HITL" if is_verify_gate else "NEEDS_AGENT",
@@ -1094,6 +1120,7 @@ class BulkApplyFastTrackEngine:
                     "vendor": "WORKDAY_STANDARD",
                     "url": wd_url,
                     "visible_buttons": await extract_visible_buttons(page),
+                    "hitl_reason": hitl_reason,
                     "reason": "Workday verification/auth gate"
                     if is_verify_gate
                     else "Workday paused for review/custom step",
@@ -1836,16 +1863,26 @@ class BulkApplyFastTrackEngine:
         job_ids: list[str] | None = None,
         concurrency: int = 5,
         max_open_tabs: int = 5,
+        org_filter: str = "",
     ) -> dict[str, Any]:
         """
-        Stages `batch_size` jobs in cohort order (strictly capped at `max_open_tabs=5` per wave)
+        Stages `batch_size` jobs in cohort/org order (strictly capped at `max_open_tabs=5` per wave)
         in SEPARATE dedicated tabs (`context.new_page()`), auto-completes & closes clean/unavailable
         tabs, and leaves complex tabs open and pre-filled with Flight Recorder telemetry.
+        For multi-job Workday tenants, runs the lead job (#1) first so the session cookie and
+        'Use My Last Application' are established (or fast-parks once if email verification is needed).
         """
         t0 = time.perf_counter()
-        effective_batch = min(max(1, batch_size), max(1, max_open_tabs)) if not job_ids else max(1, batch_size)
+        effective_batch = (
+            min(max(1, batch_size), max(1, max_open_tabs)) if (not job_ids and not org_filter) else max(1, batch_size)
+        )
         effective_concurrency = min(max(1, concurrency), max(1, max_open_tabs), 5)
-        batch_jobs = self.list_queue_batch(batch_size=effective_batch, ignore_tiers=ignore_tiers, job_ids=job_ids)
+        batch_jobs = self.list_queue_batch(
+            batch_size=effective_batch,
+            ignore_tiers=ignore_tiers,
+            job_ids=job_ids,
+            org_filter=org_filter,
+        )
 
         if not batch_jobs:
             return {
@@ -1881,13 +1918,60 @@ class BulkApplyFastTrackEngine:
                             "tab_kept_open": True,
                         }
 
-            # Process in waves of at most `max_open_tabs` (default 5)
             results: list[dict[str, Any]] = []
             wave_size = max(1, min(max_open_tabs, 5))
-            for i in range(0, len(batch_jobs), wave_size):
-                wave = batch_jobs[i : i + wave_size]
+
+            # Separate multi-job Workday tenants from independent jobs so lead job (#1) establishes auth first
+            from urllib.parse import urlparse
+
+            tenant_buckets: dict[str, list[dict[str, Any]]] = {}
+            independent_jobs: list[dict[str, Any]] = []
+            for jb in batch_jobs:
+                u = str(jb.get("url", "")).lower()
+                host = urlparse(u).netloc.lower()
+                if "myworkday" in host:
+                    tenant_buckets.setdefault(host, []).append(jb)
+                else:
+                    independent_jobs.append(jb)
+
+            for host, t_jobs in list(tenant_buckets.items()):
+                if len(t_jobs) == 1:
+                    independent_jobs.append(t_jobs[0])
+                    del tenant_buckets[host]
+
+            # 1. Run independent jobs in waves of wave_size
+            for i in range(0, len(independent_jobs), wave_size):
+                wave = independent_jobs[i : i + wave_size]
                 wave_res = list(await asyncio.gather(*(_worker(jb) for jb in wave)))
                 results.extend(wave_res)
+
+            # 2. For multi-job Workday tenants, run lead job (#1) first, then follow-up jobs if authenticated
+            for host, t_jobs in tenant_buckets.items():
+                lead_res = await _worker(t_jobs[0])
+                results.append(lead_res)
+                if lead_res.get("status") == "NEEDS_AUTH_OR_HITL":
+                    # Tenant requires email verification or login HITL first — defer remaining jobs on this host
+                    for deferred_jb in t_jobs[1:]:
+                        results.append(
+                            {
+                                "status": "DEFERRED_AWAITING_TENANT_AUTH",
+                                "job_id": deferred_jb.get("job_id", ""),
+                                "company": deferred_jb.get("company", ""),
+                                "title": deferred_jb.get("title", ""),
+                                "vendor": "WORKDAY_STANDARD",
+                                "url": deferred_jb.get("url", ""),
+                                "reason": f"Deferred until lead tab ({t_jobs[0].get('job_id')}) completes tenant verification on {host}",
+                                "tab_kept_open": False,
+                            }
+                        )
+                    continue
+
+                # Lead job authenticated (or submitted)! Run remaining jobs on this tenant in waves
+                remaining_t_jobs = t_jobs[1:]
+                for i in range(0, len(remaining_t_jobs), wave_size):
+                    wave = remaining_t_jobs[i : i + wave_size]
+                    wave_res = list(await asyncio.gather(*(_worker(jb) for jb in wave)))
+                    results.extend(wave_res)
         finally:
             try:
                 await p.stop()

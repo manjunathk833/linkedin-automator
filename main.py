@@ -488,6 +488,7 @@ async def _run_form_batch_async(
     batch_size: int = 5,
     ignore_tiers: bool = True,
     resume_tabs: bool = False,
+    org_filter: str = "",
     cdp_url: str = "http://127.0.0.1:9222",
 ) -> None:
     """Connects to persistent Chrome over CDP and runs 2-phase batch form inspection, custom action fill, bulk apply, or open-tab resume."""
@@ -509,6 +510,7 @@ async def _run_form_batch_async(
             ignore_tiers=ignore_tiers,
             dry_run=False,
             job_ids=target_ids,
+            org_filter=org_filter,
         )
         print(json.dumps(res, indent=2))
         return
@@ -1031,6 +1033,11 @@ def main():
         help="Number of approved jobs to stage/fast-track in 'bulk' mode (default: 5, max wave: 5)",
     )
     parser_batch.add_argument(
+        "--org",
+        default="",
+        help="Filter approved queue by organization name or tenant host substring in 'bulk' mode",
+    )
+    parser_batch.add_argument(
         "--resume-tabs",
         action="store_true",
         default=False,
@@ -1213,6 +1220,7 @@ def main():
                 batch_size=getattr(args, "batch_size", 5),
                 ignore_tiers=getattr(args, "ignore_tiers", True),
                 resume_tabs=getattr(args, "resume_tabs", False),
+                org_filter=getattr(args, "org", ""),
             )
         )
     elif cmd == "referral-scout":

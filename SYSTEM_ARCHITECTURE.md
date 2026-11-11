@@ -622,5 +622,6 @@ python main.py search      # Scrape & tailor jobs
 python main.py filter      # Experience filter
 python main.py dashboard   # Open approval gate at http://127.0.0.1:8000
 python main.py apply       # Execute Easy Apply (Dry run default)
+python main.py bulk-apply --org "HPE" --batch-size 20 # Org-grouped fast-track batch apply
 python main.py lint        # Code formatting and linter check
 ```

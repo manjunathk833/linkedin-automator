@@ -36,12 +36,21 @@ Load authentic candidate details directly from the local gitignored profile file
 * **Screening Mappings:** `data/profile/workday_field_mappings.json` & `data/logs/learned_field_mappings.json` (Authorized to work in India: `Yes`, Sponsorship required: `No`, Prior employment / Relatives / Referral at company: `No`, Referral details if asked: `NA`).
 
 ### Step 4: High-Speed Multi-Tab Hybrid Application Execution (20–30+ Apps/Hr)
-1. **Execution Priority 0: Multi-Tab Parallel Fast-Track Engine (`0` LLM Tokens, `concurrency=5`):**
-   * Run the deterministic multi-tab batch engine first across `data/approved_queue/`:
+1. **Execution Priority 0: Organization-Grouped & Multi-Tab Parallel Fast-Track Engine (`0` LLM Tokens, `concurrency=5`):**
+   * Run the deterministic multi-tab batch engine first across `data/approved_queue/` (or target specific multi-job organizations via `--org "<company_or_host>"`):
      ```bash
-     ./venv/bin/python main.py bulk-apply --limit 15 --concurrency 5 --ignore-tiers
+     ./venv/bin/python main.py bulk-apply --batch-size 15 --ignore-tiers
+     # Or target a specific multi-job Workday/ATS organization:
+     ./venv/bin/python main.py bulk-apply --org "HPE" --batch-size 20 --ignore-tiers
      ```
-   * Opens each job in an isolated `context.new_page()` tab (`window.__agy_job_id`), dismisses Cookie/OneTrust/Eightfold privacy overlays (`dismiss_overlays`), sanitizes post-resume-parse fields (`_sanitize_post_resume_parse`), auto-submits deterministic vendors (including Workday `auto_submit=True`), auto-purges closed/404 jobs (`JOB_UNAVAILABLE`), and fast-parks CAPTCHA/Email-Verify tabs (`PARKED_FOR_USER`).
+   * **Workday Sign-In-First $\rightarrow$ Register Fallback & `Use My Last Application`:**
+     * On every Workday Auth Gate, the engine tries **`Sign In` first** (`[data-automation-id="auth_signin_link"]` / `signInLink`). Only if `Sign In` returns an error (`[data-automation-id="errorMessage"]` / `"wrong email address or password"`), it switches to **`Create Account`** (`[data-automation-id="createAccountLink"]`), registers once, and fast-parks at Email Verification (`EMAIL_VERIFY_REQUIRED`) with the floating Candidate Cheat Sheet badge.
+     * In the Workday `'Start Your Application'` modal, the engine prioritizes **`Use My Last Application`** (`[data-automation-id="useMyLastApplication"]`) ahead of `Apply Manually`, while still attaching the job-specific tailored PDF on Stage 2 (`My Experience`).
+     * For multi-job Workday tenants (`HPE`, `LSEG`, `Amgen`, `Thermo Fisher`, `Nvidia`, `Citi`, `Danaher`, `Dexcom`, etc.), `execute_batch()` serializes the **Lead Job (`#1`)** first: if the tenant requires Email Verification or Auth HITL, remaining jobs on that same tenant are deferred (`DEFERRED_AWAITING_TENANT_AUTH`) instead of spawning duplicate registration tabs; once Lead Job `#1` authenticates, all remaining jobs at that org fast-track in waves!
+   * After you click email verification links or complete parked tabs in Chrome, sweep all open tabs in one command:
+     ```bash
+     ./venv/bin/python main.py bulk-apply resume
+     ```
 2. **Strict Fail-Fast Policy (Zero Over-Exploration):**
    * If the job URL returns 404, "Job closed", or "No longer accepting applications" (max 2 checks), **never** search Google or browse external career portals. Log `JOB_UNAVAILABLE`, purge the payload from `data/approved_queue/`, and immediately advance to the next job.
 3. **Execution Priority 1: Native Headful Playwright Fast-Path (`3–5s`):**
