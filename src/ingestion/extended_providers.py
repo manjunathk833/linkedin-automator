@@ -92,12 +92,20 @@ class SmartRecruitersCollector:
     ) -> list[JobListing]:
         url = f"{self.BASE_URL}/{slug}/postings?limit=100"
         try:
+            combined: dict[str, JobListing] = {}
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 res = await client.get(url)
                 if res.status_code != 200:
                     return []
                 data = res.json()
-            return self.parse_response(company_name, slug, data, filter_sdet=filter_sdet)
+                for item in self.parse_response(company_name, slug, data, filter_sdet=filter_sdet):
+                    combined[item.id] = item
+                if filter_sdet and int(data.get("totalFound") or 0) > 100:
+                    res_in = await client.get(f"{self.BASE_URL}/{slug}/postings", params={"q": "India", "limit": 100})
+                    if res_in.status_code == 200:
+                        for item in self.parse_response(company_name, slug, res_in.json(), filter_sdet=filter_sdet):
+                            combined[item.id] = item
+            return list(combined.values())
         except Exception as e:
             print(f"⚠️ SmartRecruiters fetch warning for {company_name} ({slug}): {e}")
             return []
@@ -824,3 +832,98 @@ class ComeetCollector:
         except Exception as e:
             print(f"⚠️ Comeet fetch warning for {company_name} ({slug}): {e}")
             return []
+
+
+class AMDJibeCollector:
+    """Async collector for AMD's public Jibe JSON API (careers.amd.com/api/jobs)."""
+
+    SEARCH_URL = "https://careers.amd.com/api/jobs"
+    DEFAULT_QUERIES = ("Test", "QA", "SDET", "Automation")
+
+    def __init__(self, timeout_seconds: float = 12.0):
+        self.timeout = timeout_seconds
+
+    def parse_response(
+        self,
+        company_name: str,
+        slug: str,
+        data: dict[str, Any],
+        filter_sdet: bool = True,
+    ) -> list[JobListing]:
+        listings: list[JobListing] = []
+        jobs = data.get("jobs", [])
+        if not isinstance(jobs, list):
+            return listings
+
+        seen_ids: set[str] = set()
+        for entry in jobs:
+            job = entry.get("data") if isinstance(entry, dict) and isinstance(entry.get("data"), dict) else entry
+            if not isinstance(job, dict):
+                continue
+            title = str(job.get("title") or "").strip()
+            if filter_sdet and not is_sdet_title(title):
+                continue
+
+            location_name = str(
+                job.get("location_name") or job.get("full_location") or job.get("city") or "Bengaluru, India"
+            ).strip()
+            if str(job.get("country_code") or "").upper() in ("IN", "IND") and "india" not in location_name.lower():
+                location_name = f"{location_name}, India"
+            is_remote = "remote" in location_name.lower()
+            if filter_sdet and not is_india_or_remote_location(location_name):
+                continue
+
+            req_id = str(job.get("req_id") or job.get("slug") or "").strip()
+            if not req_id or req_id in seen_ids:
+                continue
+            seen_ids.add(req_id)
+
+            posted_dt = parse_iso_timestamp(job.get("posted_date") or job.get("create_date"))
+            job_url = str(job.get("apply_url") or f"https://careers.amd.com/careers-home/jobs/{req_id}")
+            raw_desc = (
+                " ".join(str(job.get(k) or "") for k in ("description", "qualifications", "responsibilities")).strip()
+                or f"{title} at {company_name} ({location_name})"
+            )
+            clean_desc = clean_html_description(raw_desc)
+
+            listings.append(
+                JobListing(
+                    id=f"amd_{slug}_{req_id}",
+                    source="amd",
+                    company_name=company_name,
+                    job_title=title,
+                    location=location_name,
+                    is_remote=is_remote,
+                    is_dream_org=True,
+                    job_description_raw=raw_desc,
+                    job_description_clean=clean_desc,
+                    url=job_url,
+                    posted_at=posted_dt,
+                    status="pending",
+                )
+            )
+        return listings
+
+    async def fetch_board_jobs(
+        self,
+        company_name: str = "AMD India",
+        slug: str = "amd-india",
+        filter_sdet: bool = True,
+    ) -> list[JobListing]:
+        combined: dict[str, JobListing] = {}
+        queries = self.DEFAULT_QUERIES if filter_sdet else ("Software",)
+        headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers=headers) as client:
+                for q in queries:
+                    res = await client.get(
+                        self.SEARCH_URL,
+                        params={"keywords": q, "location": "India", "page": 1, "limit": 25},
+                    )
+                    if res.status_code != 200:
+                        continue
+                    for item in self.parse_response(company_name, slug, res.json(), filter_sdet=filter_sdet):
+                        combined[item.id] = item
+        except Exception as e:
+            print(f"⚠️ AMD Jibe fetch warning for {company_name}: {e}")
+        return list(combined.values())

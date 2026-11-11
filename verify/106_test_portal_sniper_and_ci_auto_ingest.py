@@ -211,7 +211,34 @@ def test_extended_collectors_parsing():
     cm_jobs = cm.parse_response("Onyx Security", "onyxsecurity", cm_raw, filter_sdet=True)
     assert len(cm_jobs) == 1
     assert cm_jobs[0].id == "comeet_onyxsecurity_E5.612"
-    print("   ✅ All 9 Extended & Enterprise Collectors parsed & filtered accurately.")
+
+    # 10. AMDJibeCollector & Workday expanded search terms
+    from src.ingestion.extended_providers import AMDJibeCollector
+    from src.ingestion.workday import DEFAULT_WORKDAY_SEARCH_TERMS
+
+    assert "Quality Engineer India" in DEFAULT_WORKDAY_SEARCH_TERMS
+    assert "Test Engineer Bangalore" in DEFAULT_WORKDAY_SEARCH_TERMS
+
+    amd = AMDJibeCollector()
+    amd_raw = {
+        "jobs": [
+            {
+                "data": {
+                    "req_id": "93021",
+                    "title": "System Test and Automation Architect",
+                    "location_name": "IN,Bangalore-Technostar B1",
+                    "country_code": "IN",
+                    "apply_url": "https://global-external-amd.icims.com/jobs/93021/login",
+                    "posted_date": now_iso,
+                    "description": "Python, Pytest, System Test Automation Architect in Bangalore.",
+                }
+            }
+        ]
+    }
+    amd_jobs = amd.parse_response("AMD India", "amd-india", amd_raw, filter_sdet=True)
+    assert len(amd_jobs) == 1
+    assert amd_jobs[0].id == "amd_amd-india_93021"
+    print("   ✅ All 10 Extended & Enterprise Collectors parsed & filtered accurately.")
 
 
 async def test_portal_sniper_24h_delta_and_ledger():
@@ -351,6 +378,20 @@ def test_org_researcher_classification():
     assert "apple" in summary["by_provider"]
     assert "google" in summary["by_provider"]
     assert "comeet" in summary["by_provider"]
+    assert "amd" in summary["by_provider"]
+
+    slug_set = {(c.ats_provider.lower(), c.slug.lower()) for c in companies}
+    for req_pair in [
+        ("smartrecruiters", "aristanetworks"),
+        ("smartrecruiters", "servicenow"),
+        ("ashby", "snowflake"),
+        ("amd", "amd-india"),
+        ("workday", "gilead"),
+        ("workday", "blackstone"),
+        ("greenhouse", "nebius"),
+        ("ashby", "mistral.ai"),
+    ]:
+        assert req_pair in slug_set, f"Expected {req_pair} in target_companies.json!"
 
     # Test continuous URL auto-banking across providers (save=False so we don't mutate production file in test)
     gh_banked = researcher.extract_and_bank_ats_url(

@@ -17,6 +17,7 @@ from typing import Any
 from src.ingestion.ashby import AshbyCollector
 from src.ingestion.extended_providers import (
     AmazonJobsCollector,
+    AMDJibeCollector,
     AppleJobsCollector,
     ComeetCollector,
     EightfoldCollector,
@@ -68,6 +69,7 @@ class ATSDiscoveryCoordinator:
         self.workable = WorkableCollector()
         self.recruitee = RecruiteeCollector()
         self.amazon = AmazonJobsCollector()
+        self.amd = AMDJibeCollector()
         self.eightfold = EightfoldCollector()
         self.apple = AppleJobsCollector()
         self.google = GoogleCareersCollector()
@@ -206,12 +208,15 @@ class ATSDiscoveryCoordinator:
         title: str,
         posted_at: datetime.datetime | str | None = None,
         reopened_fresh: bool = False,
+        include_all_open: bool = False,
     ) -> bool:
         """
         Checks if a job_id or (company + title) has already been applied or processed across
         SQLite persistent database, processed_jobs.json, and physical file queues.
         Allows genuinely re-opened (<24h refreshed) requisitions through if they are not currently
         sitting in pending/approved queues and were not applied within the last 30 days.
+        When `include_all_open=True`, allows previously seen/retained unapplied roles into pending_queue
+        unless they were explicitly REJECTED, APPROVED, or APPLIED.
         """
         # 0. Check physical file queues first: if already sitting in pending or approved queue, it's active
         for qdir in [
@@ -252,6 +257,16 @@ class ATSDiscoveryCoordinator:
 
         # 2. Check primary job_id and composite hash (both exact and suffix-normalized) in processed_jobs.json
         if job_id in job_ids or c_hash in composite_hashes or norm_c_hash in composite_hashes:
+            if include_all_open:
+                exact_status = str((job_ids.get(job_id) or {}).get("status") or "").upper()
+                linked_id = str(
+                    (composite_hashes.get(c_hash) or composite_hashes.get(norm_c_hash) or {}).get("job_id") or ""
+                )
+                linked_status = str((job_ids.get(linked_id) or {}).get("status") or "").upper() if linked_id else ""
+                return bool(
+                    exact_status in ("REJECTED", "APPLIED", "APPROVED")
+                    or linked_status in ("REJECTED", "APPLIED", "APPROVED")
+                )
             return not is_reopened
 
         return False
@@ -328,6 +343,8 @@ class ATSDiscoveryCoordinator:
                     coro = self.recruitee.fetch_board_jobs(company.name, company.slug)
                 elif provider == "amazon":
                     coro = self.amazon.fetch_board_jobs(company.name, company.slug)
+                elif provider == "amd":
+                    coro = self.amd.fetch_board_jobs(company.name, company.slug)
                 elif provider == "eightfold":
                     coro = self.eightfold.fetch_board_jobs(
                         company_name=company.name,
@@ -354,7 +371,7 @@ class ATSDiscoveryCoordinator:
                     coro = self.global_remote.fetch_board_jobs(company.name, company.slug)
                 else:
                     return []
-                timeout_sec = 22.0 if provider in GLOBAL_REMOTE_SOURCES else 10.0
+                timeout_sec = 22.0 if provider in GLOBAL_REMOTE_SOURCES else 16.0
                 listings = await asyncio.wait_for(coro, timeout=timeout_sec)
             except asyncio.TimeoutError:
                 return []
@@ -519,7 +536,12 @@ class ATSDiscoveryCoordinator:
             clean = clean[:2000] + "..."
         return clean
 
-    def save_listings_to_queue(self, listings: list[JobListing], tailor: bool = True) -> list[str]:
+    def save_listings_to_queue(
+        self,
+        listings: list[JobListing],
+        tailor: bool = True,
+        include_all_open: bool = False,
+    ) -> list[str]:
         """
         Deduplicates, optionally tailors, and saves JobListing objects to data/pending_queue/{job_id}.json.
         Registers newly discovered jobs into the master deduplication ledger (processed_jobs.json)
@@ -566,7 +588,13 @@ class ATSDiscoveryCoordinator:
             is_reopened_now = self._is_entry_reopened_within_24h(item.posted_at, prev_entry)
 
             # Cross-platform and applied reseed guard (allows genuinely re-opened <24h roles)
-            if self.is_duplicate(item.id, item.company_name, item.job_title, posted_at=item.posted_at):
+            if self.is_duplicate(
+                item.id,
+                item.company_name,
+                item.job_title,
+                posted_at=item.posted_at,
+                include_all_open=include_all_open,
+            ):
                 if is_reopened_now and app_db is not None:
                     applied_details = app_db.get_applied_job_details(item.id, item.company_name, item.job_title)
                     if applied_details:

@@ -191,7 +191,7 @@
   },
   {
     "name": "Snowflake",
-    "ats_provider": "greenhouse",
+    "ats_provider": "ashby",
     "slug": "snowflake",
     "domain": "snowflake.com",
     "active": true,
@@ -477,14 +477,12 @@
   },
   {
     "name": "ServiceNow",
-    "ats_provider": "workday",
-    "slug": "servicenow",
+    "ats_provider": "smartrecruiters",
+    "slug": "ServiceNow",
     "domain": "servicenow.com",
     "active": true,
     "industry": "Enterprise Workflow Cloud",
-    "is_dream_org": true,
-    "site": "ServiceNow",
-    "datacenter": "wd1"
+    "is_dream_org": true
   },
   {
     "name": "Intuit",
@@ -5172,14 +5170,12 @@
   },
   {
     "name": "AMD India",
-    "ats_provider": "workday",
-    "slug": "amd",
+    "ats_provider": "amd",
+    "slug": "amd-india",
     "domain": "amd.com",
     "active": true,
     "industry": "High Performance Computing",
-    "is_dream_org": true,
-    "site": "AMD",
-    "datacenter": "wd1"
+    "is_dream_org": true
   },
   {
     "name": "Intel India",
@@ -11734,5 +11730,44 @@
     "industry": "AI Evaluation & Coding RLHF Contractor Platform",
     "is_dream_org": true,
     "datacenter": "wd3"
+  },
+  {
+    "name": "Arista Networks",
+    "slug": "AristaNetworks",
+    "ats_provider": "smartrecruiters",
+    "is_dream_org": true,
+    "active": true
+  },
+  {
+    "name": "Gilead Sciences",
+    "slug": "gilead",
+    "ats_provider": "workday",
+    "site": "gileadcareers",
+    "datacenter": "wd1",
+    "is_dream_org": true,
+    "active": true
+  },
+  {
+    "name": "Blackstone",
+    "slug": "blackstone",
+    "ats_provider": "workday",
+    "site": "Blackstone_Careers",
+    "datacenter": "wd1",
+    "is_dream_org": true,
+    "active": true
+  },
+  {
+    "name": "Nebius",
+    "slug": "nebius",
+    "ats_provider": "greenhouse",
+    "is_dream_org": true,
+    "active": true
+  },
+  {
+    "name": "Mistral AI",
+    "slug": "mistral.ai",
+    "ats_provider": "ashby",
+    "is_dream_org": true,
+    "active": true
   }
 ]
