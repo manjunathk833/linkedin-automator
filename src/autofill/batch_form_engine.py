@@ -33,6 +33,7 @@ from typing import Any
 from src.autofill.ats_filler import ATSAssistedFiller
 from src.autofill.autofill_logger import AutofillLogger, normalize_field_label_key
 from src.autofill.form_mapper import FormFieldMapper
+from src.autofill.ground_truth_guard import AutofillGroundTruthGuard
 from src.autofill.vendor_schemas import CandidateMasterData, classify_ats_pattern, load_candidate_master_data
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -52,6 +53,7 @@ class UniversalBatchFormFiller:
         self.ats_helper = ATSAssistedFiller(headless=True)
         self.workday_mappings = self._load_workday_mappings()
         self.logger = AutofillLogger.get_logger()
+        self.guard = AutofillGroundTruthGuard()
 
     def _load_workday_mappings(self) -> dict[str, Any]:
         if WORKDAY_MAPPINGS_PATH.exists():
@@ -120,10 +122,10 @@ class UniversalBatchFormFiller:
                     const legend = fieldset.querySelector('legend');
                     if (legend && cleanText(legend.innerText)) return cleanText(legend.innerText);
                 }
-                // 6. Nearest field wrapper label (.field, .form-group, [data-automation-id], etc.)
-                const wrapper = el.closest('.field, .form-field, .form-group, .application-question, [data-qa], [data-automation-id*="formField"], div');
+                // 6. Nearest field wrapper label (.field, .form-group, .application-question, [data-automation-id], etc.)
+                const wrapper = el.closest('.application-question, .field, .form-field, .form-group, [data-qa], [data-automation-id*="formField"], li');
                 if (wrapper) {
-                    const lblNode = wrapper.querySelector('label, .label, [class*="label"]');
+                    const lblNode = wrapper.querySelector('.application-label, .text, label, .label, [class*="label"]');
                     if (lblNode && cleanText(lblNode.innerText)) return cleanText(lblNode.innerText);
                 }
                 // 7. Placeholder or name fallback
@@ -131,7 +133,7 @@ class UniversalBatchFormFiller:
             };
 
             const selectors = [
-                'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"])',
+                'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([data-automation-id="beecatcher"])',
                 'select',
                 'textarea',
                 'button[role="combobox"]',
@@ -400,17 +402,16 @@ class UniversalBatchFormFiller:
         if mapped is not None and mapped != "":
             return mapped
 
-        # 11. Closed-Loop Learned Field Mappings (from prior Phase B custom answers)
+        # 11. Closed-Loop Learned Field Mappings (strict exact normalized key match only + ground-truth guard)
         norm_key = normalize_field_label_key(label)
         if norm_key:
             learned = self.logger.get_learned_field_mappings()
             if norm_key in learned:
-                return learned[norm_key].get("value")
-            # Substring match for long canonical keys (>= 10 chars)
-            if len(norm_key) >= 10:
-                for l_key, l_entry in learned.items():
-                    if len(l_key) >= 10 and (l_key in norm_key or norm_key in l_key):
-                        return l_entry.get("value")
+                cand_val = learned[norm_key].get("value")
+                if cand_val is not None:
+                    ok_g, _ = self.guard.validate_field_value(label, str(cand_val), control_type=ftype)
+                    if ok_g:
+                        return str(cand_val)
 
         return None
 
@@ -419,6 +420,12 @@ class UniversalBatchFormFiller:
         page = getattr(target, "page", target)
         field_id = field["field_id"]
         ftype = field.get("type", "text")
+        label = field.get("label") or field.get("name") or ""
+        if ftype not in ("file", "checkbox", "radio", "select", "combobox"):
+            ok_val, bad_reason = self.guard.validate_field_value(label, str(value), control_type=ftype)
+            if not ok_val:
+                print(f"🛡️ GroundTruthGuard blocked ungrounded value on '{label[:50]}': {bad_reason}")
+                return False
         locator = page.locator(f"[data-agy-id='{field_id}']").first
 
         try:

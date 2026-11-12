@@ -491,14 +491,29 @@ class AutofillLogger:
         return written
 
     def get_learned_field_mappings(self) -> dict[str, dict[str, Any]]:
-        """Loads previously learned custom field label->value mappings from disk."""
+        """Loads previously learned custom field label->value mappings from disk, filtering out ungrounded entries."""
         if not LEARNED_MAPPINGS_FILE.exists():
             return {}
         try:
+            from src.autofill.ground_truth_guard import AutofillGroundTruthGuard
+
+            guard = AutofillGroundTruthGuard()
             with open(LEARNED_MAPPINGS_FILE, encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, dict):
-                    return data.get("mappings", data)
+                    raw_mappings = data.get("mappings", data)
+                    clean: dict[str, dict[str, Any]] = {}
+                    for k, item in raw_mappings.items():
+                        if not isinstance(item, dict):
+                            continue
+                        ok, _ = guard.validate_learned_mapping(
+                            item.get("label") or k,
+                            str(item.get("value") or ""),
+                            control_type=str(item.get("control_type") or "text"),
+                        )
+                        if ok:
+                            clean[k] = item
+                    return clean
         except Exception:
             pass
         return {}
@@ -518,6 +533,18 @@ class AutofillLogger:
 
         # Never bank sensitive passwords or one-off tokens
         if any(k in norm_key for k in ("password", "otp", "verification code", "security code", "captcha")):
+            return {}
+
+        # Enforce strict Anti-Slop & Ground-Truth Guard before persisting
+        from src.autofill.ground_truth_guard import AutofillGroundTruthGuard
+
+        ok_guard, guard_reason = AutofillGroundTruthGuard().validate_learned_mapping(
+            label, str(value), control_type=control_type
+        )
+        if not ok_guard:
+            self.logger.warning(
+                f"🛡️ Blocked ungrounded learned field mapping '{label[:50]}' -> '{str(value)[:40]}': {guard_reason}"
+            )
             return {}
 
         mappings = self.get_learned_field_mappings()

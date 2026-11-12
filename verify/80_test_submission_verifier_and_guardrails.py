@@ -169,10 +169,44 @@ async def test_human_override_force_param():
         cleanup_test_job(override_jid)
 
 
+@pytest.mark.asyncio
+async def test_org_grouped_batch_and_workday_signin_first_guards():
+    print("\n🧪 Step 4: Testing org-filtered batch selection & Workday Sign-In-First / UseMyLastApplication guards...")
+    import inspect
+
+    from src.autofill.ats_filler import ATSAssistedFiller
+    from src.autofill.batch_form_engine import UniversalBatchFormFiller
+    from src.autofill.bulk_apply_engine import BulkApplyFastTrackEngine
+
+    wd_src = inspect.getsource(ATSAssistedFiller._fill_workday)
+    assert "attempted_sign_in_first" in wd_src, "Workday filler must track attempted_sign_in_first"
+    assert "attempted_register_fallback" in wd_src, "Workday filler must track attempted_register_fallback"
+    assert wd_src.index("useMyLastApplication") < wd_src.index("applyManually"), (
+        "Workday modal must prioritize useMyLastApplication before applyManually"
+    )
+    extractor_src = inspect.getsource(UniversalBatchFormFiller.extract_form_schema)
+    assert 'not([data-automation-id="beecatcher"])' in extractor_src
+
+    jid_a = "gate80_org_alpha_1"
+    jid_b = "gate80_org_beta_2"
+    setup_test_job(jid_a, company="AlphaWave Systems")
+    setup_test_job(jid_b, company="BetaCloud Corp")
+    try:
+        engine = BulkApplyFastTrackEngine()
+        alpha_batch = engine.list_queue_batch(batch_size=10, org_filter="AlphaWave")
+        alpha_ids = [x["job_id"] for x in alpha_batch]
+        assert jid_a in alpha_ids and jid_b not in alpha_ids
+        print("   ✅ Org-filtered batching & Workday Sign-In-First / UseMyLastApplication verified!")
+    finally:
+        cleanup_test_job(jid_a)
+        cleanup_test_job(jid_b)
+
+
 if __name__ == "__main__":
     import asyncio
 
     asyncio.run(test_unverified_job_fails_precondition_gate())
     asyncio.run(test_submission_recording_and_verified_tracking())
     asyncio.run(test_human_override_force_param())
+    asyncio.run(test_org_grouped_batch_and_workday_signin_first_guards())
     print("\n🎉 ALL GATE 80 TESTS PASSED WITH 100% SUCCESS!\n")

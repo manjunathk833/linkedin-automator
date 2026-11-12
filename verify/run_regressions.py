@@ -120,6 +120,7 @@ TIER_1_CORE = [
     "112_test_reopened_reposted_and_early_sniper.py",
     "113_test_pipeline_speed_optimizations.py",
     "114_test_global_usd_eur_gbp_remote_sniper.py",
+    "115_test_anti_slop_autofill_grounding.py",
 ]
 
 

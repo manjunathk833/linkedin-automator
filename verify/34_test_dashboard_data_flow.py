@@ -26,15 +26,27 @@ _EPHEMERAL_PATH = None
 
 
 def find_sample_queued_job() -> str | None:
-    """Returns path to first queued job JSON in pending_queue, or creates an ephemeral mock fixture."""
+    """Returns path to first valid queued job JSON in pending_queue, or creates an ephemeral mock fixture."""
     global _IS_EPHEMERAL, _EPHEMERAL_PATH
     queue_dir = os.path.join(PROJECT_ROOT, "data", "pending_queue")
     os.makedirs(queue_dir, exist_ok=True)
-    for fname in os.listdir(queue_dir):
-        if fname.endswith(".json") and not fname.startswith("test_ephemeral"):
-            return os.path.join(queue_dir, fname)
+    for fname in sorted(os.listdir(queue_dir)):
+        if fname.endswith(".json") and not fname.startswith(("test_", "purge_", "mark_", "GATE", "dummy_")):
+            candidate_path = os.path.join(queue_dir, fname)
+            try:
+                with open(candidate_path, "r", encoding="utf-8") as f:
+                    cdata = json.load(f)
+                jd = cdata.get("job_details", {})
+                if (
+                    jd.get("title")
+                    and jd.get("company")
+                    and (jd.get("description") or jd.get("raw_description") or jd.get("requirements"))
+                ):
+                    return candidate_path
+            except (json.JSONDecodeError, OSError):
+                pass
 
-    # Create ephemeral fixture if queue is clean
+    # Create ephemeral fixture if queue is clean or no valid candidate jobs found
     _IS_EPHEMERAL = True
     _EPHEMERAL_PATH = os.path.join(queue_dir, "test_ephemeral_gate34_001.json")
     mock_data = {

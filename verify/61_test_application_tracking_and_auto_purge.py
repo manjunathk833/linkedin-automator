@@ -77,7 +77,7 @@ def test_auto_purge_on_pending_retrieval():
     db = ApplicationDatabase()
     client = TestClient(app)
 
-    dummy_id = f"purge_test_{int(time.time())}"
+    dummy_id = f"test_purge_{int(time.time())}"
     pending_dir = os.path.abspath("data/pending_queue")
     os.makedirs(pending_dir, exist_ok=True)
     dummy_file = os.path.join(pending_dir, f"{dummy_id}.json")
@@ -96,23 +96,34 @@ def test_auto_purge_on_pending_retrieval():
     dummy_data = {
         "job_id": dummy_id,
         "source": "greenhouse",
-        "job_details": {"company": "AutoPurge Inc", "title": "Senior SDET"},
+        "job_details": {
+            "company": "AutoPurge Inc",
+            "title": "Senior SDET",
+            "description": "Senior SDET role for testing autopurge functionality.",
+            "requirements": "Automated testing, Python, Playwright.",
+        },
     }
-    with open(dummy_file, "w", encoding="utf-8") as f:
-        json.dump(dummy_data, f)
+    try:
+        with open(dummy_file, "w", encoding="utf-8") as f:
+            json.dump(dummy_data, f)
 
-    assert os.path.exists(dummy_file), "Stale pending file should exist before API call"
+        assert os.path.exists(dummy_file), "Stale pending file should exist before API call"
 
-    # Call /api/pending-jobs (or /api/jobs)
-    resp = client.get("/api/pending-jobs")
-    assert resp.status_code == 200
+        # Call /api/pending-jobs (or /api/jobs)
+        resp = client.get("/api/pending-jobs")
+        assert resp.status_code == 200
 
-    # Verify that the file was automatically deleted from disk
-    assert not os.path.exists(dummy_file), "Stale applied file was NOT purged from pending_queue!"
-    print("✓ Auto-purge successfully removed applied job from pending queue on retrieval.")
-
-    # Clean up DB
-    db.delete_application(dummy_id)
+        # Verify that the file was automatically deleted from disk
+        assert not os.path.exists(dummy_file), "Stale applied file was NOT purged from pending_queue!"
+        print("✓ Auto-purge successfully removed applied job from pending queue on retrieval.")
+    finally:
+        if os.path.exists(dummy_file):
+            try:
+                os.remove(dummy_file)
+            except OSError:
+                pass
+        # Clean up DB
+        db.delete_application(dummy_id)
 
 
 def test_mark_applied_endpoint_and_tracking_view():
@@ -120,7 +131,7 @@ def test_mark_applied_endpoint_and_tracking_view():
     client = TestClient(app)
     db = ApplicationDatabase()
 
-    test_mark_id = f"mark_endpoint_test_{int(time.time())}"
+    test_mark_id = f"test_mark_endpoint_{int(time.time())}"
     pending_dir = os.path.abspath("data/pending_queue")
     os.makedirs(pending_dir, exist_ok=True)
     mark_file = os.path.join(pending_dir, f"{test_mark_id}.json")
@@ -132,49 +143,61 @@ def test_mark_applied_endpoint_and_tracking_view():
             "company": "Tracking Metrics Corp",
             "title": "Principal QA Automation Engineer",
             "location": "Bengaluru (Hybrid)",
+            "description": "Principal QA Automation Engineer for tracking metrics.",
+            "requirements": "QA Automation, Playwright, API testing.",
         },
         "url": "https://jobs.ashbyhq.com/tracking/456",
     }
-    with open(mark_file, "w", encoding="utf-8") as f:
-        json.dump(sample_job, f)
+    try:
+        with open(mark_file, "w", encoding="utf-8") as f:
+            json.dump(sample_job, f)
 
-    # Send POST /api/tracking/mark-applied/{job_id} (Unverified call fails with 412)
-    resp_unverif = client.post(f"/api/tracking/mark-applied/{test_mark_id}")
-    assert resp_unverif.status_code == 412, f"Expected 412 for unverified mark-applied, got {resp_unverif.status_code}"
+        # Send POST /api/tracking/mark-applied/{job_id} (Unverified call fails with 412)
+        resp_unverif = client.post(f"/api/tracking/mark-applied/{test_mark_id}")
+        assert resp_unverif.status_code == 412, (
+            f"Expected 412 for unverified mark-applied, got {resp_unverif.status_code}"
+        )
 
-    # Send POST with explicit force=true override
-    resp = client.post(f"/api/tracking/mark-applied/{test_mark_id}?force=true")
-    assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
-    body = resp.json()
-    assert body["status"] == "success"
-    print(f"✓ Mark applied response: {body['message']}")
+        # Send POST with explicit force=true override
+        resp = client.post(f"/api/tracking/mark-applied/{test_mark_id}?force=true")
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
+        body = resp.json()
+        assert body["status"] == "success"
+        print(f"✓ Mark applied response: {body['message']}")
 
-    # Assert pending file is removed
-    assert not os.path.exists(mark_file), "File was not removed from pending queue after mark-applied!"
+        # Assert pending file is removed
+        assert not os.path.exists(mark_file), "File was not removed from pending queue after mark-applied!"
 
-    # Assert DB is updated
-    assert db.is_job_applied(test_mark_id) is True, "Job was not marked applied in DB!"
+        # Assert DB is updated
+        assert db.is_job_applied(test_mark_id) is True, "Job was not marked applied in DB!"
 
-    # Test GET /api/tracking/applied
-    get_resp = client.get("/api/tracking/applied")
-    assert get_resp.status_code == 200
-    track_data = get_resp.json()
-    assert track_data["status"] == "success"
-    assert "stats" in track_data
-    assert track_data["stats"]["total_applied"] >= 1
+        # Test GET /api/tracking/applied
+        get_resp = client.get("/api/tracking/applied")
+        assert get_resp.status_code == 200
+        track_data = get_resp.json()
+        assert track_data["status"] == "success"
+        assert "stats" in track_data
+        assert track_data["stats"]["total_applied"] >= 1
 
-    matched = [a for a in track_data["applications"] if a["job_id"] == test_mark_id]
-    assert len(matched) == 1, f"Expected {test_mark_id} in tracking list"
-    assert matched[0]["company_name"] == "Tracking Metrics Corp"
-    assert matched[0]["job_title"] == "Principal QA Automation Engineer"
-    print("✓ Tracking audit record retrieved with exact company and role metadata.")
+        matched = [a for a in track_data["applications"] if a["job_id"] == test_mark_id]
+        assert len(matched) == 1, f"Expected {test_mark_id} in tracking list"
+        assert matched[0]["company_name"] == "Tracking Metrics Corp"
+        assert matched[0]["job_title"] == "Principal QA Automation Engineer"
+        print("✓ Tracking audit record retrieved with exact company and role metadata.")
 
-    # Test DELETE /api/tracking/{job_id}
-    del_resp = client.delete(f"/api/tracking/{test_mark_id}")
-    assert del_resp.status_code == 200
-    assert del_resp.json()["status"] == "success"
-    assert db.is_job_applied(test_mark_id) is False
-    print("✓ DELETE /api/tracking/{job_id} cleaned up successfully.")
+        # Test DELETE /api/tracking/{job_id}
+        del_resp = client.delete(f"/api/tracking/{test_mark_id}")
+        assert del_resp.status_code == 200
+        assert del_resp.json()["status"] == "success"
+        assert db.is_job_applied(test_mark_id) is False
+        print("✓ DELETE /api/tracking/{job_id} cleaned up successfully.")
+    finally:
+        if os.path.exists(mark_file):
+            try:
+                os.remove(mark_file)
+            except OSError:
+                pass
+        db.delete_application(test_mark_id)
 
 
 def test_scraper_and_filter_deduplication():

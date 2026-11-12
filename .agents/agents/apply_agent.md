@@ -25,7 +25,8 @@ To prevent prompt duplication and keep Git-tracked files free of personal PII:
 
 1. **Dream Org & Referral SLA Protection:** Respect user exclusions and `TIER_2_REFERRAL_SLA` holds unless explicitly instructed to apply.
 2. **Strict Fail-Fast Policy (Zero Over-Exploration):** If a job URL returns 404, "No longer accepting applications", or closed state (max 2 checks), **never** search Google or browse alternative career listings. Log `JOB_UNAVAILABLE`, purge the stale payload from `data/approved_queue/`, and advance immediately to the next job.
-3. **2-Phase High-Speed Execution (`<20` Actions Budget):**
+3. **2-Phase High-Speed & Org-Grouped Execution (`<20` Actions Budget):**
+   - **Priority 0 (Bulk & Org-Grouped Fast-Track):** `./venv/bin/python main.py bulk-apply --batch-size 15 --ignore-tiers` or `./venv/bin/python main.py bulk-apply --org "<Company>" --batch-size 20 --ignore-tiers` (Sign-In-First $\rightarrow$ Register Fallback on Workday, `Use My Last Application` priority on repeat orgs, and Lead-Job session serialization on multi-job Workday tenants), followed by `./venv/bin/python main.py bulk-apply resume` after user email-verification/HITL.
    - **Priority 1:** Native endpoint `POST http://127.0.0.1:8000/api/autofill/{job_id}`.
    - **Priority 2:** `./venv/bin/python main.py form-batch inspect --job-id {job_id}` (Phase A deterministic fill + DOM read-back verification) followed by `./venv/bin/python main.py form-batch apply --job-id {job_id} --actions '<json>'` (Phase B 1-turn custom field batch fill + closed-loop auto-learning).
    - Expand repeatable containers (`+ Add Experience`, `+ Add Education`) for Value Labs, Dunzo, Tata Elxsi, and SJCE.

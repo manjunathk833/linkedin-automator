@@ -117,6 +117,7 @@ def _paths(tmp: str) -> dict:
         "whitelist_path": os.path.join(tmp, "whitelist.json"),
         "bank_path": os.path.join(tmp, "bank.json"),
         "notes_path": os.path.join(tmp, "notes.md"),
+        "candidate_master_data_path": os.path.join(tmp, "candidate_master_data.json"),
     }
 
 

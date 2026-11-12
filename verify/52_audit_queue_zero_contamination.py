@@ -24,7 +24,11 @@ def audit_pending_queue():
     print("=" * 60)
 
     queue_dir = os.path.join(PROJECT_ROOT, "data", "pending_queue")
-    files = glob.glob(os.path.join(queue_dir, "*.json"))
+    files = [
+        f
+        for f in glob.glob(os.path.join(queue_dir, "*.json"))
+        if not os.path.basename(f).startswith(("test_", "purge_", "mark_", "GATE", "dummy_"))
+    ]
 
     if not files:
         print("ℹ️ No job files in data/pending_queue/ (Clean Queue). 0 contamination violations.")
