@@ -27,7 +27,10 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from playwright.async_api import BrowserContext, Page, async_playwright
+
+load_dotenv()
 
 from src.autofill.autofill_logger import AutofillLogger
 from src.autofill.autofill_verifier import SubmissionVerifier
@@ -389,13 +392,20 @@ class BulkApplyFastTrackEngine:
 
     CONFIRMATION_MARKERS: tuple[str, ...] = (
         "thank you for applying",
+        "thank you for your application",
         "application has been received",
         "application has been submitted",
+        "your application was successfully submitted",
+        "application was successfully submitted",
         "your application was sent",
         "application sent",
         "application submitted",
         "we have received your application",
         "thanks for applying",
+        "you've already applied for this job",
+        "you have already applied for this job",
+        "already applied for this job",
+        "you applied for this job on",
     )
 
     AUTH_GATE_MARKERS: tuple[str, ...] = (
@@ -912,11 +922,14 @@ class BulkApplyFastTrackEngine:
         )
         if vis_inputs < 2:
             apply_trigger = page.locator(
-                "a:has-text('Apply for this job'), button:has-text('Apply for this job'), "
-                "a:has-text('Apply Now'), button:has-text('Apply Now'), "
-                "button#apply-button, a.postings-btn, [data-qa='apply-button'], "
-                "button[data-automation-id='adventureButton'], a[data-automation-id='adventureButton'], "
-                "button:has-text('Apply'), a:has-text('Apply')"
+                "a#st-apply:visible, a.js-oneclick:not(.hidden):visible, "
+                "a[href*='/oneclick-ui/']:not(.hidden):visible, a[href*='/applications/new']:visible, "
+                'a:has-text("I\'m interested"):visible, button:has-text("I\'m interested"):visible, '
+                "a:has-text('Apply for this job'):visible, button:has-text('Apply for this job'):visible, "
+                "a:has-text('Apply Now'):visible, button:has-text('Apply Now'):visible, "
+                "button#apply-button:visible, a.postings-btn:visible, [data-qa='apply-button']:visible, "
+                "button[data-automation-id='adventureButton']:visible, a[data-automation-id='adventureButton']:visible, "
+                "button:has-text('Apply'):visible, a:has-text('Apply'):visible"
             ).first
             if await apply_trigger.count() > 0:
                 try:
@@ -1873,9 +1886,7 @@ class BulkApplyFastTrackEngine:
         'Use My Last Application' are established (or fast-parks once if email verification is needed).
         """
         t0 = time.perf_counter()
-        effective_batch = (
-            min(max(1, batch_size), max(1, max_open_tabs)) if (not job_ids and not org_filter) else max(1, batch_size)
-        )
+        effective_batch = max(1, batch_size)
         effective_concurrency = min(max(1, concurrency), max(1, max_open_tabs), 5)
         batch_jobs = self.list_queue_batch(
             batch_size=effective_batch,

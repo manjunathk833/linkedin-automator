@@ -128,21 +128,23 @@ class FormFieldMapper:
         if re.search(r"\b(current\s*title|current\s*role|job\s*title|designation)\b", norm_label):
             return self.master_data.get("current_employment", {}).get("title", "Senior Engineer - QE")
 
-        # 5. Standard Experience Questions
+        # 5. Standard Experience Questions (grounded in candidate_master_data.json)
+        skills_yoe = self.master_data.get("skills_years_of_experience", {})
         if re.search(r"\b(years\s*of\s*experience|total\s*experience|overall\s*experience)\b", norm_label):
-            return "6"
+            total_y = skills_yoe.get("total_years", 6)
+            return str(int(total_y))
         if re.search(r"\b(java|core\s*java)\b", norm_label) and re.search(r"\b(years|exp)\b", norm_label):
-            return "6"
+            return str(skills_yoe.get("java", 6))
         if re.search(r"\b(rest\s*assured|api\s*testing|api\s*automation)\b", norm_label) and re.search(
             r"\b(years|exp)\b", norm_label
         ):
-            return "6"
+            return str(skills_yoe.get("api testing", 6))
         if re.search(r"\b(selenium|ui\s*automation)\b", norm_label) and re.search(r"\b(years|exp)\b", norm_label):
-            return "4"
+            return str(skills_yoe.get("selenium", 6))
         if re.search(r"\b(python)\b", norm_label) and re.search(r"\b(years|exp)\b", norm_label):
-            return "3"
+            return str(skills_yoe.get("python", 4))
         if re.search(r"\b(jenkins|ci/cd|cicd)\b", norm_label) and re.search(r"\b(years|exp)\b", norm_label):
-            return "5"
+            return str(skills_yoe.get("ci/cd", 5))
 
         # 6. Authorization & Sponsorship (India)
         if re.search(r"\b(legally\s*authorized|authorized\s*to\s*work|right\s*to\s*work)\b", norm_label):

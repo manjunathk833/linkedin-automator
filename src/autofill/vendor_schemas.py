@@ -30,6 +30,7 @@ class MasterPersonalDetails(BaseModel):
     postal_code: str = "560001"
     location: str = "Bengaluru, Karnataka, India"
     prefix: str = "Mr."
+    date_of_birth: str = ""
     workday_default_password: str = "CandidateMockSecret123!"
 
 
@@ -62,9 +63,12 @@ class MasterExperienceItem(BaseModel):
     is_current: bool = False
     location: str = "Bengaluru, India"
     start_month: str = ""
+    start_month_num: str = ""
     start_year: str = ""
     end_month: str = ""
+    end_month_num: str = ""
     end_year: str = ""
+    bullets: list[str] = Field(default_factory=list)
     summary: str = ""
 
 
@@ -76,9 +80,12 @@ class MasterEducationItem(BaseModel):
     discipline: str
     start_date: str
     end_date: str
+    start_month_num: str = ""
     start_year: str = ""
+    end_month_num: str = ""
     end_year: str = ""
     gpa: str = ""
+    gpa_numeric: str = ""
 
 
 class MasterLegalAndCompliance(BaseModel):

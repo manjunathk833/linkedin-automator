@@ -172,7 +172,7 @@ def handle_resume(action: str = "sync", dry_run: bool = False):
         print("\nℹ️  Dry run: no files were written.")
     else:
         print(
-            "\n💾 Updated data/resume_profile.json, data/profile/allowed_tools_whitelist.json, data/master_knowledge_bank.json"
+            "\n💾 Updated data/resume_profile.json, data/profile/candidate_master_data.json, data/profile/allowed_tools_whitelist.json, data/master_knowledge_bank.json"
         )
 
 

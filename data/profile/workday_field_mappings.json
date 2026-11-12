@@ -8,14 +8,14 @@
       "description": "Prior employment question"
     },
     {
-      "pattern": "authorized.*to.*work|legally.*authorized|work.*authorization",
-      "answer": "Yes",
-      "description": "Work authorization question"
-    },
-    {
-      "pattern": "require.*(sponsorship|visa)|will.*you.*require.*sponsor",
+      "pattern": "require.*(sponsorship|visa)|will.*you.*require.*sponsor|need.*to.*sponsor|sponsor.*your.*visa",
       "answer": "No",
       "description": "Visa sponsorship requirement question"
+    },
+    {
+      "pattern": "authorized.*to.*work|authorised.*to.*work|legally.*authori[sz]ed|possess.*a.*valid.*(work|residency).*permit",
+      "answer": "Yes",
+      "description": "Work authorization and permit question"
     },
     {
       "pattern": "relative.*(employed|working)|family.*member.*(employed|working)",
@@ -85,12 +85,12 @@
       "description": "India country dial code"
     },
     {
-      "pattern": "^country$|country.*\\*",
+      "pattern": "^country\\s*\\*?$",
       "answer": "India",
       "description": "Primary country selection"
     },
     {
-      "pattern": "state|province|region|country.*region",
+      "pattern": "^(state|province|state/province|country/region)\\s*\\*?$",
       "answer": "Karnataka",
       "description": "State / province selection"
     },

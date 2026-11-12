@@ -13,11 +13,16 @@ import os
 import re
 import sys
 import time
+import unicodedata
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
+
 from src.autofill.autofill_logger import AutofillLogger
 from src.autofill.form_mapper import FormFieldMapper
+
+load_dotenv()
 from src.autofill.self_healer import AutofillSelfHealer
 from src.autofill.vendor_schemas import (
     ATSVendorPattern,
@@ -488,15 +493,22 @@ class ATSAssistedFiller:
     def _score_combobox_option(cls, option_text: str, search_text: str, prefer_exact: bool = False) -> int:
         """Scores a dropdown option deterministically (0 = reject, 100 = exact match)."""
         raw_opt = (option_text or "").strip()
-        if not raw_opt or "loading" in raw_opt.lower() or "no options" in raw_opt.lower():
+        if (
+            not raw_opt
+            or "loading" in raw_opt.lower()
+            or "no options" in raw_opt.lower()
+            or raw_opt.lower() in ("select one", "select", "choose one", "-- select --")
+        ):
             return 0
         if cls.is_excluded_territory_option(raw_opt, search_text):
             return 0
 
-        # Strip leading flag emojis or non-ASCII symbols for clean comparison
-        clean_opt = re.sub(r"^[^\w\+]+", "", raw_opt).strip()
+        # Strip leading flag emojis or non-ASCII symbols and normalize diacritics (e.g. 'Karnātaka' -> 'Karnataka')
+        norm_opt = unicodedata.normalize("NFKD", raw_opt).encode("ascii", "ignore").decode("ascii")
+        clean_opt = re.sub(r"^[^\w\+]+", "", norm_opt).strip()
         opt_low = clean_opt.lower()
-        target_low = (search_text or "").strip().lower()
+        norm_target = unicodedata.normalize("NFKD", search_text or "").encode("ascii", "ignore").decode("ascii")
+        target_low = norm_target.strip().lower()
 
         # Special high-precision scoring for India / +91
         if target_low in ("india", "+91", "india (+91)") or "+91" in target_low:
@@ -539,6 +551,8 @@ class ATSAssistedFiller:
                     return (e.value || e.innerText || '').trim();
                 }"""
             )
+            if committed and committed.strip().lower() in ("select one", "select", "choose one", "-- select --"):
+                return False
             if committed and self.is_excluded_territory_option(committed, search_text):
                 print(
                     f"🚨 Combobox verification caught contaminated territory '{committed}' for target '{search_text}'!"
@@ -557,9 +571,12 @@ class ATSAssistedFiller:
                 return False
             el = locator.first
             try:
-                await el.scroll_into_view_if_needed(timeout=800)
+                await el.evaluate("e => e.scrollIntoView({block: 'center'})")
             except Exception:
-                pass
+                try:
+                    await el.scroll_into_view_if_needed(timeout=800)
+                except Exception:
+                    pass
 
             container = target if hasattr(target, "locator") else getattr(target, "page", target)
 
@@ -598,7 +615,10 @@ class ATSAssistedFiller:
             try:
                 await input_el.click(timeout=1200)
             except Exception:
-                pass
+                try:
+                    await input_el.evaluate("e => e.click()")
+                except Exception:
+                    pass
             try:
                 await input_el.focus()
                 await input_el.press("ArrowDown")
@@ -624,12 +644,19 @@ class ATSAssistedFiller:
             await asyncio.sleep(0.18)
 
             options = container.locator(option_selector)
-            if await options.count() == 0 and is_text_input:
-                try:
-                    await input_el.press("ArrowDown")
-                    await asyncio.sleep(0.15)
-                except Exception:
-                    pass
+            if await options.count() == 0:
+                if is_text_input:
+                    try:
+                        await input_el.press("ArrowDown")
+                        await asyncio.sleep(0.15)
+                    except Exception:
+                        pass
+                else:
+                    try:
+                        await input_el.evaluate("e => e.click()")
+                        await asyncio.sleep(0.22)
+                    except Exception:
+                        pass
 
             opt_count = await options.count()
             # If we typed '+91' and the dropdown filters by country name ('India') instead of dial code, retry with 'India'
@@ -643,19 +670,23 @@ class ATSAssistedFiller:
             if opt_count > 0:
                 best_idx = -1
                 best_score = 0
-                saw_excluded_territory = False
                 for i in range(opt_count):
                     opt = options.nth(i)
                     txt = ""
                     try:
                         if await opt.is_visible():
+                            # Skip static selected pills inside Workday multiSelectContainer (e.g. 'India (+91)')
+                            is_selected_pill = await opt.evaluate(
+                                "e => !!e.closest('[data-automation-id=multiSelectContainer]')"
+                            )
+                            if is_selected_pill:
+                                continue
                             txt = (await opt.inner_text()).strip()
                     except Exception:
                         pass
                     if not txt:
                         continue
                     if self.is_excluded_territory_option(txt, search_text):
-                        saw_excluded_territory = True
                         continue
                     score = self._score_combobox_option(txt, search_text, prefer_exact=prefer_exact)
                     if score > best_score:
@@ -665,7 +696,13 @@ class ATSAssistedFiller:
                             break
 
                 if best_idx >= 0 and best_score > 0:
-                    await options.nth(best_idx).click(timeout=1200)
+                    try:
+                        await options.nth(best_idx).click(timeout=1200)
+                    except Exception:
+                        try:
+                            await options.nth(best_idx).click(force=True, timeout=1000)
+                        except Exception:
+                            await options.nth(best_idx).evaluate("e => e.click()")
                     await asyncio.sleep(0.1)
                     # Close any multi-select menu that remains open after option click
                     try:
@@ -676,21 +713,11 @@ class ATSAssistedFiller:
                     if await self._verify_combobox_selection(el, container, search_text):
                         return True
 
-                # Only fall back to first visible option if we are NOT in a territory-sensitive search and prefer_exact is False
-                if (
-                    not prefer_exact
-                    and not saw_excluded_territory
-                    and search_text.strip().lower() not in ("india", "+91", "india (+91)")
-                ):
-                    first_opt = options.first
-                    if await first_opt.is_visible():
-                        first_txt = (await first_opt.inner_text()).strip()
-                        if "loading" not in first_txt.lower() and not self.is_excluded_territory_option(
-                            first_txt, search_text
-                        ):
-                            await first_opt.click(timeout=1200)
-                            await asyncio.sleep(0.15)
-                            return await self._verify_combobox_selection(el, container, search_text)
+                # Do not blindly click index 0 ('Select One'); press Escape so dropdown closes cleanly
+                try:
+                    await el.press("Escape")
+                except Exception:
+                    pass
                 return False
 
             # If no dropdown options rendered at all and it's a plain text input (not a country/territory list), press Enter
@@ -993,7 +1020,17 @@ class ATSAssistedFiller:
         schema = get_vendor_schema(ATSVendorPattern.ORACLE_CLOUD_HCM).get("selectors", {})
         target = page
 
-        # 0. Cookie Consent Dismissal
+        # 0. Remove any existing floating helper widget so it never intercepts footer buttons
+        try:
+            page_ref = getattr(target, "page", target)
+            if hasattr(page_ref, "evaluate"):
+                await page_ref.evaluate(
+                    "() => { const el = document.getElementById('antigravity-copilot-helper'); if (el) el.remove(); }"
+                )
+        except Exception:
+            pass
+
+        # 0B. Cookie Consent Dismissal
         try:
             cookie_btn = target.locator(
                 "button#onetrust-accept-btn-handler, button:has-text('Accept All'), button:has-text('Accept Cookies'), button.cc-accept"
@@ -2265,7 +2302,7 @@ class ATSAssistedFiller:
                     if (document.getElementById('antigravity-copilot-helper')) return;
                     const c = document.createElement('div');
                     c.id = 'antigravity-copilot-helper';
-                    c.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:rgba(15,23,42,0.95);border:1px solid rgba(56,189,248,0.5);border-radius:12px;padding:14px 18px;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:12px;box-shadow:0 12px 28px rgba(0,0,0,0.6);backdrop-filter:blur(8px);max-width:340px;line-height:1.5;';
+                    c.style.cssText = 'position:fixed;bottom:88px;left:20px;z-index:2147483647;background:rgba(15,23,42,0.95);border:1px solid rgba(56,189,248,0.5);border-radius:12px;padding:14px 18px;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:12px;box-shadow:0 12px 28px rgba(0,0,0,0.6);backdrop-filter:blur(8px);max-width:340px;line-height:1.5;';
                     c.innerHTML = `
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px;">
                             <span style="color:#38bdf8;font-weight:700;font-size:13px;">🖐️ Candidate Cheat Sheet</span>
@@ -2671,15 +2708,12 @@ class ATSAssistedFiller:
                         continue
                     seen_names.add(r_name)
 
-                    # Get question text
-                    q_text = ""
-                    container = target.locator(
-                        f"fieldset:has(input[name='{r_name}']), [data-automation-id*='formField']:has(input[name='{r_name}']), div:has(> input[name='{r_name}']), div:has(input[name='{r_name}'])"
-                    ).first
-                    if await container.count() > 0:
-                        leg = container.locator("legend, label, h3, h4, [data-automation-id*='label']").first
-                        if await leg.count() > 0:
-                            q_text = (await leg.text_content() or "").strip()
+                    # Get question text from closest fieldset / formField container (never loose div:has)
+                    q_text = await r_input.evaluate(
+                        "el => { const c = el.closest('[data-automation-id*=formField], fieldset, [role=radiogroup]'); "
+                        "const leg = c ? c.querySelector('legend, label, h3, h4, [data-automation-id*=label]') : null; "
+                        "return (leg ? leg.innerText : (c ? c.innerText : el.name || '')).trim(); }"
+                    )
                     if not q_text:
                         q_text = r_name
 
@@ -2693,16 +2727,20 @@ class ATSAssistedFiller:
                     if target_ans is None:
                         if (
                             re.search(
-                                r"previous|former.*employ|worked.*for|worked.*at|predecessor", q_text, re.IGNORECASE
+                                r"previous|former.*employ|worked.*for|worked.*at|predecessor|contractor|contingent|temporary.*employ|sow\b|restrictive.*covenant|interviewed|need.*to.*sponsor|sponsor.*your.*visa|require.*sponsor|subject.*to.*a.*non-competition|preclude.*or.*restrict.*your.*employment|taken.*a.*break.*from.*your.*career|worked.*with.*a.*pwc.*engagement|related.*to.*a.*pwc.*partner|partner.*principal.*shareholder|pricewaterhousecoopers",
+                                q_text,
+                                re.IGNORECASE,
                             )
                             or "previousWorker" in r_name
                         ):
                             target_ans = "No"
-                        elif re.search(r"authorized.*to.*work|18.*years", q_text, re.IGNORECASE):
-                            target_ans = "Yes"
-                        elif re.search(r"require.*sponsor", q_text, re.IGNORECASE) or re.search(
-                            r"disability|veteran", q_text, re.IGNORECASE
+                        elif re.search(
+                            r"authori[sz]ed.*to.*work|18.*years|indian.*citizen|citizen.*of.*india|possess.*a.*valid.*(work|residency).*permit|hold.*the.*professional.*certifications|willing.*and.*able.*to.*travel|truthful.*and.*accurate|personal.*data.*processed|consent.*to.*receive.*communication|consent.*for.*ai-assisted|consent.*to.*ai.*matching|expected.*to.*work.*in.*india",
+                            q_text,
+                            re.IGNORECASE,
                         ):
+                            target_ans = "Yes"
+                        elif re.search(r"disability|veteran", q_text, re.IGNORECASE):
                             target_ans = "No"
 
                     if target_ans:
@@ -2731,7 +2769,7 @@ class ATSAssistedFiller:
                                 clicked = False
                                 if lbl and await lbl.count() > 0 and await lbl.is_visible():
                                     try:
-                                        await lbl.click(timeout=1500)
+                                        await lbl.click(timeout=1500, force=True)
                                         clicked = True
                                     except Exception:
                                         pass
@@ -2740,6 +2778,21 @@ class ATSAssistedFiller:
                                         await radio_btn.check(force=True)
                                     except Exception:
                                         await radio_btn.click(force=True)
+                                try:
+                                    if not await radio_btn.is_checked():
+                                        await radio_btn.evaluate(
+                                            "el => { el.scrollIntoView({block: 'center'}); el.click(); }"
+                                        )
+                                        await asyncio.sleep(0.15)
+                                    if not await radio_btn.is_checked() and lbl and await lbl.count() > 0:
+                                        await lbl.evaluate("el => el.click()")
+                                        await asyncio.sleep(0.15)
+                                    if not await radio_btn.is_checked():
+                                        await radio_btn.focus()
+                                        await radio_btn.press(" ")
+                                        await asyncio.sleep(0.15)
+                                except Exception:
+                                    pass
                                 answered += 1
                                 self.logger.log(
                                     event_type="QUESTION_ANSWERED",
@@ -2757,6 +2810,8 @@ class ATSAssistedFiller:
             ).all()
             for rg in radio_groups:
                 try:
+                    if await rg.locator("input[type='radio'][name]").count() > 0:
+                        continue
                     q_text = ""
                     legend = rg.locator("legend, label, h3, h4, [data-automation-id*='label']").first
                     if await legend.count() > 0:
@@ -2773,14 +2828,18 @@ class ATSAssistedFiller:
 
                     if target_ans is None:
                         if re.search(
-                            r"previous|former.*employ|worked.*for|worked.*at|predecessor", q_text, re.IGNORECASE
+                            r"previous|former.*employ|worked.*for|worked.*at|predecessor|contractor|contingent|temporary.*employ|sow\b|restrictive.*covenant|need.*to.*sponsor|sponsor.*your.*visa|require.*sponsor|subject.*to.*a.*non-competition|preclude.*or.*restrict.*your.*employment|taken.*a.*break.*from.*your.*career|worked.*with.*a.*pwc.*engagement|related.*to.*a.*pwc.*partner|partner.*principal.*shareholder|pricewaterhousecoopers",
+                            q_text,
+                            re.IGNORECASE,
                         ):
                             target_ans = "No"
-                        elif re.search(r"authorized.*to.*work|18.*years", q_text, re.IGNORECASE):
-                            target_ans = "Yes"
-                        elif re.search(r"require.*sponsor", q_text, re.IGNORECASE) or re.search(
-                            r"disability|veteran", q_text, re.IGNORECASE
+                        elif re.search(
+                            r"authori[sz]ed.*to.*work|18.*years|possess.*a.*valid.*(work|residency).*permit|hold.*the.*professional.*certifications|willing.*and.*able.*to.*travel|truthful.*and.*accurate|personal.*data.*processed|consent.*to.*receive.*communication|consent.*for.*ai-assisted|consent.*to.*ai.*matching|expected.*to.*work.*in.*india",
+                            q_text,
+                            re.IGNORECASE,
                         ):
+                            target_ans = "Yes"
+                        elif re.search(r"disability|veteran", q_text, re.IGNORECASE):
                             target_ans = "No"
 
                     if target_ans:
@@ -2816,101 +2875,452 @@ class ATSAssistedFiller:
         except Exception as e:
             print(f"⚠️ Radio resolution notice: {e}")
 
-        # 2. Answer Dropdowns / Comboboxes
+        # 2. Answer Dropdowns / Comboboxes (two passes to catch dynamically mounted conditional questions)
         try:
-            combos = await target.locator(
-                "div:has(> label):has(button[aria-haspopup='listbox']), div:has(> label):has([role='combobox']), "
-                "[data-automation-id*='formField']:has(button), div:has(label):has(button[data-automation-id*='prefix' i]), "
-                "button[id*='--title'], button[id*='--countryRegion'], button[id*='--phoneType']"
-            ).all()
-
-            for cb_cont in combos:
-                try:
-                    is_btn = await cb_cont.evaluate("e => e.tagName.toLowerCase() === 'button'")
-                    btn = cb_cont if is_btn else cb_cont.locator("button, [role='combobox']").first
-
-                    if await btn.count() == 0 or not await btn.is_visible():
+            for _pass_idx in range(2):
+                pass_answered = 0
+                btn_ids = await target.evaluate(
+                    """() => Array.from(document.querySelectorAll(
+                        "button[aria-haspopup='listbox'], [data-automation-id*='formField'] button, button[id*='--title'], button[id*='--countryRegion'], button[id*='--phoneType']"
+                    )).filter(b => b.offsetParent !== null && b.id && !['languageSelectorButton', 'settingsSelectorButton'].includes(b.id))
+                      .map(b => b.id)"""
+                )
+                seen_btn_ids = set()
+                for btn_id in btn_ids:
+                    if not btn_id or btn_id in seen_btn_ids:
                         continue
+                    seen_btn_ids.add(btn_id)
+                    try:
+                        btn = target.locator(f"button[id='{btn_id}']").first
+                        if await btn.count() == 0 or not await btn.is_visible():
+                            continue
 
-                    lbl_parts = []
-                    btn_id = await btn.get_attribute("id") or ""
-                    if btn_id:
-                        for_lbl = target.locator(f"label[for='{btn_id}']").first
-                        if await for_lbl.count() > 0:
-                            lbl_parts.append((await for_lbl.text_content() or "").strip())
-                    if not is_btn:
-                        label_el = cb_cont.locator("label, legend, [data-automation-id*='label']").first
-                        if await label_el.count() > 0:
-                            lbl_parts.append((await label_el.text_content() or "").strip())
-                    aria_lbl = (await btn.get_attribute("aria-label") or "").strip()
-                    if aria_lbl and aria_lbl.lower() not in ("select one", "select one required"):
-                        lbl_parts.append(aria_lbl)
+                        lbl_text = await btn.evaluate(
+                            """el => {
+                                const parts = [];
+                                if (el.id) {
+                                    const fl = document.querySelector(`label[for="${el.id}"]`);
+                                    if (fl) parts.push(fl.innerText.trim());
+                                    parts.push(el.id);
+                                }
+                                const ff = el.closest("[data-automation-id*='formField'], fieldset");
+                                if (ff) {
+                                    const l = ff.querySelector("label, legend, [data-automation-id*='label']");
+                                    if (l) parts.push(l.innerText.trim());
+                                    else if (ff.previousElementSibling && ff.previousElementSibling.innerText) {
+                                        parts.push(ff.previousElementSibling.innerText.trim());
+                                    }
+                                }
+                                const aria = (el.getAttribute("aria-label") || "").trim();
+                                if (aria && !["select one", "select one required"].includes(aria.toLowerCase())) {
+                                    parts.push(aria);
+                                }
+                                return Array.from(new Set(parts.filter(Boolean))).join(" ").trim();
+                            }"""
+                        )
+                        if not lbl_text:
+                            continue
 
-                    lbl_text = " ".join(p for p in lbl_parts if p).strip()
-                    if not lbl_text:
-                        continue
+                        target_val = None
+                        if re.search(
+                            r"previous|former.*employ|worked.*for|worked.*at|employed.*by|work.*for.*or.*with|are.*you.*a.*current.*employee|ever.*applied.*for.*employment|ever.*applied.*interviewed.*received.*an.*offer|applied.*for.*any.*other.*role|related.*to.*any.*associate|related.*to.*a.*pwc.*partner|partner.*principal.*shareholder|pricewaterhousecoopers|require.*a.*reasonable.*accommodation|need.*sponsorship|sponsorship.*from.*an.*employer|require.*sponsor|need.*to.*sponsor|sponsor.*your.*visa|contractual.*restrictions|subject.*to.*a.*non-competition|preclude.*or.*restrict.*your.*employment|taken.*a.*break.*from.*your.*career|worked.*with.*a.*pwc.*engagement|temporary.*work|temporary.*employ|contractor|contingent|sow\b|restrictive.*covenant|restricts.*you.*to.*join|search.*agency|interviewed|political.*contribution|company.*director|board.*of.*directors|board.*member|advisory.*board|export.*control|cuba.*iran|federal.*state.*or.*local.*government|criminal.*record|physical.*needs.*requiring.*modifications|continue.*to.*act.*as.*an.*employee|outside.*commitment|outside.*services|second.*job|side.*business|freelance|financial.*interests|personal.*loans|require.*a.*work.*permit|activity.*or.*relationship.*that.*might.*have.*an.*effect|referred.*to.*this.*job|bankruptcy|non-compete|non-solicitation|close.*associate|predecessor|relatives|family.*member|government.*official|senior.*commercial.*person|kpmg|disability|veteran",
+                            lbl_text,
+                            re.IGNORECASE,
+                        ):
+                            target_val = "No"
+                        elif re.search(
+                            r"what.*is.*your.*work.*authorization.*status|work.*authorization.*status",
+                            lbl_text,
+                            re.IGNORECASE,
+                        ):
+                            target_val = "Authorized"
+                        elif re.search(
+                            r"how.*much.*notice.*must.*you.*provide",
+                            lbl_text,
+                            re.IGNORECASE,
+                        ):
+                            target_val = "60 Days"
+                        elif re.search(
+                            r"authori[sz]ed.*to.*work|authorization.*to.*work|authori[sz]ed.*for.*employment|submit.*verification|right.*to.*work|eligible.*to.*work|possess.*a.*valid.*(work|residency).*permit|hold.*the.*professional.*certifications|willing.*and.*able.*to.*travel|verify.*that.*my.*application.*submission.*is.*truthful|truthful.*and.*accurate|agree.*to.*have.*my.*personal.*data.*processed|consent.*to.*receive.*communication|consent.*for.*ai-assisted|consent.*to.*ai.*matching|expected.*to.*work.*in.*india|aware.*that.*i.*am.*expected|18.*years|able.*to.*perform.*these.*essential.*functions|examined.*the.*description.*of.*the.*essential.*functions|understand.*and.*acknowledge.*the.*above|application.*authorization.*statement|consent.*to.*the.*use|consent.*to.*my.*personal.*data|accept.*that.*we.*use.*your.*information|consent.*for.*your.*data.*to.*be.*further.*processed|eligible.*for.*full.*time.*employment|home.*office.*environment|do.*you.*need.*to.*provide.*a.*notice.*period|join.*talent.*community|legally.*eligible|pan.*card|passport.*holder|indian.*citizen|citizen.*of.*india",
+                            lbl_text,
+                            re.IGNORECASE,
+                        ):
+                            target_val = "Yes"
+                        elif re.search(
+                            r"highest.*degree.*attained|highest.*level.*of.*completed.*education|highest.*level.*of.*education",
+                            lbl_text,
+                            re.IGNORECASE,
+                        ):
+                            target_val = "Bachelor"
+                        elif re.search(r"willing.*to.*relocate|open.*to.*relocation", lbl_text, re.IGNORECASE):
+                            page_obj = getattr(target, "page", target)
+                            u_low = str(getattr(page_obj, "url", "") or "").lower()
+                            if re.search(r"(bengaluru|bangalore|karnataka|remote)", u_low):
+                                target_val = "Yes"
+                        elif re.search(r"biometric.*information.*notice", lbl_text, re.IGNORECASE):
+                            target_val = "Yes, I Consent."
+                        elif re.search(r"whatsapp.*account.*and.*provide.*your.*consent", lbl_text, re.IGNORECASE):
+                            target_val = "I agree that Assurant may contact me through WhatsApp"
+                        elif re.search(r"receive.*messages.*from.*assurant.*about.*future", lbl_text, re.IGNORECASE):
+                            target_val = "Email"
+                        elif re.search(r"payment.*basis.*in.*your.*latest.*job", lbl_text, re.IGNORECASE):
+                            target_val = "12 - Month basis"
+                        elif re.search(r"\bprefix\b", lbl_text, re.IGNORECASE):
+                            target_val = "Mr"
+                        elif re.search(
+                            r"when.*would.*you.*be.*available.*if.*an.*offer.*was.*accepted", lbl_text, re.IGNORECASE
+                        ):
+                            target_val = "Within 2 months after offer acceptance"
+                        elif re.search(r"describe.*your.*level.*of.*familiarity", lbl_text, re.IGNORECASE):
+                            target_val = "Very familiar"
+                        elif re.search(r"automated.*assessment.*tool", lbl_text, re.IGNORECASE):
+                            target_val = (
+                                "I request the application to be reviewed by recruiter and automated assessment tool."
+                            )
+                        elif re.search(r"restricted.*party.*screening", lbl_text, re.IGNORECASE):
+                            target_val = "I acknowledge"
+                        elif re.search(r"which.*industry.*best.*describes", lbl_text, re.IGNORECASE):
+                            target_val = "Software / SaaS / Cloud / AI"
+                        elif re.search(r"\bgender\b|--gender\b|\bsex\b", lbl_text, re.IGNORECASE):
+                            target_val = "Male"
+                        elif re.search(r"country.*of.*birth|--countryofbirth\b", lbl_text, re.IGNORECASE):
+                            target_val = "India"
+                        elif re.search(r"marital.*status|--maritalstatus\b", lbl_text, re.IGNORECASE):
+                            target_val = "Single"
+                        elif re.search(r"primary.*nationality|--nationality\b", lbl_text, re.IGNORECASE):
+                            target_val = "India"
+                        elif re.search(r"please select one of the following options", lbl_text, re.IGNORECASE):
+                            target_val = "kept for 24 months"
 
-                    target_val = None
-                    if re.search(
-                        r"previous|former.*employ|worked.*for|worked.*at|employed.*by|work.*for.*or.*with|temporary.*work|search.*agency|ever.*interviewed|political.*contribution|company.*director|bankruptcy|non-compete|non-solicitation|close.*associate|predecessor|require.*sponsor|relatives|family.*member|government.*official|disability|veteran",
-                        lbl_text,
-                        re.IGNORECASE,
-                    ):
-                        target_val = "No"
-                    elif re.search(
-                        r"authorized.*to.*work|right.*to.*work|18.*years|consent.*to.*the.*use|legally.*eligible|pan.*card|passport.*holder",
-                        lbl_text,
-                        re.IGNORECASE,
-                    ):
-                        target_val = "Yes"
-                    elif re.search(r"\bgender\b|\bsex\b", lbl_text, re.IGNORECASE):
-                        target_val = "Male"
-                    elif re.search(r"please select one of the following options", lbl_text, re.IGNORECASE):
-                        target_val = "kept for 24 months"
+                        if target_val is None:
+                            for rule in radio_rules + dropdown_rules:
+                                pat = rule.get("pattern", "")
+                                if pat and re.search(pat, lbl_text, re.IGNORECASE):
+                                    target_val = rule.get("answer")
+                                    break
 
-                    if target_val is None:
-                        for rule in radio_rules + dropdown_rules:
-                            pat = rule.get("pattern", "")
-                            if pat and re.search(pat, lbl_text, re.IGNORECASE):
-                                target_val = rule.get("answer")
-                                break
-
-                    if target_val:
-                        curr_val = (await btn.text_content() or "").strip()
-                        if not curr_val or "select" in curr_val.lower():
-                            print(f"📋 Workday Question Solver: Selecting dropdown '{lbl_text}' -> [{target_val}]")
-                            if await self._select_react_combobox(target, btn, target_val):
-                                answered += 1
-                                self.logger.log(
-                                    event_type="QUESTION_ANSWERED",
-                                    message=f"Selected dropdown '{lbl_text}' -> '{target_val}'",
-                                    vendor="WORKDAY_STANDARD",
-                                    details={"question": lbl_text, "answer": target_val, "type": "dropdown"},
+                        if target_val:
+                            curr_val = (await btn.text_content() or "").strip()
+                            has_hidden_phone_err = False
+                            if re.search(r"phone.*device.*type|device.*type", lbl_text, re.IGNORECASE):
+                                try:
+                                    has_hidden_phone_err = await target.evaluate(
+                                        "() => (document.body ? document.body.innerText : '').toLowerCase().includes('hidden for recruiting')"
+                                    )
+                                except Exception:
+                                    pass
+                            needs_override = (
+                                not curr_val
+                                or "select" in curr_val.lower()
+                                or has_hidden_phone_err
+                                or (
+                                    target_val.lower() in ("yes", "no")
+                                    and curr_val.lower() in ("yes", "no")
+                                    and curr_val.lower() != target_val.lower()
                                 )
-                                await asyncio.sleep(0.3)
-                except Exception:
-                    pass
+                            )
+                            if needs_override:
+                                print(
+                                    f"📋 Workday Question Solver: Selecting dropdown '{lbl_text[:80]}' -> [{target_val}]"
+                                )
+                                selected_ok = False
+                                if not has_hidden_phone_err:
+                                    selected_ok = await self._select_react_combobox(target, btn, target_val)
+                                if not selected_ok and target_val.lower() == "linkedin":
+                                    selected_ok = await self._select_react_combobox(
+                                        target, btn, "Job Board"
+                                    ) or await self._select_react_combobox(target, btn, "Company Website")
+                                elif not selected_ok and target_val.lower() == "india":
+                                    selected_ok = await self._select_react_combobox(target, btn, "Indian")
+                                elif not selected_ok and target_val.lower() == "bachelor":
+                                    for deg_alt in ("University", "4 Year", "Undergraduate", "College", "B.E."):
+                                        if await self._select_react_combobox(target, btn, deg_alt):
+                                            selected_ok = True
+                                            break
+                                elif not selected_ok and re.search(
+                                    r"work.*authorization.*status", lbl_text, re.IGNORECASE
+                                ):
+                                    for auth_alt in (
+                                        "Citizen",
+                                        "Permanent",
+                                        "India",
+                                        "No Sponsorship",
+                                        "Yes",
+                                        "Eligible",
+                                    ):
+                                        if await self._select_react_combobox(target, btn, auth_alt):
+                                            selected_ok = True
+                                            break
+                                elif not selected_ok and re.search(
+                                    r"how.*much.*notice|notice.*period", lbl_text, re.IGNORECASE
+                                ):
+                                    for not_alt in (
+                                        "60",
+                                        "2 Months",
+                                        "30 - 60",
+                                        "1 - 2",
+                                        "45 - 60",
+                                        "More than",
+                                        "30 Days",
+                                        "Immediate",
+                                    ):
+                                        if await self._select_react_combobox(target, btn, not_alt):
+                                            selected_ok = True
+                                            break
+                                elif not selected_ok and re.search(
+                                    r"phone.*device.*type|device.*type", lbl_text, re.IGNORECASE
+                                ):
+                                    for dev_alt in (
+                                        "Cell",
+                                        "Cellular",
+                                        "Home",
+                                        "Personal",
+                                        "Work",
+                                        "Telephone",
+                                        "Landline",
+                                    ):
+                                        if await self._select_react_combobox(target, btn, dev_alt):
+                                            selected_ok = True
+                                            break
+                                elif not selected_ok and target_val.lower() == "yes":
+                                    for yes_alt in (
+                                        "I Agree",
+                                        "Agree",
+                                        "I Consent",
+                                        "Consent",
+                                        "I Verify",
+                                        "I Confirm",
+                                        "I Acknowledge",
+                                        "Not Applicable",
+                                        "N/A",
+                                    ):
+                                        if await self._select_react_combobox(target, btn, yes_alt):
+                                            selected_ok = True
+                                            break
+                                elif not selected_ok and target_val.lower() == "no":
+                                    for no_alt in ("None", "Not Applicable", "N/A", "I do not", "Never"):
+                                        if await self._select_react_combobox(target, btn, no_alt):
+                                            selected_ok = True
+                                            break
+
+                                # Final fallback for custom tenant option labels (e.g. Dexcom work status, Nvidia phone type, PwC notice):
+                                # pick the first visible non-"Select One", non-"Hidden" option in the listbox
+                                if not selected_ok:
+                                    try:
+                                        await btn.evaluate("e => { e.scrollIntoView({block: 'center'}); e.click(); }")
+                                        await asyncio.sleep(0.25)
+                                        opts = target.locator(
+                                            "[role='option']:not(.select__menu-notice), div[data-automation-id*='promptOption']"
+                                        )
+                                        o_cnt = await opts.count()
+                                        for oi in range(o_cnt):
+                                            o_el = opts.nth(oi)
+                                            if not await o_el.is_visible():
+                                                continue
+                                            o_txt = (await o_el.inner_text() or "").strip()
+                                            o_low = o_txt.lower()
+                                            if not o_low or o_low in (
+                                                "select one",
+                                                "select",
+                                                "choose one",
+                                                "-- select --",
+                                            ):
+                                                continue
+                                            if "hidden" in o_low:
+                                                continue
+                                            if has_hidden_phone_err and o_low == "mobile":
+                                                continue
+                                            if target_val.lower() == "yes" and o_low.startswith(("no", "i do not")):
+                                                continue
+                                            if target_val.lower() == "no" and o_low.startswith(("yes", "i agree")):
+                                                continue
+                                            await o_el.click(force=True)
+                                            await asyncio.sleep(0.15)
+                                            selected_ok = True
+                                            break
+                                    except Exception:
+                                        pass
+
+                                if selected_ok:
+                                    answered += 1
+                                    pass_answered += 1
+                                    self.logger.log(
+                                        event_type="QUESTION_ANSWERED",
+                                        message=f"Selected dropdown '{lbl_text[:60]}' -> '{target_val}'",
+                                        vendor="WORKDAY_STANDARD",
+                                        details={"question": lbl_text, "answer": target_val, "type": "dropdown"},
+                                    )
+                                    await asyncio.sleep(0.4)
+                    except Exception:
+                        pass
+                if pass_answered == 0:
+                    break
         except Exception as e:
             print(f"⚠️ Dropdown resolution notice: {e}")
 
-        # 3. Answer Required / Terms & Consent Checkboxes (e.g. Voluntary Disclosures termsAndConditions)
+        # 3. Answer Required / Terms & Consent Checkboxes (e.g. Voluntary Disclosures termsAndConditions, Dexcom verification)
         try:
             checkboxes = await target.locator(
                 "input[type='checkbox'][id*='termsAndConditions'], input[type='checkbox'][id*='consent' i], "
-                "input[type='checkbox'][id*='accept' i], input[type='checkbox'][aria-required='true']"
+                "input[type='checkbox'][id*='accept' i], input[type='checkbox'][aria-required='true'], "
+                "[data-automation-id*='formField'] input[type='checkbox']:not([id*='currentlyWorkHere'])"
             ).all()
             for cb in checkboxes:
                 try:
+                    cb_lbl = await cb.evaluate(
+                        """el => {
+                            const ff = el.closest("[data-automation-id*='formField'], fieldset, div");
+                            return ff ? (ff.innerText || "").trim() : "";
+                        }"""
+                    )
+                    cb_req = (await cb.get_attribute("aria-required") or "").lower() == "true"
+                    cb_id = (await cb.get_attribute("id") or "").lower()
+                    if (
+                        not cb_req
+                        and not any(k in cb_id for k in ("terms", "consent", "accept", "agree", "verify"))
+                        and not re.search(
+                            r"terms|consent|accept|agree|verify|truthful|accurate|acknowledge|confirm|certify|declare|aware",
+                            cb_lbl,
+                            re.IGNORECASE,
+                        )
+                    ):
+                        continue
                     if not await cb.is_checked():
-                        await cb.check(force=True)
+                        await cb.scroll_into_view_if_needed(timeout=1500)
+                        await cb.focus()
+                        await cb.press(" ")
+                        await asyncio.sleep(0.25)
+                        if not await cb.is_checked():
+                            await cb.evaluate("el => el.click()")
+                            await asyncio.sleep(0.2)
+                        if not await cb.is_checked():
+                            await cb.click(force=True)
                         answered += 1
                         await asyncio.sleep(0.2)
                 except Exception:
                     try:
-                        await cb.click(force=True)
+                        await cb.evaluate("el => el.click()")
                         answered += 1
                     except Exception:
                         pass
+        except Exception:
+            pass
+
+        # 4. Answer Text / Textarea Screening Questions (strictly grounded in CandidateMasterData)
+        try:
+            from src.autofill.ground_truth_guard import AutofillGroundTruthGuard
+
+            guard = AutofillGroundTruthGuard()
+            legal = self.master_data.legal_and_compliance
+            emp = self.master_data.current_employment
+            q_containers = await target.locator(
+                "[data-automation-id*='formField']:has(textarea), [data-automation-id*='formField']:has(input[type='text']), "
+                "[data-automation-id*='formField']:has(input:not([type])), "
+                "div:has(> textarea[id*='Questionnaire']):visible"
+            ).all()
+            for qc in q_containers:
+                try:
+                    lbl_el = qc.locator("label, legend, [data-automation-id*='label']").first
+                    if await lbl_el.count() > 0:
+                        q_lbl = (await lbl_el.text_content() or "").strip()
+                    else:
+                        q_lbl = (await qc.inner_text() or "").strip()
+                    if not q_lbl:
+                        continue
+                    inp_el = qc.locator(
+                        "textarea:visible, input[type='text']:not([data-uxi-widget-type='selectinput']):visible, "
+                        "input:not([type]):not([data-uxi-widget-type='selectinput']):visible"
+                    ).first
+                    if await inp_el.count() == 0 or not await inp_el.is_visible():
+                        continue
+                    curr_v = (await inp_el.input_value() or "").strip()
+                    if curr_v:
+                        continue
+                    prev_context = await qc.evaluate(
+                        "el => (el.previousElementSibling ? el.previousElementSibling.innerText : '') || ''"
+                    )
+                    ans_txt = None
+                    if re.search(r"notice\s*period|how.*much.*notice.*must.*you.*provide", q_lbl, re.IGNORECASE) or (
+                        re.search(r"please\s*specify", q_lbl, re.IGNORECASE)
+                        and re.search(r"notice\s*period", prev_context or "", re.IGNORECASE)
+                    ):
+                        ans_txt = (
+                            str(legal.notice_period_days)
+                            if "number" in q_lbl.lower() or "days" in q_lbl.lower()
+                            else legal.notice_period_text
+                        )
+                    elif re.search(
+                        r"indicate.*not.*applicable|require.*sponsorship.*for.*employment.*with|locations.*or.*countries.*for.*which.*you.*now.*or.*in.*the.*future.*require.*sponsorship",
+                        q_lbl,
+                        re.IGNORECASE,
+                    ):
+                        ans_txt = "N/A"
+                    elif re.search(
+                        r"ever.*applied.*interviewed.*received.*an.*offer|employed.*with.*pwc.*or.*its.*predecessor|worked.*with.*a.*pwc.*engagement.*team|related.*to.*a.*pwc.*partner|subject.*to.*a.*non-competition|preclude.*or.*restrict.*your.*employment",
+                        q_lbl,
+                        re.IGNORECASE,
+                    ):
+                        ans_txt = "No"
+                    elif re.search(
+                        r"expected.*(salary|ctc|compensation|annual.*base)|compensation.*expectations|salary.*expectations|desired.*(salary|ctc|minimum.*annual)|annual.*compensation.*desired|compensation.*desired",
+                        q_lbl,
+                        re.IGNORECASE,
+                    ):
+                        ans_txt = (
+                            f"{legal.expected_ctc_numeric} INR"
+                            if "currency" in q_lbl.lower()
+                            else str(legal.expected_ctc_numeric)
+                        )
+                    elif re.search(r"current.*(salary|ctc|compensation|base|gross)", q_lbl, re.IGNORECASE):
+                        ans_txt = str(legal.current_ctc_numeric)
+                    elif re.search(
+                        r"variable.*bonus|bonus.*payout|last.*actual.*bonus|rsu|stock.*option", q_lbl, re.IGNORECASE
+                    ):
+                        ans_txt = "0"
+                    elif re.search(r"current.*or.*most.*recent.*job.*title", q_lbl, re.IGNORECASE):
+                        ans_txt = emp.title
+                    elif re.search(r"hereby.*declare.*that.*the.*information", q_lbl, re.IGNORECASE):
+                        ans_txt = self.master_data.personal.full_name
+                    elif re.search(r"bonded.*by.*your.*current|state.*the.*bond", q_lbl, re.IGNORECASE):
+                        ans_txt = "No"
+                    elif re.search(r"non-compete|non-solicitation|enter.*not.*applicable", q_lbl, re.IGNORECASE):
+                        ans_txt = "Not Applicable"
+                    elif re.search(r"current.*or.*most.*recent.*employer|legal.*company.*name", q_lbl, re.IGNORECASE):
+                        ans_txt = emp.company
+                    elif re.search(
+                        r"total.*number.*years.*of.*working.*experience|total.*years.*of.*experience|years.*of.*relevant.*experience",
+                        q_lbl,
+                        re.IGNORECASE,
+                    ):
+                        ans_txt = str(self.master_data.professional_summary.years_of_experience)
+                    elif re.search(r"country.*of.*citizenship", q_lbl, re.IGNORECASE):
+                        ans_txt = self.master_data.personal.country or "India"
+                    elif re.search(r"when.*are.*you.*able.*to.*work", q_lbl, re.IGNORECASE):
+                        ans_txt = legal.notice_period_text
+                    if ans_txt:
+                        ok_g, _ = guard.validate_field_value(q_lbl, ans_txt, control_type="textarea")
+                        if ok_g and await self._fill_text_input(inp_el, ans_txt):
+                            answered += 1
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 5. Date of Birth fields — ONLY fill if explicitly configured in personal.date_of_birth (never fabricate)
+        try:
+            dob_cfg = (getattr(self.master_data.personal, "date_of_birth", "") or "").strip()
+            m_dob = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", dob_cfg)
+            if m_dob:
+                dob_y_val, dob_m_val, dob_d_val = m_dob.group(1), m_dob.group(2), m_dob.group(3)
+                dob_m = target.locator("input[id*='dateOfBirth-dateSectionMonth-input']:visible").first
+                dob_d = target.locator("input[id*='dateOfBirth-dateSectionDay-input']:visible").first
+                dob_y = target.locator("input[id*='dateOfBirth-dateSectionYear-input']:visible").first
+                if await dob_m.count() > 0 and not (await dob_m.input_value() or "").strip():
+                    await dob_m.fill(dob_m_val)
+                    await dob_d.fill(dob_d_val)
+                    await dob_y.fill(dob_y_val)
+                    await dob_y.press("Tab")
+                    answered += 1
         except Exception:
             pass
 
@@ -2918,55 +3328,81 @@ class ATSAssistedFiller:
 
     async def _detect_workday_state(self, target: Any) -> str:
         """Classifies the active Workday DOM state into one of:
-        'email_verify', 'info', 'experience', 'questions', 'disclosures', 'review', 'otp', 'auth_create', 'auth_sign_in', 'modal', 'overview', 'unknown'
+        'submitted', 'email_verify', 'review', 'info', 'experience', 'questions', 'disclosures', 'otp', 'auth_create', 'auth_sign_in', 'modal', 'overview', 'unknown'
         """
         try:
+            page = getattr(target, "page", target)
+            curr_url = getattr(page, "url", "")
+            if "/jobtasks/completed/application" in curr_url.lower() or "job_application_id=" in curr_url.lower():
+                return "submitted"
+
+            # 0. Already submitted / Already applied confirmation state
+            already_el = target.locator(
+                "text=\"You've already applied for this job\", text='You have already applied for this job', "
+                "text='already applied for this job', text='You applied for this job on', "
+                "text='Thank you for your application', text='Application Submitted'"
+            ).first
+            if await already_el.count() > 0 and await already_el.is_visible():
+                return "submitted"
+
+            # 0B. Closed / non-existent job posting
+            closed_el = target.locator(
+                "text=\"The page you are looking for doesn't exist\", text='This job is no longer available', "
+                "text='This position has been filled', text='job posting is no longer available'"
+            ).first
+            if await closed_el.count() > 0 and await closed_el.is_visible():
+                return "closed"
+
             # 1. Post-registration email verification screen
             if await self._is_workday_email_verification_screen(target):
                 return "email_verify"
 
-            # 2. Stage 1 'My Information' section (matches standard and BEM ID layouts)
+            # 2. Stage 5 Review / Final Submission Gate MUST be checked BEFORE 'info'/'experience'
+            # (because Workday's Review summary renders <h3>My Information</h3> and <h3>My Experience</h3>!)
+            review_btn = target.locator(
+                "button[data-automation-id='pageFooterNextButton']:has-text('Submit'), "
+                "button[data-automation-id='bottom-navigation-submit-button'], button:has-text('Submit Application'), "
+                "div[data-automation-id='pageHeader']:has-text('Review'), h2:has-text('Review')"
+            ).first
+            if await review_btn.count() > 0 and await review_btn.is_visible():
+                return "review"
+
+            # 3. Stage 1 'My Information' section (matches standard and BEM ID layouts)
             info_el = target.locator(
                 "[data-automation-id='legalNameSection_firstName'], input[id*='legalNameSection_firstName'], "
                 "input[id*='legalName--firstName'], input[name='legalName--firstName'], "
                 "input[name='candidateIsPreviousWorker'], input[id*='previousWorker' i], "
                 "button[id*='legalName--title'], button[aria-label*='Prefix' i], [data-automation-id='legalNameSection_prefix'], "
                 "input[id*='addressLine1'], input[id*='address--addressLine1'], "
-                "h1:has-text('My Information'), h2:has-text('My Information'), h3:has-text('My Information'), "
+                "h1:has-text('My Information'), h2:has-text('My Information'), "
                 "div[data-automation-id='pageHeader']:has-text('My Information')"
             ).first
             if await info_el.count() > 0 and await info_el.is_visible():
                 return "info"
 
-            # 3. Stage 2 'My Experience' section
+            # 4. Stage 2 'My Experience' section
             resume_el = target.locator(
                 "input[type='file'], [data-automation-id='file-upload-dropzone'], "
-                "h1:has-text('My Experience'), h2:has-text('My Experience'), h3:has-text('My Experience')"
+                "input[id*='schoolName'], button[id*='degree' i], "
+                "h1:has-text('My Experience'), h2:has-text('My Experience'), h3:has-text('My Experience'), "
+                "div[data-automation-id='pageHeader']:has-text('My Experience')"
             ).first
             if await resume_el.count() > 0 and await resume_el.is_visible():
                 return "experience"
 
-            # 4. Stage 3 'Application Questions'
+            # 5. Stage 3 'Application Questions'
             q_el = target.locator(
                 "h1:has-text('Application Questions'), h2:has-text('Application Questions'), h3:has-text('Application Questions'), [data-automation-id='applicationQuestions']"
             ).first
             if await q_el.count() > 0 and await q_el.is_visible():
                 return "questions"
 
-            # 5. Stage 4 'Voluntary Disclosures'
+            # 6. Stage 4 'Voluntary Disclosures'
             vd_el = target.locator(
                 "h1:has-text('Voluntary Disclosures'), h2:has-text('Voluntary Disclosures'), h3:has-text('Voluntary Disclosures'), [data-automation-id='voluntaryDisclosures']"
             ).first
             if await vd_el.count() > 0 and await vd_el.is_visible():
                 return "disclosures"
-
-            # 6. Stage 5 Review / Final Submission Gate
-            review_btn = target.locator(
-                "button[data-automation-id='bottom-navigation-submit-button'], button:has-text('Submit Application'), "
-                "h1:has-text('Review'), h2:has-text('Review'), h3:has-text('Review')"
-            ).first
-            if await review_btn.count() > 0 and await review_btn.is_visible():
-                return "review"
 
             # 7. Fallback for Stage 1 if footer Save & Continue button is mounted and active
             page = getattr(target, "page", target)
@@ -2980,14 +3416,7 @@ class ATSAssistedFiller:
             if await otp_el.count() > 0 and await otp_el.is_visible():
                 return "otp"
 
-            # 9. Auth Gate: Create Account Mode (verifyPassword input present)
-            verify_pwd_inp = target.locator(
-                "input[data-automation-id='verifyPassword'], input#verifyPassword, input[aria-label*='Verify' i]"
-            ).first
-            if await verify_pwd_inp.count() > 0 and await verify_pwd_inp.is_visible():
-                return "auth_create"
-
-            # 10. 'Start Your Application' Modal
+            # 9. 'Start Your Application' Modal
             modal_el = target.locator(
                 "[data-automation-id='applyManually'], button:has-text('Apply Manually'), a:has-text('Apply Manually'), "
                 "[data-automation-id='useMyLastApplication'], button:has-text('Use My Last Application')"
@@ -2995,32 +3424,357 @@ class ATSAssistedFiller:
             if await modal_el.count() > 0 and await modal_el.is_visible():
                 return "modal"
 
+            # 10. Auth Gate: Check if Sign In Form ('signInFormo' / 'signInSubmitButton' / 'Sign in with email') is the active topmost dialog FIRST
+            # (On Workday modals, createAccount's verifyPassword can remain mounted in the background behind signInFormo!)
+            sign_in_form_btn = target.locator(
+                "[data-automation-id='signInFormo'] button[data-automation-id='signInSubmitButton'], "
+                "[data-automation-id='signInContent'] button[data-automation-id='signInSubmitButton'], "
+                "button[data-automation-id='signInSubmitButton'], "
+                "button:has-text('Sign in with email'), a:has-text('Sign in with email')"
+            ).first
+            if await sign_in_form_btn.count() > 0 and await sign_in_form_btn.is_visible():
+                return "auth_sign_in"
+
+            # 11. Auth Gate: Create Account Mode (verifyPassword input present and Sign In submit button is not visible)
+            verify_pwd_inp = target.locator(
+                "input[data-automation-id='verifyPassword'], input#verifyPassword, input[aria-label*='Verify' i]"
+            ).first
+            if await verify_pwd_inp.count() > 0 and await verify_pwd_inp.is_visible():
+                return "auth_create"
+
             # Check presence of credential fields (to disambiguate Overview vs Auth Gate)
             pwd_inp = target.locator(
                 "input[data-automation-id='password'], input#password, input[type='password']"
             ).first
             has_pwd = await pwd_inp.count() > 0 and await pwd_inp.is_visible()
 
-            # 11. Job Overview page ('Apply' button present, without password field)
+            # 12. Job Overview page ('Apply' or 'Continue Application' button present, without password field)
             apply_el = target.locator(
-                "[data-automation-id='applyButton'], a[role='button']:has-text('Apply'), button:has-text('Apply'), a:has-text('Apply'), [data-automation-id='adventureButton']"
+                "[data-automation-id='applyButton'], a[role='button']:has-text('Apply'), button:has-text('Apply'), a:has-text('Apply'), "
+                "button:has-text('Continue Application'), a:has-text('Continue Application'), [data-automation-id='adventureButton']"
             ).first
             if await apply_el.count() > 0 and await apply_el.is_visible() and not has_pwd:
                 return "overview"
 
-            # 12. Auth Gate: Sign In Mode (Must have password input visible, AND signInSubmitButton or /login URL)
-            sign_in_submit = target.locator(
-                "button[data-automation-id='signInSubmitButton'], [data-automation-id='authDialog'] button:has-text('Sign In'), [data-automation-id='signInFormo'] button[type='submit']"
-            ).first
-            if has_pwd and (
-                (await sign_in_submit.count() > 0 and await sign_in_submit.is_visible()) or ("/login" in curr_url)
-            ):
+            # 13. Auth Gate: Sign In Mode fallback (/login URL with password input)
+            if has_pwd and "/login" in curr_url:
                 return "auth_sign_in"
 
         except Exception:
             pass
 
         return "unknown"
+
+    def _load_grounded_experience_descriptions(self, job_id: str | None) -> dict[str, str]:
+        """Loads per-employer multi-bullet descriptions from approved tailored resume JSON (if valid) or Master Data."""
+        from src.autofill.ground_truth_guard import AutofillGroundTruthGuard
+
+        guard = AutofillGroundTruthGuard()
+        desc_map: dict[str, str] = {}
+
+        def _norm_co(name: str) -> str:
+            return re.sub(r"[^a-z0-9]", "", (name or "").lower())
+
+        for exp in self.master_data.experience_history:
+            bullets = list(getattr(exp, "bullets", None) or [])
+            full_text = "\n".join(f"• {b}" for b in bullets) if bullets else (exp.summary or "").strip()
+            if full_text:
+                desc_map[_norm_co(exp.company)] = full_text
+
+        if job_id:
+            q_file = PROJECT_ROOT / "data" / "approved_queue" / f"{job_id}.json"
+            if q_file.exists():
+                try:
+                    q_payload = json.loads(q_file.read_text(encoding="utf-8"))
+                    t_exp_list = (q_payload.get("tailored_resume") or {}).get("experience_history") or []
+                    for t_exp in t_exp_list:
+                        co_key = _norm_co(t_exp.get("company", ""))
+                        ach = [str(a).strip() for a in (t_exp.get("achievements") or []) if str(a).strip()]
+                        if co_key and ach:
+                            candidate_text = "\n".join(f"• {a}" for a in ach)
+                            ok_g, _ = guard.validate_field_value(
+                                "Role Description", candidate_text, control_type="textarea"
+                            )
+                            if ok_g:
+                                desc_map[co_key] = candidate_text
+                except Exception:
+                    pass
+        return desc_map
+
+    async def _fill_workday_month_year(self, target: Any, m_sel: str, y_sel: str, m_val: str, y_val: str) -> bool:
+        """Fills Workday spinbutton or standard Month/Year date inputs cleanly without viewport click errors."""
+        if not m_val or not y_val:
+            return False
+        try:
+            m_loc = target.locator(m_sel).first
+            y_loc = target.locator(y_sel).first
+            if await m_loc.count() == 0:
+                return False
+            await m_loc.evaluate("el => el.scrollIntoView({block: 'center'})")
+            await asyncio.sleep(0.1)
+            try:
+                await m_loc.click(force=True, timeout=1500)
+            except Exception:
+                await m_loc.evaluate("el => el.focus()")
+            await asyncio.sleep(0.05)
+            await m_loc.press_sequentially(m_val, delay=35)
+            if not (await m_loc.input_value() or "").strip():
+                await m_loc.fill(m_val)
+            if await y_loc.count() > 0:
+                try:
+                    await y_loc.click(force=True, timeout=1500)
+                except Exception:
+                    await y_loc.evaluate("el => el.focus()")
+                await asyncio.sleep(0.05)
+                await y_loc.press_sequentially(y_val, delay=35)
+                if not (await y_loc.input_value() or "").strip():
+                    await y_loc.fill(y_val)
+                await y_loc.press("Tab")
+            return True
+        except Exception:
+            try:
+                m_loc = target.locator(m_sel).first
+                y_loc = target.locator(y_sel).first
+                await m_loc.fill(m_val)
+                if await y_loc.count() > 0:
+                    await y_loc.fill(y_val)
+                return True
+            except Exception:
+                return False
+
+    async def _populate_workday_experience_and_education(self, target: Any, job_id: str | None = None) -> int:
+        """Populates Workday My Experience panels strictly from CandidateMasterData & Master Resume."""
+        from src.autofill.ground_truth_guard import AutofillGroundTruthGuard
+
+        guard = AutofillGroundTruthGuard()
+        filled = 0
+        desc_by_co = self._load_grounded_experience_descriptions(job_id)
+
+        def _norm_co(name: str) -> str:
+            return re.sub(r"[^a-z0-9]", "", (name or "").lower())
+
+        # 1. Multi-panel Work Experience binding (by existing company match or panel index)
+        try:
+            prefixes: list[str] = await target.evaluate(
+                """() => {
+                    const seen = [];
+                    for (const el of document.querySelectorAll("input[id^='workExperience-'][id*='--'], textarea[id^='workExperience-'][id*='--']")) {
+                        if (el.offsetParent === null) continue;
+                        const idx = el.id.indexOf('--');
+                        if (idx > 0) {
+                            const p = el.id.slice(0, idx);
+                            if (!seen.includes(p)) seen.push(p);
+                        }
+                    }
+                    return seen;
+                }"""
+            )
+            exp_list = list(self.master_data.experience_history)
+            for p_idx, prefix in enumerate(prefixes):
+                co_inp = target.locator(f"input[id='{prefix}--companyName']").first
+                curr_co = ((await co_inp.input_value()) if await co_inp.count() > 0 else "").strip()
+                matched_exp = None
+                if curr_co:
+                    norm_curr = _norm_co(curr_co)
+                    for cand in exp_list:
+                        nc = _norm_co(cand.company)
+                        if nc and (nc == norm_curr or nc in norm_curr or norm_curr in nc):
+                            matched_exp = cand
+                            break
+                if not matched_exp:
+                    if p_idx < len(exp_list):
+                        matched_exp = exp_list[p_idx]
+                    elif exp_list:
+                        matched_exp = exp_list[-1]
+
+                if not matched_exp:
+                    continue
+
+                title_inp = target.locator(f"input[id='{prefix}--jobTitle']").first
+                if await title_inp.count() > 0 and not (await title_inp.input_value() or "").strip():
+                    await title_inp.fill(matched_exp.title)
+                    filled += 1
+
+                if await co_inp.count() > 0 and not curr_co:
+                    await co_inp.fill(matched_exp.company)
+                    filled += 1
+
+                loc_inp = target.locator(f"input[id='{prefix}--location']").first
+                if await loc_inp.count() > 0:
+                    curr_loc = (await loc_inp.input_value() or "").strip()
+                    if not curr_loc or (
+                        matched_exp.is_current and matched_exp.location == "Remote" and curr_loc != "Remote"
+                    ):
+                        await loc_inp.fill(matched_exp.location)
+                        filled += 1
+
+                curr_cb = target.locator(f"input[id='{prefix}--currentlyWorkHere']").first
+                if await curr_cb.count() > 0:
+                    is_chk = await curr_cb.is_checked()
+                    if matched_exp.is_current and not is_chk:
+                        try:
+                            await curr_cb.check(timeout=1000)
+                        except Exception:
+                            await curr_cb.evaluate("el => el.click()")
+                        filled += 1
+                    elif not matched_exp.is_current and is_chk:
+                        try:
+                            await curr_cb.uncheck(timeout=1000)
+                        except Exception:
+                            await curr_cb.evaluate("el => el.click()")
+
+                s_m = getattr(matched_exp, "start_month_num", "") or "06"
+                s_y = getattr(matched_exp, "start_year", "")
+                if s_m and s_y:
+                    sm_inp = target.locator(f"input[id='{prefix}--startDate-dateSectionMonth-input']").first
+                    sy_inp = target.locator(f"input[id='{prefix}--startDate-dateSectionYear-input']").first
+                    sy_val = ((await sy_inp.input_value()) if await sy_inp.count() > 0 else "").strip()
+                    sm_val = ((await sm_inp.input_value()) if await sm_inp.count() > 0 else "").strip()
+                    if (
+                        await sy_inp.count() > 0
+                        and (not sy_val or not sm_val or "yyyy" in sy_val.lower() or "mm" in sm_val.lower())
+                        and await self._fill_workday_month_year(
+                            target,
+                            f"input[id='{prefix}--startDate-dateSectionMonth-input']",
+                            f"input[id='{prefix}--startDate-dateSectionYear-input']",
+                            s_m,
+                            s_y,
+                        )
+                    ):
+                        filled += 1
+
+                if matched_exp.is_current:
+                    # Current employment MUST NEVER populate endDate
+                    for end_sel in (
+                        f"input[id='{prefix}--endDate-dateSectionMonth-input']",
+                        f"input[id='{prefix}--endDate-dateSectionYear-input']",
+                    ):
+                        el_end = target.locator(end_sel).first
+                        if await el_end.count() > 0 and (await el_end.input_value() or "").strip():
+                            try:
+                                await el_end.fill("")
+                            except Exception:
+                                pass
+                else:
+                    e_m = getattr(matched_exp, "end_month_num", "")
+                    e_y = getattr(matched_exp, "end_year", "")
+                    em_inp = target.locator(f"input[id='{prefix}--endDate-dateSectionMonth-input']").first
+                    ey_inp = target.locator(f"input[id='{prefix}--endDate-dateSectionYear-input']").first
+                    ey_val = ((await ey_inp.input_value()) if await ey_inp.count() > 0 else "").strip()
+                    em_val = ((await em_inp.input_value()) if await em_inp.count() > 0 else "").strip()
+                    if (
+                        e_m
+                        and e_y
+                        and await ey_inp.count() > 0
+                        and (not ey_val or not em_val or "yyyy" in ey_val.lower() or "mm" in em_val.lower())
+                        and await self._fill_workday_month_year(
+                            target,
+                            f"input[id='{prefix}--endDate-dateSectionMonth-input']",
+                            f"input[id='{prefix}--endDate-dateSectionYear-input']",
+                            e_m,
+                            e_y,
+                        )
+                    ):
+                        filled += 1
+
+                desc_ta = target.locator(f"textarea[id='{prefix}--roleDescription']").first
+                grounded_desc = desc_by_co.get(_norm_co(matched_exp.company)) or (matched_exp.summary or "").strip()
+                if await desc_ta.count() > 0 and grounded_desc:
+                    curr_desc = (await desc_ta.input_value() or "").strip()
+                    is_slop_stub = bool(curr_desc and len(curr_desc) < 120 and "•" not in curr_desc)
+                    if not curr_desc or is_slop_stub:
+                        ok_d, _ = guard.validate_field_value("Role Description", grounded_desc, control_type="textarea")
+                        if ok_d:
+                            await desc_ta.fill(grounded_desc)
+                            await desc_ta.dispatch_event("input")
+                            await desc_ta.dispatch_event("change")
+                            filled += 1
+        except Exception as e:
+            print(f"⚠️ Workday workExperience grounding notice: {e}")
+
+        # 2. Education panel strictly from CandidateMasterData.education_history[0]
+        try:
+            edu = self.master_data.education_history[0] if self.master_data.education_history else None
+            if edu:
+                school_inp = target.locator(
+                    "input[id*='schoolName']:visible, input[name='schoolName']:visible, [data-automation-id='school']:visible"
+                ).first
+                if await school_inp.count() > 0 and not (await school_inp.input_value() or "").strip():
+                    await school_inp.fill(edu.institution)
+                    filled += 1
+
+                degree_btn = target.locator(
+                    "button[id*='degree' i]:visible, [data-automation-id='degree']:visible"
+                ).first
+                if await degree_btn.count() > 0:
+                    curr_deg = (await degree_btn.text_content() or "").strip()
+                    deg_low = curr_deg.lower()
+                    if (
+                        not curr_deg
+                        or "select" in deg_low
+                        or "medicine" in deg_low
+                        or "surgery" in deg_low
+                        or "mbbs" in deg_low
+                    ) and (
+                        await self._select_react_combobox(target, degree_btn, "Bachelor of Engineering")
+                        or await self._select_react_combobox(target, degree_btn, "Bachelor of Science")
+                        or await self._select_react_combobox(target, degree_btn, "Bachelor")
+                        or await self._select_react_combobox(target, degree_btn, "B.E.")
+                        or await self._select_react_combobox(target, degree_btn, "Undergraduate")
+                    ):
+                        filled += 1
+
+                fos_inp = target.locator("input[id*='education'][id*='--fieldOfStudy']:visible").first
+                if await fos_inp.count() > 0 and edu.discipline and not (await fos_inp.input_value() or "").strip():
+                    await fos_inp.fill(edu.discipline)
+                    filled += 1
+
+                gpa_inp = target.locator("input[id*='education'][id*='--gradeAverage']:visible").first
+                gpa_val = getattr(edu, "gpa_numeric", "") or re.sub(r"[^\d.]", "", edu.gpa.split("/")[0]).strip()
+                if await gpa_inp.count() > 0 and gpa_val:
+                    curr_gpa = (await gpa_inp.input_value() or "").strip()
+                    if not curr_gpa or curr_gpa == "8.5":
+                        await gpa_inp.fill(gpa_val)
+                        filled += 1
+
+                for y_sel, y_val in [
+                    ("input[id*='education'][id*='--firstYearAttended-dateSectionYear-input']:visible", edu.start_year),
+                    ("input[id*='education'][id*='--lastYearAttended-dateSectionYear-input']:visible", edu.end_year),
+                ]:
+                    try:
+                        y_loc = target.locator(y_sel).first
+                        if y_val and await y_loc.count() > 0 and not (await y_loc.input_value() or "").strip():
+                            role_y = ((await y_loc.get_attribute("role")) or "").lower()
+                            if role_y == "spinbutton":
+                                await y_loc.evaluate("el => { el.scrollIntoView({block: 'center'}); el.focus(); }")
+                                await asyncio.sleep(0.1)
+                                await y_loc.press_sequentially(y_val, delay=35)
+                                await y_loc.press("Tab")
+                            else:
+                                await y_loc.fill(y_val)
+                            filled += 1
+                    except Exception:
+                        pass
+        except Exception as e:
+            print(f"⚠️ Workday education grounding notice: {e}")
+
+        # 3. Language section (English / Fluent)
+        try:
+            lang_btn = target.locator("button[id*='language'][id*='--language']:visible").first
+            if await lang_btn.count() > 0 and "select" in (await lang_btn.text_content() or "").lower():
+                await self._select_react_combobox(target, lang_btn, "English")
+            prof_btns = await target.locator("button[id*='language-']:not([id*='--language']):visible").all()
+            for p_btn in prof_btns:
+                if (
+                    "select" in (await p_btn.text_content() or "").lower()
+                    and not await self._select_react_combobox(target, p_btn, "Fluent")
+                    and not await self._select_react_combobox(target, p_btn, "5")
+                ):
+                    await self._select_react_combobox(target, p_btn, "Advanced")
+        except Exception:
+            pass
+
+        return filled
 
     async def _inject_fast_park_cheat_sheet(
         self,
@@ -3046,7 +3800,7 @@ class ATSAssistedFiller:
                 if (existing) existing.remove();
                 const c = document.createElement('div');
                 c.id = 'antigravity-copilot-helper';
-                c.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:rgba(15,23,42,0.96);border:1px solid rgba(56,189,248,0.6);border-radius:12px;padding:14px 18px;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:12px;box-shadow:0 12px 28px rgba(0,0,0,0.6);backdrop-filter:blur(8px);max-width:350px;line-height:1.5;';
+                c.style.cssText = 'position:fixed;bottom:88px;left:20px;z-index:2147483647;background:rgba(15,23,42,0.96);border:1px solid rgba(56,189,248,0.6);border-radius:12px;padding:14px 18px;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:12px;box-shadow:0 12px 28px rgba(0,0,0,0.6);backdrop-filter:blur(8px);max-width:350px;line-height:1.5;';
                 c.innerHTML = `
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px;">
                         <span style="color:#38bdf8;font-weight:700;font-size:13px;">⚡ {portal_name}</span>
@@ -3092,7 +3846,17 @@ class ATSAssistedFiller:
             "WORKDAY_DEFAULT_PASSWORD", "CandidateMockSecret123!"
         )
 
-        # 0. Cookie Consent Dismissal
+        # 0. Remove any existing floating helper widget so it never intercepts footer buttons
+        try:
+            page_ref = getattr(target, "page", target)
+            if hasattr(page_ref, "evaluate"):
+                await page_ref.evaluate(
+                    "() => { const el = document.getElementById('antigravity-copilot-helper'); if (el) el.remove(); }"
+                )
+        except Exception:
+            pass
+
+        # 0B. Cookie Consent Dismissal
         try:
             cookie_btn = target.locator(
                 "button#onetrust-accept-btn-handler, button:has-text('Accept All'), button:has-text('Accept Cookies'), [data-automation-id='legalNoticeAcceptButton']"
@@ -3110,12 +3874,13 @@ class ATSAssistedFiller:
         # 1. Hydration Barrier: Wait for initial component mounting
         await self._wait_for_workday_ready(target, timeout=12.0)
 
-        max_transitions = 20
+        max_transitions = 28
         transition_count = 0
         last_state = None
         state_stuck_count = 0
         attempted_sign_in_first = False
         attempted_register_fallback = False
+        skip_use_last_application = False
 
         while transition_count < max_transitions:
             transition_count += 1
@@ -3129,9 +3894,36 @@ class ATSAssistedFiller:
                 state=curr_state,
             )
 
+            if curr_state == "closed":
+                print(f"🗑️ Workday posting is closed/non-existent for {company} ({job_id}).")
+                return filled, attached
+
             if curr_state == last_state:
                 state_stuck_count += 1
-                if state_stuck_count >= 2:
+                if curr_state == "unknown" and state_stuck_count == 2:
+                    page_obj = getattr(target, "page", target)
+                    curr_u = str(getattr(page_obj, "url", "") or "")
+                    body_txt_u = ""
+                    try:
+                        body_txt_u = (
+                            await page_obj.evaluate("() => document.body ? document.body.innerText : ''")
+                        ).lower()
+                    except Exception:
+                        pass
+                    if "/useMyLastApplication" in curr_u or "something went wrong" in body_txt_u:
+                        skip_use_last_application = True
+                        back_u = job_url or curr_u.split("/apply")[0]
+                        print(f"🔄 Resetting Workday application flow to 'Apply Manually' via {back_u}...")
+                        try:
+                            await page_obj.goto(back_u, wait_until="domcontentloaded", timeout=25000)
+                            await asyncio.sleep(3.0)
+                            state_stuck_count = 0
+                            last_state = None
+                            continue
+                        except Exception:
+                            pass
+                stuck_limit = 5 if curr_state == "unknown" else (4 if curr_state == "questions" else 3)
+                if state_stuck_count >= stuck_limit:
                     print(
                         f"⚠️ Workday State Machine reached stuck threshold (count={state_stuck_count}) on [{curr_state}]. Yielding to Manual Takeover Mode..."
                     )
@@ -3165,27 +3957,31 @@ class ATSAssistedFiller:
             # --- State 1: Overview (Job Description Page) ---
             if curr_state == "overview":
                 apply_btn = target.locator(
-                    "[data-automation-id='applyButton'], a[role='button']:has-text('Apply'), button:has-text('Apply'), a:has-text('Apply'), [data-automation-id='adventureButton']"
+                    "[data-automation-id='applyButton'], a[role='button']:has-text('Apply'), button:has-text('Apply'), a:has-text('Apply'), "
+                    "button:has-text('Continue Application'), a:has-text('Continue Application'), [data-automation-id='adventureButton']"
                 ).first
                 print("🖱️ Triggering Workday 'Apply' action...")
                 try:
                     await apply_btn.scroll_into_view_if_needed(timeout=1500)
                     await apply_btn.click(timeout=3000)
                 except Exception:
-                    await apply_btn.click(force=True)
+                    await apply_btn.click(force=True, timeout=5000)
                 await asyncio.sleep(2.0)
 
-            # --- State 2: 'Start Your Application' Modal (Prioritize 'Use My Last Application' FIRST) ---
+            # --- State 2: 'Start Your Application' Modal (Prioritize 'Use My Last Application' FIRST unless skipped) ---
             elif curr_state == "modal":
                 use_last = target.locator(
                     "[data-automation-id='useMyLastApplication'], button:has-text('Use My Last Application'), a:has-text('Use My Last Application')"
                 ).first
-                if await use_last.count() > 0 and await use_last.is_visible():
+                if not skip_use_last_application and await use_last.count() > 0 and await use_last.is_visible():
                     print("⚡ Selecting 'Use My Last Application' in Workday modal (fast-track repeat org)...")
                     try:
                         await use_last.click(timeout=3000)
                     except Exception:
-                        await use_last.click(force=True)
+                        try:
+                            await use_last.click(force=True, timeout=5000)
+                        except Exception:
+                            pass
                     await asyncio.sleep(2.0)
                 else:
                     apply_manually = target.locator(
@@ -3204,9 +4000,10 @@ class ATSAssistedFiller:
                 if not attempted_sign_in_first:
                     sign_in_switch = target.locator(
                         "[data-automation-id='signInLink'], [data-automation-id='auth_signin_link'], "
-                        "[data-automation-id='auth_container'] button:has-text('Sign In'), "
-                        "[data-automation-id='authDialog'] button:has-text('Sign In'), "
-                        "button:has-text('Sign In'), a:has-text('Sign In')"
+                        "[data-automation-id='auth_container'] button:has-text('Sign In'):not([data-automation-id='utilityMenuButton']), "
+                        "[data-automation-id='authDialog'] button:has-text('Sign In'):not([data-automation-id='utilityMenuButton']), "
+                        "button:has-text('Sign In'):not([data-automation-id='utilityMenuButton']), "
+                        "a:has-text('Sign In'):not([data-automation-id='utilityMenuButton'])"
                     ).first
                     if await sign_in_switch.count() > 0 and await sign_in_switch.is_visible():
                         print("🔑 Workday opened on Create Account — switching to 'Sign In' first...")
@@ -3231,7 +4028,10 @@ class ATSAssistedFiller:
                     "input[data-automation-id='verifyPassword'], input#verifyPassword"
                 ).first
                 create_acc_btn = target.locator(
-                    "button[data-automation-id='createAccountSubmitButton'], div[data-automation-id='click_filter'][aria-label='Create Account'], [data-automation-id='authDialog'] button:has-text('Create Account'), [data-automation-id*='createAccount'] button[type='submit']"
+                    "div[data-automation-id='click_filter'][aria-label='Create Account']:visible, "
+                    "button[data-automation-id='createAccountSubmitButton']:visible, "
+                    "[data-automation-id='authDialog'] button:has-text('Create Account'):visible, "
+                    "[data-automation-id*='createAccount'] button[type='submit']:visible"
                 ).first
 
                 if await email_inp.count() > 0 and await email_inp.is_visible():
@@ -3250,7 +4050,11 @@ class ATSAssistedFiller:
                 if await agree_cb.count() > 0:
                     try:
                         if not await agree_cb.is_checked():
-                            await agree_cb.check()
+                            await agree_cb.focus()
+                            await agree_cb.press(" ")
+                            await asyncio.sleep(0.2)
+                        if not await agree_cb.is_checked():
+                            await agree_cb.evaluate("el => el.click()")
                     except Exception:
                         await agree_cb.click(force=True)
 
@@ -3272,8 +4076,10 @@ class ATSAssistedFiller:
                     print("ℹ️ Account already exists on this tenant. Switching to Sign In...")
                     sign_in_link = target.locator(
                         "[data-automation-id='signInLink'], [data-automation-id='auth_signin_link'], "
-                        "button:has-text('Sign In'), a:has-text('Sign In'), "
-                        "button:has-text('Sign in'), a:has-text('Sign in'), a[href*='/login']"
+                        "button:has-text('Sign In'):not([data-automation-id='utilityMenuButton']), "
+                        "a:has-text('Sign In'):not([data-automation-id='utilityMenuButton']), "
+                        "button:has-text('Sign in'):not([data-automation-id='utilityMenuButton']), "
+                        "a:has-text('Sign in'):not([data-automation-id='utilityMenuButton']), a[href*='/login']"
                     ).first
                     if await sign_in_link.count() > 0 and await sign_in_link.is_visible():
                         try:
@@ -3285,15 +4091,33 @@ class ATSAssistedFiller:
             # --- State 3B: Auth Gate - Sign In Mode (Fallback to Create Account on Error) ---
             elif curr_state == "auth_sign_in":
                 attempted_sign_in_first = True
+                sign_in_email_btn = target.locator(
+                    "button:has-text('Sign in with email'):visible, a:has-text('Sign in with email'):visible"
+                ).first
+                if await sign_in_email_btn.count() > 0 and await sign_in_email_btn.is_visible():
+                    print("🔑 Clicking 'Sign in with email' on Workday SSO/Auth chooser...")
+                    try:
+                        await sign_in_email_btn.click(timeout=2500)
+                    except Exception:
+                        await sign_in_email_btn.click(force=True)
+                    await asyncio.sleep(1.8)
                 print("🔑 Populating 'Sign In' credentials...")
                 email_inp = target.locator(
-                    "input[data-automation-id='email']:not([data-automation-id='beecatcher']), input#email, input[type='email']"
+                    "[data-automation-id='signInFormo'] input[data-automation-id='email'], "
+                    "[data-automation-id='signInContent'] input[data-automation-id='email'], "
+                    "input[data-automation-id='email']:not([data-automation-id='beecatcher']):visible, "
+                    "input#email:visible, input[type='email']:visible"
                 ).first
                 pwd_inp = target.locator(
-                    "input[data-automation-id='password'], input#password, input[type='password']"
+                    "[data-automation-id='signInFormo'] input[data-automation-id='password'], "
+                    "[data-automation-id='signInContent'] input[data-automation-id='password'], "
+                    "input[data-automation-id='password']:visible, input#password:visible, input[type='password']:visible"
                 ).first
                 sign_in_submit = target.locator(
-                    "button[data-automation-id='signInSubmitButton'], div[data-automation-id='click_filter'][aria-label='Sign In'], [data-automation-id='authDialog'] button:has-text('Sign In'), [data-automation-id='signInFormo'] button[type='submit']"
+                    "div[data-automation-id='click_filter'][aria-label='Sign In']:visible, "
+                    "button[data-automation-id='signInSubmitButton']:visible, "
+                    "[data-automation-id='authDialog'] button:has-text('Sign In'):visible, "
+                    "[data-automation-id='signInFormo'] button[type='submit']:visible"
                 ).first
 
                 if await email_inp.count() > 0 and await email_inp.is_visible():
@@ -3436,20 +4260,24 @@ class ATSAssistedFiller:
                     if not curr_c or "select" in curr_c.lower():
                         await self._select_react_combobox(target, country_drop, "India")
 
-                # D. Names
-                fn_input = target.locator(
-                    "input[id='name--legalName--firstName'], input[id*='legalName--firstName'], input[name='legalName--firstName'], "
-                    "[data-automation-id='legalNameSection_firstName'], input[id*='legalNameSection_firstName'], input[name*='firstName' i]"
-                ).first
-                if await fn_input.count() > 0 and await self._fill_text_input(fn_input, p.first_name):
-                    filled += 1
+                # D. Names (populate both standard and *Local inputs when present, e.g. Thermo Fisher)
+                fn_inputs = await target.locator(
+                    "input[id='name--legalName--firstName']:visible, input[id='name--legalName--firstNameLocal']:visible, "
+                    "input[id*='legalName--firstName']:visible, [data-automation-id='legalNameSection_firstName']:visible, "
+                    "input[id*='legalNameSection_firstName']:visible, input[name*='firstName' i]:visible"
+                ).all()
+                for fn_el in fn_inputs:
+                    if await self._fill_text_input(fn_el, p.first_name):
+                        filled += 1
 
-                ln_input = target.locator(
-                    "input[id='name--legalName--lastName'], input[id*='legalName--lastName'], input[name='legalName--lastName'], "
-                    "[data-automation-id='legalNameSection_lastName'], input[id*='legalNameSection_lastName'], input[name*='lastName' i]"
-                ).first
-                if await ln_input.count() > 0 and await self._fill_text_input(ln_input, p.last_name):
-                    filled += 1
+                ln_inputs = await target.locator(
+                    "input[id='name--legalName--lastName']:visible, input[id='name--legalName--lastNameLocal']:visible, "
+                    "input[id*='legalName--lastName']:visible, [data-automation-id='legalNameSection_lastName']:visible, "
+                    "input[id*='legalNameSection_lastName']:visible, input[name*='lastName' i]:visible"
+                ).all()
+                for ln_el in ln_inputs:
+                    if await self._fill_text_input(ln_el, p.last_name):
+                        filled += 1
 
                 # D2. Email Address (present on Guest-Apply Workday tenants like Deutsche Bank & Danaher/Cytiva)
                 email_info_input = target.locator(
@@ -3463,21 +4291,43 @@ class ATSAssistedFiller:
                 ):
                     filled += 1
 
-                # E. Address
-                addr_input = target.locator(
-                    "input[id='address--addressLine1'], input[id*='addressLine1'], input[name='addressLine1'], "
-                    "[data-automation-id='addressSection_addressLine1'], input[id*='addressSection_addressLine1']"
-                ).first
+                # E. Address (populate both standard and *Local inputs when present)
                 addr_val = p.address_line1 or p.city
-                if await addr_input.count() > 0 and await self._fill_text_input(addr_input, addr_val):
-                    filled += 1
+                addr_inputs = await target.locator(
+                    "input[id='address--addressLine1']:visible, input[id='address--addressLine1Local']:visible, "
+                    "input[id*='addressLine1']:visible, input[name='addressLine1']:visible, "
+                    "[data-automation-id='addressSection_addressLine1']:visible, input[id*='addressSection_addressLine1']:visible"
+                ).all()
+                for addr_el in addr_inputs:
+                    if await self._fill_text_input(addr_el, addr_val):
+                        filled += 1
 
-                city_input = target.locator(
-                    "input[id='address--city'], input[id*='city']:not([id*='Local']), input[name='city'], "
-                    "[data-automation-id='addressSection_city'], input[id*='addressSection_city']"
-                ).first
-                if await city_input.count() > 0 and await self._fill_text_input(city_input, p.city):
-                    filled += 1
+                addr2_inputs = await target.locator(
+                    "input[id='address--addressLine2']:visible, input[id='address--addressLine2Local']:visible, "
+                    "input[id*='addressLine2']:visible, input[name='addressLine2']:visible, "
+                    "[data-automation-id='addressSection_addressLine2']:visible, input[id*='addressSection_addressLine2']:visible"
+                ).all()
+                for addr2_el in addr2_inputs:
+                    if await self._fill_text_input(addr2_el, p.city or "Bengaluru"):
+                        filled += 1
+
+                addr3_inputs = await target.locator(
+                    "input[id='address--addressLine3']:visible, input[id='address--addressLine3Local']:visible, "
+                    "input[id*='addressLine3']:visible, input[name='addressLine3']:visible, "
+                    "[data-automation-id='addressSection_addressLine3']:visible, input[id*='addressSection_addressLine3']:visible"
+                ).all()
+                for addr3_el in addr3_inputs:
+                    if await self._fill_text_input(addr3_el, p.city or "Bengaluru"):
+                        filled += 1
+
+                city_inputs = await target.locator(
+                    "input[id='address--city']:visible, input[id='address--cityLocal']:visible, "
+                    "input[id*='city']:visible, input[name='city']:visible, "
+                    "[data-automation-id='addressSection_city']:visible, input[id*='addressSection_city']:visible"
+                ).all()
+                for city_el in city_inputs:
+                    if await self._fill_text_input(city_el, p.city):
+                        filled += 1
 
                 state_el = target.locator(
                     "button[id='address--countryRegion'], button[id*='countryRegion'], button[aria-label*='State' i], "
@@ -3504,12 +4354,59 @@ class ATSAssistedFiller:
                 ).first
                 if await device_drop.count() > 0 and await device_drop.is_visible():
                     curr_dev = (await device_drop.text_content() or "").strip()
-                    if (not curr_dev or "select" in curr_dev.lower()) and await self._select_react_combobox(
-                        target, device_drop, "Mobile"
+                    has_hidden_dev_err = False
+                    try:
+                        has_hidden_dev_err = await target.evaluate(
+                            "() => (document.body ? document.body.innerText : '').toLowerCase().includes('hidden for recruiting')"
+                        )
+                    except Exception:
+                        pass
+                    if (
+                        not curr_dev
+                        or "select" in curr_dev.lower()
+                        or "hidden" in curr_dev.lower()
+                        or "home cellular" in curr_dev.lower()
+                        or has_hidden_dev_err
                     ):
-                        filled += 1
+                        dev_selected = False
+                        if not has_hidden_dev_err:
+                            dev_selected = await self._select_react_combobox(target, device_drop, "Mobile")
+                        if not dev_selected:
+                            for alt_dev in ("Cell", "Cellular", "Home", "Personal", "Work", "Telephone", "Landline"):
+                                if await self._select_react_combobox(target, device_drop, alt_dev):
+                                    dev_selected = True
+                                    break
+                        if not dev_selected:
+                            try:
+                                await device_drop.evaluate("e => { e.scrollIntoView({block: 'center'}); e.click(); }")
+                                await asyncio.sleep(0.25)
+                                d_opts = target.locator(
+                                    "[role='option']:not(.select__menu-notice), div[data-automation-id*='promptOption']"
+                                )
+                                d_cnt = await d_opts.count()
+                                for di in range(d_cnt):
+                                    d_el = d_opts.nth(di)
+                                    if not await d_el.is_visible():
+                                        continue
+                                    d_txt = (await d_el.inner_text() or "").strip()
+                                    d_low = d_txt.lower()
+                                    if (
+                                        not d_low
+                                        or "select" in d_low
+                                        or "hidden" in d_low
+                                        or (has_hidden_dev_err and d_low == "mobile")
+                                    ):
+                                        continue
+                                    await d_el.click(force=True)
+                                    await asyncio.sleep(0.15)
+                                    dev_selected = True
+                                    break
+                            except Exception:
+                                pass
+                        if dev_selected:
+                            filled += 1
 
-                # Fill phone number BEFORE countryPhoneCode so countryPhoneCode dropdown never intercepts phone_input
+                # Fill phone number ONLY if not already populated by useMyLastApplication (e.g. '073378 13770')
                 phone_input = target.locator(
                     "input[id='phoneNumber--phoneNumber'], input[id*='phoneNumber--phoneNumber'], input[name='phoneNumber'], "
                     "[data-automation-id='phone-number'], input[type='tel'], input[id*='phone-number']"
@@ -3517,8 +4414,35 @@ class ATSAssistedFiller:
                 phone_digits = p.phone
                 if phone_digits.startswith("+91"):
                     phone_digits = phone_digits.replace("+91", "").strip()
-                if await phone_input.count() > 0 and await self._fill_text_input(phone_input, phone_digits):
-                    filled += 1
+                clean_target_digits = re.sub(r"\D", "", phone_digits)[-10:]
+                if await phone_input.count() > 0 and await phone_input.is_visible():
+                    curr_phone_raw = (await phone_input.input_value() or "").strip()
+                    curr_phone_digits = re.sub(r"\D", "", curr_phone_raw)[-10:]
+                    if curr_phone_raw.startswith("+"):
+                        try:
+                            await phone_input.click(force=True)
+                            await phone_input.fill("")
+                            await asyncio.sleep(0.1)
+                            await phone_input.fill(phone_digits)
+                            await phone_input.press("Tab")
+                            filled += 1
+                        except Exception:
+                            pass
+                    elif curr_phone_digits != clean_target_digits and await self._fill_text_input(
+                        phone_input, phone_digits
+                    ):
+                        filled += 1
+
+                ext_input = target.locator(
+                    "input[id='phoneNumber--extension'], input[id*='phoneNumber--extension']"
+                ).first
+                if await ext_input.count() > 0 and await ext_input.is_visible():
+                    ext_val = (await ext_input.input_value() or "").strip()
+                    if ext_val:
+                        try:
+                            await ext_input.fill("")
+                        except Exception:
+                            pass
 
                 phone_code = target.locator(
                     "input[id='phoneNumber--countryPhoneCode'], input[id*='countryPhoneCode'], button[id*='countryPhoneCode'], "
@@ -3529,21 +4453,58 @@ class ATSAssistedFiller:
                     if tag == "button":
                         await self._select_react_combobox(target, phone_code, "India (+91)")
                     else:
-                        has_pill = await phone_code.evaluate(
-                            "el => { const c = el.closest('[data-automation-id*=formField]'); return c ? (c.innerText.includes('+91') || c.innerText.includes('India') || c.querySelectorAll('[data-automation-id=selectedItem], li').length > 0) : true; }"
+                        has_india_pill = await phone_code.evaluate(
+                            "el => { const c = el.closest('[data-automation-id*=formField]'); return c ? (c.innerText.includes('+91') || c.innerText.includes('India')) : true; }"
                         )
-                        curr_code = await phone_code.input_value()
-                        if not curr_code and not has_pill:
-                            await self._fill_text_input(phone_code, "India (+91)")
+                        if not has_india_pill:
+                            # Remove any stale non-India pill (e.g. Afghanistan +93) before selecting India (+91)
+                            del_charm = target.locator(
+                                "[data-automation-id='formField-countryPhoneCode'] [data-automation-id='DELETE_charm'], "
+                                "[data-automation-id='formField-countryPhoneCode'] [aria-label*='delete' i]"
+                            ).first
+                            if await del_charm.count() > 0:
+                                try:
+                                    await del_charm.click(timeout=1500, force=True)
+                                    await asyncio.sleep(0.3)
+                                except Exception:
+                                    pass
+                            await phone_code.scroll_into_view_if_needed()
+                            await phone_code.click()
+                            await phone_code.fill("India (+91)")
+                            await asyncio.sleep(0.5)
                             try:
                                 await phone_code.press("Enter")
-                                await asyncio.sleep(0.3)
+                                await asyncio.sleep(1.0)
+                                opt_india = target.locator(
+                                    "[data-automation-id='promptOption']:has-text('India (+91)'), [role='option']:has-text('India (+91)')"
+                                ).first
+                                if await opt_india.count() > 0 and await opt_india.is_visible():
+                                    await opt_india.click(force=True)
+                                    await asyncio.sleep(0.4)
                             except Exception:
                                 pass
 
+                # Re-validate phone number if a regional format error is still shown after countryPhoneCode is India (+91)
+                if await phone_input.count() > 0 and await phone_input.is_visible():
+                    has_phone_err = await phone_input.evaluate(
+                        "el => { const c = el.closest('[data-automation-id*=formField]'); return c ? c.innerText.toLowerCase().includes('error') : false; }"
+                    )
+                    if has_phone_err:
+                        try:
+                            await phone_input.click(force=True)
+                            await phone_input.fill("")
+                            await asyncio.sleep(0.15)
+                            await phone_input.fill(phone_digits)
+                            await phone_input.press("Tab")
+                            await asyncio.sleep(0.3)
+                        except Exception:
+                            pass
+
                 # G. Source
                 source_drop = target.locator(
-                    "[data-automation-id='sourcePrompt'], input[id*='source' i], button[id*='source' i], button[aria-label*='how did you hear' i]"
+                    "button[id='source--source']:visible, button[id*='source' i]:visible, "
+                    "button[aria-label*='how did you hear' i]:visible, [data-automation-id='sourcePrompt']:visible, "
+                    "input[id*='source' i]:visible"
                 ).first
                 if await source_drop.count() > 0 and await source_drop.is_visible():
                     tag = await source_drop.evaluate("e => e.tagName.toLowerCase()")
@@ -3585,8 +4546,10 @@ class ATSAssistedFiller:
                             filled += 1
                     else:
                         curr_src = (await source_drop.text_content() or "").strip()
-                        if (not curr_src or "select" in curr_src.lower()) and await self._select_react_combobox(
-                            target, source_drop, "LinkedIn"
+                        if (not curr_src or "select" in curr_src.lower()) and (
+                            await self._select_react_combobox(target, source_drop, "LinkedIn")
+                            or await self._select_react_combobox(target, source_drop, "Job Board")
+                            or await self._select_react_combobox(target, source_drop, "Company Website")
                         ):
                             filled += 1
 
@@ -3596,23 +4559,82 @@ class ATSAssistedFiller:
                 if await next_btn.count() > 0 and await next_btn.is_visible():
                     print("➡️ Advancing from 'My Information' to 'My Experience'...")
                     try:
+                        await target.evaluate("() => window.scrollTo(0, document.body.scrollHeight)")
+                        await asyncio.sleep(0.2)
                         await next_btn.click(timeout=3000)
                     except Exception:
-                        await next_btn.click(force=True)
-                    await asyncio.sleep(2.5)
+                        try:
+                            await next_btn.click(force=True, timeout=3000)
+                        except Exception:
+                            pass
+                    await asyncio.sleep(2.8)
 
             # --- State 7: Stage 2 'My Experience' ---
             elif curr_state == "experience":
-                print("📋 Populating Workday 'My Experience' (Resume PDF & Websites)...")
+                print("📋 Populating Workday 'My Experience' (Resume PDF, Education & Websites)...")
+                has_upload_err = (
+                    await target.locator(
+                        "[data-automation-id*='error']:has-text('Upload a file'), [id*='error']:has-text('Upload a file')"
+                    ).count()
+                    > 0
+                )
+                if has_upload_err:
+                    del_file_btn = target.locator(
+                        "[data-automation-id='file-upload-item'] button, button[aria-label*='Delete ' i][aria-label*='.pdf' i]"
+                    ).first
+                    if await del_file_btn.count() > 0:
+                        try:
+                            await del_file_btn.click(force=True)
+                            await asyncio.sleep(0.5)
+                        except Exception:
+                            pass
+                already_uploaded = (
+                    not has_upload_err
+                    and await target.locator(
+                        "[data-automation-id='file-upload-item-name'], [data-automation-id='file-upload-item'], "
+                        "button[aria-label*='Delete' i][aria-label*='.pdf' i], [data-automation-id='delete-file']"
+                    ).count()
+                    > 0
+                )
                 resume_input = target.locator(
                     "input[type='file'], [data-automation-id='file-upload-dropzone'] input[type='file']"
                 ).first
-                if await resume_input.count() > 0 and resume_pdf_path and os.path.exists(resume_pdf_path):
-                    print(f"📎 Attaching tailored resume PDF: {os.path.basename(resume_pdf_path)}")
-                    await resume_input.set_input_files(os.path.abspath(resume_pdf_path))
+                if (
+                    not already_uploaded
+                    and await resume_input.count() > 0
+                    and resume_pdf_path
+                    and os.path.exists(resume_pdf_path)
+                ):
+                    from src.autofill.ground_truth_guard import AutofillGroundTruthGuard
+
+                    ok_pdf, pdf_reason = AutofillGroundTruthGuard().validate_resume_for_company(
+                        resume_pdf_path, company=company or ""
+                    )
+                    effective_pdf_path = resume_pdf_path
+                    if not ok_pdf:
+                        print(f"🛡️ GroundTruthGuard blocked mismatched resume attachment: {pdf_reason}")
+                        canonical_master = PROJECT_ROOT / "data" / "profile" / "Manjunath_HK_Resume.pdf"
+                        effective_pdf_path = str(canonical_master) if canonical_master.exists() else None
+                    if effective_pdf_path and os.path.exists(effective_pdf_path):
+                        print(f"📎 Attaching verified resume PDF: {os.path.basename(effective_pdf_path)}")
+                        await resume_input.set_input_files(os.path.abspath(effective_pdf_path))
+                        attached = True
+                        filled += 1
+                        await asyncio.sleep(1.5)
+                elif already_uploaded:
                     attached = True
+
+                # Populate Work Experience, Education, and Language panels strictly from CandidateMasterData / Master Resume
+                filled += await self._populate_workday_experience_and_education(target, job_id=job_id)
+
+                li_acc_inp = target.locator("input[id*='linkedInAccount'], input[name='linkedInAccount']").first
+                if (
+                    profiles.linkedin
+                    and await li_acc_inp.count() > 0
+                    and await li_acc_inp.is_visible()
+                    and await self._fill_text_input(li_acc_inp, profiles.linkedin)
+                ):
                     filled += 1
-                    await asyncio.sleep(1.5)
 
                 website_inputs = await target.locator(
                     "[data-automation-id='website'], input[aria-label*='Website' i], input[placeholder*='URL' i]"
@@ -3626,11 +4648,21 @@ class ATSAssistedFiller:
                     "button[data-automation-id='pageFooterNextButton'], button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue'), button:has-text('Next')"
                 ).first
                 if await next_btn.count() > 0 and await next_btn.is_visible():
+                    for _w in range(10):
+                        try:
+                            if not await next_btn.is_disabled():
+                                break
+                        except Exception:
+                            break
+                        await asyncio.sleep(0.5)
                     print("➡️ Advancing from 'My Experience' to 'Application Questions'...")
                     try:
                         await next_btn.click(timeout=3000)
                     except Exception:
-                        await next_btn.click(force=True)
+                        try:
+                            await next_btn.click(force=True, timeout=3000)
+                        except Exception:
+                            pass
                     await asyncio.sleep(2.5)
                 else:
                     print("🎉 Stage 2 complete. Halting at review gate for candidate confirmation.")
@@ -3649,7 +4681,10 @@ class ATSAssistedFiller:
                     try:
                         await next_btn.click(timeout=3000)
                     except Exception:
-                        await next_btn.click(force=True)
+                        try:
+                            await next_btn.click(force=True, timeout=3000)
+                        except Exception:
+                            pass
                     await asyncio.sleep(2.5)
 
             # --- State 9: Stage 4 'Voluntary Disclosures' ---
@@ -3657,6 +4692,15 @@ class ATSAssistedFiller:
                 print("📋 Populating Workday 'Voluntary Disclosures'...")
                 d_ans = await self._resolve_workday_questions(target)
                 filled += d_ans
+                city_birth_inp = target.locator(
+                    "input#personalInfoPerson--cityOfBirth:visible, input[id*='cityOfBirth' i]:visible"
+                ).first
+                if (
+                    await city_birth_inp.count() > 0
+                    and not (await city_birth_inp.input_value() or "").strip()
+                    and await self._fill_text_input(city_birth_inp, p.city or "Bengaluru")
+                ):
+                    filled += 1
                 # Handle Workday selectinput gender pill (e.g. ABB's input#personalInfoPerson--genderIdentities)
                 gender_inp = target.locator(
                     "input#personalInfoPerson--genderIdentities, input[id*='genderIdentities' i]"
@@ -3680,6 +4724,41 @@ class ATSAssistedFiller:
                             filled += 1
                         except Exception:
                             pass
+
+                # Handle Workday selectinput citizenship status pill (e.g. Thermo Fisher's Citizenship Status*)
+                cit_inp = target.locator(
+                    "input[id*='citizenship' i]:visible, [data-automation-id*='citizenship' i] input:visible"
+                ).first
+                if await cit_inp.count() > 0 and await cit_inp.is_visible():
+                    has_cit_pill = await cit_inp.evaluate(
+                        "el => { const c = el.closest('[data-automation-id*=formField]'); return c ? c.querySelectorAll('[data-automation-id=selectedItem], li[data-automation-id*=menuItem]').length > 0 : false; }"
+                    )
+                    if not has_cit_pill:
+                        try:
+                            await cit_inp.scroll_into_view_if_needed()
+                            await cit_inp.click()
+                            await asyncio.sleep(0.5)
+                            await cit_inp.press("Enter")
+                            await asyncio.sleep(1.2)
+                            opt_cit = target.locator(
+                                "[data-automation-id='promptOption']:has-text('Citizen'), "
+                                "[data-automation-id='promptOption']:has-text('India'), "
+                                "[data-automation-id='promptOption']"
+                            ).first
+                            if await opt_cit.count() > 0 and await opt_cit.is_visible():
+                                await opt_cit.click()
+                                await asyncio.sleep(0.6)
+                                # If hierarchical (e.g. Citizen -> India), select second level if menu stays open
+                                opt_cit2 = target.locator(
+                                    "[data-automation-id='promptOption']:has-text('India'), "
+                                    "[data-automation-id='promptOption']:has-text('Citizen')"
+                                ).first
+                                if await opt_cit2.count() > 0 and await opt_cit2.is_visible():
+                                    await opt_cit2.click()
+                                    await asyncio.sleep(0.5)
+                            filled += 1
+                        except Exception:
+                            pass
                 next_btn = target.locator(
                     "button[data-automation-id='pageFooterNextButton'], button[data-automation-id='bottom-navigation-next-button'], button:has-text('Save and Continue'), button:has-text('Next')"
                 ).first
@@ -3688,10 +4767,34 @@ class ATSAssistedFiller:
                     try:
                         await next_btn.click(timeout=3000)
                     except Exception:
-                        await next_btn.click(force=True)
+                        try:
+                            await next_btn.click(force=True, timeout=3000)
+                        except Exception:
+                            pass
                     await asyncio.sleep(2.5)
 
             # --- State 10: Review / Final Submit Gate ---
+            elif curr_state == "submitted":
+                print(f"🎉 Workday application already submitted / confirmed for {company} ({job_id}).")
+                try:
+                    from src.autofill.autofill_verifier import SubmissionVerifier
+
+                    await SubmissionVerifier.record_submission_confirmed(
+                        job_id=job_id,
+                        company=company or "Workday",
+                        page=getattr(target, "page", target),
+                        marker_type="workday_submitted",
+                        marker_text="Workday application submitted",
+                    )
+                except Exception as verif_err:
+                    self.logger.log(
+                        event_type="SUBMISSION_CONFIRMED",
+                        message=f"Application submission confirmed for {company} ({job_id})",
+                        url=getattr(getattr(target, "page", target), "url", ""),
+                        details={"job_id": job_id, "error": str(verif_err)},
+                    )
+                return filled, attached
+
             elif curr_state == "review":
                 if auto_submit:
                     sub_btn = target.locator(
@@ -3704,9 +4807,64 @@ class ATSAssistedFiller:
                         except Exception:
                             await sub_btn.click(force=True)
                         await asyncio.sleep(5.0)
+                        post_st = await self._detect_workday_state(target)
+                        if post_st == "submitted":
+                            try:
+                                from src.autofill.autofill_verifier import SubmissionVerifier
+
+                                await SubmissionVerifier.record_submission_confirmed(
+                                    job_id=job_id,
+                                    company=company or "Workday",
+                                    page=getattr(target, "page", target),
+                                    marker_type="workday_submitted",
+                                    marker_text="Workday application submitted",
+                                )
+                            except Exception as verif_err:
+                                self.logger.log(
+                                    event_type="SUBMISSION_CONFIRMED",
+                                    message=f"Application submission confirmed for {company} ({job_id})",
+                                    url=getattr(getattr(target, "page", target), "url", ""),
+                                    details={"job_id": job_id, "error": str(verif_err)},
+                                )
+                            return filled, attached
+                        # Check if Review failed due to missing Phone Number / Recruiting Source on Step 1 (My Information)
+                        review_err = ""
+                        try:
+                            review_err = (
+                                await target.evaluate("() => document.body ? document.body.innerText : ''")
+                            ).lower()
+                        except Exception:
+                            pass
+                        if "specify a phone number" in review_err or "recruiting source" in review_err:
+                            print(
+                                "🔙 Review flagged missing Phone / Recruiting Source from Step 1 — navigating Back to 'My Information'..."
+                            )
+                            for _b in range(5):
+                                back_btn = target.locator(
+                                    "button[data-automation-id='pageFooterBackButton']:visible, button:has-text('Back'):visible"
+                                ).first
+                                if await back_btn.count() > 0:
+                                    try:
+                                        await back_btn.click(timeout=3000)
+                                    except Exception:
+                                        await back_btn.click(force=True, timeout=3000)
+                                    await asyncio.sleep(2.2)
+                                    if await self._detect_workday_state(target) == "info":
+                                        break
+                            state_stuck_count = 0
+                            last_state = None
+                            continue
                         return filled, attached
                 print("🎉 Workday Application Review Gate reached. Halting before submission.")
                 page_obj = getattr(target, "page", target)
+                if fast_park_on_verify:
+                    await self._inject_fast_park_cheat_sheet(
+                        page_obj,
+                        portal_name=f"{company or 'Workday'} (Review Gate)",
+                        resume_pdf_path=resume_pdf_path,
+                        status_note="⏸️ Paused at Workday Review Gate — ready to submit",
+                    )
+                    return filled, attached
                 await self._enter_manual_takeover_mode(
                     target=page_obj,
                     portal_name=f"{company or 'Workday'} Review Gate",
@@ -3742,6 +4900,14 @@ class ATSAssistedFiller:
                     pass
 
         page_obj = getattr(target, "page", target)
+        if fast_park_on_verify:
+            await self._inject_fast_park_cheat_sheet(
+                page_obj,
+                portal_name=f"{company or 'Workday'} Application",
+                resume_pdf_path=resume_pdf_path,
+                status_note="⏸️ Paused after max transitions — ready for quick review",
+            )
+            return filled, attached
         await self._enter_manual_takeover_mode(
             target=page_obj,
             portal_name=f"{company or 'Workday'} Application",

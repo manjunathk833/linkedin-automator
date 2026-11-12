@@ -41,6 +41,7 @@ from src.resume_store.master_resume import (
 )
 
 RESUME_PROFILE_PATH = os.path.join(PROJECT_ROOT, "data", "resume_profile.json")
+CANDIDATE_MASTER_DATA_PATH = os.path.join(PROJECT_ROOT, "data", "profile", "candidate_master_data.json")
 KNOWLEDGE_BANK_PATH = os.path.join(PROJECT_ROOT, "data", "master_knowledge_bank.json")
 NOTES_PATH = os.path.join(PROJECT_ROOT, "data", "candidate_notes.md")
 
@@ -378,6 +379,170 @@ def build_resume_profile(master: dict[str, Any], existing: dict[str, Any] | None
     return profile
 
 
+def _split_ym_parts(ym: str | None) -> tuple[str, str, str]:
+    """Returns (month_name, month_num_2digit, year_4digit) from 'YYYY-MM'."""
+    if not ym:
+        return "", "", ""
+    parts = ym.split("-")
+    year = parts[0] if parts else ""
+    if len(parts) > 1 and parts[1].isdigit():
+        m_int = int(parts[1])
+        return calendar.month_name[m_int], f"{m_int:02d}", year
+    return "", "", year
+
+
+def build_candidate_master_data(master: dict[str, Any], existing: dict[str, Any]) -> dict[str, Any]:
+    """Derives `candidate_master_data.json` employment, bullets, dates, and CGPA from Master Resume."""
+    basics = master.get("basics", {})
+    full_name = basics.get("name", "")
+    name_parts = full_name.split()
+    first_name = name_parts[0] if name_parts else ""
+    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+    raw_phone = re.sub(r"[\s\-()]", "", basics.get("phone", ""))
+
+    old_personal = dict(existing.get("personal") or {})
+    personal = {
+        "full_name": full_name or old_personal.get("full_name", ""),
+        "first_name": first_name or old_personal.get("first_name", ""),
+        "last_name": last_name or old_personal.get("last_name", ""),
+        "email": basics.get("email") or old_personal.get("email", ""),
+        "phone": raw_phone or old_personal.get("phone", ""),
+        "phone_country_code": old_personal.get("phone_country_code", "+91"),
+        "address_line1": old_personal.get("address_line1", "Bengaluru"),
+        "city": old_personal.get("city", "Bengaluru"),
+        "state": old_personal.get("state", "Karnataka"),
+        "country": old_personal.get("country", "India"),
+        "postal_code": old_personal.get("postal_code", "560076"),
+        "location": old_personal.get("location", "Bengaluru, Karnataka, India"),
+        "prefix": old_personal.get("prefix", "Mr."),
+        "date_of_birth": old_personal.get("date_of_birth", ""),
+        "workday_default_password": old_personal.get("workday_default_password", ""),
+    }
+
+    old_profiles = dict(existing.get("profiles") or {})
+    portfolio_url = (basics.get("website") or {}).get("url") or old_profiles.get("portfolio", "")
+    linkedin_url = old_profiles.get("linkedin", "")
+    github_url = old_profiles.get("github", "")
+    for cf in basics.get("customFields", []):
+        link = cf.get("link") or ""
+        icon = (cf.get("icon") or "").lower()
+        if "linkedin" in icon and link:
+            linkedin_url = link
+        elif "github" in icon and link:
+            github_url = link
+
+    profiles_dict = {
+        "linkedin": linkedin_url,
+        "github": github_url,
+        "portfolio": portfolio_url,
+        "twitter": old_profiles.get("twitter", ""),
+    }
+
+    exp_items: list[dict[str, Any]] = []
+    for exp in visible_items(master, "experience"):
+        dates = exp.get("dates") or {}
+        roles = exp.get("roles") or []
+        role_title = exp.get("position") or (roles[0].get("position", "") if roles else "")
+        bullets = html_to_bullets(exp.get("description"))
+        for r in roles:
+            bullets.extend(html_to_bullets(r.get("description")))
+        is_curr = bool(dates.get("present"))
+        sm_name, sm_num, s_year = _split_ym_parts(dates.get("start"))
+        em_name, em_num, e_year = ("", "", "") if is_curr else _split_ym_parts(dates.get("end"))
+        bullet_summary = "\n".join(f"• {b}" for b in bullets)
+        exp_items.append(
+            {
+                "company": exp.get("company", ""),
+                "title": role_title,
+                "start_date": _to_date(dates.get("start")) or "",
+                "end_date": None if is_curr else _to_date(dates.get("end"), end=True),
+                "is_current": is_curr,
+                "location": exp.get("location") or "Bengaluru, India",
+                "start_month": sm_name,
+                "start_month_num": sm_num,
+                "start_year": s_year,
+                "end_month": em_name,
+                "end_month_num": em_num,
+                "end_year": e_year,
+                "bullets": bullets,
+                "summary": bullet_summary,
+            }
+        )
+
+    curr_emp = dict(existing.get("current_employment") or {})
+    if exp_items:
+        top = exp_items[0]
+        curr_emp = {
+            "company": _vault_label(top["company"]),
+            "title": top["title"],
+            "start_date": top["start_date"],
+            "is_current": top["is_current"],
+            "location": top["location"],
+        }
+
+    edu_items: list[dict[str, Any]] = []
+    for edu in visible_items(master, "education"):
+        dates = edu.get("dates") or {}
+        raw_deg = edu.get("degree", "")
+        m_deg = re.match(r"^(B\.E\.|B\.Tech|M\.Tech|M\.S\.|B\.Sc|M\.Sc|MBA)\s*(.*)$", raw_deg)
+        deg_label = (
+            "Bachelor of Engineering (B.E.)"
+            if (m_deg and m_deg.group(1) == "B.E.")
+            else (m_deg.group(1) if m_deg else raw_deg)
+        )
+        disc_label = (m_deg.group(2) if m_deg else edu.get("area") or raw_deg).strip()
+        _, sm_num, s_year = _split_ym_parts(dates.get("start"))
+        _, em_num, e_year = _split_ym_parts(dates.get("end"))
+        raw_grade = (edu.get("grade") or "").strip()
+        m_gpa = re.search(r"(\d+(?:\.\d+)?)", raw_grade)
+        gpa_num = m_gpa.group(1) if m_gpa else ""
+        edu_items.append(
+            {
+                "institution": edu.get("school", ""),
+                "degree": deg_label,
+                "discipline": disc_label,
+                "start_date": _to_date(dates.get("start")) or "",
+                "end_date": _to_date(dates.get("end"), end=True) or "",
+                "start_month_num": sm_num,
+                "start_year": s_year,
+                "end_month_num": em_num,
+                "end_year": e_year,
+                "gpa": raw_grade,
+                "gpa_numeric": gpa_num,
+            }
+        )
+
+    return {
+        "personal": personal,
+        "profiles": profiles_dict,
+        "current_employment": curr_emp,
+        "experience_history": exp_items,
+        "education_history": edu_items or existing.get("education_history", []),
+        "skills_years_of_experience": existing.get(
+            "skills_years_of_experience",
+            {
+                "total_years": 6.8,
+                "java": 6,
+                "python": 4,
+                "selenium": 6,
+                "rest assured": 5,
+                "api testing": 6,
+                "automation": 6,
+                "appium": 1,
+                "kibana": 4,
+                "ci/cd": 5,
+                "jenkins": 1,
+                "bdd": 5,
+                "cucumber": 5,
+                "sql": 4,
+                "postman": 5,
+            },
+        ),
+        "legal_and_compliance": existing.get("legal_and_compliance", {}),
+        "voluntary_eeoc": existing.get("voluntary_eeoc", {}),
+    }
+
+
 def attach_tech_tags(profile: dict[str, Any], evidence: dict[str, list[str]], skills_matrix: dict) -> None:
     """Fills experience tech_tags with display-cased tools whose evidence includes that employer."""
     display = {}
@@ -564,8 +729,14 @@ def run_sync(
     whitelist_path: str = WHITELIST_PATH,
     bank_path: str = KNOWLEDGE_BANK_PATH,
     notes_path: str = NOTES_PATH,
+    candidate_master_data_path: str | None = None,
     write: bool = True,
 ) -> dict[str, Any]:
+    if candidate_master_data_path is None:
+        if os.path.abspath(master_path) == os.path.abspath(MASTER_RESUME_PATH):
+            candidate_master_data_path = CANDIDATE_MASTER_DATA_PATH
+        else:
+            candidate_master_data_path = os.path.join(os.path.dirname(profile_path), "candidate_master_data.json")
     master = load_master_resume(master_path)
     if master is None:
         raise FileNotFoundError(
@@ -575,6 +746,7 @@ def run_sync(
     old_whitelist = _read_json(whitelist_path, {})
     old_profile = _read_json(profile_path, {})
     old_bank = _read_json(bank_path, {})
+    old_cmd = _read_json(candidate_master_data_path, {})
 
     roadmap_prev = [t.lower() for t in old_whitelist.get("learning_roadmap", DEFAULT_LEARNING_ROADMAP)]
     disallowed = [t.lower() for t in old_whitelist.get("disallowed_hallucinations", DEFAULT_DISALLOWED)]
@@ -603,10 +775,13 @@ def run_sync(
         master, evidence, registry["learning_roadmap"], vocabulary, old_bank, notes_sha
     )
 
-    # Validate profile against the Pydantic schema before writing anything.
+    # Validate profile & candidate master data against Pydantic schemas before writing anything.
+    from src.autofill.vendor_schemas import CandidateMasterData
     from src.resume_store.models import ResumeProfile
 
     ResumeProfile(**profile)
+    candidate_master_data = build_candidate_master_data(master, old_cmd)
+    CandidateMasterData(**candidate_master_data)
 
     old_allowed = {t.lower() for t in old_whitelist.get("allowed_tools", [])}
     new_allowed = set(registry["allowed_tools"])
@@ -637,6 +812,7 @@ def run_sync(
         _atomic_write_json(profile_path, profile)
         _atomic_write_json(whitelist_path, registry)
         _atomic_write_json(bank_path, bank)
+        _atomic_write_json(candidate_master_data_path, candidate_master_data)
     return report
 
 

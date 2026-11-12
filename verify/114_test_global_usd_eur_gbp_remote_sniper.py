@@ -370,12 +370,12 @@ def test_3_track_4_global_remote_routing_and_queue_tagging() -> None:
 
         coord = ATSDiscoveryCoordinator(queue_dir=qdir, db_file=db_file, use_ai=False)
         listing = JobListing(
-            id="mercor_list_AAABoKOP6g9ZUjU9LdNBCqS7",
+            id="mercor_list_SYNTHETIC_TEST_114",
             source="mercor",
-            company_name="Mercor AI Lab",
+            company_name="Mercor Synthetic AI Lab",
             job_title="Software Engineering Expert — QA & Code Evaluation",
             location="Remote - Worldwide",
-            url="https://work.mercor.com/jobs/list_AAABoKOP6g9ZUjU9LdNBCqS7",
+            url="https://work.mercor.com/jobs/list_SYNTHETIC_TEST_114",
             is_remote=True,
             salary_range="$70-$120/hr USD",
             job_description_raw="Global remote AI evaluation & Python/Playwright test automation paying $70-$120/hr USD.",

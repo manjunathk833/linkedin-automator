@@ -142,6 +142,7 @@ def test_api_approved_jobs_attribution():
                 "lever",
                 "ashby",
                 "workday",
+                "amd",
                 "mercor",
                 "alignerr",
                 "jobicy",
