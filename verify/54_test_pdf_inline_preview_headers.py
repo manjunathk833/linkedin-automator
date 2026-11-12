@@ -42,7 +42,7 @@ def test_pdf_inline_headers():
     pending_files = [
         f
         for f in glob.glob(os.path.join(PROJECT_ROOT, "data", "pending_queue", "*.json"))
-        if not os.path.basename(f).startswith("test_ephemeral")
+        if not os.path.basename(f).startswith(("test_", "purge_", "mark_", "GATE", "dummy_"))
     ]
     is_ephemeral = False
     ephemeral_file = None

@@ -27,12 +27,13 @@ def test_job_finder_and_tailorer():
 
     # 2. Test Raw Job Payload Processing
     raw_job = {
-        "job_id": "job_scraped_999",
+        "job_id": "test_job_scraped_999",
         "application_type": "EASY_APPLY",
         "job_details": {
             "title": "Lead SDET - Automation & Performance",
             "company": "Skyline Airlines",
             "location": "Bengaluru, India",
+            "description": "Looking for an expert in Python, REST Assured, Playwright, and BDD to build our E2E microservices testing suite.",
             "requirements": "Looking for an expert in Python, REST Assured, Playwright, and BDD to build our E2E microservices testing suite.",
         },
     }
@@ -61,17 +62,21 @@ def test_job_finder_and_tailorer():
     # 5. Test Saving to Pending Queue
     queue_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "pending_queue"))
     saved_file = finder.save_job_to_queue(tailored_job, queue_dir)
-    assert os.path.exists(saved_file)
-    print(f"\n💾 Saved tailored job to queue: {saved_file}")
+    try:
+        assert os.path.exists(saved_file)
+        print(f"\n💾 Saved tailored job to queue: {saved_file}")
 
-    # Verify contents
-    with open(saved_file, "r") as f:
-        saved_data = json.load(f)
-    assert saved_data["job_id"] == "job_scraped_999"
-
-    # Cleanup test job
-    os.remove(saved_file)
-    print("🧹 Test cleanup completed.")
+        # Verify contents
+        with open(saved_file, "r") as f:
+            saved_data = json.load(f)
+        assert saved_data["job_id"] == "test_job_scraped_999"
+    finally:
+        if os.path.exists(saved_file):
+            try:
+                os.remove(saved_file)
+            except OSError:
+                pass
+        print("🧹 Test cleanup completed.")
 
     print("\n" + "=" * 50)
     print("✅ JOB FINDER & RESUME TAILORED PIPELINE VERIFIED!")

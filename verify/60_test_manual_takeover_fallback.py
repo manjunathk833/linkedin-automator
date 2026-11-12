@@ -178,7 +178,7 @@ async def test_submission_confirmation_monitor(pw) -> None:
 def test_fastapi_manual_apply_endpoint() -> None:
     """Step 4: Test FastAPI endpoint /api/autofill/manual/{job_id}."""
     print("\n--- Step 4: FastAPI Manual Apply Endpoint Gate ---")
-    test_job_id = "GATE60_MANUAL_API_TEST"
+    test_job_id = "test_gate60_manual_api"
     pending_dir = PROJECT_ROOT / "data" / "pending_queue"
     pending_dir.mkdir(parents=True, exist_ok=True)
     job_file = pending_dir / f"{test_job_id}.json"
@@ -191,6 +191,8 @@ def test_fastapi_manual_apply_endpoint() -> None:
             "title": "Senior SDET II",
             "company": "JioStar",
             "location": "Bengaluru, India",
+            "description": "Senior SDET II role with automation testing and Playwright responsibilities.",
+            "requirements": "5+ years in QA automation, Python, Playwright.",
         },
         "tailored_resume": {
             "personal_details": {

@@ -42,12 +42,22 @@ def test_queue_status_flow():
     dummy_payload_1 = {
         "job_id": test_job_id_1,
         "source": "test",
-        "job_details": {"title": "Test Engineer 1", "company": "TestCorp", "requirements": "Testing"},
+        "job_details": {
+            "title": "Test Engineer 1",
+            "company": "TestCorp",
+            "description": "Test Engineer 1 description for queue status flow.",
+            "requirements": "Testing",
+        },
     }
     dummy_payload_2 = {
         "job_id": test_job_id_2,
         "source": "test",
-        "job_details": {"title": "Test Engineer 2", "company": "TestCorp", "requirements": "Testing"},
+        "job_details": {
+            "title": "Test Engineer 2",
+            "company": "TestCorp",
+            "description": "Test Engineer 2 description for queue status flow.",
+            "requirements": "Testing",
+        },
     }
 
     file_1 = pending_dir / f"{test_job_id_1}.json"
