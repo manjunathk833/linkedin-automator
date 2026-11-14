@@ -1,0 +1,2508 @@
+{
+  "greenhouse_zscaler_5271592007": {
+    "company": "Zscaler",
+    "title": "Principal Software Development Engineer - QA + Networking",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-30T08:48:21"
+  },
+  "workday_crowdstrike_r28268": {
+    "company": "CrowdStrike",
+    "title": "Engineer III \u2013 Cloud SDET",
+    "source": "workday",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-11-07T00:00:00",
+    "last_reopened_at": "2026-11-10T22:26:14.417491Z",
+    "reopen_count": 1
+  },
+  "smartrecruiters_NielsenIQ_744000158503864": {
+    "company": "NielsenIQ",
+    "title": "Software Test Engineer",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-29T12:39:06.120000"
+  },
+  "smartrecruiters_NielsenIQ_744000158451624": {
+    "company": "NielsenIQ",
+    "title": "Senior Software Test Engineer (Python, Pyspark, Databricks)",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-29T07:47:36.545000"
+  },
+  "smartrecruiters_NielsenIQ_744000158056204": {
+    "company": "NielsenIQ",
+    "title": "Software Test Engineer (Java, Playwright/ Selenium, API testing)",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-27T14:14:29.222000"
+  },
+  "greenhouse_fivetran_7999076003": {
+    "company": "Fivetran",
+    "title": "Senior Software Development Engineer in Test",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-09-29T08:22:33"
+  },
+  "greenhouse_fivetran_7687902003": {
+    "company": "Fivetran",
+    "title": "Staff Software Development Engineer in Test",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-04-09T10:58:32"
+  },
+  "lever_mindtickle_d62b36db-b088-48c7-a606-4ed458e30208": {
+    "company": "Mindtickle",
+    "title": "Security and Automation Engineer",
+    "source": "lever",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-08-21T13:36:26.910000"
+  },
+  "ashby_tekion_233197fd-4dcc-4092-ad83-9887a59448bb": {
+    "company": "Tekion",
+    "title": "Software Development Test Engineer II",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-06-29T05:20:38.341000"
+  },
+  "ashby_tekion_23d808f1-cbb4-4134-9da7-c344671975c4": {
+    "company": "Tekion",
+    "title": "Staff Software Development Test Engineer - AI Evaluation",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-09T12:43:55.078000"
+  },
+  "ashby_tekion_061fcb56-abb0-4d68-a760-69f3cecd9858": {
+    "company": "Tekion",
+    "title": "Software Development Test Engineer - II",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-07T10:51:22.594000"
+  },
+  "ashby_tekion_910777e9-6ecb-44cf-b511-15bbfca86a67": {
+    "company": "Tekion",
+    "title": "Staff Software Development Test Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-09T06:07:11.338000"
+  },
+  "ashby_tekion_ad70c744-f380-487d-bf42-f4cc3525a49a": {
+    "company": "Tekion",
+    "title": "Senior Software Development Test Engineer - AI",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-09T12:37:31.430000"
+  },
+  "ashby_tekion_f9e2b20f-90d7-4f02-afbf-df120601e825": {
+    "company": "Tekion",
+    "title": "Senior Software Development Test Engineer - Applied Science",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-17T11:36:52.126000"
+  },
+  "ashby_tekion_c7a28d8f-dee9-47c0-a314-93c61c590244": {
+    "company": "Tekion",
+    "title": "Staff Software Development Test Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-17T11:37:45.990000"
+  },
+  "ashby_tekion_6a11eea6-cb58-4df9-8fc1-78e308b9f508": {
+    "company": "Tekion",
+    "title": "Staff Software Development Test Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-08-10T15:47:24.501000"
+  },
+  "ashby_tekion_514a4931-6130-41dd-a664-bc458c4b9a88": {
+    "company": "Tekion",
+    "title": "Senior Software Development Test Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-09-28T09:59:34.583000"
+  },
+  "greenhouse_storyblok_4749653101": {
+    "company": "Storyblok",
+    "title": "Senior QA Engineer_Foundations & Enablement Team - Europe",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-01-08T12:58:48"
+  },
+  "ashby_snyk_a18c222f-daac-44a2-929d-506532594d03": {
+    "company": "Snyk",
+    "title": "GTM Automation Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-01T09:22:00.001000"
+  },
+  "greenhouse_pingidentity_8867838002": {
+    "company": "Ping Identity",
+    "title": "Senior QA Engineer",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-07T05:43:25"
+  },
+  "greenhouse_pingidentity_8811963002": {
+    "company": "Ping Identity",
+    "title": "Staff QA Engineer (AI Enabled)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-09-17T07:34:57"
+  },
+  "greenhouse_bitwarden_7782533003": {
+    "company": "Bitwarden",
+    "title": "Engineer - SDET ( Regression Testing)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-08-24T16:45:03"
+  },
+  "greenhouse_bitwarden_7886272003": {
+    "company": "Bitwarden",
+    "title": "Senior Software Development Engineer in Test (SDET) - Autofill Coverage",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-09-21T05:25:48"
+  },
+  "greenhouse_onetrust_8213322": {
+    "company": "OneTrust",
+    "title": "Staff Quality Engineer - SDET",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-09-29T09:42:10"
+  },
+  "greenhouse_netskope_8264291": {
+    "company": "Netskope",
+    "title": "Software Development Engineer in Test, SASE",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-09T08:58:24"
+  },
+  "ashby_midjourney_68e8eed8-ba7e-4530-bee1-4baf3d368d55": {
+    "company": "Midjourney",
+    "title": "QA Analyst",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-24T13:12:37.625000"
+  },
+  "greenhouse_gleanwork_4012824005": {
+    "company": "Glean",
+    "title": "Quality Assurance Engineer",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2022-04-20T11:03:59"
+  },
+  "greenhouse_gleanwork_4464005005": {
+    "company": "Glean",
+    "title": "Quality Assurance Lead",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2025-02-17T10:19:46"
+  },
+  "ashby_cerebras_224566db-c2c9-4b81-9534-a9917ea1aaa6": {
+    "company": "Cerebras",
+    "title": "Cloud Quality Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-02T15:50:58.787000"
+  },
+  "ashby_cerebras_ba24de32-d882-4e27-b398-90e6356297c5": {
+    "company": "Cerebras",
+    "title": "Senior Software Development Engineer in Test (SDET)  - AI Cluster Networking and Security ",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-16T05:36:32.323000"
+  },
+  "greenhouse_tripactions_8287482": {
+    "company": "Navan",
+    "title": "Senior Fraud QA and Enablement Analyst",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-16T10:21:33"
+  },
+  "lever_coupa_075c6567-6afd-4374-9431-34cc3fe5807b": {
+    "company": "Coupa",
+    "title": "Principal QE Engineer/Architect - Automation Testing (10+ Years)- 11936",
+    "source": "lever",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-14T19:36:45.751000"
+  },
+  "lever_veeva_0ea93208-2ac6-40cd-8f73-464cf356f270": {
+    "company": "Veeva Systems",
+    "title": "Lead Engineer - Test Automation",
+    "source": "lever",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2021-04-27T23:55:39.341000"
+  },
+  "lever_veeva_629e3ac5-aa3f-44ba-a023-4d648ac66b36": {
+    "company": "Veeva Systems",
+    "title": "Senior QA Engineer",
+    "source": "lever",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-08-12T13:19:57.789000"
+  },
+  "lever_veeva_7be12e3a-8b62-475d-bdc5-b9af06e9ab35": {
+    "company": "Veeva Systems",
+    "title": "Senior Software Engineer - Test Automation",
+    "source": "lever",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2022-10-14T11:35:16.348000"
+  },
+  "lever_veeva_361ccc4a-7175-43d8-8e1c-bd442f77b9fe": {
+    "company": "Veeva Systems",
+    "title": "Software Engineer - Test Automation",
+    "source": "lever",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-02-17T16:16:22.742000"
+  },
+  "lever_veeva_fc5343d1-f637-4729-9ecb-aeb963619e01": {
+    "company": "Veeva Systems",
+    "title": "Software Engineer in Test",
+    "source": "lever",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-22T22:07:20.210000"
+  },
+  "greenhouse_zocdoc_8213942": {
+    "company": "Zocdoc",
+    "title": "Analyst, Quality Assurance",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-09-21T18:21:32"
+  },
+  "greenhouse_zoominfo_8802377002": {
+    "company": "ZoomInfo",
+    "title": "SDET II",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-09-17T08:05:32"
+  },
+  "greenhouse_nice_5018656101": {
+    "company": "Nice",
+    "title": "Automation Engineer, CX (Playwright)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-28T08:01:37"
+  },
+  "greenhouse_nice_5013648101": {
+    "company": "Nice",
+    "title": "Senior Automation Engineer, Actimize (api, Playwright)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-23T07:50:43"
+  },
+  "greenhouse_scopely_5448999008": {
+    "company": "Scopely",
+    "title": "Intern - QA Engineer - Royal Lounge Casino",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-13T08:50:00"
+  },
+  "greenhouse_scopely_5371149008": {
+    "company": "Scopely",
+    "title": "Lead QA Engineer",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-29T14:52:56"
+  },
+  "greenhouse_scopely_5371151008": {
+    "company": "Scopely",
+    "title": "Senior QA Engineer",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-07-29T14:57:27"
+  },
+  "ashby_shieldai_76e98b9d-5734-464d-8187-0e5db1c667d9": {
+    "company": "Shield AI",
+    "title": "Engineering Technician 4, Quality Assurance (R5977)",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-13T17:02:35.758000"
+  },
+  "ashby_shieldai_2928a3b5-bdd0-46ac-8d3c-6c569d39e9c3": {
+    "company": "Shield AI",
+    "title": "Systems Test Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-10-21T09:43:48.835000"
+  },
+  "ashby_skydio_4c4874bf-02da-4ccc-8918-2cca08feaf21": {
+    "company": "Skydio",
+    "title": "Supplier Quality Engineer, Sustaining",
+    "source": "ashby",
+    "first_seen_at": "2026-11-01T18:24:18.298757Z",
+    "posted_at": "2026-03-24T22:39:00.039000"
+  },
+  "smartrecruiters_BoschGroup_744000159055029": {
+    "company": "Bosch",
+    "title": "Chapter Area Lead \u2013 Software Testing and Test Automation",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-02T18:44:35.501354Z",
+    "posted_at": "2026-11-02T06:14:14.899000"
+  },
+  "greenhouse_druva_8814721002": {
+    "company": "Druva",
+    "title": "Senior Staff Software Engineer in Test ",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-02T18:44:35.501354Z",
+    "posted_at": "2026-11-02T10:23:31"
+  },
+  "smartrecruiters_endava_744000159056209": {
+    "company": "Endava",
+    "title": "QA Automation Lead with AI Agent Testing experince",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-02T18:44:35.501354Z",
+    "posted_at": "2026-11-02T06:25:19.899000"
+  },
+  "greenhouse_netskope_8175891": {
+    "company": "Netskope",
+    "title": "Staff SDET,Endpoint DLP",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-02T18:44:35.501354Z",
+    "posted_at": "2026-09-21T14:20:35"
+  },
+  "smartrecruiters_endava_744000159296589": {
+    "company": "Endava",
+    "title": "QA Automation Lead with Playwright experience",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-03T08:49:30.686141Z",
+    "posted_at": "2026-11-03T05:19:37.707000"
+  },
+  "greenhouse_toast_8302709": {
+    "company": "Toast",
+    "title": "QA Engineer II",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-03T08:49:30.686141Z",
+    "posted_at": "2026-11-01T19:59:07"
+  },
+  "greenhouse_okta_7744555": {
+    "company": "Okta",
+    "title": " Senior Software Engineer in Test",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-03T19:53:57.353669Z",
+    "posted_at": "2026-09-11T04:35:43"
+  },
+  "greenhouse_boxinc_8109677": {
+    "company": "Box",
+    "title": "GRC Controls Automation Engineer",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-03T19:53:57.353669Z",
+    "posted_at": "2026-08-05T19:12:12"
+  },
+  "lever_jumpcloud_13a4bef2-d1de-4a7e-9c7d-3d0ec5e76a94": {
+    "company": "JumpCloud",
+    "title": "Senior Quality Engineer - India",
+    "source": "lever",
+    "first_seen_at": "2026-11-04T20:09:36.488172Z",
+    "posted_at": "2026-06-04T22:56:11.084000"
+  },
+  "lever_gohighlevel_6abd14a6-7a91-4c98-9938-72701818d08e": {
+    "company": "HighLevel",
+    "title": "Lead Software Development Engineer in Test - Mobile",
+    "source": "lever",
+    "first_seen_at": "2026-11-05T08:42:44.898696Z",
+    "posted_at": "2025-12-24T07:30:42.322000"
+  },
+  "lever_gohighlevel_7d30dacd-ee0e-4a40-a7ab-d13c737566ee": {
+    "company": "HighLevel",
+    "title": "SDET Manager II",
+    "source": "lever",
+    "first_seen_at": "2026-11-05T08:42:44.898696Z",
+    "posted_at": "2026-10-01T12:09:01.131000"
+  },
+  "lever_gohighlevel_c7972450-4798-49a4-8389-cf74d5b7d7a5": {
+    "company": "HighLevel",
+    "title": "Senior SDET Manager",
+    "source": "lever",
+    "first_seen_at": "2026-11-05T08:42:44.898696Z",
+    "posted_at": "2026-10-23T14:20:54.553000"
+  },
+  "lever_gohighlevel_ec11cca8-6c38-4ab0-bf5d-7f1d20e3caee": {
+    "company": "HighLevel",
+    "title": "Sr SDET - Performance Testing",
+    "source": "lever",
+    "first_seen_at": "2026-11-05T08:42:44.898696Z",
+    "posted_at": "2026-11-03T05:35:06.315000"
+  },
+  "greenhouse_airbnb_8349121": {
+    "company": "Airbnb",
+    "title": "Senior Risk Tools & Automation Lead",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-05T20:54:44.011165Z",
+    "posted_at": "2026-11-03T10:36:21"
+  },
+  "greenhouse_roblox_8338120": {
+    "company": "Roblox",
+    "title": "Quality Analyst",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-05T20:54:44.011165Z",
+    "posted_at": "2026-11-05T11:04:33"
+  },
+  "lever_jumpcloud_b2f884e4-e345-4342-8a74-b9036d7b8cd0": {
+    "company": "JumpCloud",
+    "title": "Staff Quality Engineer - India",
+    "source": "lever",
+    "first_seen_at": "2026-11-06T08:47:44.876577Z",
+    "posted_at": "2026-09-24T15:31:50.566000"
+  },
+  "greenhouse_scopely_5425490008": {
+    "company": "Scopely",
+    "title": "QA Engineer - Royal Lounge Casino",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-11-06T11:45:54"
+  },
+  "lever_neuron7_fe2e1697-e326-410b-9a2b-9f8ad338bba5": {
+    "company": "Neuron7.ai",
+    "title": "Lead -Software Development Engineer in Test | Agent AI",
+    "source": "lever",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-08-16T14:05:49.460000"
+  },
+  "smartrecruiters_IntegriChain1_744000159297539": {
+    "company": "IntegriChain",
+    "title": "Sr. Software Quality Automation Engineer",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-11-03T05:37:04.386000"
+  },
+  "smartrecruiters_IntegriChain1_744000159297499": {
+    "company": "IntegriChain",
+    "title": "Senior Software Quality Automation Engineer",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-11-03T05:36:25.423000"
+  },
+  "smartrecruiters_QADInc_744000159858895": {
+    "company": "QAD",
+    "title": "Senior QA Engineer, AI Agents & Agentic Workflows",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-11-05T12:53:28.181000"
+  },
+  "workday_citi_24719498": {
+    "company": "Citi Technology",
+    "title": "ICM In-Business Quality Assurance \u2013 Data Analytics",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2024-02-08T00:00:00"
+  },
+  "workday_citi_24719511": {
+    "company": "Citi Technology",
+    "title": "ICM In-Business Quality Assurance \u2013 Data Analytics",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2024-02-08T00:00:00"
+  },
+  "workday_lseg_r0124202": {
+    "company": "London Stock Exchange Group",
+    "title": "Sr QA Automation Engineer (JavaScript , UI automation)",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-10-29T00:00:00"
+  },
+  "workday_allstate_r36156": {
+    "company": "Allstate India (ASPL)",
+    "title": "Quality Assurance Consultant I(Spanish Language expert)",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_hpe_1209772": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Principal Software Engineer- SDET",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-08-05T00:00:00"
+  },
+  "workday_hpe_1213800": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "SDET, Cloud Solutions Testing",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-09-09T00:00:00"
+  },
+  "workday_hpe_1191849": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "QA Engineer III (Python, Automation Test, UI Rest API)",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-09-30T00:00:00"
+  },
+  "workday_medtronic_r72953": {
+    "company": "Medtronic Engineering",
+    "title": "Senior Enterprise Software Test Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-09-07T00:00:00"
+  },
+  "workday_stryker_r568079": {
+    "company": "Stryker Global Tech Center",
+    "title": "SDET Engineer(Python)",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-09-21T00:00:00"
+  },
+  "workday_stryker_r575661": {
+    "company": "Stryker Global Tech Center",
+    "title": "Senior Software Engineer - SDET",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-10-21T00:00:00"
+  },
+  "workday_amgen_r-245682": {
+    "company": "Amgen Technology Center",
+    "title": "Software Development Engineer in Test I (SDET I)",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-06-04T00:00:00"
+  },
+  "workday_amgen_r-222565": {
+    "company": "Amgen Technology Center",
+    "title": "Specialist QA",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2025-08-21T00:00:00"
+  },
+  "workday_cigna_26004571": {
+    "company": "Cigna Evernorth India",
+    "title": "Automation Engineer Lead Analyst - HIH - Evernorth",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-10-12T00:00:00"
+  },
+  "workday_bakerhughes_r171094": {
+    "company": "Baker Hughes Digital",
+    "title": "Automation Testing Engineer (Java, Python, Selenium, Github, API)",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_gartner_113581": {
+    "company": "Gartner India Tech",
+    "title": "Sr Test Engineer - Salesforce CRM",
+    "source": "workday",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-11-06T00:00:00"
+  },
+  "lever_acceldata_495913ff-d0ef-4234-b44e-ac2470c53540": {
+    "company": "Acceldata",
+    "title": "Senior SDET - Hadoop Observability (Pulse)",
+    "source": "lever",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2024-11-28T05:14:45.398000"
+  },
+  "lever_acceldata_c1d6cc81-a14e-4663-aac3-2ac21e8d2172": {
+    "company": "Acceldata",
+    "title": "Senior SDET - Open Data Platform (ODP)",
+    "source": "lever",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-10-27T06:40:42.163000"
+  },
+  "ashby_adjoe_3610b4c7-4c2d-4746-8fa0-bd52272a248d": {
+    "company": "Adjoe",
+    "title": "QA Engineer (f/m/d)",
+    "source": "ashby",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-09-02T10:38:54.925000"
+  },
+  "lever_aeva_29f58209-5cc2-4a05-8cb3-5b1f637cc096": {
+    "company": "Aeva",
+    "title": "Optical Aligner and Test Engineer - Bangalore, India",
+    "source": "lever",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-09-15T16:50:47.314000"
+  },
+  "greenhouse_alphasense_8644283002": {
+    "company": "Alphasense",
+    "title": "Staff Software Engineer, QE",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-07-22T06:45:49"
+  },
+  "greenhouse_anaplan_8610356002": {
+    "company": "Anaplan",
+    "title": "Engineer II, QA",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-07-07T05:42:34"
+  },
+  "greenhouse_anaplan_8474339002": {
+    "company": "Anaplan",
+    "title": "Engineer IV , QA",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-04-13T07:54:20"
+  },
+  "greenhouse_axiad_4229602004": {
+    "company": "Axiad",
+    "title": "Senior QA Automation Engineer",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2021-12-06T19:24:17"
+  },
+  "greenhouse_endorlabs_4729061005": {
+    "company": "Endorlabs",
+    "title": "Senior Quality Engineer(SDET)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-09-02T09:35:34"
+  },
+  "ashby_seon_967f8224-0378-46d8-a728-b99844d98837": {
+    "company": "Seon",
+    "title": "Test Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-09-03T13:12:59.481000"
+  },
+  "greenhouse_purestorage_8190560": {
+    "company": "Purestorage",
+    "title": "Member of Technical Staff- Quality Engineer",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-09-10T08:03:02"
+  },
+  "greenhouse_purestorage_8130107": {
+    "company": "Purestorage",
+    "title": "SDET, Portworx ",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-11-02T13:59:57"
+  },
+  "ashby_cognition_e6f55fdf-151d-4282-a600-b92e4124732f": {
+    "company": "Cognition",
+    "title": "QA Engineer - APAC",
+    "source": "ashby",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-02-27T15:50:14.855000"
+  },
+  "ashby_coderabbit_383ce358-18ef-4f31-9b40-315ddc888576": {
+    "company": "Coderabbit",
+    "title": "GTM Data Quality Analyst",
+    "source": "ashby",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-10-13T06:03:15.870000"
+  },
+  "ashby_sophos_350696b5-da25-4f67-ac53-9683865dcb6b": {
+    "company": "Sophos",
+    "title": "AI & Automation Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-11-05T15:20:06.689000"
+  },
+  "greenhouse_sonicwall_8281072": {
+    "company": "Sonicwall",
+    "title": " Principal Test Engineer ",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-10-27T03:36:44"
+  },
+  "greenhouse_sonicwall_8242553": {
+    "company": "Sonicwall",
+    "title": "Test Engineer - Network Security",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-10-30T13:23:35"
+  },
+  "ashby_litmus_16586da0-4702-4a74-9833-c3010a1b8de7": {
+    "company": "Litmus",
+    "title": "Senior QA Test Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-10-13T20:16:39.264000"
+  },
+  "ashby_litmus_8dd1fc8b-b406-4182-b8d0-776c8f8053ce": {
+    "company": "Litmus",
+    "title": "Senior QA Test Engineer GCC",
+    "source": "ashby",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-10-21T21:25:21.790000"
+  },
+  "greenhouse_highradius_7564206003": {
+    "company": "Highradius",
+    "title": "Quality Analyst",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2026-04-29T10:03:56"
+  },
+  "smartrecruiters_shipsy_744000008330615": {
+    "company": "Shipsy",
+    "title": "QA Engineer",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-06T20:11:41.155143Z",
+    "posted_at": "2024-08-21T12:46:48.305000"
+  },
+  "greenhouse_syllo_4468128009": {
+    "company": "Syllo",
+    "title": "QA Automation Engineer",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-10-28T17:06:10"
+  },
+  "google_google-india_125321222454944454": {
+    "company": "Google India",
+    "title": "Test Engineer III",
+    "source": "google",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": null
+  },
+  "amazon_amazon-india_10372181": {
+    "company": "Amazon India",
+    "title": "SDET - Audio, SSG",
+    "source": "amazon",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-03-20T00:00:00"
+  },
+  "amazon_amazon-india_3203393": {
+    "company": "Amazon India",
+    "title": "Software Development Engineer - Test II, Alexa Endpoint Experiences",
+    "source": "amazon",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-03-12T00:00:00"
+  },
+  "amazon_amazon-india_10591598": {
+    "company": "Amazon India",
+    "title": "Quality Assurance Engineer I, Relay TAQ",
+    "source": "amazon",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-10-28T00:00:00"
+  },
+  "amazon_amazon-india_10593338": {
+    "company": "Amazon India",
+    "title": "Quality Assurance Engineer I, Music Client QA",
+    "source": "amazon",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-10-30T00:00:00"
+  },
+  "amazon_amazon-india_10582301": {
+    "company": "Amazon India",
+    "title": "Quality Assurance Engineer , Project Tez | Amazon Now",
+    "source": "amazon",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-10-19T00:00:00"
+  },
+  "amazon_amazon-india_10566315": {
+    "company": "Amazon India",
+    "title": "Quality Assurance Engineer, FBA",
+    "source": "amazon",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-10-01T00:00:00"
+  },
+  "amazon_amazon-india_10554119": {
+    "company": "Amazon India",
+    "title": "Quality Assurance Engineer, Alexa Connect Kit, Alexa Smart Home",
+    "source": "amazon",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-09-19T00:00:00"
+  },
+  "amazon_amazon-india_10571451": {
+    "company": "Amazon India",
+    "title": "Quality Assurance Engineer II, Prime Benefits, Pricing & Constructs",
+    "source": "amazon",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-10-07T00:00:00"
+  },
+  "amazon_amazon-india_10576712": {
+    "company": "Amazon India",
+    "title": "Quality Assurance Engineer, Cross Border Business",
+    "source": "amazon",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-10-13T00:00:00"
+  },
+  "amazon_amazon-india_10489203": {
+    "company": "Amazon India",
+    "title": "Quality Assurance Engineer, Prime Video Sports",
+    "source": "amazon",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-07-31T00:00:00"
+  },
+  "apple_apple-india_200676934-1052": {
+    "company": "Apple India",
+    "title": "Senior SDET Engineer",
+    "source": "apple",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-08-17T00:00:00"
+  },
+  "eightfold_qualcomm-eightfold_446721605745": {
+    "company": "Qualcomm India (Careers)",
+    "title": "Staff Engineer, Data Centre Software Test Engineer (Server)",
+    "source": "eightfold",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-11-11T00:00:00",
+    "last_reopened_at": "2026-11-11T09:37:14.245217Z",
+    "reopen_count": 1
+  },
+  "eightfold_qualcomm-eightfold_446718158424": {
+    "company": "Qualcomm India (Careers)",
+    "title": "CPU Software Test Engineer - Senior/Lead",
+    "source": "eightfold",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-10-26T00:00:00"
+  },
+  "eightfold_qualcomm-eightfold_446716768508": {
+    "company": "Qualcomm India (Careers)",
+    "title": "GPON - Staff Test Engineer",
+    "source": "eightfold",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-07-31T00:00:00"
+  },
+  "eightfold_qualcomm-eightfold_446719935827": {
+    "company": "Qualcomm India (Careers)",
+    "title": "Wireless Systems Test Engineer (WLAN & Edge AI)",
+    "source": "eightfold",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-07-23T00:00:00"
+  },
+  "eightfold_qualcomm-eightfold_446716126014": {
+    "company": "Qualcomm India (Careers)",
+    "title": "Graphics compiler tooling and test engineer",
+    "source": "eightfold",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-07-16T00:00:00"
+  },
+  "eightfold_qualcomm-eightfold_446721035926": {
+    "company": "Qualcomm India (Careers)",
+    "title": "XR System Test Engineer",
+    "source": "eightfold",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-10-08T00:00:00"
+  },
+  "eightfold_qualcomm-eightfold_446719729998": {
+    "company": "Qualcomm India (Careers)",
+    "title": "System Integration Test Engineer (5G-Advanced & Next-Gen 6G)",
+    "source": "eightfold",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-07-14T00:00:00"
+  },
+  "eightfold_micron-eightfold_44590088": {
+    "company": "Micron India (Careers)",
+    "title": "Senior/ Staff Design Automation Engineer, Scribe Layout Design Non-Array",
+    "source": "eightfold",
+    "first_seen_at": "2026-11-07T07:17:37.758530Z",
+    "posted_at": "2026-09-23T00:00:00"
+  },
+  "ashby_triomics_7d11b748-6bf6-4a77-bb43-cec078d1707f": {
+    "company": "Triomics",
+    "title": "ML Model Evaluation Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-07T18:25:13.157791Z",
+    "posted_at": "2026-07-03T12:14:31.281000"
+  },
+  "smartrecruiters_BoschGroup_744000160534670": {
+    "company": "Bosch Global Software",
+    "title": "Senior Engineer / Assistant Manager - Product Quality Engineer (Chip - Power Tools Plant)",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-09T08:53:05.759158Z",
+    "posted_at": "2026-11-09T05:37:08.632000"
+  },
+  "greenhouse_nice_5030347101": {
+    "company": "Nice",
+    "title": "Specialist Automation Test Engineer, CX",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T08:53:05.759158Z",
+    "posted_at": "2026-11-09T07:11:27"
+  },
+  "smartrecruiters_BoschGroup_744000160603558": {
+    "company": "Bosch Global Software",
+    "title": "Typhoon HIL Testing Engineer",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-11-09T12:37:32.582000"
+  },
+  "smartrecruiters_BoschGroup_744000160603388": {
+    "company": "Bosch Global Software",
+    "title": "Linux Infrastructure Automation Engineer (Ansible)",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-11-09T12:36:32.831000"
+  },
+  "ashby_vanta_b5c4b58a-0b6b-40a2-b0de-328e4f943060": {
+    "company": "Vanta",
+    "title": "Senior Software Engineer, Evaluation Engine",
+    "source": "ashby",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-08-21T21:04:13.948000"
+  },
+  "greenhouse_canonical_7965671": {
+    "company": "Canonical",
+    "title": "Ubuntu Linux Kernel Test Engineer",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-05-29T12:41:14"
+  },
+  "greenhouse_avepoint_7780005": {
+    "company": "Avepoint",
+    "title": "Junior Software Quality Engineer ",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-04-06T07:02:36"
+  },
+  "greenhouse_avepoint_6648873": {
+    "company": "Avepoint",
+    "title": "Senior Software Quality Engineer (#63)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2025-02-20T04:58:29"
+  },
+  "greenhouse_avepoint_7794304": {
+    "company": "Avepoint",
+    "title": "Senior Software Quality Engineer (QA)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-04-09T05:46:06"
+  },
+  "greenhouse_avepoint_6250265": {
+    "company": "Avepoint",
+    "title": "Software Quality Engineer",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2024-09-13T01:33:49"
+  },
+  "greenhouse_avepoint_7824679": {
+    "company": "Avepoint",
+    "title": "Software Quality Engineer (Managed Service)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-04-17T12:41:30"
+  },
+  "greenhouse_avepoint_6183734": {
+    "company": "Avepoint",
+    "title": "Test Automation Engineer (MAS) #68",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2024-08-19T13:31:37"
+  },
+  "greenhouse_avepoint_6787757": {
+    "company": "Avepoint",
+    "title": "Test Engineer and SRE",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2025-04-09T08:34:24"
+  },
+  "greenhouse_avepoint_7566026": {
+    "company": "Avepoint",
+    "title": "Tester (Test Automation Focus - Accenture)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-01-27T03:07:05"
+  },
+  "greenhouse_testlio_6979353": {
+    "company": "Testlio",
+    "title": "QA Analyst (Future Roles)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2025-06-18T10:19:42"
+  },
+  "greenhouse_testlio_6953297": {
+    "company": "Testlio",
+    "title": "QA Tester (Future Roles)",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2025-06-11T19:01:01"
+  },
+  "workday_bakertilly_jr107349": {
+    "company": "Baker Tilly US",
+    "title": "Senior Test Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-09-25T00:00:00"
+  },
+  "mercor_list_AAABoVBme63yIgVpzitF4Y_k": {
+    "company": "Mercor AI Lab",
+    "title": "Computer Power Users & Automation Builders (Must own MacBook)",
+    "source": "mercor",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-10-18T19:04:16"
+  },
+  "mercor_list_AAABlzI3p6G_LDaGWuNNEa6l": {
+    "company": "Mercor AI Lab",
+    "title": "Applied Engineer, Evaluations Role",
+    "source": "mercor",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": null
+  },
+  "arbeitnow_remote-software-test-engineer-bern-255669": {
+    "company": "SwissPeak Partners GmbH",
+    "title": "Software Test Engineer",
+    "source": "arbeitnow",
+    "first_seen_at": "2026-11-09T21:13:09.738075Z",
+    "posted_at": "2026-11-08T12:31:22"
+  },
+  "lever_gohighlevel_b14addba-e132-4dfa-ba07-f69455ac13ae": {
+    "company": "HighLevel",
+    "title": "Lead Software Development Engineer in Test - AI",
+    "source": "lever",
+    "first_seen_at": "2026-11-10T08:59:13.760946Z",
+    "posted_at": "2025-11-13T10:52:58.104000"
+  },
+  "workday_hpe_1205731": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Senior Network/Automation QA Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-10T08:59:13.760946Z",
+    "posted_at": "2026-10-16T00:00:00"
+  },
+  "workday_alcon_r-2026-50816": {
+    "company": "Alcon Digital Health",
+    "title": "Software Development Engineer in Test (SDET) \u2013 Principal 1, GJFA 5 Level 1",
+    "source": "workday",
+    "first_seen_at": "2026-11-10T08:59:13.760946Z",
+    "posted_at": "2026-11-12T06:00:52.200563",
+    "last_reopened_at": "2026-11-12T06:01:12.535600Z",
+    "reopen_count": 2
+  },
+  "workday_alcon_r-2026-50801": {
+    "company": "Alcon Digital Health",
+    "title": "Software Development Engineer in Test (SDET) \u2013 Embedded Firmware / SIL \u2013 Senior Engineer, GJFA 6 Level 1",
+    "source": "workday",
+    "first_seen_at": "2026-11-10T08:59:13.760946Z",
+    "posted_at": "2026-11-12T06:00:52.307583",
+    "last_reopened_at": "2026-11-12T06:01:12.535600Z",
+    "reopen_count": 2
+  },
+  "amazon_amazon-india_10600973": {
+    "company": "Amazon India",
+    "title": "Quality Assurance Engineer, IES Prime Tech",
+    "source": "amazon",
+    "first_seen_at": "2026-11-10T22:26:14.417491Z",
+    "posted_at": "2026-11-10T00:00:00"
+  },
+  "mercor_list_AAABoWa5lPEq7jlqhxZNLqEJ": {
+    "company": "Mercor AI Lab",
+    "title": "Software Engineer \u2013 Retail Investing Platforms (Paid Expert Interview)",
+    "source": "mercor",
+    "first_seen_at": "2026-11-10T22:26:14.417491Z",
+    "posted_at": "2026-10-23T03:06:41"
+  },
+  "mercor_list_AAABoVBl9Qiee5DoU-hGapwb": {
+    "company": "Mercor AI Lab",
+    "title": "Software Developers (Must own MacBook)",
+    "source": "mercor",
+    "first_seen_at": "2026-11-10T22:26:14.417491Z",
+    "posted_at": "2026-10-18T19:03:41"
+  },
+  "mercor_list_AAABoKOP6g9ZUjU9LdNBCqS7": {
+    "company": "Mercor AI Lab",
+    "title": "Software Engineering Expert",
+    "source": "mercor",
+    "first_seen_at": "2026-11-10T22:26:14.417491Z",
+    "posted_at": null
+  },
+  "arbeitnow_remote-technical-quality-assurance-manager-bromley-326507": {
+    "company": "Bromcom Computers Plc",
+    "title": "Technical Quality Assurance Manager",
+    "source": "arbeitnow",
+    "first_seen_at": "2026-11-10T22:26:14.417491Z",
+    "posted_at": "2026-11-10T21:31:19"
+  },
+  "alignerr_fd47d84e-2bdb-4f9d-808b-d539a718249f": {
+    "company": "Alignerr (Labelbox AI)",
+    "title": "Software Engineer - Project Creation",
+    "source": "alignerr",
+    "first_seen_at": "2026-11-10T22:26:14.417491Z",
+    "posted_at": null
+  },
+  "workday_nvidia_jr2026184": {
+    "company": "Nvidia",
+    "title": "Senior Software QA Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-28T00:00:00"
+  },
+  "workday_nvidia_jr2028491": {
+    "company": "Nvidia",
+    "title": "Senior Software QA Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-03T00:00:00"
+  },
+  "workday_nvidia_jr2025257": {
+    "company": "Nvidia",
+    "title": "Senior Software QA Test Developer - Embedded",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-11T00:00:00"
+  },
+  "workday_nvidia_jr2021111": {
+    "company": "Nvidia",
+    "title": "Senior Software QA Test Developer - Windows Devices Validation",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-29T00:00:00"
+  },
+  "workday_nvidia_jr2023581": {
+    "company": "Nvidia",
+    "title": "Senior Supplier Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-02T00:00:00"
+  },
+  "ashby_tekion_1dd9e4b3-c683-4c9a-9b02-0fc05b32cc37": {
+    "company": "Tekion",
+    "title": "Senior Automation QA Engineer",
+    "source": "ashby",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-11T09:14:52.177000"
+  },
+  "smartrecruiters_endava_744000161033469": {
+    "company": "Endava",
+    "title": "QA Automation Lead with AI Agent Testing experience - RBC",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-11T07:12:38.369000"
+  },
+  "workday_dover_dover india pvt.,ltd.": {
+    "company": "Dover India",
+    "title": "Senior QA Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-19T00:00:00"
+  },
+  "workday_ntrs_r157441": {
+    "company": "Northern Trust",
+    "title": "Test Lead",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-02T00:00:00"
+  },
+  "workday_ntrs_r157440": {
+    "company": "Northern Trust",
+    "title": "Test Lead \u2013 Functional & Automation Testing",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-02T00:00:00"
+  },
+  "smartrecruiters_Experian_744000155238169": {
+    "company": "Experian",
+    "title": "Senior Software Development Engineer in Test",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-13T11:51:07.471000"
+  },
+  "workday_pg_r000160278": {
+    "company": "P&G Digital Innovation",
+    "title": "Specialist, Quality Assurance",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-06T00:00:00"
+  },
+  "workday_pg_r000159913": {
+    "company": "P&G Digital Innovation",
+    "title": "Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-29T00:00:00"
+  },
+  "workday_diageo_jr1130998": {
+    "company": "Diageo Digital",
+    "title": "Regional packaging QA manager",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-28T00:00:00"
+  },
+  "workday_citi_25883567": {
+    "company": "Citi Technology",
+    "title": "Officer- ETL Automation tester -QA - C10 -Hybrid- PUNE",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2025-07-10T00:00:00"
+  },
+  "workday_citi_24814550": {
+    "company": "Citi Technology",
+    "title": "In Business QA Credit Underwriting - Data Analytics - (AVP)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2025-05-01T00:00:00"
+  },
+  "workday_citi_26930352": {
+    "company": "Citi Technology",
+    "title": "Data Quality Analyst-5-8 Years",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-01-20T00:00:00"
+  },
+  "workday_statestreet_r-799769": {
+    "company": "State Street Technology",
+    "title": "QA Automation - Manager",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-06T00:00:00"
+  },
+  "workday_statestreet_r-799770": {
+    "company": "State Street Technology",
+    "title": "QA Automation - Manager",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-31T00:00:00"
+  },
+  "workday_statestreet_r-798067": {
+    "company": "State Street Technology",
+    "title": "Performance Engineer - QA, Officer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-11T00:00:00"
+  },
+  "workday_statestreet_r-798058": {
+    "company": "State Street Technology",
+    "title": "Investment Services - QA, AVP",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_statestreet_r-800744": {
+    "company": "State Street Technology",
+    "title": "Investment Services - QA, Officer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_statestreet_r-799772": {
+    "company": "State Street Technology",
+    "title": "QA Automation - Manager",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-31T00:00:00"
+  },
+  "workday_statestreet_r-798163": {
+    "company": "State Street Technology",
+    "title": "Quality Assurance - Senior Associate",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-27T00:00:00"
+  },
+  "workday_statestreet_r-800984": {
+    "company": "State Street Technology",
+    "title": "Automation Engineer, Senior Associate",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-10T00:00:00"
+  },
+  "workday_statestreet_r-798582": {
+    "company": "State Street Technology",
+    "title": "Automation Engineer, Officer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-10T00:00:00"
+  },
+  "workday_statestreet_r-800057": {
+    "company": "State Street Technology",
+    "title": "Senior Performance Testing Engineer - Team Lead",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-22T00:00:00"
+  },
+  "workday_fmr_2135541": {
+    "company": "Fidelity Investments India",
+    "title": "Senior QA Engineer-API Automation",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-11T00:00:00"
+  },
+  "workday_mastercard_r-287851": {
+    "company": "Mastercard Technology",
+    "title": "Senior Software Integration Engineer(Quality Engineer)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-23T00:00:00"
+  },
+  "workday_fiserv_r-10391986": {
+    "company": "Fiserv Global Services",
+    "title": "Professional, Quality Assurance Engineering",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-02T00:00:00"
+  },
+  "workday_nasdaq_r0026973": {
+    "company": "Nasdaq Technology",
+    "title": "Senior Specialist QA \u2013 Functional Testing (Clearing and Trading domains)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-23T00:00:00"
+  },
+  "workday_lseg_r0105396": {
+    "company": "London Stock Exchange Group",
+    "title": "SDET",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2025-09-02T00:00:00"
+  },
+  "workday_lseg_r0124357": {
+    "company": "London Stock Exchange Group",
+    "title": "Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-11T00:00:00"
+  },
+  "workday_lseg_r0122582": {
+    "company": "London Stock Exchange Group",
+    "title": "Lead QA Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-30T00:00:00"
+  },
+  "workday_lseg_r0117718": {
+    "company": "London Stock Exchange Group",
+    "title": "Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-14T00:00:00"
+  },
+  "workday_lseg_r0123367": {
+    "company": "London Stock Exchange Group",
+    "title": "QA Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-08T00:00:00"
+  },
+  "workday_lseg_r0120981": {
+    "company": "London Stock Exchange Group",
+    "title": "Machine Learning Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-07-14T00:00:00"
+  },
+  "workday_lseg_r0120984": {
+    "company": "London Stock Exchange Group",
+    "title": "Senior Lead QA Engineer (FX)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-07-14T00:00:00"
+  },
+  "workday_lseg_r0121059": {
+    "company": "London Stock Exchange Group",
+    "title": "Senior QA Automation Engineer (FX)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-07-08T00:00:00"
+  },
+  "workday_lseg_r0120985": {
+    "company": "London Stock Exchange Group",
+    "title": "Lead QA Automation Engineer (FX)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-07-02T00:00:00"
+  },
+  "workday_lseg_r0105277": {
+    "company": "London Stock Exchange Group",
+    "title": "Senior Lead QA Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2025-06-12T00:00:00"
+  },
+  "workday_lseg_r0122643": {
+    "company": "London Stock Exchange Group",
+    "title": "Senior Quality Engineer, Automation & API Testing",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-06T00:00:00"
+  },
+  "workday_transunion_19042838": {
+    "company": "TransUnion Global Capability",
+    "title": "Sr. Quality Assurance Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-10T00:00:00"
+  },
+  "workday_hpe_1214918": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Senior Software QA Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-06T00:00:00"
+  },
+  "workday_hpe_1216391": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Software QA Engineer - Intermediate",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-06T00:00:00"
+  },
+  "workday_hpe_1210453": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Networking Software Engineering System QA",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-20T00:00:00"
+  },
+  "workday_hpe_1212150": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "QA Automation_ L2/ L3 Protocols",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-16T00:00:00"
+  },
+  "workday_hpe_1214704": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Systems/Software Engineer- Software Update QA",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-29T00:00:00"
+  },
+  "workday_hpe_1215799": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Systems Platform QA and AI engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-26T00:00:00"
+  },
+  "workday_hpe_1209711": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "QA Automation Engineer - Networking (Python, L2/L3 Protocols)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-07-21T00:00:00"
+  },
+  "workday_hpe_1213865": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Software Quality Engineer \u2013 UI & API Testing",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-30T00:00:00"
+  },
+  "workday_hpe_1216055": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Test Automation Engineer- L2/L3 Networking",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-26T00:00:00"
+  },
+  "workday_hpe_1216067": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Test Automation Engineer- L2/L3 Networking",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-26T00:00:00"
+  },
+  "workday_hpe_1207164": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Software Test Engineer (SONIC)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-07-06T00:00:00"
+  },
+  "workday_hpe_1216051": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Software Test Engineer Staff",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-23T00:00:00"
+  },
+  "workday_hpe_1216823": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "SW TEST ENGINEER",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-23T00:00:00"
+  },
+  "workday_hpe_1214847": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "System Test Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_hpe_1215455": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Solution Test & Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-29T00:00:00"
+  },
+  "workday_hpe_1215453": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Solution Test & Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-29T00:00:00"
+  },
+  "workday_hpe_1216403": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "System Test Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-22T00:00:00"
+  },
+  "workday_hpe_1214372": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Systems Test Engineer, HPC & AI Systems",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_hpe_1217332": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Network Switch Platform Test Engineer (PoE & Automation)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-12T06:00:57.825629",
+    "last_reopened_at": "2026-11-12T06:01:12.535600Z",
+    "reopen_count": 1
+  },
+  "workday_hpe_1210195": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Sr Network Test Engineer \u2014 Data Center Fabrics",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-28T00:00:00"
+  },
+  "workday_hpe_1216498": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Senior Quality Engineer- Digital Experience & Automation (DEA)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-27T00:00:00"
+  },
+  "workday_hp_3165344": {
+    "company": "HP Inc India",
+    "title": "Quality Engineer - Surface Mount Technology",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-03T00:00:00"
+  },
+  "amd_amd-india_92218": {
+    "company": "AMD India",
+    "title": "Automation Lead - GUI Test Framework Lead",
+    "source": "amd",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-17T10:46:00"
+  },
+  "amd_amd-india_93021": {
+    "company": "AMD India",
+    "title": "System Test and Automation Architect",
+    "source": "amd",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-07T07:19:00"
+  },
+  "amd_amd-india_93013": {
+    "company": "AMD India",
+    "title": "Test Lead/Architect - Out of Band - Client/Server Manageability With AI",
+    "source": "amd",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-15T15:32:00"
+  },
+  "amd_amd-india_90190": {
+    "company": "AMD India",
+    "title": "System Testing and Automation Engineer",
+    "source": "amd",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-20T11:13:00"
+  },
+  "amd_amd-india_87855": {
+    "company": "AMD India",
+    "title": "Linux Kernel & Virtualization Manager \u2014 Memory Management, QA, Scheduler, Power Management",
+    "source": "amd",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-10T06:15:00"
+  },
+  "workday_intel_jr0288534": {
+    "company": "Intel India",
+    "title": "Physical Design Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-27T00:00:00"
+  },
+  "workday_micron_jr112346": {
+    "company": "Micron Technology India",
+    "title": "Global Quality Front-End Central Quality Assurance Engineer/Sr Engineer  \u2013 (GQ FECTQA MOI)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-12T00:00:00"
+  },
+  "workday_micron_jr106148": {
+    "company": "Micron Technology India",
+    "title": "Global Quality Front-End Central Quality Assurance Engineer/Sr Engineer  \u2013 (GQ FECTQA MOI)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-14T00:00:00"
+  },
+  "workday_micron_jr107726": {
+    "company": "Micron Technology India",
+    "title": "Global Quality FrontEnd Central Quality Assurance Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-25T00:00:00"
+  },
+  "workday_nxp_r-10067245": {
+    "company": "NXP Semiconductors India",
+    "title": "Hardware Design/Test Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-30T00:00:00"
+  },
+  "workday_nxp_r-10063275": {
+    "company": "NXP Semiconductors India",
+    "title": "AI/ML driven ASIC Design and Implementation Automation Lead Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-17T00:00:00"
+  },
+  "workday_nxp_r-10063274": {
+    "company": "NXP Semiconductors India",
+    "title": "AI/ML driven ASIC Design and Implementation Automation Lead Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-17T00:00:00"
+  },
+  "workday_analogdevices_r266288": {
+    "company": "Analog Devices India",
+    "title": "Lead Design Evaluation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-23T00:00:00"
+  },
+  "workday_analogdevices_r266290": {
+    "company": "Analog Devices India",
+    "title": "Lead Design Evaluation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-23T00:00:00"
+  },
+  "workday_analogdevices_r266291": {
+    "company": "Analog Devices India",
+    "title": "Sr. Design Evaluation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-23T00:00:00"
+  },
+  "workday_analogdevices_r266292": {
+    "company": "Analog Devices India",
+    "title": "Sr. Design Evaluation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-23T00:00:00"
+  },
+  "workday_analogdevices_r261958": {
+    "company": "Analog Devices India",
+    "title": "Staff Design Evaluation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-18T00:00:00"
+  },
+  "workday_analogdevices_r262472": {
+    "company": "Analog Devices India",
+    "title": "Sr. Evaluation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-05-18T00:00:00"
+  },
+  "workday_marvell_2600726": {
+    "company": "Marvell Technology India",
+    "title": "Staff/ Senior Staff QA Engineer (C, C++, Python, CXL, PCIE)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-11T00:00:00"
+  },
+  "workday_cadence_r55209": {
+    "company": "Cadence Design Systems",
+    "title": "Lead Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-06T00:00:00"
+  },
+  "workday_cadence_r56034": {
+    "company": "Cadence Design Systems",
+    "title": "Lead Software Engineer in Test",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-13T00:00:00"
+  },
+  "workday_cadence_r56131": {
+    "company": "Cadence Design Systems",
+    "title": "Lead Software Engineer in Test",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-08T00:00:00"
+  },
+  "workday_medtronic_r78368": {
+    "company": "Medtronic Engineering",
+    "title": "Quality Engineer II",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-12T09:36:56.389119"
+  },
+  "workday_medtronic_r81183": {
+    "company": "Medtronic Engineering",
+    "title": "Quality Engineer II",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-10T09:36:56.756748"
+  },
+  "workday_medtronic_r80394": {
+    "company": "Medtronic Engineering",
+    "title": "Senior Enterprise Software Test Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-27T09:36:56.787255"
+  },
+  "workday_medtronic_r76093": {
+    "company": "Medtronic Engineering",
+    "title": "Senior Enterprise Software Test Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-30T09:36:56.427510"
+  },
+  "workday_medtronic_r78034": {
+    "company": "Medtronic Engineering",
+    "title": "Senior Enterprise Software Test Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-29T09:36:56.467475"
+  },
+  "workday_medtronic_r78543": {
+    "company": "Medtronic Engineering",
+    "title": "Senior Enterprise Software Test Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-09T00:00:00"
+  },
+  "workday_medtronic_r79537": {
+    "company": "Medtronic Engineering",
+    "title": "Enterprise Software Test Engineer II",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-03T09:36:56.742557"
+  },
+  "workday_stryker_r575176": {
+    "company": "Stryker Global Tech Center",
+    "title": "Senior Software Engineer - Automation Testing",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-23T00:00:00"
+  },
+  "workday_stryker_r575668": {
+    "company": "Stryker Global Tech Center",
+    "title": "Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-21T00:00:00"
+  },
+  "workday_stryker_r574960": {
+    "company": "Stryker Global Tech Center",
+    "title": "Senior Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_stryker_r570381": {
+    "company": "Stryker Global Tech Center",
+    "title": "Associate Manager, Automation Architect",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-02T00:00:00"
+  },
+  "workday_alcon_r-2026-46907": {
+    "company": "Alcon Digital Health",
+    "title": "Principal I, Research & Development Quality Assurance (T)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-29T00:00:00"
+  },
+  "workday_roche_202607-119675": {
+    "company": "Roche Information Solutions",
+    "title": "Fullstack AI Quality Engineer \u2013 Applied & Agentic AI Systems",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-28T00:00:00"
+  },
+  "workday_roche_202607-119676": {
+    "company": "Roche Information Solutions",
+    "title": "Fullstack AI Quality Engineer \u2013 Applied & Agentic AI Systems",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-28T00:00:00"
+  },
+  "workday_roche_202611-128080": {
+    "company": "Roche Information Solutions",
+    "title": "Senior Software Development Testing Engineer (Open Source) - RDT Engineering Excellence & Experience",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-02T00:00:00"
+  },
+  "workday_roche_202611-128077": {
+    "company": "Roche Information Solutions",
+    "title": "Test Automation Development Engineer - RDT Engineering Excellence & Experience",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-02T00:00:00"
+  },
+  "workday_amgen_r-235369": {
+    "company": "Amgen Technology Center",
+    "title": "QA Sr. Manager, Quality & Risk Intelligence",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-07-16T00:00:00"
+  },
+  "workday_amgen_r-252836": {
+    "company": "Amgen Technology Center",
+    "title": "Sr Assoc QA - Global Supply Quality",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-17T00:00:00"
+  },
+  "workday_amgen_r-239162": {
+    "company": "Amgen Technology Center",
+    "title": "Sr Associate Test Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-04T00:00:00"
+  },
+  "workday_amgen_r-213627": {
+    "company": "Amgen Technology Center",
+    "title": "Sr. Test Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2025-04-29T00:00:00"
+  },
+  "workday_amgen_r-226895": {
+    "company": "Amgen Technology Center",
+    "title": "Sr Associate Test Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2025-09-29T00:00:00"
+  },
+  "workday_amgen_r-225950": {
+    "company": "Amgen Technology Center",
+    "title": "Test Automation Engineering",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2025-10-23T00:00:00"
+  },
+  "workday_amgen_r-216571": {
+    "company": "Amgen Technology Center",
+    "title": "Test Automation Engineering (Translation Hub)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2025-05-29T00:00:00"
+  },
+  "workday_amgen_r-222702": {
+    "company": "Amgen Technology Center",
+    "title": "Sr Associate IS Test Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2025-10-14T00:00:00"
+  },
+  "workday_amgen_r-249825": {
+    "company": "Amgen Technology Center",
+    "title": "Sr Associate Software Engineer - Test automation",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-07-20T00:00:00"
+  },
+  "workday_amgen_r-237925": {
+    "company": "Amgen Technology Center",
+    "title": "Test Automation Lead",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-03-02T00:00:00"
+  },
+  "workday_pfizer_4965624": {
+    "company": "Pfizer Digital India",
+    "title": "Quality Investigation Approver \u2013 Quality Assurance",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-12T09:36:56.359267"
+  },
+  "workday_iqvia_r1527130": {
+    "company": "IQVIA India",
+    "title": "Senior QA Auditor - GCP Audits",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-17T09:36:57.576609"
+  },
+  "workday_thermofisher_r-01372867": {
+    "company": "Thermo Fisher Digital",
+    "title": "Staff Engineer, Software Test",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-29T00:00:00"
+  },
+  "workday_thermofisher_r-01372859": {
+    "company": "Thermo Fisher Digital",
+    "title": "Engineer II, Software Test",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-28T00:00:00"
+  },
+  "workday_thermofisher_r-01372858": {
+    "company": "Thermo Fisher Digital",
+    "title": "Engineer II, Software Test",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-28T00:00:00"
+  },
+  "workday_thermofisher_r-01372864": {
+    "company": "Thermo Fisher Digital",
+    "title": "Engineer III, Software Test",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-28T00:00:00"
+  },
+  "workday_thermofisher_r-01372860": {
+    "company": "Thermo Fisher Digital",
+    "title": "Engineer III, Software Test",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-28T00:00:00"
+  },
+  "workday_thermofisher_r-01372865": {
+    "company": "Thermo Fisher Digital",
+    "title": "Engineer III, Software Test",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-28T00:00:00"
+  },
+  "workday_thermofisher_r-01372863": {
+    "company": "Thermo Fisher Digital",
+    "title": "Engineer III, Software Test",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-28T00:00:00"
+  },
+  "workday_danaher_r1320049": {
+    "company": "Danaher Digital",
+    "title": "QA Professional",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-06T00:00:00"
+  },
+  "workday_danaher_r1316595": {
+    "company": "Danaher Digital",
+    "title": "Staff Engineer (Automation Testing)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-10T00:00:00"
+  },
+  "workday_danaher_r1319309": {
+    "company": "Danaher Digital",
+    "title": "Automation Test Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-30T00:00:00"
+  },
+  "workday_danaher_r1318478": {
+    "company": "Danaher Digital",
+    "title": "Lead Automation Engineer (C#, Azure)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-18T00:00:00"
+  },
+  "workday_illumina_42967-job": {
+    "company": "Illumina India",
+    "title": "Senior Software Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-06-22T00:00:00"
+  },
+  "workday_illumina_43171-job": {
+    "company": "Illumina India",
+    "title": "Senior Software Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-05T00:00:00"
+  },
+  "workday_illumina_43172-job": {
+    "company": "Illumina India",
+    "title": "Staff Software Quality Engineer \u2013 Product Development",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-21T00:00:00"
+  },
+  "workday_cigna_26010745": {
+    "company": "Cigna Evernorth India",
+    "title": "QA & Testing Senior Analyst",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-05T00:00:00"
+  },
+  "workday_cigna_26010753": {
+    "company": "Cigna Evernorth India",
+    "title": "Automation Engineer Senior Analyst - Cigna Healthcare",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-09T00:00:00"
+  },
+  "workday_cigna_26010905": {
+    "company": "Cigna Evernorth India",
+    "title": "Automation Engineer Analyst",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-05T09:36:56.817845"
+  },
+  "workday_cigna_26012812": {
+    "company": "Cigna Evernorth India",
+    "title": "Automation Engineer Associate Analyst",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-30T00:00:00"
+  },
+  "workday_cigna_26013474": {
+    "company": "Cigna Evernorth India",
+    "title": "Automation Engineer Associate Analysts - Cigna Healthcare",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-04T09:36:56.804257"
+  },
+  "workday_cigna_26013380": {
+    "company": "Cigna Evernorth India",
+    "title": "Automation Engineer Associate Analyst - Cigna Healthcare",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-05T09:36:56.866436"
+  },
+  "workday_carrier_30221713": {
+    "company": "Carrier Digital Hub",
+    "title": "Sr. Associate, Quality Assurance",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-03T00:00:00"
+  },
+  "workday_carrier_30221714": {
+    "company": "Carrier Digital Hub",
+    "title": "Process Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_carrier_30221712": {
+    "company": "Carrier Digital Hub",
+    "title": "Process Quality Engineer - Chiller QC",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_carrier_30218924": {
+    "company": "Carrier Digital Hub",
+    "title": "Quality Assurance",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_aptiv_j000703972": {
+    "company": "Aptiv Technical Center",
+    "title": "Senior Software Test Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-09-22T00:00:00"
+  },
+  "workday_aptiv_j000706076": {
+    "company": "Aptiv Technical Center",
+    "title": "Customer Advanced Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-04T00:00:00"
+  },
+  "workday_aptiv_j000697931": {
+    "company": "Aptiv Technical Center",
+    "title": "Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-12T09:36:56.742638"
+  },
+  "workday_ag_jr10452857": {
+    "company": "Airbus India Digital",
+    "title": "End 2 End Operations Quality Assurance",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-30T00:00:00"
+  },
+  "workday_ag_jr10452864": {
+    "company": "Airbus India Digital",
+    "title": "End 2 End Operations Quality Assurance",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-30T09:36:58.606715"
+  },
+  "workday_ag_jr10368760": {
+    "company": "Airbus India Digital",
+    "title": "Software Methods and Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-12T09:36:58.648313"
+  },
+  "workday_ag_jr10454174": {
+    "company": "Airbus India Digital",
+    "title": "TD Software Test & Support Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-30T09:36:59.335094"
+  },
+  "workday_ag_jr10454188": {
+    "company": "Airbus India Digital",
+    "title": "TD Software Test and Support Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-30T09:36:58.628668"
+  },
+  "workday_ag_jr10454189": {
+    "company": "Airbus India Digital",
+    "title": "TD Software Test and Support Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-30T00:00:00"
+  },
+  "workday_rollsroyce_jr6162242": {
+    "company": "Rolls-Royce Digital Hub",
+    "title": "Supplier Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-06T09:36:58.017637"
+  },
+  "workday_thomsonreuters_bangalore": {
+    "company": "Thomson Reuters India",
+    "title": "Lead Data Governance & Quality Analyst",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-10T09:36:57.344088"
+  },
+  "workday_assurant_r-114725": {
+    "company": "Assurant Global Tech India",
+    "title": "Senior Technology Automation Engineer(| Azure DevOps | Azure Cloud | Terraform | C#/Python | API)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-26T09:36:56.345558"
+  },
+  "workday_pwc_611224wd": {
+    "company": "PwC Acceleration Center",
+    "title": "IN-Senior Associate \u2013QA Automation -Advisory Corporate\u2013 Advisory \u2013PAN India",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-12T09:36:57.890529"
+  },
+  "workday_kyndryl_r-71279": {
+    "company": "Kyndryl India",
+    "title": "Software Test Engineer \u2013 Automation & Performance (QA Test Engineer)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-02T00:00:00"
+  },
+  "workday_kyndryl_r-69919": {
+    "company": "Kyndryl India",
+    "title": "Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-27T00:00:00"
+  },
+  "workday_kyndryl_r-66725": {
+    "company": "Kyndryl India",
+    "title": "Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-10T00:00:00"
+  },
+  "workday_kyndryl_r-68655": {
+    "company": "Kyndryl India",
+    "title": "Network Infrastructure and Automation Architect",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-08T00:00:00"
+  },
+  "workday_mckesson_jr0150283": {
+    "company": "McKesson Technology",
+    "title": "Performance Engineering - Sr. QA Manager",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-28T09:36:58.389163"
+  },
+  "workday_dexcom_jr119756": {
+    "company": "Dexcom Engineering",
+    "title": "Software QA Engineer 1",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-14T00:00:00"
+  },
+  "workday_dexcom_jr121507": {
+    "company": "Dexcom Engineering",
+    "title": "Sr Software QA Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-14T00:00:00"
+  },
+  "workday_dexcom_jr112708": {
+    "company": "Dexcom Engineering",
+    "title": "Sr. SW Test Development Engineer V&V",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-03-19T00:00:00"
+  },
+  "workday_dexcom_jr111570": {
+    "company": "Dexcom Engineering",
+    "title": "SW Test Development Engineer 2",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-08-20T00:00:00"
+  },
+  "workday_dexcom_jr119866": {
+    "company": "Dexcom Engineering",
+    "title": "Sr SW Test Development Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-15T00:00:00"
+  },
+  "workday_dexcom_jr115564": {
+    "company": "Dexcom Engineering",
+    "title": "Staff Software Test Development Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-03-20T00:00:00"
+  },
+  "workday_dexcom_jr113241": {
+    "company": "Dexcom Engineering",
+    "title": "Staff SW Test Development Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-15T00:00:00"
+  },
+  "workday_pvh_r64859": {
+    "company": "PVH Corp Digital",
+    "title": "Sr Test Automation Engineer - Quality Assurance",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-06T00:00:00"
+  },
+  "smartrecruiters_AristaNetworks_744000160116794": {
+    "company": "Arista Networks",
+    "title": "Software Engineer - Test Automation",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-11-06T05:21:09.437000"
+  },
+  "smartrecruiters_AristaNetworks_744000154647541": {
+    "company": "Arista Networks",
+    "title": "Network System Test Engineer (Manual/Solution)",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-10-09T11:18:17.010000"
+  },
+  "smartrecruiters_AristaNetworks_744000121126778": {
+    "company": "Arista Networks",
+    "title": "Software Test Engineer (Cloud)",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-04-16T07:52:33.857000"
+  },
+  "smartrecruiters_AristaNetworks_744000101650945": {
+    "company": "Arista Networks",
+    "title": "Software Test Engineer (Wi-Fi)",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-11T09:37:14.245217Z",
+    "posted_at": "2026-01-05T15:21:49.398000"
+  },
+  "smartrecruiters_BoschGroup_744000161072585": {
+    "company": "Bosch Global Software",
+    "title": "Product Owner \u2013 ServiceNow Development and Test Automation (ATF)",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-11T14:31:12.810899Z",
+    "posted_at": "2026-11-11T12:17:19.600000"
+  },
+  "smartrecruiters_Experian_744000161072217": {
+    "company": "Experian",
+    "title": "Senior Software Development Engineer in Test",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-11T14:31:12.810899Z",
+    "posted_at": "2026-11-11T12:14:08.290000"
+  },
+  "workday_lseg_r0123154": {
+    "company": "London Stock Exchange Group",
+    "title": "QA Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T14:31:12.810899Z",
+    "posted_at": "2026-11-11T00:00:00"
+  },
+  "workday_hpe_1213945": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Thermal Test Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T14:31:12.810899Z",
+    "posted_at": "2026-11-11T14:30:57.615763"
+  },
+  "workday_intel_jr0286772": {
+    "company": "Intel India",
+    "title": "Design Automation Engineer - Neuromorphic Computing",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T14:31:12.810899Z",
+    "posted_at": "2026-10-12T14:30:49.156668"
+  },
+  "workday_hpe_1216976": {
+    "company": "Hewlett Packard Enterprise",
+    "title": "Quality Assurance Engineer (ITOM)",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T18:47:00.967021Z",
+    "posted_at": "2026-11-11T18:46:41.140324"
+  },
+  "workday_analogdevices_r266594": {
+    "company": "Analog Devices India",
+    "title": "Software Test Solutions Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T18:47:00.967021Z",
+    "posted_at": "2026-10-12T18:46:37.859661"
+  },
+  "workday_philips_591914": {
+    "company": "Philips Innovation Campus",
+    "title": "MR Service Quality Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T18:47:00.967021Z",
+    "posted_at": "2026-11-12T06:00:57.113441",
+    "last_reopened_at": "2026-11-12T06:01:12.535600Z",
+    "reopen_count": 1
+  },
+  "workday_iqvia_r1529770": {
+    "company": "IQVIA India",
+    "title": "Sr Software QA Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-11T18:47:00.967021Z",
+    "posted_at": "2026-11-11T18:46:38.489812"
+  },
+  "greenhouse_okta_8045905": {
+    "company": "Okta",
+    "title": "Principal Software Engineer in Test",
+    "source": "greenhouse",
+    "first_seen_at": "2026-11-12T06:01:12.535600Z",
+    "posted_at": "2026-07-08T14:23:17"
+  },
+  "smartrecruiters_endava_744000161220009": {
+    "company": "Endava",
+    "title": "QA Automation Lead with AI Agent Testing experience",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-12T06:01:12.535600Z",
+    "posted_at": "2026-11-12T05:20:48.010000"
+  },
+  "workday_citi_261005933": {
+    "company": "Citi Technology",
+    "title": "IT Quality Analyst",
+    "source": "workday",
+    "first_seen_at": "2026-11-12T09:57:52.431045Z",
+    "posted_at": "2026-11-12T00:00:00"
+  },
+  "workday_wf_r-568473": {
+    "company": "Wells Fargo India Solutions",
+    "title": "Senior Systems Quality Assurance Analyst [playwright]",
+    "source": "workday",
+    "first_seen_at": "2026-11-12T09:57:52.431045Z",
+    "posted_at": "2026-11-12T00:00:00"
+  },
+  "workday_iqvia_r1566201": {
+    "company": "IQVIA India",
+    "title": "Senior QA Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-12T09:57:52.431045Z",
+    "posted_at": "2026-11-12T09:57:40.257981"
+  },
+  "workday_aptiv_j000706247": {
+    "company": "Aptiv Technical Center",
+    "title": "Automation Engineer \u2013 Mechanical / Electrical",
+    "source": "workday",
+    "first_seen_at": "2026-11-12T09:57:52.431045Z",
+    "posted_at": "2026-11-12T00:00:00"
+  },
+  "workday_boeing_jr2026522534": {
+    "company": "Boeing India Engineering",
+    "title": "Embedded Test and Evaluation Engineer (Associate or Mid-Level)",
+    "source": "workday",
+    "first_seen_at": "2026-11-12T09:57:52.431045Z",
+    "posted_at": "2026-11-04T09:57:40.773343"
+  },
+  "workday_kyndryl_r-60930": {
+    "company": "Kyndryl India",
+    "title": "Performance & Security Test Lead",
+    "source": "workday",
+    "first_seen_at": "2026-11-12T09:57:52.431045Z",
+    "posted_at": "2026-05-04T00:00:00"
+  },
+  "workday_agilent_4038479": {
+    "company": "Agilent Technologies India",
+    "title": "Test Lead/ Analyst",
+    "source": "workday",
+    "first_seen_at": "2026-11-12T09:57:52.431045Z",
+    "posted_at": "2026-06-11T00:00:00"
+  },
+  "apple_apple-india_200693638-0321": {
+    "company": "Apple India",
+    "title": "Software Development Engineer in Test - Manager",
+    "source": "apple",
+    "first_seen_at": "2026-11-12T09:57:52.431045Z",
+    "posted_at": "2026-11-12T00:00:00"
+  },
+  "workday_lseg_r0122889": {
+    "company": "London Stock Exchange Group",
+    "title": "QA Automation Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-12T14:31:08.182827Z",
+    "posted_at": "2026-11-12T00:00:00"
+  },
+  "workday_cigna_26013237": {
+    "company": "Cigna Evernorth India",
+    "title": "Automation Engineer Associate Analyst - Cigna Healthcare",
+    "source": "workday",
+    "first_seen_at": "2026-11-12T14:31:08.182827Z",
+    "posted_at": "2026-11-13T06:00:47.968244",
+    "last_reopened_at": "2026-11-13T06:01:05.459539Z",
+    "reopen_count": 1
+  },
+  "himalayas_https___himalayas_app_companies_akamai-technolog": {
+    "company": "Akamai Technologies",
+    "title": "Software Development Engineer in Test II",
+    "source": "himalayas",
+    "first_seen_at": "2026-11-12T14:31:08.182827Z",
+    "posted_at": "2026-11-12T12:57:46"
+  },
+  "arbeitnow_senior-qa-manager-automation-ai-fully-remote-berlin-71172": {
+    "company": "SOFTGAMES",
+    "title": "Senior QA Manager Automation & AI - Fully Remote",
+    "source": "arbeitnow",
+    "first_seen_at": "2026-11-13T06:01:05.459539Z",
+    "posted_at": "2026-11-12T21:31:40"
+  },
+  "workday_statestreet_r-792962": {
+    "company": "State Street Technology",
+    "title": "Performance Engineer - QA, Officer",
+    "source": "workday",
+    "first_seen_at": "2026-11-13T09:45:21.519465Z",
+    "posted_at": "2026-11-13T00:00:00"
+  },
+  "workday_statestreet_r-793012": {
+    "company": "State Street Technology",
+    "title": "Principal QA Performance Engineer, AVP",
+    "source": "workday",
+    "first_seen_at": "2026-11-13T09:45:21.519465Z",
+    "posted_at": "2026-11-13T00:00:00"
+  },
+  "workday_danaher_r1316598": {
+    "company": "Danaher Digital",
+    "title": "Staff Engineer (Automation Testing)",
+    "source": "workday",
+    "first_seen_at": "2026-11-13T09:45:21.519465Z",
+    "posted_at": "2026-11-13T09:45:04.619666"
+  },
+  "smartrecruiters_NielsenIQ_744000161478879": {
+    "company": "NielsenIQ",
+    "title": "QA Engineer (Automation)",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-13T14:56:24.840450Z",
+    "posted_at": "2026-11-13T12:56:58.249000"
+  },
+  "smartrecruiters_NielsenIQ_744000161456159": {
+    "company": "NielsenIQ",
+    "title": "Associate Software Test Engineer (Playwright, Typescript/ Javascript)",
+    "source": "smartrecruiters",
+    "first_seen_at": "2026-11-13T14:56:24.840450Z",
+    "posted_at": "2026-11-13T10:17:35.686000"
+  },
+  "workday_equifax_j00179330": {
+    "company": "Equifax Technology",
+    "title": "AI Quality Assurance Engineer",
+    "source": "workday",
+    "first_seen_at": "2026-11-13T14:56:24.840450Z",
+    "posted_at": "2026-11-13T00:00:00"
+  },
+  "arbeitnow_remote-software-test-engineer-bern-98324": {
+    "company": "SwissPeak Partners GmbH",
+    "title": "Software Test Engineer",
+    "source": "arbeitnow",
+    "first_seen_at": "2026-11-13T14:56:24.840450Z",
+    "posted_at": "2026-11-13T09:31:36"
+  },
+  "amazon_amazon-india_10604213": {
+    "company": "Amazon India",
+    "title": "Quality Assurance Engineer II, Alexa Connectivity Devices",
+    "source": "amazon",
+    "first_seen_at": "2026-11-13T18:37:11.625415Z",
+    "posted_at": "2026-11-13T00:00:00"
+  }
+}

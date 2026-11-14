@@ -1,0 +1,176 @@
+{
+  "generated_at": "2026-11-14T15:09:00.886724Z",
+  "max_age_hours": 24.0,
+  "total_orgs_polled": 1144,
+  "total_sdet_matches_scanned": 164,
+  "fresh_drops_count": 0,
+  "reopened_fresh_count": 0,
+  "skipped_already_seen": 164,
+  "skipped_older_than_window": 0,
+  "provider_telemetry": {
+    "greenhouse": {
+      "orgs_polled": 359,
+      "orgs_with_matches": 24,
+      "sdet_matches_found": 42,
+      "retained_within_window": 42,
+      "matched_orgs": [
+        "Okta (2)",
+        "Zscaler (1)",
+        "Airbnb (1)",
+        "Storyblok (1)",
+        "Ping Identity (2)",
+        "Bitwarden (2)",
+        "OneTrust (1)",
+        "Netskope (2)"
+      ]
+    },
+    "ashby": {
+      "orgs_polled": 270,
+      "orgs_with_matches": 11,
+      "sdet_matches_found": 21,
+      "retained_within_window": 21,
+      "matched_orgs": [
+        "Tekion (9)",
+        "Snyk (1)",
+        "Vanta (1)",
+        "Midjourney (1)",
+        "Cerebras (2)",
+        "Adjoe (1)",
+        "Seon (1)",
+        "Cognition (1)"
+      ]
+    },
+    "lever": {
+      "orgs_polled": 81,
+      "orgs_with_matches": 7,
+      "sdet_matches_found": 16,
+      "retained_within_window": 16,
+      "matched_orgs": [
+        "Mindtickle (1)",
+        "Coupa (1)",
+        "Veeva Systems (5)",
+        "HighLevel (5)",
+        "Neuron7.ai (1)",
+        "Acceldata (2)",
+        "Aeva (1)"
+      ]
+    },
+    "workday": {
+      "orgs_polled": 321,
+      "orgs_with_matches": 13,
+      "sdet_matches_found": 41,
+      "retained_within_window": 41,
+      "matched_orgs": [
+        "CrowdStrike (1)",
+        "Dover India (2)",
+        "London Stock Exchange Group (12)",
+        "Equifax Technology (1)",
+        "NXP Semiconductors India (3)",
+        "Philips Innovation Campus (1)",
+        "Alcon Digital Health (3)",
+        "Roche Information Solutions (2)"
+      ]
+    },
+    "smartrecruiters": {
+      "orgs_polled": 61,
+      "orgs_with_matches": 8,
+      "sdet_matches_found": 15,
+      "retained_within_window": 15,
+      "matched_orgs": [
+        "Bosch Global Software (4)",
+        "NielsenIQ (1)",
+        "Endava (1)",
+        "IntegriChain (2)",
+        "QAD (1)",
+        "Experian (1)",
+        "Shipsy (1)",
+        "Arista Networks (4)"
+      ]
+    },
+    "rippling": {
+      "orgs_polled": 21,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "workable": {
+      "orgs_polled": 5,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "recruitee": {
+      "orgs_polled": 6,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "amd": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 4,
+      "retained_within_window": 4,
+      "matched_orgs": [
+        "AMD India (4)"
+      ]
+    },
+    "comeet": {
+      "orgs_polled": 3,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "google": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 1,
+      "retained_within_window": 1,
+      "matched_orgs": [
+        "Google India (1)"
+      ]
+    },
+    "eightfold": {
+      "orgs_polled": 4,
+      "orgs_with_matches": 2,
+      "sdet_matches_found": 7,
+      "retained_within_window": 7,
+      "matched_orgs": [
+        "Qualcomm India (Careers) (6)",
+        "Micron India (Careers) (1)"
+      ]
+    },
+    "amazon": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 9,
+      "retained_within_window": 9,
+      "matched_orgs": [
+        "Amazon India (9)"
+      ]
+    },
+    "apple": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 2,
+      "retained_within_window": 2,
+      "matched_orgs": [
+        "Apple India (2)"
+      ]
+    },
+    "global_remote": {
+      "orgs_polled": 9,
+      "orgs_with_matches": 2,
+      "sdet_matches_found": 6,
+      "retained_within_window": 6,
+      "matched_orgs": [
+        "Mercor AI (5)",
+        "Alignerr (Labelbox AI) (1)"
+      ]
+    }
+  },
+  "drops": []
+}
