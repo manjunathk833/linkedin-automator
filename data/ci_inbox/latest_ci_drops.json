@@ -1,0 +1,168 @@
+{
+  "generated_at": "2026-11-21T18:06:05.769430Z",
+  "max_age_hours": 24.0,
+  "total_orgs_polled": 1144,
+  "total_sdet_matches_scanned": 141,
+  "fresh_drops_count": 0,
+  "reopened_fresh_count": 0,
+  "skipped_already_seen": 141,
+  "skipped_older_than_window": 0,
+  "provider_telemetry": {
+    "greenhouse": {
+      "orgs_polled": 359,
+      "orgs_with_matches": 26,
+      "sdet_matches_found": 43,
+      "retained_within_window": 43,
+      "matched_orgs": [
+        "Okta (1)",
+        "Zscaler (1)",
+        "Airbnb (2)",
+        "Ping Identity (2)",
+        "Bitwarden (3)",
+        "Netskope (1)",
+        "Glean (1)",
+        "Canonical (1)"
+      ]
+    },
+    "ashby": {
+      "orgs_polled": 270,
+      "orgs_with_matches": 10,
+      "sdet_matches_found": 19,
+      "retained_within_window": 19,
+      "matched_orgs": [
+        "Tekion (8)",
+        "Snyk (1)",
+        "Midjourney (1)",
+        "Cerebras (2)",
+        "Adjoe (1)",
+        "Seon (1)",
+        "Cognition (1)",
+        "Sophos (1)"
+      ]
+    },
+    "lever": {
+      "orgs_polled": 81,
+      "orgs_with_matches": 6,
+      "sdet_matches_found": 15,
+      "retained_within_window": 15,
+      "matched_orgs": [
+        "Mindtickle (1)",
+        "Veeva Systems (5)",
+        "HighLevel (5)",
+        "Neuron7.ai (1)",
+        "Acceldata (2)",
+        "Aeva (1)"
+      ]
+    },
+    "workday": {
+      "orgs_polled": 321,
+      "orgs_with_matches": 3,
+      "sdet_matches_found": 15,
+      "retained_within_window": 15,
+      "matched_orgs": [
+        "London Stock Exchange Group (10)",
+        "NXP Semiconductors India (4)",
+        "Baker Tilly US (1)"
+      ]
+    },
+    "smartrecruiters": {
+      "orgs_polled": 61,
+      "orgs_with_matches": 8,
+      "sdet_matches_found": 15,
+      "retained_within_window": 15,
+      "matched_orgs": [
+        "Bosch Global Software (2)",
+        "NielsenIQ (1)",
+        "Endava (3)",
+        "IntegriChain (2)",
+        "QAD (1)",
+        "Experian (1)",
+        "Shipsy (1)",
+        "Arista Networks (4)"
+      ]
+    },
+    "rippling": {
+      "orgs_polled": 21,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "workable": {
+      "orgs_polled": 5,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "recruitee": {
+      "orgs_polled": 6,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "amd": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 4,
+      "retained_within_window": 4,
+      "matched_orgs": [
+        "AMD India (4)"
+      ]
+    },
+    "comeet": {
+      "orgs_polled": 3,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "google": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "eightfold": {
+      "orgs_polled": 4,
+      "orgs_with_matches": 2,
+      "sdet_matches_found": 9,
+      "retained_within_window": 9,
+      "matched_orgs": [
+        "Qualcomm India (Careers) (7)",
+        "Micron India (Careers) (2)"
+      ]
+    },
+    "amazon": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 11,
+      "retained_within_window": 11,
+      "matched_orgs": [
+        "Amazon India (11)"
+      ]
+    },
+    "apple": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 2,
+      "retained_within_window": 2,
+      "matched_orgs": [
+        "Apple India (2)"
+      ]
+    },
+    "global_remote": {
+      "orgs_polled": 9,
+      "orgs_with_matches": 2,
+      "sdet_matches_found": 8,
+      "retained_within_window": 8,
+      "matched_orgs": [
+        "Mercor AI (5)",
+        "WeWorkRemotely (3)"
+      ]
+    }
+  },
+  "drops": []
+}
