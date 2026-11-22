@@ -171,8 +171,10 @@ def test_ci_aware_skip_static_ats_fast_path():
         assert m_portals.call_count == 1, "Direct Indian portals (Hirist/Instahyre) must still be polled"
 
     prod_sh = (Path(PROJECT_ROOT) / "scripts" / "run_daily_prod.sh").read_text(encoding="utf-8")
-    assert "-ge 10" in prod_sh, "run_daily_prod.sh must route 10:30 IST (Hour >= 10) into Intraday Sniper mode"
-    print("   ✅ Cloud-CI-aware fast path and 10:30 IST Sniper routing verified!")
+    assert "MORNING_SENTINEL" in prod_sh and "main.py daily --skip-tests" in prod_sh, (
+        "run_daily_prod.sh must use a daily morning sentinel so wake-after-10AM never skips full morning pipeline"
+    )
+    print("   ✅ Cloud-CI-aware fast path and daily morning-sentinel routing verified!")
 
 
 if __name__ == "__main__":

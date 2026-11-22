@@ -214,9 +214,21 @@ class EmailReporter:
         </div>
         """
 
+        # Sort jobs so Top-30 Fortress GCCs & FY-Unlocked roles surface at the top of the Morning Briefing
+        from src.tailor.referral_generator import classify_fortress_company
+
+        def _briefing_sort_key(j: dict[str, Any]) -> tuple[int, int, int]:
+            comp = j.get("job_details", {}).get("company") or j.get("company", "")
+            f_info = classify_fortress_company(comp)
+            r_strat = j.get("routing_strategy") or {}
+            p_boost = int(r_strat.get("priority_boost") or f_info.get("fortress_priority_boost") or 0)
+            return (1 if f_info["is_fortress_org"] else 0, p_boost, 1 if j.get("is_dream_org") else 0)
+
+        sorted_staged_jobs = sorted(staged_jobs, key=_briefing_sort_key, reverse=True)
+
         # Build job table rows (top 10 jobs)
         rows_html = []
-        for job in staged_jobs[:10]:
+        for job in sorted_staged_jobs[:10]:
             title = job.get("job_details", {}).get("title") or job.get("title", "SDET Role")
             company = job.get("job_details", {}).get("company") or job.get("company", "Tech Company")
             location = job.get("job_details", {}).get("location") or job.get("location", "Bengaluru / Remote")
@@ -232,8 +244,14 @@ class EmailReporter:
             else:
                 badge_bg, badge_fg, badge_text = "#f1f5f9", "#475569", source
 
-            is_dream = job.get("is_dream_org", False)
-            dream_tag = '<span style="color:#f59e0b;font-weight:700;"> ⭐ DREAM ORG</span>' if is_dream else ""
+            f_info = classify_fortress_company(company)
+            is_dream = job.get("is_dream_org", False) or f_info["is_fortress_org"]
+            if f_info["is_fortress_org"]:
+                dream_tag = f'<span style="color:#059669;font-weight:700;"> ⭐ DREAM ORG · {f_info["fortress_badge"]}</span>'
+            elif is_dream:
+                dream_tag = '<span style="color:#f59e0b;font-weight:700;"> ⭐ DREAM ORG</span>'
+            else:
+                dream_tag = ""
             job_link = (
                 job.get("canonical_url")
                 or job.get("apply_url")

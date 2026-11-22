@@ -624,14 +624,28 @@ async def get_pending_jobs():
                     if raw_payload.get("freshness_badge"):
                         diff_payload["freshness_badge"] = raw_payload.get("freshness_badge")
 
-                    # Dream Org priority flag resolution
-                    is_dream = bool(raw_payload.get("is_dream_org") or jd.get("is_dream_org"))
-                    if not is_dream:
-                        comp_name = jd.get("company", "")
-                        if comp_name and db.is_dream_company(comp_name):
-                            is_dream = True
+                    # Dream Org & Fortress Top-30 / FY Unlock priority resolution
+                    from src.tailor.referral_generator import InterviewRouter, classify_fortress_company
+
+                    comp_name = jd.get("company", "")
+                    fortress_info = classify_fortress_company(comp_name)
+                    is_dream = bool(
+                        raw_payload.get("is_dream_org") or jd.get("is_dream_org") or fortress_info["is_fortress_org"]
+                    )
+                    if not is_dream and comp_name and db.is_dream_company(comp_name):
+                        is_dream = True
                     raw_payload["is_dream_org"] = is_dream
                     diff_payload["is_dream_org"] = is_dream
+                    diff_payload["is_fortress_org"] = fortress_info["is_fortress_org"]
+                    diff_payload["fortress_rank"] = fortress_info["fortress_rank"]
+                    diff_payload["fy_unlock_wave"] = fortress_info["fy_unlock_wave"]
+                    diff_payload["fortress_badge"] = fortress_info["fortress_badge"]
+
+                    routing_strat = raw_payload.get("routing_strategy")
+                    if not isinstance(routing_strat, dict) or "is_fortress_org" not in routing_strat:
+                        routing_strat = InterviewRouter.classify_job_strategy(raw_payload)
+                    diff_payload["routing_strategy"] = routing_strat
+                    diff_payload["priority_boost"] = int(routing_strat.get("priority_boost") or 0)
 
                     diff_payload["standard_resume"] = master_profile
                     diff_payload["standard_pdf_url"] = "/api/pdf/standard"
@@ -640,6 +654,17 @@ async def get_pending_jobs():
                     jobs.append(diff_payload)
                 except Exception as e:
                     print(f"Error reading {filename}: {e}")
+
+    # Sort pending queue so 60-day-friendly Top-30 Fortress GCCs & FY-Unlocked roles surface first
+    jobs.sort(
+        key=lambda j: (
+            1 if j.get("is_fortress_org") else 0,
+            int(j.get("priority_boost") or 0),
+            1 if j.get("is_usd_eor_remote") else 0,
+            1 if j.get("is_dream_org") else 0,
+        ),
+        reverse=True,
+    )
 
     approved_count = 0
     if os.path.exists(APPROVED_DIR):

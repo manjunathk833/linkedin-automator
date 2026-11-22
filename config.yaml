@@ -42,8 +42,8 @@ search_profiles:
     easy_apply_only: false
     max_jobs: 25
 
-  - name: "India Remote Staff SDET & Lead QA Automation"
-    keywords: '("Staff SDET" OR "Lead SDET" OR "Sr. SDET" OR "Lead QA Automation Engineer" OR "QA Automation Manager" OR "Principal Quality Engineer" OR "Principal SDET") NOT (Intern OR Junior OR Fresher)'
+  - name: "India Remote Senior SDET & Quality Infrastructure"
+    keywords: '("Senior SDET" OR "Sr. SDET" OR "Lead SDET" OR "SDET III" OR "SDET-3" OR "Quality Infrastructure Engineer" OR "AI Quality Engineer" OR "Lead QA Automation Engineer") NOT (Intern OR Junior OR Fresher OR Manager OR Principal)'
     location: "India"
     work_types: ["remote"]
     experience_levels: ["mid_senior"]

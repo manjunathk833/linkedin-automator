@@ -4,6 +4,8 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import ClassVar
 
 from dotenv import load_dotenv
@@ -225,8 +227,8 @@ class GeminiLLMProvider(LLMProvider):
         self, api_key: str | None = None, model_name: str | None = None, context_window_limit: int | None = None
     ):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        self.model_name = model_name or os.getenv("GEMINI_MODEL", "models/gemini-flash-lite-latest")
-        if context_window_limit is None:
+        cfg_model = None
+        if model_name is None or context_window_limit is None:
             try:
                 import yaml
 
@@ -234,9 +236,13 @@ class GeminiLLMProvider(LLMProvider):
                 if os.path.exists(cfg_path):
                     with open(cfg_path, "r", encoding="utf-8") as f:
                         cfg = yaml.safe_load(f) or {}
-                        context_window_limit = cfg.get("llm", {}).get("context_window_token_limit")
+                        llm_cfg = cfg.get("llm", {})
+                        cfg_model = llm_cfg.get("primary_model")
+                        if context_window_limit is None:
+                            context_window_limit = llm_cfg.get("context_window_token_limit")
             except Exception:
                 pass
+        self.model_name = model_name or os.getenv("GEMINI_MODEL") or cfg_model or "models/gemini-flash-lite-latest"
         self.context_window_limit = context_window_limit or int(os.getenv("GEMINI_CONTEXT_WINDOW_LIMIT", "1000000"))
         self.client = None
 
@@ -266,6 +272,42 @@ class GeminiLLMProvider(LLMProvider):
     def is_available(self) -> bool:
         return self.client is not None
 
+    # Live-verified 2026 Gemini Flash-Lite & Flash models prioritized by availability and speed
+    GA_FALLBACK_MODELS: ClassVar[tuple[str, ...]] = (
+        "models/gemini-flash-lite-latest",
+        "models/gemini-3.1-flash-lite",
+        "models/gemini-3.5-flash-lite",
+        "models/gemini-flash-latest",
+    )
+    TRANSIENT_COOLDOWN_SECONDS: ClassVar[float] = 90.0
+    CALL_TIMEOUT_SECONDS: ClassVar[float] = 25.0
+
+    def _build_models_to_try(self) -> list[str]:
+        models_to_try = [self.model_name]
+        for fallback in self.GA_FALLBACK_MODELS:
+            if fallback not in models_to_try:
+                models_to_try.append(fallback)
+        return models_to_try
+
+    def _call_generate_content_with_timeout(self, model: str, contents: str, config: dict):
+        """Enforces a hard wall-clock timeout so stalled HTTP sockets never block tailoring for 300s+."""
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(
+            self.client.models.generate_content,
+            model=model,
+            contents=contents,
+            config=config,
+        )
+        try:
+            return future.result(timeout=self.CALL_TIMEOUT_SECONDS)
+        except FuturesTimeoutError as exc:
+            future.cancel()
+            raise TimeoutError(
+                f"Gemini request timed out after {self.CALL_TIMEOUT_SECONDS:.0f}s (model={model})"
+            ) from exc
+        finally:
+            executor.shutdown(wait=False)
+
     def _pace_request(self) -> None:
         """Enforces a strict 4.0-second delay between requests to guarantee adherence to 15 RPM limit."""
         now = time.time()
@@ -291,15 +333,7 @@ class GeminiLLMProvider(LLMProvider):
             job_description=job_description,
         )
 
-        models_to_try = [self.model_name]
-        for fallback in [
-            "models/gemini-flash-lite-latest",
-            "models/gemini-flash-latest",
-            "models/gemini-3.5-flash",
-            "gemini-3.8-flash",
-        ]:
-            if fallback not in models_to_try:
-                models_to_try.append(fallback)
+        models_to_try = self._build_models_to_try()
 
         last_error = None
         for current_model in models_to_try:
@@ -309,7 +343,7 @@ class GeminiLLMProvider(LLMProvider):
                 self._pace_request()
                 start_time = time.time()
                 try:
-                    response = self.client.models.generate_content(
+                    response = self._call_generate_content_with_timeout(
                         model=current_model,
                         contents=prompt,
                         config={
@@ -346,6 +380,9 @@ class GeminiLLMProvider(LLMProvider):
                         details=err_str[:250].replace("\n", " "),
                     )
                     print(f"⚠️ [Gemini] Attempt {attempt + 1} failed on {current_model}: {err_str[:120]}")
+                    if "404" in err_str or "NOT_FOUND" in err_str:
+                        self._set_model_cooldown(current_model, 3600.0)
+                        break
                     if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
                         cd_sec = 3600.0 if ("PerDay" in err_str or "requests per day" in err_str.lower()) else 60.0
                         self._set_model_cooldown(current_model, cd_sec)
@@ -358,7 +395,7 @@ class GeminiLLMProvider(LLMProvider):
                         time.sleep(backoff)
                         continue
                     if any(k in err_str for k in ("503", "UNAVAILABLE", "504", "DEADLINE_EXCEEDED", "timed out")):
-                        self._set_model_cooldown(current_model, 900.0)
+                        self._set_model_cooldown(current_model, self.TRANSIENT_COOLDOWN_SECONDS)
                     break
 
         raise last_error or RuntimeError("Gemini failed to generate tailored bullets.")
@@ -376,15 +413,7 @@ class GeminiLLMProvider(LLMProvider):
             job_description=job_description,
         )
 
-        models_to_try = [self.model_name]
-        for fallback in [
-            "models/gemini-flash-lite-latest",
-            "models/gemini-flash-latest",
-            "models/gemini-3.5-flash",
-            "gemini-3.8-flash",
-        ]:
-            if fallback not in models_to_try:
-                models_to_try.append(fallback)
+        models_to_try = self._build_models_to_try()
 
         last_error = None
         for current_model in models_to_try:
@@ -394,7 +423,7 @@ class GeminiLLMProvider(LLMProvider):
                 self._pace_request()
                 start_time = time.time()
                 try:
-                    response = self.client.models.generate_content(
+                    response = self._call_generate_content_with_timeout(
                         model=current_model,
                         contents=prompt,
                         config={
@@ -433,6 +462,9 @@ class GeminiLLMProvider(LLMProvider):
                     print(
                         f"⚠️ [Gemini] Attempt {attempt + 1} failed on {current_model} for {company_name}: {err_str[:120]}"
                     )
+                    if "404" in err_str or "NOT_FOUND" in err_str:
+                        self._set_model_cooldown(current_model, 3600.0)
+                        break
                     if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
                         cd_sec = 3600.0 if ("PerDay" in err_str or "requests per day" in err_str.lower()) else 60.0
                         self._set_model_cooldown(current_model, cd_sec)
@@ -445,7 +477,7 @@ class GeminiLLMProvider(LLMProvider):
                         time.sleep(backoff)
                         continue
                     if any(k in err_str for k in ("503", "UNAVAILABLE", "504", "DEADLINE_EXCEEDED", "timed out")):
-                        self._set_model_cooldown(current_model, 900.0)
+                        self._set_model_cooldown(current_model, self.TRANSIENT_COOLDOWN_SECONDS)
                     break
 
         raise last_error or RuntimeError(f"Gemini failed to generate tailored bullets for {company_name}.")
@@ -467,15 +499,7 @@ class GeminiLLMProvider(LLMProvider):
             job_description=job_description,
         )
 
-        models_to_try = [self.model_name]
-        for fallback in [
-            "models/gemini-flash-lite-latest",
-            "models/gemini-flash-latest",
-            "models/gemini-3.5-flash",
-            "gemini-3.8-flash",
-        ]:
-            if fallback not in models_to_try:
-                models_to_try.append(fallback)
+        models_to_try = self._build_models_to_try()
 
         comp_names_label = "+".join(company_vaults.keys())
         last_error = None
@@ -486,7 +510,7 @@ class GeminiLLMProvider(LLMProvider):
                 self._pace_request()
                 start_time = time.time()
                 try:
-                    response = self.client.models.generate_content(
+                    response = self._call_generate_content_with_timeout(
                         model=current_model,
                         contents=prompt,
                         config={
@@ -530,6 +554,9 @@ class GeminiLLMProvider(LLMProvider):
                     print(
                         f"⚠️ [Gemini] Attempt {attempt + 1} failed on {current_model} for [{comp_names_label}]: {err_str[:120]}"
                     )
+                    if "404" in err_str or "NOT_FOUND" in err_str:
+                        self._set_model_cooldown(current_model, 3600.0)
+                        break
                     if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
                         cd_sec = 3600.0 if ("PerDay" in err_str or "requests per day" in err_str.lower()) else 60.0
                         self._set_model_cooldown(current_model, cd_sec)
@@ -542,7 +569,7 @@ class GeminiLLMProvider(LLMProvider):
                         time.sleep(backoff)
                         continue
                     if any(k in err_str for k in ("503", "UNAVAILABLE", "504", "DEADLINE_EXCEEDED", "timed out")):
-                        self._set_model_cooldown(current_model, 900.0)
+                        self._set_model_cooldown(current_model, self.TRANSIENT_COOLDOWN_SECONDS)
                     break
 
         raise last_error or RuntimeError(f"Gemini failed to generate multi-company bullets for {comp_names_label}.")
@@ -828,9 +855,7 @@ class HybridLLMProvider(LLMProvider):
     """
 
     def __init__(self, model_name: str | None = None, context_window_limit: int | None = None):
-        self.gemini = GeminiLLMProvider(
-            model_name=model_name or "models/gemini-flash-lite-latest", context_window_limit=context_window_limit
-        )
+        self.gemini = GeminiLLMProvider(model_name=model_name, context_window_limit=context_window_limit)
         self.ollama = OllamaLLMProvider()
 
     def generate_tailored_bullets(
