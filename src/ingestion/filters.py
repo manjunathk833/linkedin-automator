@@ -126,8 +126,54 @@ NEGATIVE_TITLE_REGEX = re.compile(
     r"it\s+infrastructure|"
     r"post-silicon|"
     r"high\s+speed\s+io|"
-    r"bluetooth\s+automation"
+    r"bluetooth\s+automation|"
+    r"firmware|"
+    r"embedded|"
+    r"hardware|"
+    r"kernel|"
+    r"bare[\s-]?metal|"
+    r"pcie|"
+    r"cxl|"
+    r"chiller|"
+    r"hvac|"
+    r"process\s+quality|"
+    r"supplier\s+quality|"
+    r"production\s+quality|"
+    r"manufacturing\s+quality|"
+    r"mechanical\s+quality|"
+    r"salesforce\s+(?:crm|qa|test|tester|automation|admin|functional)|"
+    r"servicenow\s+(?:qa|test|tester|analyst|admin|functional)|"
+    r"sap\s+(?:qa|test|tester|automation|functional|basis|fico|abap)|"
+    r"dynamics\s+365|"
+    r"peoplesoft|"
+    r"tosca|"
+    r"uipath|"
+    r"mainframe|"
+    r"cobol|"
+    r"as400|"
+    r"c#|\\.net|dotnet|"
+    r"credit\s+underwriting|"
+    r"in[-\s]business\s+quality|"
+    r"clinical\s+quality|"
+    r"pharma\s+quality|"
+    r"voice\s+quality|"
+    r"call\s+quality|"
+    r"qa\s+manager|"
+    r"quality\s+(?:assurance\s+)?manager|"
+    r"test\s+manager|"
+    r"qa\s+automation\s+manager|"
+    r"avp"
     r")\b",
+    re.IGNORECASE,
+)
+
+# Description-level non-software manufacturing / hardware / clinical QA guard
+NON_SOFTWARE_QA_DESC_REGEX = re.compile(
+    r"("
+    r"mechanical\s+engineering|production\s+engineering|hvac|chiller\s+manufacturing|"
+    r"lean\s+cell\s+design|value\s+stream\s+mapping|supplier\s+certification\s+program|"
+    r"cpk/ppk|good\s+manufacturing\s+practice|clinical\s+trials\s+quality|gmp\s+compliance"
+    r")",
     re.IGNORECASE,
 )
 
@@ -354,6 +400,36 @@ def has_jurisdiction_restriction(text: str | None) -> bool:
     return not re.search(r"\b(india|bengaluru|bangalore)\b", text, re.IGNORECASE)
 
 
+def is_incompatible_domain_or_seniority(title: str | None, description: str = "") -> tuple[bool, str | None]:
+    """
+    Fast deterministic guard rejecting non-software domains (hardware/firmware/HVAC/manufacturing,
+    proprietary ERP/CRM-only QA, C#/.NET-only, banking underwriting QA) and management titles
+    prior to spending Gemini tailoring calls.
+    """
+    clean_title = (title or "").strip()
+    if clean_title:
+        m = NEGATIVE_TITLE_REGEX.search(clean_title)
+        if m:
+            return True, f"Incompatible domain/role title keyword '{m.group(0)}' in '{clean_title}'"
+        # Explicitly handle C# / .NET where '#' or '.' prevents standard word-boundary matching
+        if re.search(r"(?:^|[\s(/|,])(c#|\.net)(?:$|[\s)/|,])", clean_title, re.IGNORECASE):
+            return True, f"Incompatible stack (C#/.NET) in title '{clean_title}'"
+
+    if (
+        description
+        and NON_SOFTWARE_QA_DESC_REGEX.search(description)
+        and not re.search(
+            r"\b(selenium|playwright|rest\s+assured|pytest|junit|testng|cucumber|api\s+automation|microservices)\b",
+            description,
+            re.IGNORECASE,
+        )
+    ):
+        m_desc = NON_SOFTWARE_QA_DESC_REGEX.search(description)
+        return True, f"Non-software manufacturing/hardware/clinical QA description ('{m_desc.group(0)}')"
+
+    return False, None
+
+
 def is_sdet_title(title: str | None) -> bool:
     """
     Evaluates whether a role title represents an authentic SDET / QA / Test Automation position,
@@ -362,8 +438,9 @@ def is_sdet_title(title: str | None) -> bool:
     if not title or not title.strip():
         return False
     clean_title = title.strip()
-    # 1. Enforce negative exclusions first
-    if NEGATIVE_TITLE_REGEX.search(clean_title):
+    # 1. Enforce negative exclusions first (including C# / .NET title symbols)
+    incompat, _ = is_incompatible_domain_or_seniority(clean_title)
+    if incompat:
         return False
     # 2. Check for positive SDET / QA qualification
     return bool(POSITIVE_SDET_REGEX.search(clean_title))

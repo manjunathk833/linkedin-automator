@@ -16,7 +16,7 @@ class LinkedInJobFilter:
         self.queue_dir = queue_dir
         self.db_file = db_file
         self.min_exp_years = 4
-        self.max_exp_years = 10
+        self.max_exp_years = 9
         self.candidate_exp_years = 6.8  # Senior SDET candidate profile baseline
         self.easy_apply_only = self._resolve_easy_apply_setting(easy_apply_only)
 
@@ -86,9 +86,17 @@ class LinkedInJobFilter:
             if req_max < self.min_exp_years:
                 return False, f"Requires {req_max} years exp (below min threshold of {self.min_exp_years} years)"
 
-        from src.ingestion.filters import evaluate_global_remote_signal, has_jurisdiction_restriction
+        from src.ingestion.filters import (
+            evaluate_global_remote_signal,
+            has_jurisdiction_restriction,
+            is_incompatible_domain_or_seniority,
+        )
 
         full_text = f"{requirements or ''} {description or ''}".strip()
+        is_incompat, incompat_reason = is_incompatible_domain_or_seniority(title=title, description=full_text)
+        if is_incompat:
+            return False, incompat_reason
+
         if full_text:
             remote_eval = evaluate_global_remote_signal(title=title, location=location, description=full_text)
             if not remote_eval.get("is_usd_eor_remote") and has_jurisdiction_restriction(full_text):
@@ -194,29 +202,36 @@ class LinkedInJobFilter:
                         f"Requires {req_max} years exp (below min threshold of {self.min_exp_years} years)"
                     )
 
-            # 4. Strict Jurisdiction & Citizen / Clearance Restrictions + USD/EOR Global Remote
+            # 4. Strict Domain/Seniority Guard & Jurisdiction / Clearance Restrictions + USD/EOR Global Remote
             from src.ingestion.filters import (
                 evaluate_global_remote_signal,
                 has_jurisdiction_restriction,
+                is_incompatible_domain_or_seniority,
                 is_india_or_remote_location,
             )
 
             if not rejection_reason:
                 loc = details.get("location", "")
                 full_text = f"{requirements} {details.get('description', '')}"
-                remote_eval = evaluate_global_remote_signal(
-                    title=title,
-                    location=loc,
-                    description=full_text,
-                    compensation_str=details.get("salary") or details.get("compensation", ""),
-                )
-                if remote_eval.get("is_usd_eor_remote"):
-                    payload["is_usd_eor_remote"] = True
-                    details["is_usd_eor_remote"] = True
-                elif has_jurisdiction_restriction(full_text):
-                    rejection_reason = "Ineligible due to jurisdiction / US-citizen / security clearance restriction"
-                elif loc and not is_india_or_remote_location(loc, text_snippet=full_text):
-                    rejection_reason = f"Location '{loc}' is not India or Global Remote eligible"
+                is_incompat, incompat_reason = is_incompatible_domain_or_seniority(title=title, description=full_text)
+                if is_incompat:
+                    rejection_reason = incompat_reason
+                else:
+                    remote_eval = evaluate_global_remote_signal(
+                        title=title,
+                        location=loc,
+                        description=full_text,
+                        compensation_str=details.get("salary") or details.get("compensation", ""),
+                    )
+                    if remote_eval.get("is_usd_eor_remote"):
+                        payload["is_usd_eor_remote"] = True
+                        details["is_usd_eor_remote"] = True
+                    elif has_jurisdiction_restriction(full_text):
+                        rejection_reason = (
+                            "Ineligible due to jurisdiction / US-citizen / security clearance restriction"
+                        )
+                    elif loc and not is_india_or_remote_location(loc, text_snippet=full_text):
+                        rejection_reason = f"Location '{loc}' is not India or Global Remote eligible"
 
             if rejection_reason:
                 print(f"❌ FILTERED OUT: {title} @ {company} (ID: {job_id}) -> Reason: {rejection_reason}")

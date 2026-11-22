@@ -76,17 +76,22 @@ if [[ -f "${TARGET_DIR}/.env" ]]; then
     done < "${TARGET_DIR}/.env"
 fi
 
-# 4. Execute scheduled automation pipeline based on time of day:
-# - Morning Run (<12:00 local time): Full Multi-Track Discovery + Naukri Touch + Email Briefing (--skip-tests)
-# - Afternoon Run (>=12:00 local time): Midday Cloud CI Sniper Sync + Afternoon Naukri Resdex Touch
+# 4. Execute scheduled automation pipeline using a daily morning sentinel:
+# - First run of each calendar day (regardless of wake hour, even >=10:00 AM): Full Morning Pipeline + Email Briefing
+# - Subsequent runs on the same day: Intraday / Afternoon Fast Sync + LinkedIn Sniper + Naukri Resdex Peak Refresh
 CMD_PREFIX=""
 if command -v caffeinate >/dev/null 2>&1; then
     CMD_PREFIX="caffeinate -dimsu"
 fi
 
+TODAY_STR="$(date +%Y-%m-%d)"
+MORNING_SENTINEL="${LOG_DIR}/.morning_run_${TODAY_STR}"
+# Clean up morning sentinels older than 7 days
+find "${LOG_DIR}" -maxdepth 1 -name ".morning_run_*" -mtime +7 -delete 2>/dev/null || true
+
 CURRENT_HOUR="$(date +%H)"
-if [[ $((10#${CURRENT_HOUR})) -ge 10 ]]; then
-    echo "Executing Intraday Fast Sync, LinkedIn Sniper (<3h & <24h) & Naukri Resdex Refresh (Hour=${CURRENT_HOUR})..." >> "${RUN_LOG}"
+if [[ -f "${MORNING_SENTINEL}" ]]; then
+    echo "Executing Intraday Fast Sync, LinkedIn Sniper (<3h & <24h) & Naukri Resdex Refresh (Hour=${CURRENT_HOUR}, sentinel present)..." >> "${RUN_LOG}"
     ${CMD_PREFIX} "${VENV_PYTHON}" main.py sync-ci --fetch-remote >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
         echo "⚠️ Afternoon CI sync exited with code $?" >> "${RUN_LOG}"
     }
@@ -119,10 +124,13 @@ except Exception:
         echo "⚠️ Afternoon Naukri refresh exited with code $?" >> "${RUN_LOG}"
     }
 else
-    echo "Executing Morning Full Pipeline: ${CMD_PREFIX} ${VENV_PYTHON} main.py daily --skip-tests" >> "${RUN_LOG}"
-    ${CMD_PREFIX} "${VENV_PYTHON}" main.py daily --skip-tests >> "${RUN_LOG}" 2>> "${ERR_LOG}" || {
-        echo "⚠️ Daily run exited with error code $?" >> "${RUN_LOG}"
-    }
+    echo "Executing Daily Full Morning Pipeline (Hour=${CURRENT_HOUR}, sentinel=${MORNING_SENTINEL}): ${CMD_PREFIX} ${VENV_PYTHON} main.py daily --skip-tests" >> "${RUN_LOG}"
+    if ${CMD_PREFIX} "${VENV_PYTHON}" main.py daily --skip-tests >> "${RUN_LOG}" 2>> "${ERR_LOG}"; then
+        date -u +"%Y-%m-%dT%H:%M:%SZ" > "${MORNING_SENTINEL}"
+        echo "✅ Morning sentinel recorded: ${MORNING_SENTINEL}" >> "${RUN_LOG}"
+    else
+        echo "⚠️ Daily run exited with error code $? (sentinel not set so next tick retries full morning run)" >> "${RUN_LOG}"
+    fi
 fi
 
 echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Daily Pipeline Execution Finished" >> "${RUN_LOG}"

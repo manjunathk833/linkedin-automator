@@ -38,6 +38,78 @@ INFLUENCER_KEYWORDS = (
     "followers",
 )
 
+# Top-30 Fortress GCCs & Non-Calendar FY Unlock Orgs (60-day notice friendly, high balance-sheet stability)
+# Tuple: (match_regex, exclude_regex_or_None, rank, fy_unlock_wave, priority_boost, badge_label)
+FORTRESS_TOP30_RULES: tuple[tuple[str, str | None, int, str, int, str], ...] = (
+    # Wave 1: Oct 31 FYE -> New FY Budgets Unlocked NOW (November)
+    (r"\bsynopsys\b", None, 3, "WAVE_1_NOV", 40, "🏰 FORTRESS · FY UNLOCKED (NOV)"),
+    (r"\b(hewlett packard enterprise|hpe)\b", None, 31, "WAVE_1_NOV", 40, "🏰 FORTRESS · FY UNLOCKED (NOV)"),
+    (r"\banalog devices\b", None, 32, "WAVE_1_NOV", 40, "🏰 FORTRESS · FY UNLOCKED (NOV)"),
+    # Wave 2: Nov FYE -> New FY Budgets Unlock Dec 1
+    (r"\badobe\b", None, 8, "WAVE_2_DEC", 40, "🏰 FORTRESS · FY UNLOCK (DEC)"),
+    # Wave 3: Jan 31 FYE -> Pipeline Screening Dec/Jan, Budgets Unlock Feb 1
+    (r"\bnvidia\b", None, 1, "WAVE_3_JAN", 35, "🏰 FORTRESS #1 · JAN FY WAVE"),
+    (r"\bcrowdstrike\b", None, 9, "WAVE_3_JAN", 35, "🏰 FORTRESS · JAN FY WAVE"),
+    (r"\bwalmart\b", None, 12, "WAVE_3_JAN", 35, "🏰 FORTRESS · JAN FY WAVE"),
+    (r"\btarget\b", r"\b(target\s+process|targeting|retarget)\b", 14, "WAVE_3_JAN", 35, "🏰 FORTRESS · JAN FY WAVE"),
+    (r"\bworkday\b", None, 15, "WAVE_3_JAN", 35, "🏰 FORTRESS · JAN FY WAVE"),
+    (r"\bdatabricks\b", None, 16, "WAVE_3_JAN", 35, "🏰 FORTRESS · JAN FY WAVE"),
+    (r"\bsnowflake\b", None, 22, "WAVE_3_JAN", 35, "🏰 FORTRESS · JAN FY WAVE"),
+    (r"\brubrik\b", None, 25, "WAVE_3_JAN", 35, "🏰 FORTRESS · JAN FY WAVE"),
+    (r"\bautodesk\b", None, 26, "WAVE_3_JAN", 35, "🏰 FORTRESS · JAN FY WAVE"),
+    (r"\bgitlab\b", None, 27, "WAVE_3_JAN", 35, "🏰 FORTRESS · JAN FY WAVE"),
+    (r"\bsalesforce\b", None, 30, "WAVE_3_JAN", 35, "🏰 FORTRESS · JAN FY WAVE"),
+    # Core Top-30 Fortress GCCs (Calendar / Mid-Year FY)
+    (r"\bservicenow\b", None, 2, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\barista\b", None, 4, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bcadence\b", None, 5, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bpalo alto networks\b", None, 6, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bsap\b", r"\b(publicis\s*sapient|sapient)\b", 7, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bapple\b", None, 10, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\b(google|alphabet)\b", None, 11, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\batlassian\b", None, 13, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bqualcomm\b", None, 17, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bamd\b", None, 18, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\btexas instruments\b", None, 19, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bzscaler\b", None, 20, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bnutanix\b", None, 21, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bstripe\b", None, 23, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bdatadog\b", None, 24, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\b(jpmorgan|jp morgan|jpmc)\b", None, 28, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+    (r"\bintuit\b", None, 29, "CORE_FORTRESS", 30, "🏰 FORTRESS TOP-30"),
+)
+
+
+def classify_fortress_company(company_name: str | None) -> dict[str, Any]:
+    """Identifies whether a company belongs to the 60-day-friendly Top-30 Fortress GCC / FY Unlock cohort."""
+    name = (company_name or "").strip().lower()
+    if not name:
+        return {
+            "is_fortress_org": False,
+            "fortress_rank": None,
+            "fy_unlock_wave": "",
+            "fortress_priority_boost": 0,
+            "fortress_badge": "",
+        }
+    for inc_pat, exc_pat, rank, wave, boost, badge in FORTRESS_TOP30_RULES:
+        if re.search(inc_pat, name, re.IGNORECASE):
+            if exc_pat and re.search(exc_pat, name, re.IGNORECASE):
+                continue
+            return {
+                "is_fortress_org": True,
+                "fortress_rank": rank,
+                "fy_unlock_wave": wave,
+                "fortress_priority_boost": boost,
+                "fortress_badge": badge,
+            }
+    return {
+        "is_fortress_org": False,
+        "fortress_rank": None,
+        "fy_unlock_wave": "",
+        "fortress_priority_boost": 0,
+        "fortress_badge": "",
+    }
+
 
 def parse_follower_count(text: str | int | None) -> int:
     """Parses follower counts like '12,400 followers', '15.2K followers', or integer values."""
@@ -255,11 +327,26 @@ class InterviewRouter:
     ) -> dict[str, Any]:
         """Classifies a job into the 3-Tier Interview Routing Matrix."""
         details = job_payload.get("job_details") or {}
-        is_dream = bool(job_payload.get("is_dream_org") or details.get("is_dream_org"))
+        comp_name = extract_company_name(job_payload)
+        fortress_info = classify_fortress_company(comp_name)
+        is_dream = bool(
+            job_payload.get("is_dream_org") or details.get("is_dream_org") or fortress_info["is_fortress_org"]
+        )
         url = extract_job_url(job_payload).lower()
         source = str(job_payload.get("source") or details.get("source") or "").lower()
         is_workday = "workday" in url or "myworkdayjobs" in url or source == "workday"
         age_hours = cls.compute_job_age_hours(job_payload)
+
+        def _attach_fortress(res: dict[str, Any]) -> dict[str, Any]:
+            if fortress_info["is_fortress_org"]:
+                res["priority_boost"] = int(res.get("priority_boost") or 0) + int(
+                    fortress_info["fortress_priority_boost"]
+                )
+            res["is_fortress_org"] = fortress_info["is_fortress_org"]
+            res["fortress_rank"] = fortress_info["fortress_rank"]
+            res["fy_unlock_wave"] = fortress_info["fy_unlock_wave"]
+            res["fortress_badge"] = fortress_info["fortress_badge"]
+            return res
 
         # Freshness priority boost
         if age_hours is not None and age_hours <= 3.0:
@@ -294,40 +381,44 @@ class InterviewRouter:
             followup_note = ReferralNoteGenerator.generate_repost_followup_note(
                 job_payload, days_since_applied=days_ago
             )
-            return {
-                "routing_tier": "TIER_0_REPOST_FOLLOWUP",
-                "allow_immediate_apply": bool(direct_portal),
-                "referral_sla_hours": 0.0,
-                "age_hours": age_hours,
-                "freshness_badge": "🔄 REPOSTED — FOLLOW UP",
-                "priority_boost": priority_boost + 25,
-                "associated_post_url": "",
-                "post_author_name": "",
-                "post_author_url": "",
-                "direct_ats_portal_url": direct_portal or "",
-                "repost_followup_note": followup_note,
-                "rationale": (
-                    f"Role reposted {round(days_ago)}d after initial application -> "
-                    "Send <300-char Recruiter/HM follow-up note to surface existing application"
-                    + (f" or apply directly via {direct_portal}." if direct_portal else ".")
-                ),
-            }
+            return _attach_fortress(
+                {
+                    "routing_tier": "TIER_0_REPOST_FOLLOWUP",
+                    "allow_immediate_apply": bool(direct_portal),
+                    "referral_sla_hours": 0.0,
+                    "age_hours": age_hours,
+                    "freshness_badge": "🔄 REPOSTED — FOLLOW UP",
+                    "priority_boost": priority_boost + 25,
+                    "associated_post_url": "",
+                    "post_author_name": "",
+                    "post_author_url": "",
+                    "direct_ats_portal_url": direct_portal or "",
+                    "repost_followup_note": followup_note,
+                    "rationale": (
+                        f"Role reposted {round(days_ago)}d after initial application -> "
+                        "Send <300-char Recruiter/HM follow-up note to surface existing application"
+                        + (f" or apply directly via {direct_portal}." if direct_portal else ".")
+                    ),
+                }
+            )
 
         # Tier 0: Direct Hiring Post Match exists!
         if matched_posts:
             best_post = matched_posts[0]
-            return {
-                "routing_tier": "TIER_0_POST_AUTHOR",
-                "allow_immediate_apply": not (is_dream and is_workday),
-                "referral_sla_hours": sla_hours if (is_dream and is_workday) else 0.0,
-                "age_hours": age_hours,
-                "freshness_badge": freshness_badge,
-                "priority_boost": priority_boost + 30,
-                "associated_post_url": best_post.get("post_url", ""),
-                "post_author_name": best_post.get("author_name", ""),
-                "post_author_url": best_post.get("author_profile_url", ""),
-                "rationale": "Direct hiring/referral post found -> message post author immediately.",
-            }
+            return _attach_fortress(
+                {
+                    "routing_tier": "TIER_0_POST_AUTHOR",
+                    "allow_immediate_apply": not (is_dream and is_workday),
+                    "referral_sla_hours": sla_hours if (is_dream and is_workday) else 0.0,
+                    "age_hours": age_hours,
+                    "freshness_badge": freshness_badge,
+                    "priority_boost": priority_boost + 30,
+                    "associated_post_url": best_post.get("post_url", ""),
+                    "post_author_name": best_post.get("author_name", ""),
+                    "post_author_url": best_post.get("author_profile_url", ""),
+                    "rationale": "Direct hiring/referral post found -> message post author immediately.",
+                }
+            )
 
         # Fast-moving AI Evaluation or USD/EOR remote roles on non-Workday boards (<24h old) -> Fast-Snipe Immediately
         role_title = str(job_payload.get("title") or details.get("title") or "").lower()
@@ -350,39 +441,60 @@ class InterviewRouter:
                 if (is_usd_remote and freshness_badge not in ("🔥 SNIPER (<3h old)", "🔄 REOPENED (<24h)"))
                 else freshness_badge
             )
-            return {
-                "routing_tier": "TIER_1_SNIPER_APPLY",
-                "allow_immediate_apply": True,
-                "referral_sla_hours": 0.0,
-                "age_hours": age_hours,
-                "freshness_badge": eff_badge,
-                "global_remote_badge": remote_badge,
-                "priority_boost": priority_boost + (25 if is_usd_remote else 20),
-                "associated_post_url": "",
-                "post_author_name": "",
-                "post_author_url": "",
-                "rationale": f"Fast-moving {reason_tag} role (<24h old) -> Fast-snipe immediately to prevent requisition closure.",
-            }
+            return _attach_fortress(
+                {
+                    "routing_tier": "TIER_1_SNIPER_APPLY",
+                    "allow_immediate_apply": True,
+                    "referral_sla_hours": 0.0,
+                    "age_hours": age_hours,
+                    "freshness_badge": eff_badge,
+                    "global_remote_badge": remote_badge,
+                    "priority_boost": priority_boost + (25 if is_usd_remote else 20),
+                    "associated_post_url": "",
+                    "post_author_name": "",
+                    "post_author_url": "",
+                    "rationale": f"Fast-moving {reason_tag} role (<24h old) -> Fast-snipe immediately to prevent requisition closure.",
+                }
+            )
 
         # Tier 2: Dream Enterprise or Workday ATS -> Hold for 36h Referral SLA (preserves Workday bonus attribution)
         if is_dream or is_workday:
-            return {
-                "routing_tier": "TIER_2_REFERRAL_SLA",
-                "allow_immediate_apply": False,
-                "referral_sla_hours": sla_hours,
-                "age_hours": age_hours,
-                "freshness_badge": freshness_badge,
-                "priority_boost": priority_boost + 10,
-                "associated_post_url": "",
-                "post_author_name": "",
-                "post_author_url": "",
-                "rationale": f"Dream Org / Workday source ownership rule -> Scout 3 low-key referrers first; auto-unlock direct apply after {int(sla_hours)}h SLA.",
-            }
+            return _attach_fortress(
+                {
+                    "routing_tier": "TIER_2_REFERRAL_SLA",
+                    "allow_immediate_apply": False,
+                    "referral_sla_hours": sla_hours,
+                    "age_hours": age_hours,
+                    "freshness_badge": freshness_badge,
+                    "priority_boost": priority_boost + 10,
+                    "associated_post_url": "",
+                    "post_author_name": "",
+                    "post_author_url": "",
+                    "rationale": f"Dream Org / Workday source ownership rule -> Scout 3 low-key referrers first; auto-unlock direct apply after {int(sla_hours)}h SLA.",
+                }
+            )
 
         # Tier 1: Growth Startup / Scaleup (<24h old) -> Fast-Snipe Immediately
         if age_hours is None or age_hours <= 24.0:
-            return {
-                "routing_tier": "TIER_1_SNIPER_APPLY",
+            return _attach_fortress(
+                {
+                    "routing_tier": "TIER_1_SNIPER_APPLY",
+                    "allow_immediate_apply": True,
+                    "referral_sla_hours": 0.0,
+                    "age_hours": age_hours,
+                    "freshness_badge": freshness_badge,
+                    "priority_boost": priority_boost,
+                    "associated_post_url": "",
+                    "post_author_name": "",
+                    "post_author_url": "",
+                    "rationale": "Fresh growth/scaleup drop -> Fast-snipe immediately (<3 min) for first-applicant 4x callback multiplier.",
+                }
+            )
+
+        # Tier 1B: Older Non-Dream role -> Batch apply + ping 2 peers
+        return _attach_fortress(
+            {
+                "routing_tier": "TIER_1B_APPLY_AND_PEER_PING",
                 "allow_immediate_apply": True,
                 "referral_sla_hours": 0.0,
                 "age_hours": age_hours,
@@ -391,22 +503,9 @@ class InterviewRouter:
                 "associated_post_url": "",
                 "post_author_name": "",
                 "post_author_url": "",
-                "rationale": "Fresh growth/scaleup drop -> Fast-snipe immediately (<3 min) for first-applicant 4x callback multiplier.",
+                "rationale": "Standard growth/scaleup role -> Batch apply immediately + ping 2 low-key team peers.",
             }
-
-        # Tier 1B: Older Non-Dream role -> Batch apply + ping 2 peers
-        return {
-            "routing_tier": "TIER_1B_APPLY_AND_PEER_PING",
-            "allow_immediate_apply": True,
-            "referral_sla_hours": 0.0,
-            "age_hours": age_hours,
-            "freshness_badge": freshness_badge,
-            "priority_boost": priority_boost,
-            "associated_post_url": "",
-            "post_author_name": "",
-            "post_author_url": "",
-            "rationale": "Standard growth/scaleup role -> Batch apply immediately + ping 2 low-key team peers.",
-        }
+        )
 
 
 def extract_company_name(job_payload: dict[str, Any]) -> str:
@@ -665,6 +764,11 @@ class ReferralNoteGenerator:
                     f"Saw the {short_title} opening at {company}: {job_url} - "
                     f"would love to connect if open to referring!"
                 )
+            # Format E: Ultra-long Workday URLs (>180 chars) — preserve intact job URL inside 300-char limit
+            if len(note) > max_chars:
+                note = f"Hi {name}, SDET ({CANDIDATE_EXPERIENCE}) keen on {company}: {job_url} - open to referring?"
+            if len(note) > max_chars:
+                note = f"Hi {name}, SDET keen on {job_url} - open to referring?"
         else:
             # Fallback if no job URL available
             note = (

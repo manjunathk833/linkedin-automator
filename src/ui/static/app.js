@@ -283,10 +283,16 @@ function renderJob(index) {
         sourceEl.className = `section-badge ${badgeInfo.cssClass}`;
     }
 
-    // Dream Org priority badge
+    // Dream Org / Fortress Top-30 FY-Unlock priority badge
     const dreamBadge = document.getElementById('job-dream-badge');
     if (dreamBadge) {
-        if (job.is_dream_org) {
+        if (job.is_fortress_org && job.fortress_badge) {
+            dreamBadge.innerText = job.fortress_rank && job.fortress_rank <= 30
+                ? `${job.fortress_badge} (#${job.fortress_rank})`
+                : job.fortress_badge;
+            dreamBadge.classList.remove('hidden');
+        } else if (job.is_dream_org) {
+            dreamBadge.innerText = '⭐ DREAM ORG';
             dreamBadge.classList.remove('hidden');
         } else {
             dreamBadge.classList.add('hidden');
