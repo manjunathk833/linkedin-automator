@@ -19,12 +19,15 @@ from src.ingestion.extended_providers import (
     AmazonJobsCollector,
     AMDJibeCollector,
     AppleJobsCollector,
+    AtlassianCareersCollector,
     ComeetCollector,
     EightfoldCollector,
     GoogleCareersCollector,
+    OracleCloudHCMCollector,
     RecruiteeCollector,
     RipplingCollector,
     SmartRecruitersCollector,
+    TalentBrewCollector,
     WorkableCollector,
 )
 from src.ingestion.filters import evaluate_global_remote_signal
@@ -74,6 +77,9 @@ class ATSDiscoveryCoordinator:
         self.apple = AppleJobsCollector()
         self.google = GoogleCareersCollector()
         self.comeet = ComeetCollector()
+        self.oracle_hcm = OracleCloudHCMCollector()
+        self.atlassian = AtlassianCareersCollector()
+        self.talentbrew = TalentBrewCollector()
         self.hirist = HiristCollector()
         self.instahyre = InstahyreCollector()
         self.global_remote = GlobalRemoteAggregatorCollector()
@@ -363,6 +369,21 @@ class ATSDiscoveryCoordinator:
                         company_uid=company.site or "BA.005",
                         token=company.career_url or "",
                     )
+                elif provider == "oracle_hcm":
+                    coro = self.oracle_hcm.fetch_board_jobs(
+                        company_name=company.name,
+                        slug=company.slug,
+                        base_url=company.career_url or "",
+                        site_number=company.site or "CX",
+                    )
+                elif provider == "atlassian":
+                    coro = self.atlassian.fetch_board_jobs(company.name, company.slug)
+                elif provider == "talentbrew":
+                    coro = self.talentbrew.fetch_board_jobs(
+                        company_name=company.name,
+                        slug=company.slug,
+                        base_url=company.career_url or "",
+                    )
                 elif provider == "hirist":
                     coro = self.hirist.fetch_board_jobs(company.name, company.slug)
                 elif provider == "instahyre":
@@ -371,7 +392,7 @@ class ATSDiscoveryCoordinator:
                     coro = self.global_remote.fetch_board_jobs(company.name, company.slug)
                 else:
                     return []
-                timeout_sec = 22.0 if provider in GLOBAL_REMOTE_SOURCES else 16.0
+                timeout_sec = 25.0 if provider in (*GLOBAL_REMOTE_SOURCES, "oracle_hcm", "talentbrew") else 16.0
                 listings = await asyncio.wait_for(coro, timeout=timeout_sec)
             except asyncio.TimeoutError:
                 return []
@@ -396,17 +417,28 @@ class ATSDiscoveryCoordinator:
         age_days = (now - dt).total_seconds() / 86400.0
         return age_days <= max_age_days
 
-    async def ingest_all_sources(self, filter_sdet: bool = True, max_age_days: float | None = 3.0) -> list[JobListing]:
+    async def ingest_all_sources(
+        self,
+        filter_sdet: bool = True,
+        max_age_days: float | None = 3.0,
+        fortress_only: bool = False,
+    ) -> list[JobListing]:
         """
-        Ingests public job boards across all target companies concurrently,
+        Ingests public job boards across target companies concurrently,
         filtering out stale requisitions older than max_age_days (default <=3 days / 72h).
+        When `fortress_only=True`, restricts polling strictly to Top-30 Fortress GCCs.
         """
         companies = self.load_target_companies()
+        if fortress_only:
+            from src.tailor.referral_generator import classify_fortress_company
+
+            companies = [c for c in companies if classify_fortress_company(c.name).get("is_fortress_org")]
         if not companies:
             print(f"⚠️ No target companies found in {self.config_path}")
             return []
 
-        print(f"🌐 Ingesting ATS boards across {len(companies)} target enterprises (max_age_days={max_age_days})...")
+        scope_label = "Top-30 Fortress GCCs" if fortress_only else "target enterprises"
+        print(f"🌐 Ingesting ATS boards across {len(companies)} {scope_label} (max_age_days={max_age_days})...")
         self.semaphore = asyncio.Semaphore(self.max_concurrency)
         tasks = [self._fetch_company_jobs(c) for c in companies]
         results = await asyncio.gather(*tasks, return_exceptions=True)

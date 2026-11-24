@@ -247,7 +247,9 @@ class EmailReporter:
             f_info = classify_fortress_company(company)
             is_dream = job.get("is_dream_org", False) or f_info["is_fortress_org"]
             if f_info["is_fortress_org"]:
-                dream_tag = f'<span style="color:#059669;font-weight:700;"> ⭐ DREAM ORG · {f_info["fortress_badge"]}</span>'
+                dream_tag = (
+                    f'<span style="color:#059669;font-weight:700;"> ⭐ DREAM ORG · {f_info["fortress_badge"]}</span>'
+                )
             elif is_dream:
                 dream_tag = '<span style="color:#f59e0b;font-weight:700;"> ⭐ DREAM ORG</span>'
             else:

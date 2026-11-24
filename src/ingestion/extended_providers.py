@@ -927,3 +927,420 @@ class AMDJibeCollector:
         except Exception as e:
             print(f"⚠️ AMD Jibe fetch warning for {company_name}: {e}")
         return list(combined.values())
+
+
+class OracleCloudHCMCollector:
+    """
+    Async keyless collector for Oracle Cloud HCM Recruiting CE REST APIs.
+    Powers Fortress GCC career portals such as JPMorgan Chase (jpmc.fa.oraclecloud.com)
+    and Texas Instruments (edbz.fa.us2.oraclecloud.com).
+    """
+
+    DEFAULT_QUERIES = ("SDET", "QA", "Test Engineer", "Quality Engineer", "Automation")
+
+    def __init__(self, timeout_seconds: float = 12.0):
+        self.timeout = timeout_seconds
+
+    @staticmethod
+    def _extract_location(req: dict[str, Any]) -> str:
+        primary = str(req.get("PrimaryLocation") or "").strip()
+        country = str(req.get("PrimaryLocationCountry") or "").strip().upper()
+        parts: list[str] = []
+        if primary:
+            parts.append(primary)
+        sec = req.get("secondaryLocations") or []
+        if isinstance(sec, list):
+            for s in sec[:4]:
+                if isinstance(s, dict):
+                    sname = str(s.get("Name") or "").strip()
+                    if sname and sname not in parts:
+                        parts.append(sname)
+        loc_text = " | ".join(parts)
+        if country in ("IN", "IND") and "india" not in loc_text.lower():
+            loc_text = f"{loc_text}, India".strip(", ")
+        return loc_text
+
+    def parse_response(
+        self,
+        company_name: str,
+        slug: str,
+        base_url: str,
+        site_number: str,
+        data: dict[str, Any],
+        filter_sdet: bool = True,
+    ) -> list[JobListing]:
+        listings: list[JobListing] = []
+        items = data.get("items") or []
+        if not isinstance(items, list) or not items:
+            return listings
+
+        reqs = items[0].get("requisitionList") if isinstance(items[0], dict) else []
+        if not isinstance(reqs, list):
+            return listings
+
+        clean_base = base_url.rstrip("/")
+        seen_ids: set[str] = set()
+        for req in reqs:
+            if not isinstance(req, dict):
+                continue
+            title = str(req.get("Title") or "").strip()
+            if not title or (filter_sdet and not is_sdet_title(title)):
+                continue
+
+            location_name = self._extract_location(req)
+            workplace = str(req.get("WorkplaceTypeCode") or "").lower()
+            is_remote = "remote" in location_name.lower() or "remote" in workplace
+            if filter_sdet and not is_india_or_remote_location(location_name):
+                continue
+
+            job_id = str(req.get("Id") or "").strip()
+            if not job_id or job_id in seen_ids:
+                continue
+            seen_ids.add(job_id)
+
+            posted_dt = parse_iso_timestamp(req.get("PostedDate"))
+            job_url = f"{clean_base}/hcmUI/CandidateExperience/en/sites/{site_number}/job/{job_id}"
+            raw_desc = (
+                str(req.get("ExternalDescriptionStr") or req.get("ShortDescriptionStr") or "").strip()
+                or f"{title} at {company_name} ({location_name})"
+            )
+            clean_desc = clean_html_description(raw_desc) or f"{title} at {company_name} ({location_name})"
+
+            listings.append(
+                JobListing(
+                    id=f"oracle_hcm_{slug}_{job_id}",
+                    source="oracle_hcm",
+                    company_name=company_name,
+                    job_title=title,
+                    location=location_name or "India",
+                    is_remote=is_remote,
+                    is_dream_org=True,
+                    job_description_raw=raw_desc,
+                    job_description_clean=clean_desc,
+                    url=job_url,
+                    posted_at=posted_dt,
+                    status="pending",
+                )
+            )
+        return listings
+
+    async def _hydrate_detail(
+        self,
+        client: httpx.AsyncClient,
+        clean_base: str,
+        site_number: str,
+        listing: JobListing,
+    ) -> None:
+        raw_id = listing.id.rsplit("_", 1)[-1]
+        detail_url = (
+            f"{clean_base}/hcmRestApi/resources/latest/recruitingCEJobRequisitionDetails"
+            f'?expand=all&onlyData=true&finder=ById;Id="{raw_id}",siteNumber={site_number}'
+        )
+        try:
+            res = await client.get(detail_url)
+            if res.status_code != 200:
+                return
+            items = (res.json() or {}).get("items") or []
+            if not items or not isinstance(items[0], dict):
+                return
+            detail = items[0]
+            parts = [
+                str(detail.get(k) or "")
+                for k in (
+                    "ExternalDescriptionStr",
+                    "ExternalResponsibilitiesStr",
+                    "ExternalQualificationsStr",
+                    "ShortDescriptionStr",
+                )
+            ]
+            combined_html = " ".join(p for p in parts if p.strip()).strip()
+            if combined_html:
+                listing.job_description_raw = combined_html
+                listing.job_description_clean = clean_html_description(combined_html)
+        except Exception:
+            return
+
+    async def fetch_board_jobs(
+        self,
+        company_name: str,
+        slug: str,
+        base_url: str,
+        site_number: str = "CX",
+        filter_sdet: bool = True,
+    ) -> list[JobListing]:
+        if not base_url:
+            return []
+        clean_base = base_url.rstrip("/")
+        combined: dict[str, JobListing] = {}
+        queries = self.DEFAULT_QUERIES if filter_sdet else ("Software",)
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers=headers) as client:
+                for q in queries:
+                    url = (
+                        f"{clean_base}/hcmRestApi/resources/latest/recruitingCEJobRequisitions"
+                        f"?onlyData=true&expand=requisitionList.secondaryLocations"
+                        f"&finder=findReqs;siteNumber={site_number},limit=25,offset=0,keyword={q}"
+                    )
+                    res = await client.get(url)
+                    if res.status_code != 200:
+                        continue
+                    for item in self.parse_response(
+                        company_name, slug, clean_base, site_number, res.json(), filter_sdet=filter_sdet
+                    ):
+                        combined[item.id] = item
+                # Hydrate full descriptions for up to 12 matched roles
+                for item in list(combined.values())[:12]:
+                    await self._hydrate_detail(client, clean_base, site_number, item)
+        except Exception as e:
+            print(f"⚠️ Oracle Cloud HCM fetch warning for {company_name} ({slug}): {e}")
+        return list(combined.values())
+
+
+class AtlassianCareersCollector:
+    """Async keyless collector for Atlassian's public JSON listings endpoint."""
+
+    LISTINGS_URL = "https://www.atlassian.com/endpoint/careers/listings"
+
+    def __init__(self, timeout_seconds: float = 12.0):
+        self.timeout = timeout_seconds
+
+    def parse_response(
+        self,
+        company_name: str,
+        slug: str,
+        data: list[dict[str, Any]],
+        filter_sdet: bool = True,
+    ) -> list[JobListing]:
+        listings: list[JobListing] = []
+        if not isinstance(data, list):
+            return listings
+
+        seen_ids: set[str] = set()
+        for job in data:
+            if not isinstance(job, dict):
+                continue
+            title = str(job.get("title") or "").strip()
+            if not title or (filter_sdet and not is_sdet_title(title)):
+                continue
+
+            locs = job.get("locations") or []
+            loc_list = [str(x).strip() for x in locs if str(x).strip()] if isinstance(locs, list) else [str(locs)]
+            matched_locs = [loc for loc in loc_list if is_india_or_remote_location(loc)]
+            if filter_sdet and not matched_locs:
+                continue
+
+            location_name = ", ".join(matched_locs or loc_list) or "Bengaluru, India"
+            is_remote = "remote" in location_name.lower()
+            job_id = str(job.get("id") or "").strip()
+            if not job_id or job_id in seen_ids:
+                continue
+            seen_ids.add(job_id)
+
+            portal_post = job.get("portalJobPost") or {}
+            job_url = str(
+                job.get("applyUrl")
+                or (portal_post.get("portalUrl") if isinstance(portal_post, dict) else "")
+                or f"https://www.atlassian.com/company/careers/details/{job_id}"
+            ).strip()
+            raw_desc = (
+                " ".join(str(job.get(k) or "") for k in ("overview", "responsibilities", "qualifications")).strip()
+                or f"{title} at {company_name} ({location_name})"
+            )
+            clean_desc = clean_html_description(raw_desc)
+
+            listings.append(
+                JobListing(
+                    id=f"atlassian_{slug}_{job_id}",
+                    source="atlassian",
+                    company_name=company_name,
+                    job_title=title,
+                    location=location_name,
+                    is_remote=is_remote,
+                    is_dream_org=True,
+                    job_description_raw=raw_desc,
+                    job_description_clean=clean_desc,
+                    url=job_url,
+                    posted_at=None,
+                    status="pending",
+                )
+            )
+        return listings
+
+    async def fetch_board_jobs(
+        self,
+        company_name: str = "Atlassian",
+        slug: str = "atlassian",
+        filter_sdet: bool = True,
+    ) -> list[JobListing]:
+        headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers=headers) as client:
+                res = await client.get(self.LISTINGS_URL)
+                if res.status_code != 200:
+                    return []
+                return self.parse_response(company_name, slug, res.json(), filter_sdet=filter_sdet)
+        except Exception as e:
+            print(f"⚠️ Atlassian Careers fetch warning for {company_name}: {e}")
+            return []
+
+
+class TalentBrewCollector:
+    """
+    Async keyless SSR HTML collector for Radancy / TalentBrew career portals.
+    Powers Fortress GCC boards such as Synopsys (careers.synopsys.com) and Intuit (jobs.intuit.com).
+    """
+
+    DEFAULT_QUERIES = ("SDET", "QA", "Quality", "Test", "Automation")
+
+    def __init__(self, timeout_seconds: float = 12.0):
+        self.timeout = timeout_seconds
+
+    @staticmethod
+    def _clean_text(fragment: str) -> str:
+        return clean_html_description(fragment)
+
+    def parse_search_html(
+        self,
+        company_name: str,
+        slug: str,
+        base_url: str,
+        html_text: str,
+        filter_sdet: bool = True,
+    ) -> list[JobListing]:
+        listings: list[JobListing] = []
+        if not html_text:
+            return listings
+
+        clean_base = base_url.rstrip("/")
+        # Match anchor blocks pointing to /job/<city>/<title-slug>/<org_id>/<job_id>
+        anchor_pattern = re.compile(
+            r'<a[^>]+href="(/job/[^"]+)"[^>]*>(.*?)</a>',
+            re.IGNORECASE | re.DOTALL,
+        )
+        seen_ids: set[str] = set()
+        for match in anchor_pattern.finditer(html_text):
+            rel_path, inner_html = match.group(1), match.group(2)
+            h2_m = re.search(r"<h2[^>]*>(.*?)</h2>", inner_html, re.IGNORECASE | re.DOTALL)
+            if not h2_m:
+                continue
+            title = self._clean_text(h2_m.group(1))
+            if not title or (filter_sdet and not is_sdet_title(title)):
+                continue
+
+            loc_m = re.search(
+                r'class="[^"]*job-location[^"]*"[^>]*>(.*?)</',
+                inner_html,
+                re.IGNORECASE | re.DOTALL,
+            )
+            city_from_path = ""
+            path_parts = [p for p in rel_path.strip("/").split("/") if p]
+            if len(path_parts) >= 2:
+                city_from_path = path_parts[1].replace("-", " ").title()
+            location_name = self._clean_text(loc_m.group(1)) if loc_m else city_from_path
+            if not location_name:
+                location_name = city_from_path
+
+            # Strictly verify India/Remote (TalentBrew ?k= queries may mix US/global cards)
+            if filter_sdet and not is_india_or_remote_location(location_name):
+                continue
+
+            job_id = path_parts[-1] if path_parts else re.sub(r"[^a-zA-Z0-9]+", "_", rel_path)
+            if not job_id or job_id in seen_ids:
+                continue
+            seen_ids.add(job_id)
+
+            date_m = re.search(
+                r'class="[^"]*job-date-posted[^"]*"[^>]*>(.*?)</',
+                inner_html,
+                re.IGNORECASE | re.DOTALL,
+            )
+            posted_dt = None
+            if date_m:
+                raw_date = self._clean_text(date_m.group(1))
+                for fmt in ("%m/%d/%Y", "%b %d, %Y", "%B %d, %Y", "%Y-%m-%d"):
+                    try:
+                        posted_dt = datetime.strptime(raw_date, fmt).replace(tzinfo=timezone.utc)
+                        break
+                    except ValueError:
+                        continue
+
+            job_url = f"{clean_base}{rel_path}"
+            is_remote = "remote" in location_name.lower() or "remote" in title.lower()
+            fallback_desc = f"{title} at {company_name} ({location_name})"
+
+            listings.append(
+                JobListing(
+                    id=f"talentbrew_{slug}_{job_id}",
+                    source="talentbrew",
+                    company_name=company_name,
+                    job_title=title,
+                    location=location_name,
+                    is_remote=is_remote,
+                    is_dream_org=True,
+                    job_description_raw=fallback_desc,
+                    job_description_clean=fallback_desc,
+                    url=job_url,
+                    posted_at=posted_dt,
+                    status="pending",
+                )
+            )
+        return listings
+
+    async def _hydrate_detail(self, client: httpx.AsyncClient, listing: JobListing) -> None:
+        try:
+            res = await client.get(listing.url)
+            if res.status_code != 200:
+                return
+            desc_m = re.search(
+                r'<div[^>]+class="[^"]*ats-description[^"]*"[^>]*>(.*?)</div>\s*</section>',
+                res.text,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if not desc_m:
+                desc_m = re.search(
+                    r'<div[^>]+class="[^"]*ats-description[^"]*"[^>]*>(.*?)</div>',
+                    res.text,
+                    re.IGNORECASE | re.DOTALL,
+                )
+            if desc_m:
+                raw_desc = desc_m.group(1)
+                clean_desc = self._clean_text(raw_desc)
+                if len(clean_desc) >= 60:
+                    listing.job_description_raw = raw_desc
+                    listing.job_description_clean = clean_desc
+        except Exception:
+            return
+
+    async def fetch_board_jobs(
+        self,
+        company_name: str,
+        slug: str,
+        base_url: str,
+        filter_sdet: bool = True,
+    ) -> list[JobListing]:
+        if not base_url:
+            return []
+        clean_base = base_url.rstrip("/")
+        combined: dict[str, JobListing] = {}
+        queries = self.DEFAULT_QUERIES if filter_sdet else ("Engineering",)
+        headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers=headers) as client:
+                for q in queries:
+                    url = f"{clean_base}/search-jobs/India"
+                    res = await client.get(url, params={"k": q})
+                    if res.status_code != 200:
+                        continue
+                    for item in self.parse_search_html(
+                        company_name, slug, clean_base, res.text, filter_sdet=filter_sdet
+                    ):
+                        combined[item.id] = item
+                for item in list(combined.values())[:10]:
+                    await self._hydrate_detail(client, item)
+        except Exception as e:
+            print(f"⚠️ TalentBrew fetch warning for {company_name} ({slug}): {e}")
+        return list(combined.values())

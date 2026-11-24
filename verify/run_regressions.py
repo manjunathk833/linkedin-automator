@@ -122,6 +122,7 @@ TIER_1_CORE = [
     "114_test_global_usd_eur_gbp_remote_sniper.py",
     "115_test_anti_slop_autofill_grounding.py",
     "116_test_fortress_priority_domain_filters_and_llm_resilience.py",
+    "117_test_fortress_ats_collectors.py",
 ]
 
 
