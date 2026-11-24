@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 class JobListing(BaseModel):
     id: str = Field(description="Unique composite key: {source}_{company}_{external_id}")
     source: str = Field(
-        description="greenhouse | lever | ashby | workday | smartrecruiters | rippling | workable | recruitee | linkedin"
+        description="greenhouse | lever | ashby | workday | smartrecruiters | rippling | workable | recruitee | oracle_hcm | atlassian | talentbrew | linkedin"
     )
     company_name: str
     job_title: str
@@ -35,7 +35,7 @@ class JobListing(BaseModel):
 class TargetCompany(BaseModel):
     name: str
     ats_provider: str = Field(
-        description="greenhouse | lever | ashby | workday | smartrecruiters | rippling | workable | recruitee | hirist | instahyre"
+        description="greenhouse | lever | ashby | workday | smartrecruiters | rippling | workable | recruitee | oracle_hcm | atlassian | talentbrew | hirist | instahyre"
     )
     slug: str
     domain: str | None = None

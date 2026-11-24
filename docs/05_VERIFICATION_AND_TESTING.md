@@ -9,7 +9,7 @@ Per Workspace Rule #2 and Rule #8, every browser interaction, DOM selector, LLM 
 Execute the standardized test suite via `main.py`:
 
 ```bash
-# Run Tier 1 Core Regression Suite (73 self-contained tests in ~80s — Mandatory before every commit/PR):
+# Run Tier 1 Core Regression Suite (76 self-contained tests in ~80s — Mandatory before every commit/PR):
 ./venv/bin/python main.py test --tier core
 
 # Run Tier 2 Playwright Autofill Simulation Suite (18 vendor form simulation gates):
@@ -70,3 +70,5 @@ Execute the standardized test suite via `main.py`:
 | **113** | `verify/113_test_pipeline_speed_optimizations.py` | Single-pass multi-company Gemini tailoring (`50%` call reduction), pre-tailoring eligibility gate, and `<6h` Cloud-CI `skip_static_ats` | **PASSED** |
 | **114** | `verify/114_test_global_usd_eur_gbp_remote_sniper.py` | `TRACK_4_GLOBAL_REMOTE` (`🌍 Track 4: Global Remote USD/GBP/EUR`), `GlobalRemoteAggregatorCollector` (`Mercor`, `Jobicy`, `Arbeitnow`, `RemoteOK`, `Himalayas`, `WWR`, `WorkingNomads`, `Remotive`), pre-click Worldwide/APAC location priority, `InterviewRouter` `+25` priority boost, and Tab 3 Track 4 analytics | **PASSED** |
 | **115** | `verify/115_test_workday_fast_track_rules.py` | Workday multi-tenant fast-track question solver (`PwC`, `Nvidia`, `Dexcom`, `HPE`, `Thomson Reuters`), spinbutton `endDate` activation, `/useMyLastApplication` -> `Apply Manually` session reset, and `AutofillGroundTruthGuard` 1-line slop stub blocker | **PASSED** |
+| **116** | `verify/116_test_fortress_priority_domain_filters_and_llm_resilience.py` | Top-30 Fortress GCC FY-Unlock classification (`FORTRESS_TOP30_RULES`), pre-tailoring hardware/ERP/9-YOE domain filters, `MORNING_SENTINEL` wake resilience, and `25s` Gemini 3.1 Flash-Lite timeout/fallback hardening | **PASSED** |
+| **117** | `verify/117_test_fortress_ats_collectors.py` | Keyless `OracleCloudHCMCollector` (`JPMorgan Chase`, `Texas Instruments`), `AtlassianCareersCollector` (`Atlassian`), `TalentBrewCollector` (`Synopsys`, `Intuit`), repaired Fortress GCC `target_companies.json` config, and `--fortress-only` coordinator scoping | **PASSED** |

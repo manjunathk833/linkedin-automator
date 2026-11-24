@@ -1164,6 +1164,12 @@ def main():
         default=False,
         help="Use deterministic fast tailoring without LLM API calls",
     )
+    parser_ats.add_argument(
+        "--fortress-only",
+        action="store_true",
+        default=False,
+        help="Restrict ATS polling exclusively to Top-30 Fortress GCC organizations",
+    )
 
     args = parser.parse_args()
     config = load_config(args.config)
@@ -1317,10 +1323,17 @@ def main():
         from src.ingestion.ats_discovery import ATSDiscoveryCoordinator
 
         all_open = bool(getattr(args, "all_open", False))
+        fortress_only = bool(getattr(args, "fortress_only", False))
         age_limit = None if all_open else float(getattr(args, "max_age_days", 3.0))
         use_ai = False if getattr(args, "no_ai", False) else runner.use_ai
         coord = ATSDiscoveryCoordinator(use_ai=use_ai)
-        listings = asyncio.run(coord.ingest_all_sources(filter_sdet=True, max_age_days=age_limit))
+        listings = asyncio.run(
+            coord.ingest_all_sources(
+                filter_sdet=True,
+                max_age_days=age_limit,
+                fortress_only=fortress_only,
+            )
+        )
         saved = coord.save_listings_to_queue(listings, tailor=True, include_all_open=all_open)
         print(f"🎯 ATS Ingest Complete: {len(saved)} open QA/SDET job(s) staged into data/pending_queue/!")
     else:
