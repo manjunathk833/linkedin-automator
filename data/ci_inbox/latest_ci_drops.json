@@ -1,0 +1,194 @@
+{
+  "generated_at": "2026-11-28T10:39:06.693964Z",
+  "max_age_hours": 24.0,
+  "total_orgs_polled": 1147,
+  "total_sdet_matches_scanned": 143,
+  "fresh_drops_count": 0,
+  "reopened_fresh_count": 0,
+  "skipped_already_seen": 143,
+  "skipped_older_than_window": 0,
+  "provider_telemetry": {
+    "greenhouse": {
+      "orgs_polled": 357,
+      "orgs_with_matches": 23,
+      "sdet_matches_found": 42,
+      "retained_within_window": 42,
+      "matched_orgs": [
+        "Okta (1)",
+        "Zscaler (2)",
+        "Fivetran (2)",
+        "Airbnb (1)",
+        "Storyblok (1)",
+        "Ping Identity (1)",
+        "Bitwarden (3)",
+        "OneTrust (2)"
+      ]
+    },
+    "ashby": {
+      "orgs_polled": 272,
+      "orgs_with_matches": 12,
+      "sdet_matches_found": 22,
+      "retained_within_window": 22,
+      "matched_orgs": [
+        "Tekion (8)",
+        "Snyk (1)",
+        "Midjourney (1)",
+        "Cerebras (2)",
+        "Seon (1)",
+        "Cognition (1)",
+        "Sophos (1)",
+        "Litmus (2)"
+      ]
+    },
+    "atlassian": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "workday": {
+      "orgs_polled": 319,
+      "orgs_with_matches": 5,
+      "sdet_matches_found": 10,
+      "retained_within_window": 10,
+      "matched_orgs": [
+        "Dover India (2)",
+        "Citi Technology (1)",
+        "Equifax Technology (1)",
+        "NXP Semiconductors India (3)",
+        "Cadence Design Systems (3)"
+      ]
+    },
+    "lever": {
+      "orgs_polled": 81,
+      "orgs_with_matches": 6,
+      "sdet_matches_found": 17,
+      "retained_within_window": 17,
+      "matched_orgs": [
+        "Mindtickle (1)",
+        "Veeva Systems (7)",
+        "HighLevel (5)",
+        "Neuron7.ai (1)",
+        "Acceldata (2)",
+        "Dozee (1)"
+      ]
+    },
+    "smartrecruiters": {
+      "orgs_polled": 61,
+      "orgs_with_matches": 6,
+      "sdet_matches_found": 11,
+      "retained_within_window": 11,
+      "matched_orgs": [
+        "Endava (2)",
+        "IntegriChain (2)",
+        "QAD (1)",
+        "Experian (1)",
+        "Shipsy (1)",
+        "Arista Networks (4)"
+      ]
+    },
+    "talentbrew": {
+      "orgs_polled": 2,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 1,
+      "retained_within_window": 1,
+      "matched_orgs": [
+        "Intuit (1)"
+      ]
+    },
+    "rippling": {
+      "orgs_polled": 21,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "workable": {
+      "orgs_polled": 5,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "recruitee": {
+      "orgs_polled": 6,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "oracle_hcm": {
+      "orgs_polled": 2,
+      "orgs_with_matches": 2,
+      "sdet_matches_found": 9,
+      "retained_within_window": 9,
+      "matched_orgs": [
+        "JPMorgan Chase (1)",
+        "Texas Instruments India (8)"
+      ]
+    },
+    "amd": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 2,
+      "retained_within_window": 2,
+      "matched_orgs": [
+        "AMD India (2)"
+      ]
+    },
+    "comeet": {
+      "orgs_polled": 3,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "google": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 0,
+      "sdet_matches_found": 0,
+      "retained_within_window": 0,
+      "matched_orgs": []
+    },
+    "eightfold": {
+      "orgs_polled": 4,
+      "orgs_with_matches": 3,
+      "sdet_matches_found": 11,
+      "retained_within_window": 11,
+      "matched_orgs": [
+        "Qualcomm India (Careers) (7)",
+        "PayPal India (Careers) (2)",
+        "Micron India (Careers) (2)"
+      ]
+    },
+    "amazon": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 11,
+      "retained_within_window": 11,
+      "matched_orgs": [
+        "Amazon India (11)"
+      ]
+    },
+    "apple": {
+      "orgs_polled": 1,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 4,
+      "retained_within_window": 4,
+      "matched_orgs": [
+        "Apple India (4)"
+      ]
+    },
+    "global_remote": {
+      "orgs_polled": 9,
+      "orgs_with_matches": 1,
+      "sdet_matches_found": 3,
+      "retained_within_window": 3,
+      "matched_orgs": [
+        "Mercor AI (3)"
+      ]
+    }
+  },
+  "drops": []
+}
